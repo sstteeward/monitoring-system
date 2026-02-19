@@ -1,13 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
 import { signUp, signIn } from "../services/auth";
 
 export const AuthSignup: React.FC = () => {
     const [mode, setMode] = useState<"signup" | "login">("signup");
-    const leftRef = useRef<HTMLDivElement | null>(null);
-    const leftImgRef = useRef<HTMLImageElement | null>(null);
-    const cardRef = useRef<HTMLFormElement | null>(null);
 
     // Signup state
     const [firstName, setFirstName] = useState("");
@@ -29,37 +26,6 @@ export const AuthSignup: React.FC = () => {
 
     useEffect(() => {
         document.title = mode === "signup" ? "Create Your Account | SIL Monitoring System" : "Login | SIL Monitoring System";
-    }, [mode]);
-
-    // helper to set left panel height to match the card
-    const updateHeight = () => {
-        const card = cardRef.current;
-        const left = leftRef.current;
-        if (!card || !left) return;
-        const rect = card.getBoundingClientRect();
-        left.style.height = `${Math.round(rect.height)}px`;
-    };
-
-    // keep the left panel height synced to the form card
-    useEffect(() => {
-        updateHeight();
-
-        const ro = new ResizeObserver(() => updateHeight());
-        if (cardRef.current) ro.observe(cardRef.current);
-        if (leftImgRef.current) leftImgRef.current.addEventListener("load", updateHeight);
-        window.addEventListener("resize", updateHeight);
-
-        // extra calls after mode change to catch asynchronous layout changes
-        const raf = requestAnimationFrame(updateHeight);
-        const t = setTimeout(updateHeight, 120);
-
-        return () => {
-            ro.disconnect();
-            if (leftImgRef.current) leftImgRef.current.removeEventListener("load", updateHeight);
-            window.removeEventListener("resize", updateHeight);
-            cancelAnimationFrame(raf);
-            clearTimeout(t);
-        };
     }, [mode]);
 
     const isEduPh = (value: string) => /\.edu\.ph$/i.test(value.trim());
@@ -134,199 +100,202 @@ export const AuthSignup: React.FC = () => {
     };
 
     return (
-        <div className="auth-split">
-            <div
-                className="auth-left"
-                role="img"
-                aria-label="Campus photo"
-                ref={leftRef}
-            >
-                <img ref={leftImgRef} src={leftPhoto} className="left-img" alt="Asian College campus" />
-                <div className="auth-left-overlay">
-                    <h1 className="left-title"><span className="asian">Asian</span> <span className="college">College</span></h1>
-                    <p className="left-sub">SIL Monitoring System</p>
+        <div className="auth-page">
+            <div className={`auth-card ${mode}`}>
+                {/* Left Side: Image */}
+                <div className="auth-card-left">
+                    <img src={leftPhoto} className="left-img" alt="Asian College campus" />
+                    <div className="auth-left-overlay">
+                        <h1 className="left-title"><span className="asian">Asian</span> <span className="college">College</span></h1>
+                        <p className="left-sub">SIL Monitoring System</p>
+                    </div>
                 </div>
-            </div>
 
-            <main className="auth-right">
-                {mode === "signup" ? (
-                    <form ref={cardRef} className="glass-card" onSubmit={handleSignup} noValidate>
-                        <div className="card-header">
-                            <h1>Create Your Account</h1>
-                            <p className="subtitle">Sign up using your <strong>.edu.ph</strong> email.</p>
-                        </div>
+                {/* Right Side: Form */}
+                <div className="auth-card-right">
+                    {mode === "signup" ? (
+                        <form className="auth-form" onSubmit={handleSignup} noValidate>
+                            <div className="card-header">
+                                <h1>Create Your Account</h1>
+                                <p className="subtitle">Sign up using your <strong>.edu.ph</strong> email.</p>
+                            </div>
 
-                        <div className="form-row">
-                            <label>
-                                First Name *
-                                <input value={firstName} onChange={e => setFirstName(e.target.value)} />
-                                {errors.firstName && <span className="error">{errors.firstName}</span>}
-                            </label>
-                            <label>
-                                Middle Name
-                                <input value={middleName} onChange={e => setMiddleName(e.target.value)} />
-                            </label>
-                            <label>
-                                Last Name *
-                                <input value={lastName} onChange={e => setLastName(e.target.value)} />
-                                {errors.lastName && <span className="error">{errors.lastName}</span>}
-                            </label>
-                        </div>
+                            <div className="form-scrollable">
+                                <div className="form-row">
+                                    <label>
+                                        First Name *
+                                        <input value={firstName} onChange={e => setFirstName(e.target.value)} />
+                                        {errors.firstName && <span className="error">{errors.firstName}</span>}
+                                    </label>
+                                    <label>
+                                        Middle Name
+                                        <input value={middleName} onChange={e => setMiddleName(e.target.value)} />
+                                    </label>
+                                    <label>
+                                        Last Name *
+                                        <input value={lastName} onChange={e => setLastName(e.target.value)} />
+                                        {errors.lastName && <span className="error">{errors.lastName}</span>}
+                                    </label>
+                                </div>
 
-                        <label className="full-width">
-                            Email Address *
-                            <div className="email-row">
-                                <input
-                                    type="email"
-                                    value={signupEmail}
-                                    onChange={e => {
-                                        setSignupEmail(e.target.value);
-                                        setEmailVerified(false);
-                                        setErrors(prev => ({ ...prev, signupEmail: "" }));
-                                    }}
-                                    placeholder="name@school.edu.ph"
-                                    aria-describedby="email-note"
-                                />
-                                <button type="button" className="verify-btn" onClick={handleSendVerification}>
-                                    Send verification
+                                <label className="full-width">
+                                    Email Address *
+                                    <div className="email-row">
+                                        <input
+                                            type="email"
+                                            value={signupEmail}
+                                            onChange={e => {
+                                                setSignupEmail(e.target.value);
+                                                setEmailVerified(false);
+                                                setErrors(prev => ({ ...prev, signupEmail: "" }));
+                                            }}
+                                            placeholder="name@school.edu.ph"
+                                            aria-describedby="email-note"
+                                        />
+                                        <button type="button" className="verify-btn" onClick={handleSendVerification}>
+                                            Send verification
+                                        </button>
+                                    </div>
+                                    <div id="email-note" className="muted">Only emails ending with <code>.edu.ph</code> are accepted.</div>
+                                    {errors.signupEmail && <span className="error">{errors.signupEmail}</span>}
+                                </label>
+
+                                <label className="full-width">
+                                    Password *
+                                    <input
+                                        type="password"
+                                        value={signupPassword}
+                                        onChange={e => {
+                                            setSignupPassword(e.target.value);
+                                            setErrors(prev => ({ ...prev, signupPassword: "" }));
+                                        }}
+                                        placeholder="Create a password (min 8 characters)"
+                                    />
+                                    {errors.signupPassword && <span className="error">{errors.signupPassword}</span>}
+                                </label>
+
+                                <label className="full-width">
+                                    Re-enter Password *
+                                    <input
+                                        type="password"
+                                        value={signupConfirm}
+                                        onChange={e => {
+                                            setSignupConfirm(e.target.value);
+                                            setErrors(prev => ({ ...prev, signupConfirm: "" }));
+                                        }}
+                                        placeholder="Re-enter your password"
+                                    />
+                                    {errors.signupConfirm && <span className="error">{errors.signupConfirm}</span>}
+                                </label>
+
+                                <div className="verification-line">
+                                    <div className={`verify-indicator ${emailVerified ? "ok" : "pending"}`}>
+                                        {emailVerified ? "Email verified" : "Unverified"}
+                                    </div>
+                                    <div className="account-type">
+                                        <label>
+                                            <input
+                                                type="radio"
+                                                name="acct"
+                                                value="student"
+                                                checked={accountType === "student"}
+                                                onChange={() => setAccountType("student")}
+                                            />
+                                            Student
+                                        </label>
+                                        <label>
+                                            <input
+                                                type="radio"
+                                                name="acct"
+                                                value="coordinator"
+                                                checked={accountType === "coordinator"}
+                                                onChange={() => setAccountType("coordinator")}
+                                            />
+                                            Coordinator
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {errors.general && <div className="error">{errors.general}</div>}
+                                {infoMessage && <div className="info-msg">{infoMessage}</div>}
+
+                                <div className="cta-row">
+                                    <button className="primary" type="submit" disabled={isSubmitting}>
+                                        {isSubmitting ? "Signing up..." : "Sign Up"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="auth-footer">
+                                <p className="foot muted">Secure .edu.ph portal • Trusted by Asian College Dumaguete</p>
+                                <button type="button" className="muted switch-btn" onClick={() => { setMode("login"); setErrors({}); }}>
+                                    Already have an account? Sign in
                                 </button>
                             </div>
-                            <div id="email-note" className="muted">Only emails ending with <code>.edu.ph</code> are accepted.</div>
-                            {errors.signupEmail && <span className="error">{errors.signupEmail}</span>}
-                        </label>
-
-                        <label className="full-width">
-                            Password *
-                            <input
-                                type="password"
-                                value={signupPassword}
-                                onChange={e => {
-                                    setSignupPassword(e.target.value);
-                                    setErrors(prev => ({ ...prev, signupPassword: "" }));
-                                }}
-                                placeholder="Create a password (min 8 characters)"
-                            />
-                            {errors.signupPassword && <span className="error">{errors.signupPassword}</span>}
-                        </label>
-
-                        <label className="full-width">
-                            Re-enter Password *
-                            <input
-                                type="password"
-                                value={signupConfirm}
-                                onChange={e => {
-                                    setSignupConfirm(e.target.value);
-                                    setErrors(prev => ({ ...prev, signupConfirm: "" }));
-                                }}
-                                placeholder="Re-enter your password"
-                            />
-                            {errors.signupConfirm && <span className="error">{errors.signupConfirm}</span>}
-                        </label>
-
-                        <div className="verification-line">
-                            <div className={`verify-indicator ${emailVerified ? "ok" : "pending"}`}>
-                                {emailVerified ? "Email verified" : "Unverified"}
+                        </form>
+                    ) : (
+                        <form className="auth-form" onSubmit={handleLogin} noValidate>
+                            <div className="card-header">
+                                <h2>Login</h2>
+                                <p className="subtitle">SIL Monitoring System — sign in using your <strong>.edu.ph</strong> email.</p>
                             </div>
-                            <div className="account-type">
-                                <label>
+
+                            <div className="form-scrollable">
+                                <label className="full-width">
+                                    Email Address *
                                     <input
-                                        type="radio"
-                                        name="acct"
-                                        value="student"
-                                        checked={accountType === "student"}
-                                        onChange={() => setAccountType("student")}
+                                        type="email"
+                                        value={loginEmail}
+                                        onChange={e => {
+                                            setLoginEmail(e.target.value);
+                                            setErrors(prev => ({ ...prev, loginEmail: "" }));
+                                        }}
+                                        placeholder="name@school.edu.ph"
+                                        aria-describedby="email-note"
                                     />
-                                    Student
+                                    <div id="email-note" className="muted">Only emails ending with <code>.edu.ph</code> are accepted.</div>
+                                    {errors.loginEmail && <span className="error">{errors.loginEmail}</span>}
                                 </label>
-                                <label>
+
+                                <label className="full-width">
+                                    Password *
                                     <input
-                                        type="radio"
-                                        name="acct"
-                                        value="coordinator"
-                                        checked={accountType === "coordinator"}
-                                        onChange={() => setAccountType("coordinator")}
+                                        type="password"
+                                        value={password}
+                                        onChange={e => {
+                                            setPassword(e.target.value);
+                                            setErrors(prev => ({ ...prev, password: "" }));
+                                        }}
+                                        placeholder="Enter your password"
                                     />
-                                    Coordinator
+                                    {errors.password && <span className="error">{errors.password}</span>}
                                 </label>
+
+                                <div className="verification-line" style={{ alignItems: "center" }}>
+                                    <a className="muted" href="#" onClick={(e) => e.preventDefault()}>Forgot password?</a>
+                                    <div style={{ flex: 1 }} />
+                                </div>
+
+                                {errors.general && <div className="error">{errors.general}</div>}
+                                {infoMessage && <div className="info-msg">{infoMessage}</div>}
+
+                                <div className="cta-row">
+                                    <button className="primary" type="submit" disabled={isSubmitting}>
+                                        {isSubmitting ? "Signing in..." : "Sign In"}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
 
-                        {errors.general && <div className="error">{errors.general}</div>}
-                        {infoMessage && <div className="muted" style={{textAlign: 'center'}}>{infoMessage}</div>}
-                        <div className="cta-row">
-                            <button className="primary" type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? "Signing up..." : "Sign Up"}
-                            </button>
-                        </div>
-
-                        <p className="foot muted">Secure .edu.ph portal • Trusted by Asian College Dumaguete</p>
-
-                        <div style={{ textAlign: "center", marginTop: 8 }}>
-                            <button type="button" className="muted" onClick={() => { setMode("login"); setErrors({}); }}>
-                                Already have an account? Sign in
-                            </button>
-                        </div>
-                    </form>
-                ) : (
-                    <form ref={cardRef} className="glass-card" onSubmit={handleLogin} noValidate>
-                        <div className="card-header">
-                            <h2>Login</h2>
-                            <p className="subtitle">SIL Monitoring System — sign in using your <strong>.edu.ph</strong> email.</p>
-                        </div>
-
-                        <label className="full-width">
-                            Email Address *
-                            <input
-                                type="email"
-                                value={loginEmail}
-                                onChange={e => {
-                                    setLoginEmail(e.target.value);
-                                    setErrors(prev => ({ ...prev, loginEmail: "" }));
-                                }}
-                                placeholder="name@school.edu.ph"
-                                aria-describedby="email-note"
-                            />
-                            <div id="email-note" className="muted">Only emails ending with <code>.edu.ph</code> are accepted.</div>
-                            {errors.loginEmail && <span className="error">{errors.loginEmail}</span>}
-                        </label>
-
-                        <label className="full-width">
-                            Password *
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={e => {
-                                    setPassword(e.target.value);
-                                    setErrors(prev => ({ ...prev, password: "" }));
-                                }}
-                                placeholder="Enter your password"
-                            />
-                            {errors.password && <span className="error">{errors.password}</span>}
-                        </label>
-
-                        <div className="verification-line" style={{ alignItems: "center" }}>
-                            <a className="muted" href="#" onClick={(e) => e.preventDefault()}>Forgot password?</a>
-                            <div style={{ flex: 1 }} />
-                        </div>
-
-                        {errors.general && <div className="error">{errors.general}</div>}
-                        {infoMessage && <div className="muted" style={{textAlign: 'center'}}>{infoMessage}</div>}
-                        <div className="cta-row">
-                            <button className="primary" type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? "Signing in..." : "Sign In"}
-                            </button>
-                        </div>
-
-                        <p className="foot muted">Secure .edu.ph portal • Trusted by Asian College Dumaguete.</p>
-
-                        <div style={{ textAlign: "center", marginTop: 8 }}>
-                            <button type="button" className="muted" onClick={() => { setMode("signup"); setErrors({}); }}>
-                                Create an account
-                            </button>
-                        </div>
-                    </form>
-                )}
-            </main>
+                            <div className="auth-footer">
+                                <p className="foot muted">Secure .edu.ph portal • Trusted by Asian College Dumaguete.</p>
+                                <button type="button" className="muted switch-btn" onClick={() => { setMode("signup"); setErrors({}); }}>
+                                    Create an account
+                                </button>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
