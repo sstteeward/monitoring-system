@@ -22,9 +22,11 @@
 /* ══════════════════════════════════════════
    SIDEBAR
    ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   SIDEBAR
+   ══════════════════════════════════════════ */
 .sidebar {
     width: 240px;
-    min-width: 240px;
     height: 100vh;
     background: #13141f;
     border-right: 1px solid rgba(255, 255, 255, 0.06);
@@ -32,16 +34,70 @@
     flex-direction: column;
     position: sticky;
     top: 0;
-    overflow-y: auto;
     z-index: 50;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width;
+    overflow: hidden;
+    /* Hide overflowing text during transition */
+}
+
+/* ── Collapsed State ── */
+.dashboard-container.sidebar-collapsed .sidebar {
+    width: 72px;
+}
+
+.dashboard-container.sidebar-collapsed .sidebar-logo-text-group,
+.dashboard-container.sidebar-collapsed .sidebar-user-info,
+.dashboard-container.sidebar-collapsed .nav-text,
+.dashboard-container.sidebar-collapsed .sidebar-section-label {
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+}
+
+.dashboard-container.sidebar-collapsed .sidebar-logo {
+    justify-content: center;
+    padding: 1.25rem 0;
+    /* center the logo vertically/horizontally */
+}
+
+.dashboard-container.sidebar-collapsed .sidebar-user {
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+.dashboard-container.sidebar-collapsed .sidebar-nav-item {
+    justify-content: center;
+    padding: 0.75rem 0;
+}
+
+.dashboard-container.sidebar-collapsed .nav-icon {
+    margin: 0;
+}
+
+.dashboard-container.sidebar-collapsed .logout-btn {
+    justify-content: center;
+    padding: 0.75rem 0;
+}
+
+/* ── Sidebar Header (Logo + Toggle) ── */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    height: 70px;
+    position: relative;
 }
 
 .sidebar-logo {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 1.25rem 1.25rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 0.75rem;
+    flex: 1;
+    overflow: hidden;
+    /* hide text when shrinking */
 }
 
 .sidebar-logo-icon {
@@ -55,6 +111,14 @@
     font-size: 1rem;
     flex-shrink: 0;
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+    transition: transform 0.2s;
+}
+
+.sidebar-logo-text-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    transition: opacity 0.2s;
 }
 
 .sidebar-logo-text {
@@ -62,23 +126,70 @@
     font-weight: 700;
     color: #e2e4f0;
     line-height: 1.2;
+    white-space: nowrap;
 }
 
 .sidebar-logo-sub {
     font-size: 0.68rem;
     color: #4b5068;
     font-weight: 400;
+    white-space: nowrap;
 }
+
+/* ── Toggle Button ── */
+.sidebar-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #4b5068;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #c8ccd8;
+}
+
+/* In collapsed mode, we might want to hide the toggle or move it. 
+   Currently kept in header, but header padding changes. */
+.dashboard-container.sidebar-collapsed .sidebar-header {
+    padding: 1rem 0;
+    /* reduce padding to center items vertically */
+    flex-direction: column;
+    /* stack logo and toggle, or just hide logo text */
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    height: auto;
+}
+
+.dashboard-container.sidebar-collapsed .sidebar-toggle-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.dashboard-container.sidebar-collapsed .sidebar-toggle-btn svg {
+    transform: rotate(180deg);
+}
+
 
 /* User profile block */
 .sidebar-user {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.75rem;
     padding: 1rem 1.25rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     cursor: pointer;
     transition: background 0.15s;
+    height: 70px;
 }
 
 .sidebar-user:hover {
@@ -86,14 +197,14 @@
 }
 
 .sidebar-avatar {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: linear-gradient(135deg, #7c3aed, #2563eb);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 700;
     color: white;
     flex-shrink: 0;
@@ -102,6 +213,7 @@
 .sidebar-user-info {
     flex: 1;
     min-width: 0;
+    transition: opacity 0.2s;
 }
 
 .sidebar-user-name {
@@ -120,6 +232,13 @@
 }
 
 /* Nav sections */
+.sidebar-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
 .sidebar-section-label {
     font-size: 0.65rem;
     font-weight: 700;
@@ -127,6 +246,8 @@
     text-transform: uppercase;
     color: #3a3d52;
     padding: 1.25rem 1.25rem 0.4rem;
+    transition: opacity 0.2s;
+    white-space: nowrap;
 }
 
 .sidebar-nav {
@@ -139,15 +260,16 @@
 .sidebar-nav-item {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 0.55rem 0.75rem;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
     border-radius: 8px;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     font-weight: 500;
     color: #5a5e78;
     cursor: pointer;
     transition: all 0.15s ease;
     user-select: none;
+    height: 40px;
 }
 
 .sidebar-nav-item:hover {
@@ -165,11 +287,19 @@
 }
 
 .nav-icon {
-    font-size: 1rem;
-    width: 18px;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    width: 18px;
+    height: 18px;
 }
+
+.nav-text {
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
 
 /* Logout at bottom */
 .sidebar-bottom {
@@ -181,11 +311,11 @@
 .logout-btn {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.75rem;
     width: 100%;
-    padding: 0.55rem 0.75rem;
+    padding: 0.6rem 0.75rem;
     border-radius: 8px;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     font-weight: 500;
     color: #5a5e78;
     background: transparent;
@@ -194,6 +324,7 @@
     font-family: 'Inter', sans-serif;
     transition: all 0.15s ease;
     text-align: left;
+    height: 40px;
 }
 
 .logout-btn:hover {
