@@ -39,6 +39,9 @@ create table if not exists public.profiles (
   middle_name text,
   last_name text,
   account_type text default 'student' check (account_type in ('student', 'coordinator', 'admin')),
+  required_ojt_hours integer default 500,
+  grade text,
+  absences integer default 0,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -88,7 +91,10 @@ begin
     first_name,
     middle_name,
     last_name,
-    account_type
+    account_type,
+    required_ojt_hours,
+    grade,
+    absences
   ) values (
     new.id,
     lower(new.email),
@@ -96,7 +102,10 @@ begin
     (new.raw_user_meta_data->>'first_name'),
     (new.raw_user_meta_data->>'middle_name'),
     (new.raw_user_meta_data->>'last_name'),
-    coalesce(new.raw_user_meta_data->>'account_type', 'student')
+    coalesce(new.raw_user_meta_data->>'account_type', 'student'),
+    500,
+    null,
+    0
   );
   return new;
 end;

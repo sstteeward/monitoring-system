@@ -12,6 +12,20 @@ export interface Timesheet {
 }
 
 export const timeTrackingService = {
+    async getTimesheets() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return [];
+
+        const { data, error } = await supabase
+            .from('timesheets')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('clock_in', { ascending: false });
+
+        if (error) throw error;
+        return data as Timesheet[];
+    },
+
     async getCurrentSession() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
