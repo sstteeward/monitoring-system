@@ -211,3 +211,25 @@
     color: #a78bfa;
     font-weight: 500;
 }
+
+@media (max-width: 768px) {
+    .reports-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .reports-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .reports-card {
+        padding: 1rem;
+    }
+
+    .dtr-table td,
+    .dtr-table th {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.8rem;
+    }
+}

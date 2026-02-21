@@ -353,16 +353,29 @@ input:focus {
    RESPONSIVE
    ══════════════════════════════════════════ */
 @media (max-width: 860px) {
+    .auth-page {
+        padding: 1rem;
+    }
+
     .auth-card {
         flex-direction: column;
         max-width: 500px;
+        height: auto;
+        overflow-y: auto;
     }
 
     .auth-card-left {
-        height: 200px;
-        min-height: 200px;
+        height: 160px;
+        min-height: 160px;
         flex: none;
-        /* Don't stretch */
+    }
+
+    .auth-left-overlay {
+        padding: 1.5rem;
+    }
+
+    .left-title {
+        font-size: 1.5rem;
     }
 
     .auth-card-right {
@@ -370,7 +383,19 @@ input:focus {
         border-top: 1px solid var(--border);
     }
 
+    .auth-form {
+        padding: 1.5rem;
+    }
+
     .form-row {
         grid-template-columns: 1fr;
+    }
+
+    .email-row {
+        flex-direction: column;
+    }
+
+    .verify-btn {
+        padding: 0.75rem;
     }
 }

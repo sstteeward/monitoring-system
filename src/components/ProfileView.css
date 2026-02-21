@@ -189,6 +189,15 @@
 
 /* Responsive */
 @media (max-width: 640px) {
+    .profile-card {
+        padding: 1.5rem;
+    }
+
+    .readonly-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
     .form-row {
         flex-direction: column;
         gap: 1.5rem;
