@@ -2,7 +2,7 @@
 -- CONSOLIDATED DATABASE UPDATE SCRIPT
 -- =========================================================================
 -- This script safely updates your existing Supabase database with all new features:
--- 1. Adds missing columns to the profiles table (OJT target, Grade, Absences).
+-- 1. Adds missing columns to the profiles table (SIL target, Grade, Absences).
 -- 2. Updates the profile creation trigger with new default fields.
 -- 3. Refreshes the API cache to ensure the frontend can see the changes.
 

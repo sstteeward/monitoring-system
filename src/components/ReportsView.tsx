@@ -37,7 +37,7 @@ const ReportsView: React.FC = () => {
     };
 
     // External Data / Target state from Profile
-    const OJT_REQUIRED_HOURS = profile?.required_ojt_hours ?? 500;
+    const SIL_REQUIRED_HOURS = profile?.required_ojt_hours ?? 500;
     const CURRENT_GRADE = profile?.grade ?? "—";
     const ABSENCES = profile?.absences ?? 0;
 
@@ -56,10 +56,10 @@ const ReportsView: React.FC = () => {
     const completedHours = (totalSecs / 3600).toFixed(1);
     const completedDays = (totalSecs / (8 * 3600)).toFixed(1); // Assuming 8-hour workday
 
-    const remainingHours = Math.max(0, OJT_REQUIRED_HOURS - parseFloat(completedHours)).toFixed(1);
+    const remainingHours = Math.max(0, SIL_REQUIRED_HOURS - parseFloat(completedHours)).toFixed(1);
     const remainingDays = (parseFloat(remainingHours) / 8).toFixed(1);
 
-    const progressPct = Math.min((parseFloat(completedHours) / OJT_REQUIRED_HOURS) * 100, 100).toFixed(1);
+    const progressPct = Math.min((parseFloat(completedHours) / SIL_REQUIRED_HOURS) * 100, 100).toFixed(1);
 
     // Group logs by date for the DTR
     const groupedDtr = timesheets.reduce((acc: Record<string, DailyRecord>, ts) => {
@@ -113,7 +113,7 @@ const ReportsView: React.FC = () => {
     return (
         <div className="reports-view">
             <div className="reports-header">
-                <h2>OJT Performance Report</h2>
+                <h2>SIL Performance Report</h2>
                 <button className="btn btn-secondary" onClick={loadData} disabled={loading}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
                     Refresh
@@ -128,7 +128,7 @@ const ReportsView: React.FC = () => {
                     </div>
                     <div className="kpi-content">
                         <div className="kpi-label">Time Completed</div>
-                        <div className="kpi-value">{completedHours} / {OJT_REQUIRED_HOURS} <span className="kpi-unit">hrs</span></div>
+                        <div className="kpi-value">{completedHours} / {SIL_REQUIRED_HOURS} <span className="kpi-unit">hrs</span></div>
                         <div className="kpi-subtext">~{completedDays} working days</div>
 
                         <div className="kpi-progress-bar-bg">

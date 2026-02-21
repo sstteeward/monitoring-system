@@ -159,7 +159,7 @@ const ProfileView: React.FC = () => {
 
                         <div className="form-row">
                             <div className="form-group">
-                                <label htmlFor="required_ojt_hours">Required OJT Hours</label>
+                                <label htmlFor="required_ojt_hours">Required SIL Hours</label>
                                 <input
                                     type="number"
                                     id="required_ojt_hours"

@@ -56,7 +56,7 @@ BEGIN
     COALESCE(new.raw_user_meta_data->>'middle_name', ''),
     COALESCE(new.raw_user_meta_data->>'last_name', ''),
     COALESCE(new.raw_user_meta_data->>'account_type', 'student'),
-    500,  -- Default OJT hours
+    500,  -- Default SIL hours
     NULL, -- Default grade
     0     -- Default absences
   );

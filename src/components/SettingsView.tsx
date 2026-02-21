@@ -78,7 +78,7 @@ const SettingsView: React.FC = () => {
                         <div className="setting-item">
                             <div className="setting-info">
                                 <h4>Email Notifications</h4>
-                                <p>Receive weekly summary reports of your OJT hours directly to your inbox.</p>
+                                <p>Receive weekly summary reports of your SIL hours directly to your inbox.</p>
                             </div>
                             <label className="toggle-switch">
                                 <input

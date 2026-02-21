@@ -9,7 +9,7 @@ ADD COLUMN IF NOT EXISTS required_ojt_hours integer default 500,
 ADD COLUMN IF NOT EXISTS grade text default null,
 ADD COLUMN IF NOT EXISTS absences integer default 0;
 
--- 2. Ensure existing records have default OJT target if null
+-- 2. Ensure existing records have default SIL target if null
 UPDATE public.profiles
 SET required_ojt_hours = 500
 WHERE required_ojt_hours IS NULL;
