@@ -85,7 +85,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem;
+    padding: 1rem;
+    /* Reduced from 1.25rem left */
+    gap: 0.25rem;
+    /* Reduced from 0.5rem */
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     height: 70px;
     position: relative;
@@ -94,10 +97,12 @@
 .sidebar-logo {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    /* Reduced from 0.75rem */
     flex: 1;
     overflow: hidden;
-    /* hide text when shrinking */
+    padding-right: 0.25rem;
+    /* Reduced from 0.5rem */
 }
 
 .sidebar-logo-icon {
@@ -845,6 +850,18 @@
         border-radius: 6px;
     }
 
+    .sidebar-header {
+        padding-right: 5.5rem;
+        /* Reserve space for the close button */
+        height: auto;
+        min-height: 70px;
+    }
+
+    .sidebar-logo-sub {
+        white-space: normal;
+        line-height: 1.2;
+    }
+
     .mobile-close-btn {
         display: flex;
         background: transparent;
@@ -852,8 +869,10 @@
         color: #4b5068;
         cursor: pointer;
         position: absolute;
-        top: 1rem;
-        right: 1rem;
+        top: 50%;
+        right: 1.25rem;
+        transform: translateY(-50%);
+        z-index: 120;
     }
 
     .d-none-mobile {
