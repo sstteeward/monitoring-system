@@ -3,6 +3,7 @@ import "./App.css";
 import AuthSignup from "./components/AuthSignup";
 import Dashboard from "./components/Dashboard";
 import { supabase } from "./lib/supabaseClient";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
   const [session, setSession] = useState<any>(null);
@@ -24,13 +25,13 @@ function App() {
   }, []);
 
   if (loading) {
-    return <div style={{ color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
+    return <div style={{ color: 'var(--text-muted)', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
   }
 
   return (
-    <>
+    <ThemeProvider>
       {!session ? <AuthSignup /> : <Dashboard />}
-    </>
+    </ThemeProvider>
   );
 }
 

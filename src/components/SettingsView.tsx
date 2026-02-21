@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useTheme } from '../contexts/ThemeContext';
 import './SettingsView.css';
 
 const SettingsView: React.FC = () => {
-    // Mock settings states
-    const [theme, setTheme] = useState<'system' | 'dark' | 'light'>('dark');
+    const { theme, setTheme } = useTheme();
     const [emailNotifs, setEmailNotifs] = useState(true);
     const [browserAlerts, setBrowserAlerts] = useState(false);
 
     const handleThemeChange = (newTheme: 'system' | 'dark' | 'light') => {
         setTheme(newTheme);
-        // In a full implementation, this is where we would toggle document.body.classList
-        // However, the current CSS relies heavily on dark mode constants directly.
     };
 
     const handleSignOut = async () => {

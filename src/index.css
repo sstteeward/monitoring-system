@@ -1,16 +1,67 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* Common Tokens */
+  --primary: #7c3aed;
+  --primary-hover: #6d28d9;
+  --primary-glow: rgba(124, 58, 237, 0.4);
+  --secondary: #2563eb;
+  --danger: #ef4444;
+  --warning: #fbbf24;
+  --success: #22c55e;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  --font-inter: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Default Theme (Dark) — Restored to original high-contrast aesthetic */
+:root,
+[data-theme="dark"] {
+  --bg-page: #0d0e1a;
+  --bg-sidebar: #13141f;
+  --bg-card: #13141f;
+  --bg-elevated: rgba(255, 255, 255, 0.05);
+  --bg-hero: linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(13, 14, 26, 0.6) 100%);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e4f0;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --nav-active-bg: rgba(124, 58, 237, 0.15);
+  --nav-active-text: #a78bfa;
+
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --scrollbar: rgba(255, 255, 255, 0.15);
+
+  color-scheme: dark;
+  color: var(--text-secondary);
+  background-color: var(--bg-page);
+}
+
+/* Light Theme overrides */
+[data-theme="light"] {
+  --bg-page: #f8fafc;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-elevated: #f1f5f9;
+  --bg-hero: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(37, 99, 235, 0.03) 100%);
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+
+  --nav-active-bg: rgba(124, 58, 237, 0.1);
+  --nav-active-text: #7c3aed;
+
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --scrollbar: #cbd5e1;
+
+  color-scheme: light;
+  color: var(--text-primary);
+  background-color: var(--bg-page);
 }
 
 a {

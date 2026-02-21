@@ -45,7 +45,7 @@ BEGIN
     (new.raw_user_meta_data->>'middle_name'),
     (new.raw_user_meta_data->>'last_name'),
     coalesce(new.raw_user_meta_data->>'account_type', 'student'),
-    500,   -- Default OJT Target
+    500,   -- Default SIL Target
     null,  -- Default Grade
     0      -- Default Absences
   );

@@ -16,12 +16,15 @@
     font-size: 1.25rem;
     font-weight: 500;
     margin: 0;
-    color: #e2e8f0;
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin: 0;
+    color: var(--text-primary);
 }
 
 .timesheet-card {
-    background-color: #1e1f2b;
-    border: 1px solid #2a2d3e;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: 16px;
     padding: 1.5rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -50,7 +53,7 @@
 .timesheet-empty-icon svg {
     width: 48px;
     height: 48px;
-    stroke: #2a2d3e;
+    stroke: var(--border);
 }
 
 .timesheet-table-container {
@@ -66,21 +69,21 @@
 }
 
 .timesheet-table th {
-    color: #94a3b8;
+    color: var(--text-muted);
     font-size: 0.85rem;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 1rem;
-    border-bottom: 1px solid #2a2d3e;
+    border-bottom: 1px solid var(--border);
     white-space: nowrap;
 }
 
 .timesheet-table td {
     padding: 1.2rem 1rem;
     font-size: 0.95rem;
-    color: #e2e8f0;
-    border-bottom: 1px solid #2a2d3e;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
     white-space: nowrap;
 }
 
@@ -93,7 +96,7 @@
 }
 
 .timesheet-table tbody tr:hover {
-    background-color: rgba(124, 58, 237, 0.05);
+    background-color: var(--bg-elevated);
 }
 
 @keyframes fadeIn {

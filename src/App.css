@@ -12,9 +12,10 @@ body,
 }
 
 body {
-  background: #0d0e1a;
-  color: #fff;
-  overflow: hidden;
+  background: var(--bg-page);
+  color: var(--text-secondary);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* make app span full width */
