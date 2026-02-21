@@ -354,28 +354,37 @@ input:focus {
    ══════════════════════════════════════════ */
 @media (max-width: 860px) {
     .auth-page {
-        padding: 1rem;
-    }
-
-    .auth-card {
-        flex-direction: column;
-        max-width: 500px;
+        padding: 0.5rem;
+        /* Even tighter padding */
+        min-height: 100vh;
         height: auto;
+        display: block;
+        /* Allow natural flow for scrolling */
         overflow-y: auto;
     }
 
+    .auth-card {
+        margin: 1rem auto;
+        flex-direction: column;
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+
     .auth-card-left {
-        height: 160px;
-        min-height: 160px;
+        height: 140px;
+        min-height: 140px;
         flex: none;
     }
 
     .auth-left-overlay {
-        padding: 1.5rem;
+        padding: 1.25rem;
     }
 
     .left-title {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
 
     .auth-card-right {
@@ -384,7 +393,20 @@ input:focus {
     }
 
     .auth-form {
-        padding: 1.5rem;
+        padding: 1.25rem;
+    }
+
+    .card-header {
+        margin-bottom: 1.25rem;
+    }
+
+    .card-header h1,
+    .card-header h2 {
+        font-size: 1.35rem;
+    }
+
+    .form-scrollable {
+        gap: 1rem;
     }
 
     .form-row {
@@ -393,9 +415,25 @@ input:focus {
 
     .email-row {
         flex-direction: column;
+        gap: 0.5rem;
     }
 
     .verify-btn {
         padding: 0.75rem;
+    }
+
+    .verification-line {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .verify-indicator {
+        align-self: flex-start;
+    }
+
+    .account-type {
+        flex-direction: column;
+        gap: 0.6rem;
     }
 }
