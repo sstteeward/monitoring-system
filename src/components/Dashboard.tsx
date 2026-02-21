@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [currentView, setCurrentView] = useState<'dashboard' | 'timesheets' | 'reports' | 'profile' | 'settings'>('dashboard');
+    const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     const timerRef = useRef<number | null>(null);
 
     useEffect(() => {
@@ -28,10 +29,22 @@ const Dashboard: React.FC = () => {
         try {
             const current = await timeTrackingService.getCurrentSession();
             setSession(current);
+            await loadTodaySessions();
         } catch (err) {
             console.error('Error loading session:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadTodaySessions = async () => {
+        try {
+            const all = await timeTrackingService.getTimesheets();
+            const today = new Date().toLocaleDateString('en-US');
+            const filtered = all.filter(ts => new Date(ts.clock_in).toLocaleDateString('en-US') === today);
+            setTodaySessions(filtered);
+        } catch (err) {
+            console.error('Error loading today sessions:', err);
         }
     };
 
@@ -71,14 +84,24 @@ const Dashboard: React.FC = () => {
     };
 
     const handleClockIn = async () => {
-        try { setLoading(true); setSession(await timeTrackingService.clockIn()); }
+        try {
+            setLoading(true);
+            const newSession = await timeTrackingService.clockIn();
+            setSession(newSession);
+            await loadTodaySessions();
+        }
         catch (e) { alert('Error clocking in: ' + (e as Error).message); }
         finally { setLoading(false); }
     };
 
     const handleClockOut = async () => {
         if (!session) return;
-        try { setLoading(true); await timeTrackingService.clockOut(session.id); setSession(null); }
+        try {
+            setLoading(true);
+            await timeTrackingService.clockOut(session.id);
+            setSession(null);
+            await loadTodaySessions();
+        }
         catch (e) { alert('Error clocking out: ' + (e as Error).message); }
         finally { setLoading(false); }
     };
@@ -91,6 +114,7 @@ const Dashboard: React.FC = () => {
                 ? await timeTrackingService.startBreak(session.id)
                 : await timeTrackingService.endBreak(session.id);
             setSession(updated);
+            await loadTodaySessions();
         } catch (e) { alert('Error: ' + (e as Error).message); }
         finally { setLoading(false); }
     };
@@ -105,14 +129,38 @@ const Dashboard: React.FC = () => {
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
     const MAX_SECS = 8 * 3600;
-    const progress = Math.min(elapsedSecs / MAX_SECS, 1);
+
+    // Calculate total seconds worked today from completed sessions
+    const completedSessions = todaySessions.filter(ts => ts.status === 'completed');
+    const completedSecsToday = completedSessions.reduce((acc, ts) => {
+        if (ts.clock_out) {
+            const start = new Date(ts.clock_in).getTime();
+            const end = new Date(ts.clock_out).getTime();
+            return acc + Math.floor((end - start) / 1000);
+        }
+        return acc;
+    }, 0);
+
+    // Dynamic Button Label for Clock Out
+    let clockOutLabel = "Clock Out";
+
+    if (session) {
+        if (completedSessions.length === 0) clockOutLabel = "Time Out (Morning)";
+        else if (completedSessions.length === 1) clockOutLabel = "Time Out (Afternoon)";
+        else clockOutLabel = "Clock Out";
+    }
+
+    const totalSecsWorkedToday = completedSecsToday + (session?.status === 'working' ? elapsedSecs : 0);
+    const progress = Math.min(totalSecsWorkedToday / MAX_SECS, 1);
     const progressPct = Math.round(progress * 100);
-    const hoursWorked = (elapsedSecs / 3600).toFixed(1);
+    const hoursWorkedStr = (totalSecsWorkedToday / 3600).toFixed(1);
     const statusKey = session?.status ?? 'inactive';
 
     const clockInTime = session?.clock_in
         ? new Date(session.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : '—';
+        : todaySessions.length > 0
+            ? new Date(todaySessions[todaySessions.length - 1].clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '—';
 
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -230,7 +278,7 @@ const Dashboard: React.FC = () => {
                 <div className="topbar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <button className="mobile-menu-toggle" onClick={toggleMobileMenu}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                         </button>
                         <div>
                             <div className="topbar-title">
@@ -267,10 +315,26 @@ const Dashboard: React.FC = () => {
                                     </div>
                                     <div className="timer-controls">
                                         {!session ? (
-                                            <button className="btn btn-primary" onClick={handleClockIn} disabled={loading}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                                                Clock In
-                                            </button>
+                                            <>
+                                                <button
+                                                    className={`btn btn-shift ${completedSessions.length === 0 ? 'suggested' : ''}`}
+                                                    onClick={handleClockIn}
+                                                    disabled={loading}
+                                                    title="Clock in for morning shift"
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                                                    Time In (Morning)
+                                                </button>
+                                                <button
+                                                    className={`btn btn-shift ${completedSessions.length === 1 ? 'suggested' : ''}`}
+                                                    onClick={handleClockIn}
+                                                    disabled={loading}
+                                                    title="Clock in for afternoon shift"
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                                                    Time In (Afternoon)
+                                                </button>
+                                            </>
                                         ) : (
                                             <>
                                                 <button
@@ -284,7 +348,7 @@ const Dashboard: React.FC = () => {
                                                 </button>
                                                 <button className="btn btn-danger" onClick={handleClockOut} disabled={loading}>
                                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
-                                                    Clock Out
+                                                    {clockOutLabel}
                                                 </button>
                                             </>
                                         )}
@@ -301,7 +365,7 @@ const Dashboard: React.FC = () => {
                                         </div>
                                         <div className="info-item">
                                             <span className="info-item-label">Hours Worked</span>
-                                            <span className="info-item-value">{hoursWorked}h</span>
+                                            <span className="info-item-value">{hoursWorkedStr}h</span>
                                         </div>
                                         <div className="info-item">
                                             <span className="info-item-label">Status</span>
@@ -330,7 +394,7 @@ const Dashboard: React.FC = () => {
                                 <div className="stat-card">
                                     <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
                                     <span className="stat-label">Hours Today</span>
-                                    <span className="stat-value">{hoursWorked}</span>
+                                    <span className="stat-value">{hoursWorkedStr}</span>
                                     <span className="stat-sub">of 8h target</span>
                                 </div>
                                 <div className="stat-card">
@@ -358,11 +422,47 @@ const Dashboard: React.FC = () => {
                             {/* ── Activity ── */}
                             <div className="activity-card">
                                 <div className="activity-header">
-                                    <span className="activity-title">Recent Activity</span>
+                                    <span className="activity-title">Today's Activity</span>
                                 </div>
-                                <div className="activity-empty">
-                                    <span className="activity-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2a2d3e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg></span>
-                                    <p>Your session history will appear here</p>
+                                <div className="activity-list">
+                                    {todaySessions.length === 0 && !session ? (
+                                        <div className="activity-empty">
+                                            <span className="activity-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2a2d3e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg></span>
+                                            <p>Your session history will appear here</p>
+                                        </div>
+                                    ) : (
+                                        <div className="activity-items">
+                                            {session && (
+                                                <div className="activity-item active">
+                                                    <div className="activity-item-info">
+                                                        <span className="activity-item-time">{new Date(session.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – Now</span>
+                                                        <span className="activity-item-status">Active Session</span>
+                                                    </div>
+                                                    <div className="activity-item-duration">{elapsed}</div>
+                                                </div>
+                                            )}
+                                            {[...todaySessions].reverse().map((ts) => {
+                                                if (ts.id === session?.id) return null;
+                                                const start = new Date(ts.clock_in);
+                                                const end = ts.clock_out ? new Date(ts.clock_out) : null;
+                                                const diff = end ? Math.floor((end.getTime() - start.getTime()) / 1000) : 0;
+                                                const h = Math.floor(diff / 3600);
+                                                const m = Math.floor((diff % 3600) / 60);
+
+                                                return (
+                                                    <div key={ts.id} className="activity-item">
+                                                        <div className="activity-item-info">
+                                                            <span className="activity-item-time">
+                                                                {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {end ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                            </span>
+                                                            <span className="activity-item-status">Completed</span>
+                                                        </div>
+                                                        <div className="activity-item-duration">{h}h {m}m</div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </>

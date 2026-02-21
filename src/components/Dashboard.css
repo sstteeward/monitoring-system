@@ -464,9 +464,10 @@
 
 .timer-controls {
     display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
+    gap: 1rem;
     justify-content: center;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
 }
 
 /* ── Side Info Card ── */
@@ -648,6 +649,68 @@
     color: var(--text-dim);
 }
 
+/* ── Activity List ── */
+.activity-list {
+    margin-top: 0.5rem;
+}
+
+.activity-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.activity-item.active {
+    border-color: var(--primary);
+    background: rgba(124, 58, 237, 0.04);
+}
+
+.activity-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.activity-item-time {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.activity-item-status {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.activity-item-duration {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--bg-page);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.activity-item.active .activity-item-duration {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
 /* ══════════════════════════════════════════
    STATUS PILLS
    ══════════════════════════════════════════ */
@@ -780,6 +843,41 @@
     box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
 }
 
+/* ── Shift Specific Buttons ── */
+.btn-shift {
+    background: var(--bg-elevated) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-dim) !important;
+    min-width: 190px;
+    justify-content: center;
+    padding: 0.8rem 1.5rem !important;
+    font-size: 0.88rem !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    opacity: 0.8;
+}
+
+.btn-shift:hover:not(:disabled) {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-hover) !important;
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+.btn-shift.suggested {
+    background: rgba(124, 58, 237, 0.08) !important;
+    border: 1px solid var(--primary) !important;
+    color: var(--primary) !important;
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.1);
+}
+
+.btn-shift.suggested:hover {
+    background: var(--primary) !important;
+    color: white !important;
+    box-shadow: 0 6px 22px var(--primary-glow);
+}
+
 /* ══════════════════════════════════════════
    LOADING
    ══════════════════════════════════════════ */
@@ -824,7 +922,6 @@
         position: fixed;
         left: -240px;
         transition: left 0.3s ease;
-        box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
     }
 
     .dashboard-container.sidebar-collapsed .sidebar {
@@ -834,6 +931,7 @@
 
     .mobile-menu-open .sidebar {
         left: 0;
+        box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
     }
 
     .mobile-menu-open .mobile-overlay {
@@ -842,12 +940,19 @@
 
     .mobile-menu-toggle {
         display: flex;
-        background: transparent;
-        border: none;
-        color: #e2e4f0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
         cursor: pointer;
-        padding: 5px;
-        border-radius: 6px;
+        padding: 6px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .mobile-menu-toggle:hover {
+        background: var(--bg-card);
+        border-color: var(--primary);
+        transform: translateY(-1px);
     }
 
     .sidebar-header {

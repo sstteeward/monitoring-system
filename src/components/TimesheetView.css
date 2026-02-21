@@ -3,57 +3,101 @@
     flex-direction: column;
     gap: 1.5rem;
     width: 100%;
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .timesheet-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 0.5rem;
 }
 
-.timesheet-header h2 {
-    font-size: 1.25rem;
-    font-weight: 500;
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 500;
-    margin: 0;
+.header-text h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
     color: var(--text-primary);
+    margin: 0;
 }
 
-.timesheet-card {
-    background-color: var(--bg-card);
+.header-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin: 0.2rem 0 0 0;
+}
+
+.refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 10px;
+    background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    min-height: 400px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.timesheet-loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 300px;
-    color: #64748b;
-    font-size: 0.95rem;
+.refresh-btn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(124, 58, 237, 0.05);
 }
 
-.timesheet-empty {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 300px;
-    color: #64748b;
+/* ── Summary Stats ── */
+.timesheet-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 1rem;
 }
 
-.timesheet-empty-icon svg {
-    width: 48px;
-    height: 48px;
-    stroke: var(--border);
+.ts-stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: transform 0.2s ease;
+}
+
+.ts-stat-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-glow);
+}
+
+.ts-stat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+}
+
+.ts-stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.ts-stat-sub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* ── Table Styling ── */
+.timesheet-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
 .timesheet-table-container {
@@ -63,46 +107,162 @@
 
 .timesheet-table {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    text-align: left;
+    border-collapse: collapse;
+    text-align: center;
 }
 
 .timesheet-table th {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    font-weight: 500;
+    padding: 1.25rem 1rem;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 1rem;
-    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    border-bottom: 2px solid var(--border);
+    background: rgba(255, 255, 255, 0.01);
     white-space: nowrap;
 }
 
 .timesheet-table td {
-    padding: 1.2rem 1rem;
-    font-size: 0.95rem;
+    padding: 1.15rem 1rem;
+    font-size: 0.9rem;
     color: var(--text-secondary);
     border-bottom: 1px solid var(--border);
-    white-space: nowrap;
+}
+
+.shift-header {
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    background: rgba(124, 58, 237, 0.03) !important;
+    color: var(--primary) !important;
+}
+
+.sub-header th {
+    font-size: 0.6rem;
+    padding: 0.75rem 0.5rem;
+    background: rgba(255, 255, 255, 0.005);
 }
 
 .timesheet-table tr:last-child td {
     border-bottom: none;
 }
 
-.timesheet-table tr {
-    transition: background-color 0.2s ease;
+.timesheet-table tbody tr {
+    transition: all 0.15s ease;
 }
 
 .timesheet-table tbody tr:hover {
-    background-color: var(--bg-elevated);
+    background: rgba(255, 255, 255, 0.015);
+}
+
+/* Cell refinements */
+.date-cell {
+    font-weight: 600;
+    color: var(--text-primary) !important;
+    text-align: left;
+    padding-left: 1.5rem !important;
+}
+
+.time-cell {
+    font-family: var(--font-inter);
+    color: var(--text-dim) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.duration-cell {
+    font-weight: 700;
+    color: var(--primary) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* ── Status Pills ── */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 99px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.status-pill.completed {
+    color: var(--text-dim);
+}
+
+.status-pill.completed .status-dot {
+    display: none;
+}
+
+.status-pill.working {
+    background: rgba(34, 197, 94, 0.08);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.15);
+}
+
+.status-pill.working .status-dot {
+    background: #4ade80;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+    animation: blink 1.2s infinite;
+}
+
+.status-pill.break {
+    background: rgba(251, 191, 36, 0.08);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.15);
+}
+
+.status-pill.break .status-dot {
+    background: #fbbf24;
+}
+
+/* ── Empty/Loading ── */
+.timesheet-loading {
+    padding: 5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: var(--text-dim);
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.timesheet-empty {
+    padding: 5rem;
+    text-align: center;
+}
+
+.timesheet-empty svg {
+    margin-bottom: 1rem;
+    opacity: 0.3;
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px);
     }
 
     to {
@@ -111,20 +271,14 @@
     }
 }
 
-@media (max-width: 768px) {
-    .timesheet-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
+@media (max-width: 1024px) {
+    .timesheet-stats-row {
+        grid-template-columns: repeat(2, 1fr);
     }
+}
 
-    .timesheet-card {
-        padding: 1rem;
-    }
-
-    .timesheet-table td,
-    .timesheet-table th {
-        padding: 0.75rem 0.5rem;
-        font-size: 0.85rem;
+@media (max-width: 640px) {
+    .timesheet-stats-row {
+        grid-template-columns: 1fr;
     }
 }
