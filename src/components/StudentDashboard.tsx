@@ -9,6 +9,7 @@ import SettingsView from './SettingsView';
 import JournalView from './JournalView';
 import AnnouncementsView from './AnnouncementsView';
 import DocumentsView from './DocumentsView';
+import OnboardingView from './OnboardingView';
 import './StudentDashboard.css';
 
 const StudentDashboard: React.FC = () => {
@@ -23,6 +24,7 @@ const StudentDashboard: React.FC = () => {
     const [currentView, setCurrentView] = useState<'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'school'>('dashboard');
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     const [hasNewAnnouncements, setHasNewAnnouncements] = useState(false);
+    const [needsOnboarding, setNeedsOnboarding] = useState(false);
     const timerRef = useRef<number | null>(null);
 
     useEffect(() => {
@@ -60,6 +62,10 @@ const StudentDashboard: React.FC = () => {
         try {
             const data = await profileService.getCurrentProfile();
             setProfile(data);
+            // Show onboarding if company hasn't been set yet
+            if (!data?.company_id) {
+                setNeedsOnboarding(true);
+            }
         } catch (err) {
             console.error('Error loading profile:', err);
         }
@@ -227,6 +233,19 @@ const StudentDashboard: React.FC = () => {
             : 'User';
 
     if (loading && !user) return <div className="dashboard-loading">Loading…</div>;
+
+    // Show onboarding for students who haven't set their company yet
+    if (needsOnboarding && profile) {
+        return (
+            <OnboardingView
+                profile={profile}
+                onComplete={async () => {
+                    await loadProfile();
+                    setNeedsOnboarding(false);
+                }}
+            />
+        );
+    }
 
     return (
         <div className={`dashboard-container ${collapsed ? 'sidebar-collapsed' : ''} ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>

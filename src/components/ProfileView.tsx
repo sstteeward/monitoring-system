@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { profileService, type Profile } from '../services/profileService';
 import { supabase } from '../lib/supabaseClient';
 
+interface Company { id: string; name: string; address?: string; }
+
 const ProfileView: React.FC = () => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -18,7 +20,18 @@ const ProfileView: React.FC = () => {
     const [grade, setGrade] = useState('');
     const [absences, setAbsences] = useState(0);
 
-    useEffect(() => { loadProfile(); }, []);
+    // Company
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [companyId, setCompanyId] = useState<string>('');
+    const [companySearch, setCompanySearch] = useState('');
+    const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+
+    useEffect(() => { loadProfile(); loadCompanies(); }, []);
+
+    const loadCompanies = async () => {
+        const { data } = await supabase.from('companies').select('id, name, address').order('name');
+        setCompanies(data ?? []);
+    };
 
     const loadProfile = async () => {
         try {
@@ -32,6 +45,7 @@ const ProfileView: React.FC = () => {
                 setRequiredHours(data.required_ojt_hours ?? 500);
                 setGrade(data.grade ?? '');
                 setAbsences(data.absences ?? 0);
+                setCompanyId(data.company_id ?? '');
             }
         } catch (err) {
             console.error('Failed to load profile:', err);
@@ -39,6 +53,14 @@ const ProfileView: React.FC = () => {
             setLoading(false);
         }
     };
+
+    // After companies are loaded, sync the search field
+    useEffect(() => {
+        if (companyId && companies.length > 0) {
+            const c = companies.find(c => c.id === companyId);
+            if (c) setCompanySearch(c.name);
+        }
+    }, [companyId, companies]);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,6 +73,7 @@ const ProfileView: React.FC = () => {
                 required_ojt_hours: requiredHours,
                 grade,
                 absences,
+                company_id: companyId || null,
             });
             setSuccess(true);
             await loadProfile();
@@ -66,9 +89,11 @@ const ProfileView: React.FC = () => {
 
     const initials = [firstName?.[0], lastName?.[0]].filter(Boolean).join('').toUpperCase() || email?.[0]?.toUpperCase() || '?';
     const joinDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+    const selectedCompany = companies.find(c => c.id === companyId);
+    const filteredCompanies = companies.filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()));
 
     const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' };
-    const inputStyle: React.CSSProperties = { width: '100%', padding: '0.65rem 0.9rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' };
+    const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '0.65rem 0.9rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' };
     const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '1.75rem 2rem', marginBottom: '1.25rem' };
 
     return (
@@ -102,10 +127,16 @@ const ProfileView: React.FC = () => {
                             <span style={{ color: 'var(--text-muted)' }}>Member since</span>
                             <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{joinDate}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.5rem' }}>
                             <span style={{ color: 'var(--text-muted)' }}>SIL Hours</span>
                             <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{requiredHours}h required</span>
                         </div>
+                        {selectedCompany && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                                <span style={{ color: 'var(--text-muted)' }}>Company</span>
+                                <span style={{ color: '#10b981', fontWeight: 500, textAlign: 'right', maxWidth: '60%' }}>{selectedCompany.name}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -124,10 +155,68 @@ const ProfileView: React.FC = () => {
                             </div>
                         </div>
 
-                        <div style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ marginBottom: '1.25rem' }}>
                             <label style={labelStyle}>Email Address</label>
                             <input style={{ ...inputStyle, opacity: 0.6, cursor: 'not-allowed' }} value={email} readOnly title="Email is managed by your account" />
                             <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>Email is managed by your Supabase account and cannot be edited here.</p>
+                        </div>
+
+                        {/* Internship Company */}
+                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginBottom: '1.25rem' }}>
+                            <h4 style={{ margin: '0 0 1rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-bright)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Internship Company</h4>
+                            <div style={{ position: 'relative' }}>
+                                <label style={labelStyle}>Company Name</label>
+                                <input
+                                    style={inputStyle}
+                                    value={companySearch}
+                                    onChange={e => { setCompanySearch(e.target.value); setShowCompanyDropdown(true); setCompanyId(''); }}
+                                    onFocus={() => setShowCompanyDropdown(true)}
+                                    placeholder="Search or select a company…"
+                                    autoComplete="off"
+                                />
+                                {showCompanyDropdown && filteredCompanies.length > 0 && (
+                                    <div style={{
+                                        position: 'absolute', top: '100%', left: 0, right: 0,
+                                        background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                                        borderRadius: 12, zIndex: 1000, maxHeight: 200, overflowY: 'auto',
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)', marginTop: 4,
+                                    }}>
+                                        {filteredCompanies.map(c => (
+                                            <div
+                                                key={c.id}
+                                                onClick={() => { setCompanyId(c.id); setCompanySearch(c.name); setShowCompanyDropdown(false); }}
+                                                style={{
+                                                    padding: '0.65rem 1rem', cursor: 'pointer',
+                                                    borderBottom: '1px solid var(--border)',
+                                                    background: companyId === c.id ? 'rgba(16,185,129,0.1)' : 'transparent',
+                                                    transition: 'background 0.12s',
+                                                }}
+                                                onMouseOver={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.07)')}
+                                                onMouseOut={e => (e.currentTarget.style.background = companyId === c.id ? 'rgba(16,185,129,0.1)' : 'transparent')}
+                                            >
+                                                <div style={{ fontWeight: 500, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{c.name}</div>
+                                                {c.address && <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: 2 }}>{c.address}</div>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {showCompanyDropdown && filteredCompanies.length === 0 && companySearch.length > 0 && (
+                                    <div style={{
+                                        position: 'absolute', top: '100%', left: 0, right: 0,
+                                        background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                                        borderRadius: 12, padding: '0.75rem 1rem', color: 'var(--text-muted)',
+                                        fontSize: '0.85rem', zIndex: 1000, marginTop: 4,
+                                    }}>
+                                        No companies found. Ask your coordinator to add it.
+                                    </div>
+                                )}
+                            </div>
+                            {selectedCompany && (
+                                <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontSize: '0.82rem' }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                    {selectedCompany.name}{selectedCompany.address ? ` — ${selectedCompany.address}` : ''}
+                                </div>
+                            )}
                         </div>
 
                         {/* Academic fields */}
@@ -182,6 +271,11 @@ const ProfileView: React.FC = () => {
                     Sign Out
                 </button>
             </div>
+
+            {/* Click outside to close company dropdown */}
+            {showCompanyDropdown && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={() => setShowCompanyDropdown(false)} />
+            )}
         </div>
     );
 };

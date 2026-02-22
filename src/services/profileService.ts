@@ -10,6 +10,7 @@ export interface Profile {
     required_ojt_hours: number;
     grade: string | null;
     absences: number;
+    company_id: string | null;
     created_at: string;
     updated_at: string;
 }
