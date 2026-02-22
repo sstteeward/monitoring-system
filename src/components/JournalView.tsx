@@ -1,0 +1,118 @@
+import React, { useState, useEffect } from 'react';
+import { journalService } from '../services/journalService';
+import './JournalView.css';
+
+const JournalView: React.FC = () => {
+    const [content, setContent] = useState('');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    useEffect(() => {
+        loadJournal();
+    }, [date]);
+
+    const loadJournal = async () => {
+        try {
+            setLoading(true);
+            const journal = await journalService.getJournalForDate(date);
+            setContent(journal?.content || '');
+            setMessage(null);
+        } catch (err) {
+            console.error('Error loading journal:', err);
+            setMessage({ type: 'error', text: 'Failed to load journal entry.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!content.trim()) {
+            setMessage({ type: 'error', text: 'Please enter some content before saving.' });
+            return;
+        }
+
+        try {
+            setSaving(true);
+            await journalService.upsertJournal(content, date);
+            setMessage({ type: 'success', text: 'Journal entry saved successfully!' });
+            setTimeout(() => setMessage(null), 3000);
+        } catch (err) {
+            console.error('Error saving journal:', err);
+            setMessage({ type: 'error', text: 'Failed to save journal entry.' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const isToday = date === new Date().toISOString().split('T')[0];
+
+    return (
+        <div className="journal-container">
+            <div className="journal-header">
+                <div>
+                    <h2 className="journal-title">Daily Journal</h2>
+                    <p className="journal-subtitle">Document your daily activities and progress</p>
+                </div>
+                <div className="journal-date-selector">
+                    <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="journal-date-input"
+                        max={new Date().toISOString().split('T')[0]}
+                    />
+                    {isToday && <span className="today-badge">Today</span>}
+                </div>
+            </div>
+
+            <div className="journal-content-card">
+                <div className="journal-editor-header">
+                    <span className="editor-label">Activity Log for {new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                    {message && <span className={`journal-message ${message.type}`}>{message.text}</span>}
+                </div>
+
+                <div className="journal-textarea-wrapper">
+                    <textarea
+                        className="journal-textarea"
+                        placeholder="What did you work on today? Any accomplishments, challenges, or learnings?"
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        disabled={loading}
+                    />
+                    {loading && <div className="journal-loading-overlay">Loading entry...</div>}
+                </div>
+
+                <div className="journal-actions">
+                    <button
+                        className="btn btn-primary"
+                        onClick={handleSave}
+                        disabled={loading || saving}
+                    >
+                        {saving ? 'Saving...' : 'Save Journal Entry'}
+                    </button>
+                    {!isToday && (
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => setDate(new Date().toISOString().split('T')[0])}
+                        >
+                            Return to Today
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <div className="journal-tips">
+                <div className="tip-card">
+                    <span className="tip-icon">💡</span>
+                    <div className="tip-content">
+                        <strong>Pro-tip:</strong> Be as detailed as possible. Mention specific tasks completed, meetings attended, and any issues you've resolved. This helps track your growth!
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default JournalView;

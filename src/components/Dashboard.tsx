@@ -6,6 +6,7 @@ import TimesheetView from './TimesheetView';
 import ReportsView from './ReportsView';
 import ProfileView from './ProfileView';
 import SettingsView from './SettingsView';
+import JournalView from './JournalView';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -17,7 +18,7 @@ const Dashboard: React.FC = () => {
     const [elapsedSecs, setElapsedSecs] = useState(0);
     const [collapsed, setCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [currentView, setCurrentView] = useState<'dashboard' | 'timesheets' | 'reports' | 'profile' | 'settings'>('dashboard');
+    const [currentView, setCurrentView] = useState<'dashboard' | 'timesheets' | 'journal' | 'reports' | 'profile' | 'settings'>('dashboard');
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     const timerRef = useRef<number | null>(null);
 
@@ -261,6 +262,14 @@ const Dashboard: React.FC = () => {
                             <span className="nav-text">Timesheets</span>
                         </div>
                         <div
+                            className={`sidebar-nav-item ${currentView === 'journal' ? 'active' : ''}`}
+                            title="Daily Journal"
+                            onClick={() => { setCurrentView('journal'); closeMobileMenu(); }}
+                        >
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg></span>
+                            <span className="nav-text">Daily Journal</span>
+                        </div>
+                        <div
                             className={`sidebar-nav-item ${currentView === 'reports' ? 'active' : ''}`}
                             title="Reports"
                             onClick={() => { setCurrentView('reports'); closeMobileMenu(); }}
@@ -312,6 +321,7 @@ const Dashboard: React.FC = () => {
                             <div className="topbar-title">
                                 {currentView === 'dashboard' && 'Time Tracking'}
                                 {currentView === 'timesheets' && 'Timesheets'}
+                                {currentView === 'journal' && 'Daily Journal'}
                                 {currentView === 'reports' && 'Reports'}
                                 {currentView === 'profile' && 'Profile'}
                                 {currentView === 'settings' && 'Settings'}
@@ -496,6 +506,8 @@ const Dashboard: React.FC = () => {
                         </>
                     ) : currentView === 'timesheets' ? (
                         <TimesheetView />
+                    ) : currentView === 'journal' ? (
+                        <JournalView />
                     ) : currentView === 'reports' ? (
                         <ReportsView />
                     ) : currentView === 'profile' ? (
