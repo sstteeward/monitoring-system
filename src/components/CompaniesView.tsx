@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { coordinatorService, type Company } from '../services/coordinatorService';
 import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
