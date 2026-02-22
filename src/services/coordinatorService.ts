@@ -45,28 +45,43 @@ export const coordinatorService = {
     },
 
     /**
-     * Fetch all pending documents across all students
+     * Fetch all pending documents across all students, with profile info merged in
      */
     async getPendingDocuments() {
-        const { data, error } = await supabase
+        // Step 1: fetch pending documents
+        const { data: docs, error: docsError } = await supabase
             .from('student_documents')
-            .select(`
-                *,
-                profiles (
-                    first_name,
-                    last_name,
-                    email
-                )
-            `)
+            .select('*')
             .eq('status', 'pending')
             .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error("Error fetching pending documents:", error);
-            throw error;
+        if (docsError) {
+            console.error("Error fetching pending documents:", docsError);
+            throw docsError;
         }
 
-        return data; // Returns documents joined with profile info
+        if (!docs || docs.length === 0) return [];
+
+        // Step 2: collect unique user_ids and fetch matching profiles
+        const userIds = [...new Set(docs.map((d: any) => d.user_id))];
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('auth_user_id, first_name, last_name, email')
+            .in('auth_user_id', userIds);
+
+        if (profilesError) {
+            console.error("Error fetching profiles for documents:", profilesError);
+            throw profilesError;
+        }
+
+        // Step 3: merge — attach profile info onto each document
+        const profileMap: Record<string, any> = {};
+        (profiles ?? []).forEach((p: any) => { profileMap[p.auth_user_id] = p; });
+
+        return docs.map((doc: any) => ({
+            ...doc,
+            profiles: profileMap[doc.user_id] ?? null,
+        }));
     },
 
     /**

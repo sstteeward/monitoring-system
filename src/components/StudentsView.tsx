@@ -7,16 +7,19 @@ const StudentsView: React.FC = () => {
     const [students, setStudents] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => { loadStudents(); }, []);
 
     const loadStudents = async () => {
         setLoading(true);
+        setError(null);
         try {
             const data = await coordinatorService.getAllStudents();
             setStudents(data);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to load students:', err);
+            setError(err?.message || JSON.stringify(err));
         } finally {
             setLoading(false);
         }
@@ -33,6 +36,14 @@ const StudentsView: React.FC = () => {
     };
 
     if (loading) return <div className="loading-state">Loading students…</div>;
+    if (error) return (
+        <div className="view-container">
+            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '1.5rem 2rem', color: '#f87171' }}>
+                <strong>Supabase Error:</strong> {error}
+                <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>This is usually an RLS policy issue. Run the coordinator RLS SQL in Supabase and refresh.</p>
+            </div>
+        </div>
+    );
 
     return (
         <div className="view-container fade-in">

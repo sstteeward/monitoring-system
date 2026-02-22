@@ -7,6 +7,7 @@ const ApprovalsView: React.FC = () => {
     const [documents, setDocuments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         loadPendingDocuments();
@@ -14,11 +15,13 @@ const ApprovalsView: React.FC = () => {
 
     const loadPendingDocuments = async () => {
         setLoading(true);
+        setError(null);
         try {
             const data = await coordinatorService.getPendingDocuments();
             setDocuments(data || []);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to load documents:", err);
+            setError(err?.message || JSON.stringify(err));
         } finally {
             setLoading(false);
         }
@@ -61,6 +64,14 @@ const ApprovalsView: React.FC = () => {
     };
 
     if (loading) return <div className="loading-state">Loading pending approvals...</div>;
+    if (error) return (
+        <div className="view-container">
+            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '1.5rem 2rem', color: '#f87171' }}>
+                <strong>Supabase Error:</strong> {error}
+                <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>This is usually an RLS policy issue. Run the coordinator RLS SQL in Supabase and refresh.</p>
+            </div>
+        </div>
+    );
 
     return (
         <div className="view-container fade-in">
