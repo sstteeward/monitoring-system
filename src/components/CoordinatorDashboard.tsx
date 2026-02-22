@@ -151,7 +151,7 @@ const CoordinatorDashboard: React.FC = () => {
             <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)} />
 
             {/* ══ SIDEBAR ══ */}
-            <aside className="sidebar">
+            <aside className={`sidebar${isMobileMenuOpen ? ' mobile-open' : ''}`}>
                 {/* Header */}
                 <div className="sidebar-header">
                     <div className="sidebar-logo">

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import './AnnouncementsView.css';
 
 interface AnnouncementsViewProps {
-    viewType?: 'documents' | 'school'; // Make optional for coordinator usage where it's always 'school'
+    viewType?: 'documents' | 'school';
     isCoordinator?: boolean;
 }
 
@@ -12,6 +12,7 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [notifications, setNotifications] = useState<UserNotification[]>([]);
     const [loading, setLoading] = useState(true);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     // New Announcement Form State
     const [newTitle, setNewTitle] = useState('');
@@ -19,9 +20,7 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
 
-    useEffect(() => {
-        loadData();
-    }, [viewType]);
+    useEffect(() => { loadData(); }, [viewType]);
 
     const loadData = async () => {
         setLoading(true);
@@ -43,10 +42,8 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
     const handleCreateAnnouncement = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTitle.trim() || !newContent.trim()) return;
-
         setIsSubmitting(true);
         try {
-            // Get the real coordinator name from the profiles table
             const { data: { user } } = await supabase.auth.getUser();
             let authorName = 'Coordinator';
             if (user) {
@@ -59,22 +56,12 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                     authorName = [profileData.first_name, profileData.last_name].filter(Boolean).join(' ');
                 }
             }
-
             const { error } = await supabase
                 .from('announcements')
-                .insert([{
-                    title: newTitle,
-                    content: newContent,
-                    author: authorName,
-                }]);
-
+                .insert([{ title: newTitle, content: newContent, author: authorName }]);
             if (error) throw error;
-
-            setNewTitle('');
-            setNewContent('');
-            setShowForm(false);
+            setNewTitle(''); setNewContent(''); setShowForm(false);
             loadData();
-
         } catch (err) {
             console.error('Error creating announcement:', err);
             alert('Failed to post announcement. Make sure the Supabase RLS policy for coordinators to INSERT announcements has been applied.');
@@ -82,6 +69,8 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
             setIsSubmitting(false);
         }
     };
+
+    const toggleExpand = (id: string) => setExpandedId(prev => (prev === id ? null : id));
 
     if (loading && announcements.length === 0) return <div className="loading-state">Loading announcements...</div>;
 
@@ -98,43 +87,25 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                             : 'Notifications regarding your OJT documents and requirements.'}
                     </p>
                 </div>
-
                 {isCoordinator && viewType === 'school' && (
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => setShowForm(!showForm)}
-                    >
+                    <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
                         {showForm ? 'Cancel' : 'Post New Announcement'}
                     </button>
                 )}
             </header>
 
-            {/* Create Announcement Form (Coordinators Only) */}
+            {/* Create form */}
             {isCoordinator && showForm && (
-                <div className="new-announcement-card mb-4" style={{ backgroundColor: 'var(--layer-2)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
+                <div style={{ backgroundColor: 'var(--layer-2)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
                     <h3 style={{ marginBottom: '1rem', color: 'var(--text-bright)' }}>Create Announcement</h3>
                     <form onSubmit={handleCreateAnnouncement}>
                         <div style={{ marginBottom: '1rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Title</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                value={newTitle}
-                                onChange={e => setNewTitle(e.target.value)}
-                                placeholder="E.g., Midterm Requirements Deadline"
-                                required
-                            />
+                            <input type="text" className="form-input" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="E.g., Midterm Requirements Deadline" required />
                         </div>
                         <div style={{ marginBottom: '1rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Message</label>
-                            <textarea
-                                className="form-input"
-                                value={newContent}
-                                onChange={e => setNewContent(e.target.value)}
-                                placeholder="Enter the details of the announcement..."
-                                rows={4}
-                                required
-                            />
+                            <textarea className="form-input" value={newContent} onChange={e => setNewContent(e.target.value)} placeholder="Enter the details of the announcement..." rows={4} required />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
@@ -148,18 +119,59 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
             <div className="announcements-list">
                 {viewType === 'school' ? (
                     announcements.length > 0 ? (
-                        announcements.map(item => (
-                            <div key={item.id} className="announcement-card">
-                                <div className="announcement-header">
-                                    <h3 className="announcement-card-title">{item.title}</h3>
-                                    <span className="announcement-date">
-                                        {new Date(item.created_at).toLocaleDateString()}
-                                    </span>
+                        announcements.map(item => {
+                            const isOpen = expandedId === item.id;
+                            return (
+                                <div
+                                    key={item.id}
+                                    className={`announcement-card clickable${isOpen ? ' expanded' : ''}`}
+                                    onClick={() => toggleExpand(item.id)}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={e => e.key === 'Enter' && toggleExpand(item.id)}
+                                    aria-expanded={isOpen}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <div className="announcement-header">
+                                        <h3 className="announcement-card-title">{item.title}</h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                                            <span className="announcement-date">
+                                                {new Date(item.created_at).toLocaleDateString()}
+                                            </span>
+                                            <svg
+                                                width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" strokeWidth="2.5"
+                                                strokeLinecap="round" strokeLinejoin="round"
+                                                style={{
+                                                    color: 'var(--text-muted)',
+                                                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                    transition: 'transform 0.22s ease',
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <polyline points="6 9 12 15 18 9" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div className="announcement-author">From: {item.author}</div>
+
+                                    {/* Collapsed — short preview */}
+                                    {!isOpen && (
+                                        <div className="announcement-preview" style={{ color: 'var(--text-muted)', fontSize: '0.87rem', marginTop: '0.5rem', lineHeight: 1.5 }}>
+                                            {item.content.length > 120 ? item.content.slice(0, 120) + '…' : item.content}
+                                        </div>
+                                    )}
+
+                                    {/* Expanded — full content */}
+                                    {isOpen && (
+                                        <div className="announcement-content" style={{ marginTop: '0.75rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                                            {item.content}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="announcement-author">From: {item.author}</div>
-                                <div className="announcement-content">{item.content}</div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
                         <div className="empty-state">No school announcements at this time.</div>
                     )

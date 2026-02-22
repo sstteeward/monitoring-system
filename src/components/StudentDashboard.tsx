@@ -234,7 +234,7 @@ const StudentDashboard: React.FC = () => {
             <div className="mobile-overlay" onClick={closeMobileMenu} />
 
             {/* ══ SIDEBAR ══ */}
-            <aside className="sidebar">
+            <aside className={`sidebar${isMobileMenuOpen ? ' mobile-open' : ''}`}>
                 {/* Logo & Toggle */}
                 <div className="sidebar-header">
                     <div className="sidebar-logo">
@@ -419,34 +419,17 @@ const StudentDashboard: React.FC = () => {
                     {currentView === 'dashboard' ? (
                         <>
                             {/* ── Greeting Banner ── */}
-                            <div style={{
-                                background: 'linear-gradient(135deg, #0d9488 0%, #065f46 60%, #0d0e1a 100%)',
-                                borderRadius: '16px',
-                                padding: '1.5rem 2rem',
-                                marginBottom: '1.5rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                boxShadow: '0 8px 32px rgba(16,185,129,0.2)',
-                            }}>
-                                <div>
-                                    <div style={{ fontSize: '0.82rem', color: 'rgba(167,243,208,0.8)', marginBottom: '0.25rem', fontWeight: 500 }}>{greeting},</div>
-                                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>
-                                        {displayName}
-                                    </div>
-                                    <div style={{ fontSize: '0.78rem', color: 'rgba(167,243,208,0.65)' }}>Here's your SIL program snapshot for today.</div>
+                            <div className="greeting-banner">
+                                <div className="greeting-banner-text">
+                                    <div className="greeting-banner-sub">{greeting},</div>
+                                    <div className="greeting-banner-name">{displayName}</div>
+                                    <div className="greeting-banner-date">Here's your SIL program snapshot for today.</div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
-                                    <button
-                                        onClick={() => setCurrentView('timesheets')}
-                                        style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 10, padding: '0.5rem 1.1rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)', fontFamily: 'Inter, sans-serif' }}
-                                    >
+                                <div className="greeting-banner-actions">
+                                    <button className="greeting-banner-btn" onClick={() => setCurrentView('timesheets')}>
                                         View Timesheets
                                     </button>
-                                    <button
-                                        onClick={() => setCurrentView('school')}
-                                        style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 10, padding: '0.5rem 1.1rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)', fontFamily: 'Inter, sans-serif' }}
-                                    >
+                                    <button className="greeting-banner-btn" onClick={() => { setCurrentView('school'); markAnnouncementsSeen(); }}>
                                         Announcements
                                     </button>
                                 </div>

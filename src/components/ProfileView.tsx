@@ -81,10 +81,10 @@ const ProfileView: React.FC = () => {
             </div>
 
             {/* Top row: avatar card + edit form */}
-            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1.25rem', alignItems: 'start', marginBottom: '1.25rem' }}>
+            <div className="profile-top-grid">
 
                 {/* Left — Avatar card */}
-                <div style={{ ...card, marginBottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}>
+                <div className="profile-avatar-card" style={{ ...card, marginBottom: 0 }}>
                     <div style={{ width: 90, height: 90, borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 700, color: '#fff', boxShadow: '0 8px 24px rgba(16,185,129,0.3)', letterSpacing: '0.05em' }}>
                         {initials}
                     </div>
@@ -113,7 +113,7 @@ const ProfileView: React.FC = () => {
                 <div style={{ ...card, marginBottom: 0 }}>
                     <h3 style={{ margin: '0 0 1.5rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)' }}>Personal Information</h3>
                     <form onSubmit={handleSave}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                        <div className="profile-name-grid">
                             <div>
                                 <label style={labelStyle}>First Name</label>
                                 <input style={inputStyle} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
@@ -133,7 +133,7 @@ const ProfileView: React.FC = () => {
                         {/* Academic fields */}
                         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginBottom: '1.25rem' }}>
                             <h4 style={{ margin: '0 0 1rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-bright)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Academic Details</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                            <div className="profile-academic-grid">
                                 <div>
                                     <label style={labelStyle}>Required SIL Hours</label>
                                     <input style={inputStyle} type="number" min={0} value={requiredHours} onChange={e => setRequiredHours(Number(e.target.value))} />

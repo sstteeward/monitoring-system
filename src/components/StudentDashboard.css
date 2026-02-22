@@ -895,6 +895,190 @@
 }
 
 /* ══════════════════════════════════════════
+   PROFILE VIEW — RESPONSIVE LAYOUT
+   ══════════════════════════════════════════ */
+.profile-top-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.25rem;
+    align-items: start;
+    margin-bottom: 1.25rem;
+}
+
+.profile-avatar-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+}
+
+.profile-name-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.profile-academic-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Tablet: stack avatar above form */
+@media (max-width: 700px) {
+    .profile-top-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-avatar-card {
+        flex-direction: row;
+        text-align: left;
+        padding: 1rem 1.25rem !important;
+        gap: 1.25rem;
+    }
+
+    .profile-academic-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Mobile: everything single column */
+@media (max-width: 480px) {
+    .profile-name-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-academic-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-avatar-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+}
+
+/* ══════════════════════════════════════════
+   GREETING BANNER
+   ══════════════════════════════════════════ */
+.greeting-banner {
+    background: linear-gradient(135deg, #0d9488 0%, #065f46 60%, #0d0e1a 100%);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.2);
+    flex-wrap: wrap;
+}
+
+.greeting-banner-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.greeting-banner-sub {
+    font-size: 0.82rem;
+    color: rgba(167, 243, 208, 0.8);
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.greeting-banner-name {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.greeting-banner-date {
+    font-size: 0.78rem;
+    color: rgba(167, 243, 208, 0.65);
+}
+
+.greeting-banner-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.greeting-banner-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 10px;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.greeting-banner-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Greeting banner: tablet ── */
+@media (max-width: 700px) {
+    .greeting-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.25rem 1.25rem;
+        gap: 1rem;
+    }
+
+    .greeting-banner-name {
+        font-size: 1.2rem;
+    }
+
+    .greeting-banner-actions {
+        width: 100%;
+    }
+
+    .greeting-banner-btn {
+        flex: 1;
+        text-align: center;
+        padding: 0.55rem 0.75rem;
+    }
+}
+
+/* ── Greeting banner: small phones ── */
+@media (max-width: 400px) {
+    .greeting-banner {
+        padding: 1rem;
+    }
+
+    .greeting-banner-name {
+        font-size: 1.05rem;
+    }
+
+    .greeting-banner-date {
+        display: none;
+    }
+
+    .greeting-banner-actions {
+        flex-direction: column;
+    }
+
+    .greeting-banner-btn {
+        width: 100%;
+    }
+}
+
+/* ══════════════════════════════════════════
    MOBILE & RESPONSIVE ADAPTATIONS
    ══════════════════════════════════════════ */
 
@@ -903,18 +1087,267 @@
     display: flex;
 }
 
+/* ══════════════════════════════════════════
+   MOBILE OVERLAY + HAMBURGER
+   ══════════════════════════════════════════ */
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 199;
+}
+
+/* Only show overlay when the sidebar is actually open */
+.mobile-menu-open .mobile-overlay {
+    display: block;
+}
+
 .mobile-menu-toggle,
 .mobile-close-btn {
     display: none;
 }
 
-.mobile-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    z-index: 100;
+/* ══════════════════════════════════════════
+   TABLET (≤ 900px)
+   ══════════════════════════════════════════ */
+@media (max-width: 900px) {
+
+    /* Sidebar slides in as overlay */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -260px;
+        height: 100vh;
+        width: 240px !important;
+        z-index: 200;
+        transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s;
+        box-shadow: none;
+    }
+
+    .sidebar.mobile-open {
+        left: 0 !important;
+        box-shadow: 12px 0 48px rgba(0, 0, 0, 0.45);
+    }
+
+    .mobile-overlay {
+        display: none;
+        /* hidden by default — shown only when menu is open */
+    }
+
+    .dashboard-container.sidebar-collapsed .sidebar {
+        width: 240px !important;
+        left: -260px;
+    }
+
+    /* Hide desktop toggle, show hamburger */
+    .sidebar-toggle-btn {
+        display: none;
+    }
+
+    .mobile-menu-toggle {
+        display: flex;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 8px;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+    }
+
+    .mobile-menu-toggle:hover {
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+    }
+
+    .mobile-close-btn {
+        display: flex;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        position: absolute;
+        top: 50%;
+        right: 1.25rem;
+        transform: translateY(-50%);
+        z-index: 120;
+    }
+
+    .sidebar-header {
+        height: auto;
+        min-height: 70px;
+    }
+
+    /* Main content fills full width */
+    .main-content {
+        margin-left: 0 !important;
+    }
+
+    .topbar {
+        padding: 0.75rem 1rem;
+    }
+
+    .topbar-date {
+        display: none;
+    }
+
+    .page-content {
+        padding: 1rem;
+    }
+
+    .d-none-mobile {
+        display: none !important;
+    }
+
+    /* Timer layout single column */
+    .timer-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* Table scroll */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table {
+        min-width: 560px;
+    }
+
+    /* Two-col form → single */
+    .form-row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* ══════════════════════════════════════════
+   MOBILE (≤ 640px)
+   ══════════════════════════════════════════ */
+@media (max-width: 640px) {
+    .topbar {
+        padding: 0.65rem 0.85rem;
+    }
+
+    .topbar-right {
+        gap: 0.5rem;
+    }
+
+    .topbar-date {
+        display: none;
+    }
+
+    .page-content {
+        padding: 0.75rem;
+    }
+
+    /* Timer */
+    .timer-main-card {
+        padding: 1.25rem;
+        min-height: auto;
+    }
+
+    .timer-clock {
+        font-size: 3rem !important;
+    }
+
+    .timer-hero {
+        gap: 0.75rem;
+    }
+
+    /* Stats */
+    .stats-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+    }
+
+    .stat-card {
+        padding: 0.85rem 0.75rem;
+    }
+
+    /* Buttons */
+    .btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.82rem;
+    }
+
+    /* View headers stack */
+    .view-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+
+    .view-header>div:last-child {
+        width: 100%;
+    }
+
+    /* Forms */
+    .form-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Tables */
+    .data-table {
+        min-width: 480px;
+        font-size: 0.82rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.6rem 0.75rem;
+    }
+
+    /* Profile two-col grid → single */
+    .profile-col-wrap {
+        flex-direction: column !important;
+    }
+
+    /* Sidebar nav — bigger tap targets */
+    .sidebar-nav-item {
+        padding: 0.85rem 1.25rem;
+        min-height: 48px;
+    }
+
+    /* Logout button */
+    .logout-btn {
+        min-height: 48px;
+    }
+}
+
+/* ══════════════════════════════════════════
+   SMALL PHONE (≤ 400px)
+   ══════════════════════════════════════════ */
+@media (max-width: 400px) {
+    .timer-clock {
+        font-size: 2.4rem !important;
+    }
+
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        flex-direction: row;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.75rem 1rem;
+    }
+
+    .topbar-title {
+        font-size: 0.9rem;
+    }
+
+    .page-content {
+        padding: 0.5rem;
+    }
 }
 
 @media (max-width: 1024px) {
@@ -1030,5 +1463,35 @@
     .btn {
         padding: 0.6rem 1rem;
         font-size: 0.8rem;
+    }
+}
+
+/* ══════════════════════════════════════════
+   CENTERED BUTTONS — tablet & mobile (≤ 900px)
+   ══════════════════════════════════════════ */
+@media (max-width: 900px) {
+
+    /* Primary / submit buttons go full-width & centred */
+    .btn.btn-primary,
+    form .btn-primary,
+    form button[type="submit"].btn-primary {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+
+    /* Secondary action buttons inside settings cards */
+    .settings-card .btn,
+    .settings-card button {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+
+    /* Danger zone button */
+    .btn-secondary[style*="ef4444"],
+    .btn-secondary[style*="sign"] {
+        width: 100%;
+        text-align: center;
     }
 }
