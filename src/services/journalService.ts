@@ -4,7 +4,8 @@ export interface DailyJournal {
     id: string;
     user_id: string;
     entry_date: string;
-    content: string;
+    tasks: string;
+    learnings: string;
     created_at: string;
     updated_at: string;
 }
@@ -39,7 +40,7 @@ export const journalService = {
         return data as DailyJournal | null;
     },
 
-    async upsertJournal(content: string, date?: string) {
+    async upsertJournal(tasks: string, learnings: string, date?: string) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
 
@@ -50,7 +51,8 @@ export const journalService = {
             .upsert({
                 user_id: user.id,
                 entry_date: entryDate,
-                content: content,
+                tasks: tasks,
+                learnings: learnings,
                 updated_at: new Date().toISOString()
             }, {
                 onConflict: 'user_id, entry_date'

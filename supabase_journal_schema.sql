@@ -4,7 +4,8 @@ create table if not exists public.daily_journals (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) not null,
   entry_date date not null default current_date,
-  content text not null,
+  tasks text not null default '',
+  learnings text not null default '',
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   unique(user_id, entry_date)

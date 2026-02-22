@@ -3,7 +3,8 @@ import { journalService } from '../services/journalService';
 import './JournalView.css';
 
 const JournalView: React.FC = () => {
-    const [content, setContent] = useState('');
+    const [tasks, setTasks] = useState('');
+    const [learnings, setLearnings] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -17,7 +18,8 @@ const JournalView: React.FC = () => {
         try {
             setLoading(true);
             const journal = await journalService.getJournalForDate(date);
-            setContent(journal?.content || '');
+            setTasks(journal?.tasks || '');
+            setLearnings(journal?.learnings || '');
             setMessage(null);
         } catch (err) {
             console.error('Error loading journal:', err);
@@ -28,14 +30,14 @@ const JournalView: React.FC = () => {
     };
 
     const handleSave = async () => {
-        if (!content.trim()) {
-            setMessage({ type: 'error', text: 'Please enter some content before saving.' });
+        if (!tasks.trim() && !learnings.trim()) {
+            setMessage({ type: 'error', text: 'Please enter either tasks or learnings before saving.' });
             return;
         }
 
         try {
             setSaving(true);
-            await journalService.upsertJournal(content, date);
+            await journalService.upsertJournal(tasks, learnings, date);
             setMessage({ type: 'success', text: 'Journal entry saved successfully!' });
             setTimeout(() => setMessage(null), 3000);
         } catch (err) {
@@ -73,15 +75,32 @@ const JournalView: React.FC = () => {
                     {message && <span className={`journal-message ${message.type}`}>{message.text}</span>}
                 </div>
 
-                <div className="journal-textarea-wrapper">
-                    <textarea
-                        className="journal-textarea"
-                        placeholder="What did you work on today? Any accomplishments, challenges, or learnings?"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        disabled={loading}
-                    />
-                    {loading && <div className="journal-loading-overlay">Loading entry...</div>}
+                <div className="journal-sections">
+                    <div className="journal-section">
+                        <label className="section-title">Tasks (what you work)</label>
+                        <div className="journal-textarea-wrapper">
+                            <textarea
+                                className="journal-textarea"
+                                placeholder="What specific tasks did you accomplish today?"
+                                value={tasks}
+                                onChange={(e) => setTasks(e.target.value)}
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="journal-section">
+                        <label className="section-title">Learnings (what have you learn today?)</label>
+                        <div className="journal-textarea-wrapper">
+                            <textarea
+                                className="journal-textarea"
+                                placeholder="What new things did you learn today? Any challenges or insights?"
+                                value={learnings}
+                                onChange={(e) => setLearnings(e.target.value)}
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="journal-actions">
