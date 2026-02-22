@@ -245,12 +245,12 @@
 }
 
 .sidebar-section-label {
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-dim);
     padding: 1.25rem 1.25rem 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     transition: opacity 0.2s;
     white-space: nowrap;
 }
@@ -258,8 +258,8 @@
 .sidebar-nav {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 0 0.5rem;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
 }
 
 .sidebar-nav-item {
