@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { profileService, type Profile } from '../services/profileService';
 import TimesheetView from './TimesheetView';
-import ReportsView from './ReportsView';
+import PerformanceView from './PerformanceView';
 import ProfileView from './ProfileView';
 import SettingsView from './SettingsView';
 import JournalView from './JournalView';
@@ -20,7 +20,7 @@ const Dashboard: React.FC = () => {
     const [elapsedSecs, setElapsedSecs] = useState(0);
     const [collapsed, setCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [currentView, setCurrentView] = useState<'dashboard' | 'timesheets' | 'journal' | 'reports' | 'profile' | 'settings' | 'documents' | 'school'>('dashboard');
+    const [currentView, setCurrentView] = useState<'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'school'>('dashboard');
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     const timerRef = useRef<number | null>(null);
 
@@ -272,12 +272,12 @@ const Dashboard: React.FC = () => {
                             <span className="nav-text">Daily Journal</span>
                         </div>
                         <div
-                            className={`sidebar-nav-item ${currentView === 'reports' ? 'active' : ''}`}
-                            title="Reports"
-                            onClick={() => { setCurrentView('reports'); closeMobileMenu(); }}
+                            className={`sidebar-nav-item ${currentView === 'performance' ? 'active' : ''}`}
+                            title="Performance"
+                            onClick={() => { setCurrentView('performance'); closeMobileMenu(); }}
                         >
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg></span>
-                            <span className="nav-text">Reports</span>
+                            <span className="nav-text">Performance</span>
                         </div>
                     </nav>
 
@@ -344,7 +344,7 @@ const Dashboard: React.FC = () => {
                                 {currentView === 'dashboard' && 'Time Tracking'}
                                 {currentView === 'timesheets' && 'Timesheets'}
                                 {currentView === 'journal' && 'Daily Journal'}
-                                {currentView === 'reports' && 'Reports'}
+                                {currentView === 'performance' && 'Performance'}
                                 {currentView === 'documents' && 'Documents'}
                                 {currentView === 'school' && 'School Announcements'}
                                 {currentView === 'profile' && 'Profile'}
@@ -532,8 +532,8 @@ const Dashboard: React.FC = () => {
                         <TimesheetView />
                     ) : currentView === 'journal' ? (
                         <JournalView />
-                    ) : currentView === 'reports' ? (
-                        <ReportsView />
+                    ) : currentView === 'performance' ? (
+                        <PerformanceView />
                     ) : currentView === 'documents' ? (
                         <DocumentsView />
                     ) : currentView === 'school' ? (

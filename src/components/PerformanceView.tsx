@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { profileService, type Profile } from '../services/profileService';
-import './ReportsView.css';
+import './PerformanceView.css';
 
 interface DailyRecord {
     date: string;
@@ -11,7 +11,7 @@ interface DailyRecord {
     lastOut: string | null;
 }
 
-const ReportsView: React.FC = () => {
+const PerformanceView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -30,7 +30,7 @@ const ReportsView: React.FC = () => {
             setTimesheets(data);
             setProfile(userProfile);
         } catch (error) {
-            console.error('Failed to load reports data:', error);
+            console.error('Failed to load performance data:', error);
         } finally {
             setLoading(false);
         }
@@ -111,8 +111,8 @@ const ReportsView: React.FC = () => {
     };
 
     return (
-        <div className="reports-view">
-            <div className="reports-header">
+        <div className="performance-view">
+            <div className="performance-header">
                 <h2>SIL Performance Report</h2>
                 <button className="btn btn-secondary" onClick={loadData} disabled={loading}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
@@ -121,7 +121,7 @@ const ReportsView: React.FC = () => {
             </div>
 
             {/* KPI Cards */}
-            <div className="reports-kpi-grid">
+            <div className="performance-kpi-grid">
                 <div className="kpi-card kpi-primary">
                     <div className="kpi-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
@@ -172,17 +172,17 @@ const ReportsView: React.FC = () => {
             </div>
 
             {/* Daily Time Record Section */}
-            <div className="reports-section">
+            <div className="performance-section">
                 <div className="section-header">
                     <h3>Daily Time Record (DTR)</h3>
                     <p className="section-subtitle">Aggregated log of your daily attendance and completed work hours.</p>
                 </div>
 
-                <div className="reports-card">
+                <div className="performance-card">
                     {loading ? (
                         <div className="reports-empty">Loading DTR...</div>
                     ) : dtrList.length === 0 ? (
-                        <div className="reports-empty">
+                        <div className="performance-empty">
                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2a2d3e" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                             <p>No attendance records logged yet.</p>
                         </div>
@@ -219,4 +219,4 @@ const ReportsView: React.FC = () => {
     );
 };
 
-export default ReportsView;
+export default PerformanceView;
