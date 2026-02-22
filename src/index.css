@@ -1,9 +1,9 @@
 :root {
   /* Common Tokens */
-  --primary: #7c3aed;
-  --primary-hover: #6d28d9;
-  --primary-glow: rgba(124, 58, 237, 0.4);
-  --secondary: #2563eb;
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --primary-glow: rgba(16, 185, 129, 0.4);
+  --secondary: #0d9488;
   --danger: #ef4444;
   --warning: #fbbf24;
   --success: #22c55e;
@@ -20,15 +20,15 @@
   --bg-sidebar: #13141f;
   --bg-card: #13141f;
   --bg-elevated: rgba(255, 255, 255, 0.05);
-  --bg-hero: linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(13, 14, 26, 0.6) 100%);
+  --bg-hero: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(13, 14, 26, 0.6) 100%);
 
   --text-primary: #f8fafc;
   --text-secondary: #e2e4f0;
   --text-muted: #94a3b8;
   --text-dim: #64748b;
 
-  --nav-active-bg: rgba(124, 58, 237, 0.15);
-  --nav-active-text: #a78bfa;
+  --nav-active-bg: rgba(16, 185, 129, 0.15);
+  --nav-active-text: #34d399;
 
   --border: rgba(255, 255, 255, 0.07);
   --border-strong: rgba(255, 255, 255, 0.12);
@@ -45,15 +45,15 @@
   --bg-sidebar: #ffffff;
   --bg-card: #ffffff;
   --bg-elevated: #f1f5f9;
-  --bg-hero: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(37, 99, 235, 0.03) 100%);
+  --bg-hero: linear-gradient(135deg, rgba(16, 185, 129, 0.07) 0%, rgba(13, 148, 136, 0.04) 100%);
 
   --text-primary: #0f172a;
   --text-secondary: #334155;
   --text-muted: #475569;
   --text-dim: #64748b;
 
-  --nav-active-bg: rgba(124, 58, 237, 0.1);
-  --nav-active-text: #7c3aed;
+  --nav-active-bg: rgba(16, 185, 129, 0.1);
+  --nav-active-text: #059669;
 
   --border: #e2e8f0;
   --border-strong: #cbd5e1;

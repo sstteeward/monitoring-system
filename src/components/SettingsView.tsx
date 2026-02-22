@@ -1,142 +1,172 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { useTheme } from '../contexts/ThemeContext';
-import './SettingsView.css';
 
 const SettingsView: React.FC = () => {
-    const { theme, setTheme } = useTheme();
-    const [emailNotifs, setEmailNotifs] = useState(true);
-    const [browserAlerts, setBrowserAlerts] = useState(false);
-
-    const handleThemeChange = (newTheme: 'system' | 'dark' | 'light') => {
-        setTheme(newTheme);
+    // Theme — read/write directly from localStorage (same key as coordinator)
+    const [isDark, setIsDark] = useState(() => {
+        const saved = localStorage.getItem('cd-theme');
+        return saved !== 'light';
+    });
+    const toggleTheme = () => {
+        const next = !isDark;
+        setIsDark(next);
+        document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
+        localStorage.setItem('cd-theme', next ? 'dark' : 'light');
     };
 
-    const handleSignOut = async () => {
-        await supabase.auth.signOut();
+    const [emailNotifications, setEmailNotifications] = useState(true);
+    const [browserNotifications, setBrowserNotifications] = useState(false);
+    const [notifSaved, setNotifSaved] = useState(false);
+
+    const [changingPassword, setChangingPassword] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [pwSaving, setPwSaving] = useState(false);
+    const [pwSuccess, setPwSuccess] = useState(false);
+    const [pwError, setPwError] = useState<string | null>(null);
+
+    const handleSaveNotifications = () => {
+        setNotifSaved(true);
+        setTimeout(() => setNotifSaved(false), 2500);
     };
+
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPwError(null);
+        if (newPassword.length < 8) { setPwError('Password must be at least 8 characters.'); return; }
+        if (newPassword !== confirmPassword) { setPwError('Passwords do not match.'); return; }
+        setPwSaving(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) throw error;
+            setPwSuccess(true);
+            setNewPassword('');
+            setConfirmPassword('');
+            setChangingPassword(false);
+            setTimeout(() => setPwSuccess(false), 3000);
+        } catch (err: any) {
+            setPwError(err.message ?? 'Failed to update password.');
+        } finally {
+            setPwSaving(false);
+        }
+    };
+
+    const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '1.75rem 2rem', marginBottom: '1.25rem' };
+    const sectionTitle: React.CSSProperties = { margin: '0 0 0.35rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)' };
+    const sectionSub: React.CSSProperties = { fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.25rem' };
+    const row: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--border)', marginTop: '1rem' };
+    const inputStyle: React.CSSProperties = { width: '100%', padding: '0.65rem 0.9rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: '0.75rem' };
+
+    const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
+        <div onClick={onChange} style={{ width: 44, height: 24, borderRadius: 12, background: checked ? '#10b981' : 'var(--border-strong)', cursor: 'pointer', position: 'relative', transition: 'background .2s', flexShrink: 0 }}>
+            <div style={{ position: 'absolute', top: 3, left: checked ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
+        </div>
+    );
 
     return (
-        <div className="settings-view">
-            <div className="settings-header">
-                <h2>Application Settings</h2>
-                <p className="settings-subtitle">Manage your local application preferences and account status.</p>
+        <div className="view-container fade-in">
+            <div className="view-header">
+                <div>
+                    <h2 className="view-title">Settings</h2>
+                    <p className="view-subtitle">Customize your account preferences</p>
+                </div>
             </div>
 
-            <div className="settings-content">
-                {/* Appearance Section */}
-                <div className="settings-card">
-                    <div className="card-header">
-                        <div className="card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-                        </div>
-                        <h3>Appearance</h3>
-                    </div>
-
-                    <div className="settings-group">
-                        <div className="setting-item">
-                            <div className="setting-info">
-                                <h4>Theme Preference</h4>
-                                <p>Select how the application looks. (Currently optimized for Dark Mode)</p>
-                            </div>
-                            <div className="theme-toggle-group">
-                                <button
-                                    className={`theme-btn ${theme === 'light' ? 'active' : ''}`}
-                                    onClick={() => handleThemeChange('light')}
-                                >
-                                    Light
-                                </button>
-                                <button
-                                    className={`theme-btn ${theme === 'dark' ? 'active' : ''}`}
-                                    onClick={() => handleThemeChange('dark')}
-                                >
-                                    Dark
-                                </button>
-                                <button
-                                    className={`theme-btn ${theme === 'system' ? 'active' : ''}`}
-                                    onClick={() => handleThemeChange('system')}
-                                >
-                                    System
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Notifications Section */}
-                <div className="settings-card">
-                    <div className="card-header">
-                        <div className="card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                        </div>
-                        <h3>Notifications</h3>
-                    </div>
-
-                    <div className="settings-group">
-                        <div className="setting-item">
-                            <div className="setting-info">
-                                <h4>Email Notifications</h4>
-                                <p>Receive weekly summary reports of your SIL hours directly to your inbox.</p>
-                            </div>
-                            <label className="toggle-switch">
-                                <input
-                                    type="checkbox"
-                                    checked={emailNotifs}
-                                    onChange={(e) => setEmailNotifs(e.target.checked)}
-                                />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <div className="setting-item">
-                            <div className="setting-info">
-                                <h4>Browser Alerts</h4>
-                                <p>Get desktop notifications when you forget to clock out after 8 hours.</p>
-                            </div>
-                            <label className="toggle-switch">
-                                <input
-                                    type="checkbox"
-                                    checked={browserAlerts}
-                                    onChange={(e) => setBrowserAlerts(e.target.checked)}
-                                />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Danger Zone */}
-                <div className="settings-card danger-zone">
-                    <div className="card-header danger-text">
-                        <div className="card-icon danger-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                        </div>
-                        <h3>Danger Zone</h3>
-                    </div>
-
-                    <div className="settings-group">
-                        <div className="setting-item">
-                            <div className="setting-info">
-                                <h4>Sign Out</h4>
-                                <p>End your current session on this device.</p>
-                            </div>
-                            <button className="btn btn-secondary action-btn" onClick={handleSignOut}>
-                                Sign Out
+            {/* ── Appearance ── */}
+            <div style={card}>
+                <h3 style={sectionTitle}>Appearance</h3>
+                <p style={sectionSub}>Choose your preferred dashboard theme.</p>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    {(['dark', 'light'] as const).map(theme => {
+                        const active = theme === 'dark' ? isDark : !isDark;
+                        return (
+                            <button
+                                key={theme}
+                                onClick={toggleTheme}
+                                style={{
+                                    flex: 1, padding: '0.9rem', borderRadius: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.88rem', transition: 'all .2s',
+                                    background: active ? 'rgba(16,185,129,0.12)' : 'var(--bg-elevated)',
+                                    border: active ? '2px solid #10b981' : '2px solid var(--border)',
+                                    color: active ? '#10b981' : 'var(--text-muted)',
+                                }}
+                            >
+                                {theme === 'dark' ? '🌙  Dark' : '☀️  Light'}
                             </button>
-                        </div>
+                        );
+                    })}
+                </div>
+            </div>
 
-                        <div className="setting-item">
-                            <div className="setting-info">
-                                <h4>Delete Account</h4>
-                                <p>Permanently remove your account and all associated timesheet data. This action cannot be undone.</p>
-                            </div>
-                            <button className="btn btn-danger action-btn">
-                                Delete Account
-                            </button>
-                        </div>
+            {/* ── Notifications ── */}
+            <div style={card}>
+                <h3 style={sectionTitle}>Notifications</h3>
+                <p style={sectionSub}>Control how you receive updates.</p>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-bright)', marginBottom: '0.2rem' }}>Email Notifications</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Receive weekly summaries of your SIL hours.</div>
                     </div>
+                    <Toggle checked={emailNotifications} onChange={() => setEmailNotifications(v => !v)} />
                 </div>
 
+                <div style={row}>
+                    <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-bright)', marginBottom: '0.2rem' }}>Browser Alerts</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Get desktop alerts when you forget to clock out.</div>
+                    </div>
+                    <Toggle checked={browserNotifications} onChange={() => setBrowserNotifications(v => !v)} />
+                </div>
+
+                <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button className="btn btn-secondary" onClick={handleSaveNotifications}>
+                        {notifSaved ? '✓ Saved' : 'Save Preferences'}
+                    </button>
+                </div>
+            </div>
+
+            {/* ── Security ── */}
+            <div style={card}>
+                <h3 style={sectionTitle}>Security</h3>
+                <p style={sectionSub}>Manage your login credentials.</p>
+
+                {pwSuccess && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 10, padding: '0.65rem 1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
+                        Password updated successfully.
+                    </div>
+                )}
+
+                {!changingPassword ? (
+                    <button className="btn btn-secondary" onClick={() => setChangingPassword(true)}>Change Password</button>
+                ) : (
+                    <form onSubmit={handleChangePassword}>
+                        <input style={inputStyle} type="password" placeholder="New password (min. 8 chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                        <input style={inputStyle} type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                        {pwError && <div style={{ color: '#f87171', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{pwError}</div>}
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button type="submit" className="btn btn-primary" disabled={pwSaving}>{pwSaving ? 'Updating…' : 'Update Password'}</button>
+                            <button type="button" className="btn btn-secondary" onClick={() => { setChangingPassword(false); setPwError(null); setNewPassword(''); setConfirmPassword(''); }}>Cancel</button>
+                        </div>
+                    </form>
+                )}
+            </div>
+
+            {/* ── About ── */}
+            <div style={card}>
+                <h3 style={sectionTitle}>About</h3>
+                <p style={sectionSub}>Application information.</p>
+                {[
+                    ['Application', 'SIL Monitoring System'],
+                    ['Version', '1.0.0'],
+                    ['Institution', 'Asian College Dumaguete'],
+                    ['Account Type', 'Student'],
+                ].map(([label, value]) => (
+                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+                        <span style={{ color: 'var(--text-bright)', fontWeight: 500 }}>{value}</span>
+                    </div>
+                ))}
             </div>
         </div>
     );

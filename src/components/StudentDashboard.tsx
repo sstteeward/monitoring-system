@@ -178,6 +178,8 @@ const StudentDashboard: React.FC = () => {
             : '—';
 
     const now = new Date();
+    const hour = now.getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
     // Helper to format email slug to a name (fallback)
@@ -367,7 +369,40 @@ const StudentDashboard: React.FC = () => {
                 <div className="page-content">
                     {currentView === 'dashboard' ? (
                         <>
-                            {/* ── Hero Timer ── */}
+                            {/* ── Greeting Banner ── */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, #0d9488 0%, #065f46 60%, #0d0e1a 100%)',
+                                borderRadius: '16px',
+                                padding: '1.5rem 2rem',
+                                marginBottom: '1.5rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                boxShadow: '0 8px 32px rgba(16,185,129,0.2)',
+                            }}>
+                                <div>
+                                    <div style={{ fontSize: '0.82rem', color: 'rgba(167,243,208,0.8)', marginBottom: '0.25rem', fontWeight: 500 }}>{greeting},</div>
+                                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>
+                                        {displayName}
+                                    </div>
+                                    <div style={{ fontSize: '0.78rem', color: 'rgba(167,243,208,0.65)' }}>Here's your SIL program snapshot for today.</div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
+                                    <button
+                                        onClick={() => setCurrentView('timesheets')}
+                                        style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 10, padding: '0.5rem 1.1rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)', fontFamily: 'Inter, sans-serif' }}
+                                    >
+                                        View Timesheets
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentView('school')}
+                                        style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 10, padding: '0.5rem 1.1rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)', fontFamily: 'Inter, sans-serif' }}
+                                    >
+                                        Announcements
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="timer-hero">
                                 {/* Big timer */}
                                 <div className="timer-main-card">
@@ -454,25 +489,25 @@ const StudentDashboard: React.FC = () => {
                             {/* ── Stats ── */}
                             <div className="stats-row">
                                 <div className="stat-card">
-                                    <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
+                                    <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
                                     <span className="stat-label">Hours Today</span>
                                     <span className="stat-value">{hoursWorkedStr}</span>
                                     <span className="stat-sub">of 8h target</span>
                                 </div>
                                 <div className="stat-card">
-                                    <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg></span>
+                                    <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg></span>
                                     <span className="stat-label">Progress</span>
                                     <span className="stat-value">{progressPct}%</span>
                                     <span className="stat-sub">daily goal</span>
                                 </div>
                                 <div className="stat-card">
-                                    <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
+                                    <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
                                     <span className="stat-label">Clock In</span>
                                     <span className="stat-value" style={{ fontSize: '1.2rem', paddingTop: '0.3rem' }}>{clockInTime}</span>
                                     <span className="stat-sub">today's start</span>
                                 </div>
                                 <div className="stat-card">
-                                    <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg></span>
+                                    <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg></span>
                                     <span className="stat-label">Status</span>
                                     <span className="stat-value" style={{ fontSize: '1rem', paddingTop: '0.4rem' }}>
                                         {statusKey === 'working' ? 'Active' : statusKey === 'break' ? 'On Break' : 'Idle'}
