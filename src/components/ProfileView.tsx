@@ -163,7 +163,7 @@ const ProfileView: React.FC = () => {
                             </div>
                         )}
 
-                        <button type="submit" className="btn btn-primary" disabled={saving} style={{ width: '100%' }}>
+                        <button type="submit" className="btn btn-primary" disabled={saving}>
                             {saving ? 'Saving…' : 'Save Changes'}
                         </button>
                     </form>
