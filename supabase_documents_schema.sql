@@ -35,18 +35,37 @@ CREATE TRIGGER on_documents_updated
   BEFORE UPDATE ON public.student_documents
   FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
 
--- NOTE: Ensure you have a 'documents' bucket in Supabase Storage with RLS enabled.
--- You can run these commands in the SQL editor to set up Storage policies:
-/*
--- Allow users to upload to their own folder in the 'documents' bucket
+-- NOTE: Run this in the Supabase SQL editor to set up the storage bucket and its policies.
+
+-- 1. Create the 'documents' bucket if it doesn't exist
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('documents', 'documents', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Set up Storage policies for the 'documents' bucket
+-- Allow authenticated users to upload to their own folder (user_id as folder name)
 CREATE POLICY "Allow authenticated upload"
 ON storage.objects FOR INSERT
 TO authenticated
-WITH CHECK (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text);
+WITH CHECK (
+    bucket_id = 'documents' AND 
+    (storage.foldername(name))[1] = auth.uid()::text
+);
 
--- Allow users to view their own files
+-- Allow users to view/download their own files
 CREATE POLICY "Allow authenticated select"
 ON storage.objects FOR SELECT
 TO authenticated
-USING (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text);
-*/
+USING (
+    bucket_id = 'documents' AND 
+    (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Allow users to delete their own files
+CREATE POLICY "Allow authenticated delete"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+    bucket_id = 'documents' AND 
+    (storage.foldername(name))[1] = auth.uid()::text
+);
