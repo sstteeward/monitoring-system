@@ -109,7 +109,7 @@ const JournalView: React.FC = () => {
                         onClick={handleSave}
                         disabled={loading || saving}
                     >
-                        {saving ? 'Saving...' : 'Save Journal Entry'}
+                        {saving ? 'Saving...' : 'Save Journal'}
                     </button>
                     {!isToday && (
                         <button
