@@ -22,14 +22,39 @@ const StudentDashboard: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [currentView, setCurrentView] = useState<'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'school'>('dashboard');
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
+    const [hasNewAnnouncements, setHasNewAnnouncements] = useState(false);
     const timerRef = useRef<number | null>(null);
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
         loadSession();
         loadProfile();
+        checkAnnouncements();
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, []);
+
+    const checkAnnouncements = async () => {
+        try {
+            const { data } = await supabase
+                .from('announcements')
+                .select('created_at')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+            if (!data) return;
+            const lastSeen = localStorage.getItem('announcements-last-seen');
+            if (!lastSeen || new Date(data.created_at) > new Date(lastSeen)) {
+                setHasNewAnnouncements(true);
+            }
+        } catch {
+            // No announcements yet — ignore
+        }
+    };
+
+    const markAnnouncementsSeen = () => {
+        localStorage.setItem('announcements-last-seen', new Date().toISOString());
+        setHasNewAnnouncements(false);
+    };
 
     const loadProfile = async () => {
         try {
@@ -296,10 +321,34 @@ const StudentDashboard: React.FC = () => {
                         <div
                             className={`sidebar-nav-item ${currentView === 'school' ? 'active' : ''}`}
                             title="School Announcements"
-                            onClick={() => { setCurrentView('school'); closeMobileMenu(); }}
+                            onClick={() => { setCurrentView('school'); markAnnouncementsSeen(); closeMobileMenu(); }}
+                            style={{ position: 'relative' }}
                         >
-                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg></span>
+                            <span className="nav-icon" style={{ position: 'relative' }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                                {hasNewAnnouncements && (
+                                    <span style={{
+                                        position: 'absolute', top: -3, right: -3,
+                                        width: 8, height: 8, borderRadius: '50%',
+                                        background: '#10b981',
+                                        boxShadow: '0 0 0 2px var(--bg-sidebar)',
+                                        display: 'block',
+                                    }} />
+                                )}
+                            </span>
                             <span className="nav-text">Announcements</span>
+                            {hasNewAnnouncements && (
+                                <span style={{
+                                    marginLeft: 'auto',
+                                    background: '#10b981',
+                                    color: '#fff',
+                                    borderRadius: 20,
+                                    fontSize: '0.65rem',
+                                    fontWeight: 700,
+                                    padding: '1px 7px',
+                                    letterSpacing: '0.02em',
+                                }}>NEW</span>
+                            )}
                         </div>
                     </nav>
 
