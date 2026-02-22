@@ -9,9 +9,9 @@ import SettingsView from './SettingsView';
 import JournalView from './JournalView';
 import AnnouncementsView from './AnnouncementsView';
 import DocumentsView from './DocumentsView';
-import './Dashboard.css';
+import './StudentDashboard.css';
 
-const Dashboard: React.FC = () => {
+const StudentDashboard: React.FC = () => {
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [session, setSession] = useState<Timesheet | null>(null);
@@ -556,4 +556,4 @@ const Dashboard: React.FC = () => {
     );
 };
 
-export default Dashboard;
+export default StudentDashboard;

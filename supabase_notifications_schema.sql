@@ -20,14 +20,47 @@ CREATE TABLE IF NOT EXISTS public.user_notifications (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- RLS for announcements (public view, admin write)
+-- ── RLS: announcements ──────────────────────────────────────────────────────
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can view announcements" ON public.announcements FOR SELECT USING (true);
 
--- RLS for user_notifications (own only)
+-- Anyone logged in can read announcements
+CREATE POLICY "Anyone can view announcements"
+  ON public.announcements FOR SELECT USING (true);
+
+-- Only coordinators can create announcements
+CREATE POLICY "Coordinators can insert announcements"
+  ON public.announcements FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE auth_user_id = auth.uid()
+        AND account_type = 'coordinator'
+    )
+  );
+
+-- Only coordinators can update announcements
+CREATE POLICY "Coordinators can update announcements"
+  ON public.announcements FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE auth_user_id = auth.uid()
+        AND account_type = 'coordinator'
+    )
+  );
+
+-- Only coordinators can delete announcements
+CREATE POLICY "Coordinators can delete announcements"
+  ON public.announcements FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE auth_user_id = auth.uid()
+        AND account_type = 'coordinator'
+    )
+  );
+
+-- ── RLS: user_notifications ─────────────────────────────────────────────────
 ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view own notifications" ON public.user_notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can view own notifications"   ON public.user_notifications FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can update own notifications" ON public.user_notifications FOR UPDATE USING (auth.uid() = user_id);
-
--- Add some seed data for testing if desired
--- INSERT INTO public.announcements (title, content) VALUES ('Welcome to the Monitoring System', 'We are glad to have you here. Please make sure to complete your profile.');

@@ -1,50 +1,149 @@
 import React, { useState, useEffect } from 'react';
 import { notificationService, type Announcement, type UserNotification } from '../services/notificationService';
+import { supabase } from '../lib/supabaseClient';
 import './AnnouncementsView.css';
 
 interface AnnouncementsViewProps {
-    viewType: 'documents' | 'school';
+    viewType?: 'documents' | 'school'; // Make optional for coordinator usage where it's always 'school'
+    isCoordinator?: boolean;
 }
 
-const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType }) => {
+const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'school', isCoordinator = false }) => {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [notifications, setNotifications] = useState<UserNotification[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // New Announcement Form State
+    const [newTitle, setNewTitle] = useState('');
+    const [newContent, setNewContent] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showForm, setShowForm] = useState(false);
+
     useEffect(() => {
-        const loadData = async () => {
-            setLoading(true);
-            try {
-                if (viewType === 'school') {
-                    const data = await notificationService.getAnnouncements();
-                    setAnnouncements(data);
-                } else {
-                    const data = await notificationService.getUserNotifications();
-                    setNotifications(data);
-                }
-            } catch (err) {
-                console.error('Error loading data:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
         loadData();
     }, [viewType]);
 
-    if (loading) return <div className="loading-state">Loading announcements...</div>;
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            if (viewType === 'school') {
+                const data = await notificationService.getAnnouncements();
+                setAnnouncements(data || []);
+            } else {
+                const data = await notificationService.getUserNotifications();
+                setNotifications(data || []);
+            }
+        } catch (err) {
+            console.error('Error loading data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateAnnouncement = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newTitle.trim() || !newContent.trim()) return;
+
+        setIsSubmitting(true);
+        try {
+            // Get the real coordinator name from the profiles table
+            const { data: { user } } = await supabase.auth.getUser();
+            let authorName = 'Coordinator';
+            if (user) {
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('first_name, last_name')
+                    .eq('auth_user_id', user.id)
+                    .single();
+                if (profileData?.first_name) {
+                    authorName = [profileData.first_name, profileData.last_name].filter(Boolean).join(' ');
+                }
+            }
+
+            const { error } = await supabase
+                .from('announcements')
+                .insert([{
+                    title: newTitle,
+                    content: newContent,
+                    author: authorName,
+                }]);
+
+            if (error) throw error;
+
+            setNewTitle('');
+            setNewContent('');
+            setShowForm(false);
+            loadData();
+
+        } catch (err) {
+            console.error('Error creating announcement:', err);
+            alert('Failed to post announcement. Make sure the Supabase RLS policy for coordinators to INSERT announcements has been applied.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (loading && announcements.length === 0) return <div className="loading-state">Loading announcements...</div>;
 
     return (
-        <div className="announcements-container">
-            <header className="view-header">
-                <h2 className="view-title">
-                    {viewType === 'school' ? 'School Announcements' : 'Document Status'}
-                </h2>
-                <p className="view-subtitle">
-                    {viewType === 'school'
-                        ? 'Stay updated with the latest news from the administration.'
-                        : 'Notifications regarding your OJT documents and requirements.'}
-                </p>
+        <div className="announcements-container fade-in">
+            <header className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h2 className="view-title">
+                        {viewType === 'school' ? 'School Announcements' : 'Document Status'}
+                    </h2>
+                    <p className="view-subtitle">
+                        {viewType === 'school'
+                            ? 'Stay updated with the latest news from the administration.'
+                            : 'Notifications regarding your OJT documents and requirements.'}
+                    </p>
+                </div>
+
+                {isCoordinator && viewType === 'school' && (
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => setShowForm(!showForm)}
+                    >
+                        {showForm ? 'Cancel' : 'Post New Announcement'}
+                    </button>
+                )}
             </header>
+
+            {/* Create Announcement Form (Coordinators Only) */}
+            {isCoordinator && showForm && (
+                <div className="new-announcement-card mb-4" style={{ backgroundColor: 'var(--layer-2)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
+                    <h3 style={{ marginBottom: '1rem', color: 'var(--text-bright)' }}>Create Announcement</h3>
+                    <form onSubmit={handleCreateAnnouncement}>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Title</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={newTitle}
+                                onChange={e => setNewTitle(e.target.value)}
+                                placeholder="E.g., Midterm Requirements Deadline"
+                                required
+                            />
+                        </div>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Message</label>
+                            <textarea
+                                className="form-input"
+                                value={newContent}
+                                onChange={e => setNewContent(e.target.value)}
+                                placeholder="Enter the details of the announcement..."
+                                rows={4}
+                                required
+                            />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                                {isSubmitting ? 'Posting...' : 'Post Announcement'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
 
             <div className="announcements-list">
                 {viewType === 'school' ? (

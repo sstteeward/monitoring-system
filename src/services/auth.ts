@@ -35,6 +35,25 @@ export async function signUp({ email, password, firstName, middleName, lastName,
   });
   if (signUpError) throw signUpError;
 
+  // Supabase triggers sometimes fire before user_metadata is available (e.g. when
+  // email confirmation is enabled). Explicitly upsert the account_type to guarantee
+  // the profile has the correct value, regardless of trigger timing.
+  if (signUpData?.user) {
+    await supabase
+      .from('profiles')
+      .upsert(
+        {
+          auth_user_id: signUpData.user.id,
+          email: email.toLowerCase(),
+          first_name: firstName ?? null,
+          middle_name: middleName ?? null,
+          last_name: lastName ?? null,
+          account_type: accountType ?? 'student',
+        },
+        { onConflict: 'auth_user_id', ignoreDuplicates: false }
+      );
+  }
+
   return signUpData;
 }
 
