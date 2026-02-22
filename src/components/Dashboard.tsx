@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
+import { profileService, type Profile } from '../services/profileService';
 import TimesheetView from './TimesheetView';
 import ReportsView from './ReportsView';
 import ProfileView from './ProfileView';
@@ -9,6 +10,7 @@ import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
     const [user, setUser] = useState<any>(null);
+    const [profile, setProfile] = useState<Profile | null>(null);
     const [session, setSession] = useState<Timesheet | null>(null);
     const [loading, setLoading] = useState(true);
     const [elapsed, setElapsed] = useState<string>('00:00:00');
@@ -22,8 +24,18 @@ const Dashboard: React.FC = () => {
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
         loadSession();
+        loadProfile();
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, []);
+
+    const loadProfile = async () => {
+        try {
+            const data = await profileService.getCurrentProfile();
+            setProfile(data);
+        } catch (err) {
+            console.error('Error loading profile:', err);
+        }
+    };
 
     const loadSession = async () => {
         try {
@@ -165,8 +177,24 @@ const Dashboard: React.FC = () => {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
-    // Avatar initials from email
-    const initials = user?.email ? user.email[0].toUpperCase() : '?';
+    // Helper to format email slug to a name (fallback)
+    const formatSlug = (slug: string) => {
+        return slug
+            .split(/[._-]/)
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+    };
+
+    // Avatar initials from profile name or email
+    const initials = profile?.first_name
+        ? profile.first_name[0].toUpperCase()
+        : user?.email ? user.email[0].toUpperCase() : '?';
+
+    const displayName = profile?.first_name && profile?.last_name
+        ? `${profile.first_name} ${profile.last_name}`
+        : user?.email
+            ? formatSlug(user.email.split('@')[0])
+            : 'User';
 
     if (loading && !user) return <div className="dashboard-loading">Loading…</div>;
 
@@ -205,9 +233,9 @@ const Dashboard: React.FC = () => {
                 <div className="sidebar-user" title={user?.email} onClick={() => { setCurrentView('profile'); closeMobileMenu(); }}>
                     <div className="sidebar-avatar">{initials}</div>
                     <div className="sidebar-user-info">
-                        <div className="sidebar-user-name">{user?.email?.split('@')[0] ?? 'User'}</div>
+                        <div className="sidebar-user-name">{displayName}</div>
                         <div className="sidebar-user-role" style={{ textTransform: 'capitalize' }}>
-                            Student
+                            {profile?.account_type ?? 'Student'}
                         </div>
                     </div>
                 </div>
