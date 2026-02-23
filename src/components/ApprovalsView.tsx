@@ -9,6 +9,11 @@ const ApprovalsView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewType, setPreviewType] = useState<string | null>(null);
+    const [previewFileName, setPreviewFileName] = useState<string | null>(null);
+    const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
+    const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
     useEffect(() => {
         loadPendingDocuments();
@@ -64,6 +69,37 @@ const ApprovalsView: React.FC = () => {
         }
     };
 
+    const handlePreview = async (filePath: string, fileName: string) => {
+        setPreviewLoading(filePath);
+        try {
+            const { data, error } = await supabase.storage.from('documents').createSignedUrl(filePath, 3600);
+            if (error) throw error;
+
+            const fileExtension = fileName.split('.').pop()?.toLowerCase();
+            const mimeType = fileExtension === 'pdf' ? 'application/pdf' :
+                ['png', 'jpg', 'jpeg', 'webp'].includes(fileExtension || '') ? `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}` :
+                    'application/octet-stream';
+
+            setPreviewUrl(data.signedUrl);
+            setPreviewFileName(fileName);
+            setPreviewFilePath(filePath);
+            setPreviewType(mimeType);
+            console.log('Preview URL set:', data.signedUrl);
+        } catch (error) {
+            console.error('Error previewing file:', error);
+            alert('Could not preview file.');
+        } finally {
+            setPreviewLoading(null);
+        }
+    };
+
+    const closePreview = () => {
+        setPreviewUrl(null);
+        setPreviewFileName(null);
+        setPreviewFilePath(null);
+        setPreviewType(null);
+    };
+
     // Removal of old simple loading state return
     if (error) return (
         <div className="view-container">
@@ -113,10 +149,15 @@ const ApprovalsView: React.FC = () => {
                                         <button
                                             className="btn btn-secondary"
                                             style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', background: 'transparent', border: '1px solid var(--border)' }}
-                                            onClick={() => handleDownload(doc.file_path, doc.file_name)}
-                                            title="Download File"
+                                            onClick={() => handlePreview(doc.file_path, doc.file_name)}
+                                            title="Preview File"
+                                            disabled={previewLoading === doc.file_path}
                                         >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                            {previewLoading === doc.file_path ? (
+                                                <span className="preview-spinner" style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(124, 58, 237, 0.3)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'cd-spin 0.7s linear infinite', marginRight: '4px' }}></span>
+                                            ) : (
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                                            )}
                                             {doc.file_name}
                                         </button>
                                     </td>
@@ -159,6 +200,37 @@ const ApprovalsView: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* Preview Modal */}
+            {previewUrl && (
+                <div className="preview-modal-overlay" onClick={closePreview}>
+                    <div className="preview-modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="preview-modal-header">
+                            <h3 className="preview-modal-title">{previewFileName}</h3>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={() => previewFilePath && previewFileName && handleDownload(previewFilePath, previewFileName)}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                </button>
+                                <button className="btn btn-secondary" style={{ padding: '0.4rem', color: '#ef4444' }} onClick={closePreview}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="preview-modal-body">
+                            {previewType?.startsWith('image/') ? (
+                                <img src={previewUrl} alt={previewFileName || 'Preview'} className="preview-image" />
+                            ) : previewType === 'application/pdf' ? (
+                                <iframe src={`${previewUrl}#toolbar=0`} className="preview-pdf" title="PDF Preview" />
+                            ) : (
+                                <div className="preview-unsupported">
+                                    <p>Preview not available for this file type.</p>
+                                    <button className="btn btn-primary" onClick={() => previewFilePath && previewFileName && handleDownload(previewFilePath, previewFileName)}>Download to View</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

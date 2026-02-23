@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { documentService, type StudentDocument } from '../services/documentService';
+import { supabase } from '../lib/supabaseClient';
 import { CardGridSkeleton } from './Skeletons';
 import './DocumentsView.css';
 
@@ -10,6 +11,11 @@ const DocumentsView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewType, setPreviewType] = useState<string | null>(null);
+    const [previewFileName, setPreviewFileName] = useState<string | null>(null);
+    const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
+    const [previewLoading, setPreviewLoading] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -71,14 +77,50 @@ const DocumentsView: React.FC = () => {
         }
     };
 
-    const handleDownload = async (filePath: string) => {
+    const handleDownload = async (filePath: string, fileName: string) => {
         try {
             const url = await documentService.getDownloadUrl(filePath);
-            window.open(url, '_blank');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
         } catch (err) {
             console.error('Download failed:', err);
             alert('Failed to get download link.');
         }
+    };
+
+    const handlePreview = async (filePath: string, fileName: string) => {
+        setPreviewLoading(filePath);
+        try {
+            const { data, error } = await supabase.storage.from('documents').createSignedUrl(filePath, 3600);
+            if (error) throw error;
+
+            const fileExtension = fileName.split('.').pop()?.toLowerCase();
+            const mimeType = fileExtension === 'pdf' ? 'application/pdf' :
+                ['png', 'jpg', 'jpeg', 'webp'].includes(fileExtension || '') ? `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}` :
+                    'application/octet-stream';
+
+            setPreviewUrl(data.signedUrl);
+            setPreviewFileName(fileName);
+            setPreviewFilePath(filePath);
+            setPreviewType(mimeType);
+            console.log('Preview URL set:', data.signedUrl);
+        } catch (error) {
+            console.error('Error previewing file:', error);
+            alert('Could not preview file.');
+        } finally {
+            setPreviewLoading(null);
+        }
+    };
+
+    const closePreview = () => {
+        setPreviewUrl(null);
+        setPreviewFileName(null);
+        setPreviewFilePath(null);
+        setPreviewType(null);
     };
 
     return (
@@ -109,7 +151,19 @@ const DocumentsView: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="document-actions">
-                                    <button className="action-btn" onClick={() => handleDownload(doc.file_path)} title="Download">
+                                    <button
+                                        className="action-btn"
+                                        onClick={() => handlePreview(doc.file_path, doc.file_name)}
+                                        title="Preview"
+                                        disabled={previewLoading === doc.file_path}
+                                    >
+                                        {previewLoading === doc.file_path ? (
+                                            <span className="preview-spinner" style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid rgba(124, 58, 237, 0.3)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'cd-spin 0.7s linear infinite' }}></span>
+                                        ) : (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                                        )}
+                                    </button>
+                                    <button className="action-btn" onClick={() => handleDownload(doc.file_path, doc.file_name)} title="Download">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                     </button>
                                     <button className="action-btn delete" onClick={() => handleDelete(doc.id, doc.file_path)} title="Delete">
@@ -157,6 +211,37 @@ const DocumentsView: React.FC = () => {
                     </div>
                 </form>
             </div>
+
+            {/* Preview Modal */}
+            {previewUrl && (
+                <div className="preview-modal-overlay" onClick={closePreview}>
+                    <div className="preview-modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="preview-modal-header">
+                            <h3 className="preview-modal-title">{previewFileName}</h3>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={() => previewFilePath && previewFileName && handleDownload(previewFilePath, previewFileName)}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                </button>
+                                <button className="btn btn-secondary" style={{ padding: '0.4rem', color: '#ef4444' }} onClick={closePreview}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="preview-modal-body">
+                            {previewType?.startsWith('image/') ? (
+                                <img src={previewUrl} alt={previewFileName || 'Preview'} className="preview-image" />
+                            ) : previewType === 'application/pdf' ? (
+                                <iframe src={`${previewUrl}#toolbar=0`} className="preview-pdf" title="PDF Preview" />
+                            ) : (
+                                <div className="preview-unsupported">
+                                    <p>Preview not available for this file type.</p>
+                                    <button className="btn btn-primary" onClick={() => previewFilePath && previewFileName && handleDownload(previewFilePath, previewFileName)}>Download to View</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
