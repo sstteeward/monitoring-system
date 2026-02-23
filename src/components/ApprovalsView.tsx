@@ -55,17 +55,17 @@ const ApprovalsView: React.FC = () => {
             const { data, error } = await supabase.storage.from('documents').download(filePath);
             if (error) throw error;
 
-            const url = URL.createObjectURL(data);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            URL.revokeObjectURL(url);
-            a.remove();
+            const url = window.URL.createObjectURL(data);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error('Error downloading public file:', error);
-            alert('Could not download file. It may have been deleted or permissions are incorrect.');
+            console.error('Error downloading file:', error);
+            alert('Could not download file.');
         }
     };
 

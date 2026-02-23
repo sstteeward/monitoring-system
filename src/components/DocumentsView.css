@@ -203,8 +203,16 @@
     color: var(--text-primary);
 }
 
-.action-btn.delete:hover {
+.action-btn.delete {
+    background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
+}
+
+.action-btn.delete:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 @media (max-width: 640px) {
