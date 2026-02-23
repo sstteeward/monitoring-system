@@ -183,3 +183,17 @@
         transform: translateY(0);
     }
 }
+@media (max-width: 600px) {
+    .announcement-card {
+        padding: 1rem;
+    }
+
+    .view-title {
+        font-size: 1.5rem;
+    }
+
+    .empty-state,
+    .loading-state {
+        padding: 2.5rem 1rem;
+    }
+}

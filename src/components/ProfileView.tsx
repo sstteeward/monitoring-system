@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { profileService, type Profile } from '../services/profileService';
 import { supabase } from '../lib/supabaseClient';
+import { FormSkeleton } from './Skeletons';
 
 interface Company { id: string; name: string; address?: string; }
 
@@ -85,7 +86,13 @@ const ProfileView: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="dashboard-loading">Loading profile…</div>;
+    if (loading) return (
+        <div className="view-container">
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '2rem' }}>
+                <FormSkeleton />
+            </div>
+        </div>
+    );
 
     const initials = [firstName?.[0], lastName?.[0]].filter(Boolean).join('').toUpperCase() || email?.[0]?.toUpperCase() || '?';
     const joinDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';

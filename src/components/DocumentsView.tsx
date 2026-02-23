@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { documentService, type StudentDocument } from '../services/documentService';
+import { CardGridSkeleton } from './Skeletons';
 import './DocumentsView.css';
 
 const DocumentsView: React.FC = () => {
@@ -90,7 +91,7 @@ const DocumentsView: React.FC = () => {
             <div className="documents-list-section">
                 <h3 className="section-title">My Documents</h3>
                 {loading ? (
-                    <div className="loading-state">Loading documents...</div>
+                    <CardGridSkeleton cards={3} height={120} />
                 ) : documents.length > 0 ? (
                     <div className="documents-grid">
                         {documents.map((doc) => (

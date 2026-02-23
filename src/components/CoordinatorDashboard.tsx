@@ -8,6 +8,7 @@ import AnnouncementsView from './AnnouncementsView';
 import CompaniesView from './CompaniesView';
 import CoordinatorProfileView from './CoordinatorProfileView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
+import DashboardSkeleton from './DashboardSkeleton';
 import { useTheme } from '../contexts/ThemeContext';
 import './CoordinatorDashboard.css';
 
@@ -41,9 +42,7 @@ const CoordinatorDashboard: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [currentView, setCurrentView] = useState<View>('overview');
 
-    const { theme, setTheme } = useTheme();
-    const isDark = theme === 'dark';
-    const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
+    useTheme();
 
     const [studentCount, setStudentCount] = useState(0);
     const [pendingDocsCount, setPendingDocsCount] = useState(0);
@@ -110,8 +109,8 @@ const CoordinatorDashboard: React.FC = () => {
         : user?.email?.[0]?.toUpperCase() ?? '?';
 
     const displayName = profile?.first_name && profile?.last_name
-        ? `${profile.first_name} ${profile.last_name}`
-        : profile?.first_name ?? 'Coordinator';
+        ? (profile.first_name.includes('@') ? 'Coordinator' : `${profile.first_name} ${profile.last_name}`)
+        : (profile?.first_name && !profile.first_name.includes('@') ? profile.first_name : 'Coordinator');
 
     const navSections: { label: string; items: NavItem[] }[] = [
         {
@@ -148,14 +147,7 @@ const CoordinatorDashboard: React.FC = () => {
         settings: 'Settings',
     };
 
-    if (loading && !user) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-page)' }}>
-            <div style={{ textAlign: 'center' }}>
-                <div className="cd-spinner" />
-                <p style={{ color: 'var(--text-muted)', marginTop: '1rem', fontSize: '0.9rem' }}>Loading dashboard…</p>
-            </div>
-        </div>
-    );
+    if (loading && !user) return <DashboardSkeleton />;
 
     return (
         <div className={`dashboard-container ${collapsed ? 'sidebar-collapsed' : ''} ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
@@ -276,10 +268,7 @@ const CoordinatorDashboard: React.FC = () => {
                         />
                     )}
                     {currentView === 'settings' && (
-                        <CoordinatorSettingsView
-                            isDark={isDark}
-                            onToggleTheme={toggleTheme}
-                        />
+                        <CoordinatorSettingsView />
                     )}
                 </div>
             </div>
@@ -373,7 +362,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, studentC
                 <div className="cd-card-header">
                     <span className="cd-card-title">Quick Actions</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderTop: '1px solid var(--border)' }}>
+                <div className="cd-quick-actions-grid" style={{ borderTop: '1px solid var(--border)' }}>
                     {[
                         {
                             label: 'Review Documents',
@@ -407,10 +396,11 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, studentC
                             bg: 'rgba(59,130,246,0.12)',
                             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
                         },
-                    ].map((action, i, arr) => (
+                    ].map(action => (
                         <button
                             key={action.label}
                             onClick={() => navigate(action.view)}
+                            className="cd-quick-action-btn"
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -418,14 +408,11 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, studentC
                                 padding: '1.25rem 1.5rem',
                                 background: 'transparent',
                                 border: 'none',
-                                borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
                                 cursor: 'pointer',
                                 fontFamily: 'Inter, sans-serif',
                                 textAlign: 'left',
                                 transition: 'background 0.15s',
                             }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                         >
                             <div style={{
                                 width: 40,

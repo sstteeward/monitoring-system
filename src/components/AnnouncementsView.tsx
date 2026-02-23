@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { notificationService, type Announcement, type UserNotification } from '../services/notificationService';
 import { supabase } from '../lib/supabaseClient';
+import { ListSkeleton } from './Skeletons';
 import './AnnouncementsView.css';
 
 interface AnnouncementsViewProps {
@@ -72,7 +73,7 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
 
     const toggleExpand = (id: string) => setExpandedId(prev => (prev === id ? null : id));
 
-    if (loading && announcements.length === 0) return <div className="loading-state">Loading announcements...</div>;
+    // Removal of old simple loading state return
 
     return (
         <div className="announcements-container fade-in">
@@ -116,90 +117,97 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                 </div>
             )}
 
-            <div className="announcements-list">
-                {viewType === 'school' ? (
-                    announcements.length > 0 ? (
-                        announcements.map(item => {
-                            const isOpen = expandedId === item.id;
-                            return (
-                                <div
-                                    key={item.id}
-                                    className={`announcement-card clickable${isOpen ? ' expanded' : ''}`}
-                                    onClick={() => toggleExpand(item.id)}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={e => e.key === 'Enter' && toggleExpand(item.id)}
-                                    aria-expanded={isOpen}
-                                    style={{ cursor: 'pointer' }}
-                                >
-                                    <div className="announcement-header">
-                                        <h3 className="announcement-card-title">{item.title}</h3>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-                                            <span className="announcement-date">
-                                                {new Date(item.created_at).toLocaleDateString()}
-                                            </span>
-                                            <svg
-                                                width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" strokeWidth="2.5"
-                                                strokeLinecap="round" strokeLinejoin="round"
-                                                style={{
-                                                    color: 'var(--text-muted)',
-                                                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                                                    transition: 'transform 0.22s ease',
-                                                    flexShrink: 0,
-                                                }}
-                                            >
-                                                <polyline points="6 9 12 15 18 9" />
-                                            </svg>
+            {/* Announcements list */}
+            {loading ? (
+                <div className="announcements-list">
+                    <ListSkeleton items={3} />
+                </div>
+            ) : (
+                <div className="announcements-list">
+                    {viewType === 'school' ? (
+                        announcements.length > 0 ? (
+                            announcements.map(item => {
+                                const isOpen = expandedId === item.id;
+                                return (
+                                    <div
+                                        key={item.id}
+                                        className={`announcement-card clickable${isOpen ? ' expanded' : ''}`}
+                                        onClick={() => toggleExpand(item.id)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={e => e.key === 'Enter' && toggleExpand(item.id)}
+                                        aria-expanded={isOpen}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <div className="announcement-header">
+                                            <h3 className="announcement-card-title">{item.title}</h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                                                <span className="announcement-date">
+                                                    {new Date(item.created_at).toLocaleDateString()}
+                                                </span>
+                                                <svg
+                                                    width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" strokeWidth="2.5"
+                                                    strokeLinecap="round" strokeLinejoin="round"
+                                                    style={{
+                                                        color: 'var(--text-muted)',
+                                                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                        transition: 'transform 0.22s ease',
+                                                        flexShrink: 0,
+                                                    }}
+                                                >
+                                                    <polyline points="6 9 12 15 18 9" />
+                                                </svg>
+                                            </div>
                                         </div>
+
+                                        <div className="announcement-author">From: {item.author}</div>
+
+                                        {/* Collapsed — short preview */}
+                                        {!isOpen && (
+                                            <div className="announcement-preview" style={{ color: 'var(--text-muted)', fontSize: '0.87rem', marginTop: '0.5rem', lineHeight: 1.5 }}>
+                                                {item.content.length > 120 ? item.content.slice(0, 120) + '…' : item.content}
+                                            </div>
+                                        )}
+
+                                        {/* Expanded — full content */}
+                                        {isOpen && (
+                                            <div className="announcement-content" style={{ marginTop: '0.75rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                                                {item.content}
+                                            </div>
+                                        )}
                                     </div>
-
-                                    <div className="announcement-author">From: {item.author}</div>
-
-                                    {/* Collapsed — short preview */}
-                                    {!isOpen && (
-                                        <div className="announcement-preview" style={{ color: 'var(--text-muted)', fontSize: '0.87rem', marginTop: '0.5rem', lineHeight: 1.5 }}>
-                                            {item.content.length > 120 ? item.content.slice(0, 120) + '…' : item.content}
-                                        </div>
-                                    )}
-
-                                    {/* Expanded — full content */}
-                                    {isOpen && (
-                                        <div className="announcement-content" style={{ marginTop: '0.75rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                                            {item.content}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })
+                                );
+                            })
+                        ) : (
+                            <div className="empty-state">No school announcements at this time.</div>
+                        )
                     ) : (
-                        <div className="empty-state">No school announcements at this time.</div>
-                    )
-                ) : (
-                    notifications.length > 0 ? (
-                        notifications.map(item => (
-                            <div key={item.id} className={`notification-card ${item.type} ${item.is_read ? 'read' : ''}`}>
-                                <div className="notification-icon">
-                                    {item.type === 'danger' && '⚠️'}
-                                    {item.type === 'warning' && '🔔'}
-                                    {item.type === 'success' && '✅'}
-                                    {item.type === 'info' && 'ℹ️'}
+                        notifications.length > 0 ? (
+                            notifications.map(item => (
+                                <div key={item.id} className={`notification-card ${item.type} ${item.is_read ? 'read' : ''}`}>
+                                    <div className="notification-icon">
+                                        {item.type === 'danger' && '⚠️'}
+                                        {item.type === 'warning' && '🔔'}
+                                        {item.type === 'success' && '✅'}
+                                        {item.type === 'info' && 'ℹ️'}
+                                    </div>
+                                    <div className="notification-content">
+                                        <h3 className="notification-card-title">{item.title}</h3>
+                                        <p className="notification-message">{item.message}</p>
+                                        <span className="notification-date">
+                                            {new Date(item.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    {!item.is_read && <div className="unread-dot" />}
                                 </div>
-                                <div className="notification-content">
-                                    <h3 className="notification-card-title">{item.title}</h3>
-                                    <p className="notification-message">{item.message}</p>
-                                    <span className="notification-date">
-                                        {new Date(item.created_at).toLocaleDateString()}
-                                    </span>
-                                </div>
-                                {!item.is_read && <div className="unread-dot" />}
-                            </div>
-                        ))
-                    ) : (
-                        <div className="empty-state">All your documents are in order! No pending notifications.</div>
-                    )
-                )}
-            </div>
+                            ))
+                        ) : (
+                            <div className="empty-state">All your documents are in order! No pending notifications.</div>
+                        )
+                    )}
+                </div>
+            )}
         </div>
     );
 };

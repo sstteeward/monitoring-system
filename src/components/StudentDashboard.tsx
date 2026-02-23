@@ -10,6 +10,7 @@ import JournalView from './JournalView';
 import AnnouncementsView from './AnnouncementsView';
 import DocumentsView from './DocumentsView';
 import OnboardingView from './OnboardingView';
+import DashboardSkeleton from './DashboardSkeleton';
 import './StudentDashboard.css';
 
 const StudentDashboard: React.FC = () => {
@@ -248,7 +249,7 @@ const StudentDashboard: React.FC = () => {
             ? formatSlug(user.email.split('@')[0])
             : 'User';
 
-    if (loading && !user) return <div className="dashboard-loading">Loading…</div>;
+    if (loading && !user) return <DashboardSkeleton />;
 
     // Show onboarding for students who haven't set their company yet
     if (needsOnboarding && profile) {

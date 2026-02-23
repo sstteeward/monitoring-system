@@ -110,6 +110,60 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-/* NOTE: Removed @media (prefers-color-scheme: light) block.
-   Theme is managed manually via data-theme attribute.
-   The OS system theme preference should not override the user's saved setting. */
+/* Theme is managed manually via data-theme attribute. */
+/* The OS system theme preference should not override the user's saved setting. */
+
+/* ══ SKELETON LOADING ══ */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.03) 20%,
+      rgba(255, 255, 255, 0.06) 60%,
+      rgba(255, 255, 255, 0));
+  animation: shimmer 1.8s infinite;
+}
+
+/* Light mode adjustments for shimmer */
+html[data-theme="light"] .skeleton::after {
+  background: linear-gradient(90deg,
+      rgba(0, 0, 0, 0) 0,
+      rgba(0, 0, 0, 0.03) 20%,
+      rgba(0, 0, 0, 0.05) 60%,
+      rgba(0, 0, 0, 0));
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-text {
+  height: 12px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.skeleton-title {
+  height: 24px;
+  width: 60%;
+  margin-bottom: 12px;
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+}

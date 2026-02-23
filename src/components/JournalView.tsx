@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { journalService } from '../services/journalService';
+import { FormSkeleton } from './Skeletons';
 import './JournalView.css';
 
 const JournalView: React.FC = () => {
@@ -75,33 +76,39 @@ const JournalView: React.FC = () => {
                     {message && <span className={`journal-message ${message.type}`}>{message.text}</span>}
                 </div>
 
-                <div className="journal-sections">
-                    <div className="journal-section">
-                        <label className="section-title">Tasks (what you work)</label>
-                        <div className="journal-textarea-wrapper">
-                            <textarea
-                                className="journal-textarea"
-                                placeholder="What specific tasks did you accomplish today?"
-                                value={tasks}
-                                onChange={(e) => setTasks(e.target.value)}
-                                disabled={loading}
-                            />
-                        </div>
+                {loading ? (
+                    <div style={{ padding: '2rem' }}>
+                        <FormSkeleton />
                     </div>
+                ) : (
+                    <div className="journal-sections">
+                        <div className="journal-section">
+                            <label className="section-title">Tasks (what you work)</label>
+                            <div className="journal-textarea-wrapper">
+                                <textarea
+                                    className="journal-textarea"
+                                    placeholder="What specific tasks did you accomplish today?"
+                                    value={tasks}
+                                    onChange={(e) => setTasks(e.target.value)}
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
 
-                    <div className="journal-section">
-                        <label className="section-title">Learnings (what have you learn today?)</label>
-                        <div className="journal-textarea-wrapper">
-                            <textarea
-                                className="journal-textarea"
-                                placeholder="What new things did you learn today? Any challenges or insights?"
-                                value={learnings}
-                                onChange={(e) => setLearnings(e.target.value)}
-                                disabled={loading}
-                            />
+                        <div className="journal-section">
+                            <label className="section-title">Learnings (what have you learn today?)</label>
+                            <div className="journal-textarea-wrapper">
+                                <textarea
+                                    className="journal-textarea"
+                                    placeholder="What new things did you learn today? Any challenges or insights?"
+                                    value={learnings}
+                                    onChange={(e) => setLearnings(e.target.value)}
+                                    disabled={loading}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 <div className="journal-actions">
                     <button

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
+import { TableSkeleton, CardGridSkeleton } from './Skeletons';
 import './TimesheetView.css';
 
 const TimesheetView: React.FC = () => {
@@ -126,7 +127,11 @@ const TimesheetView: React.FC = () => {
                 </button>
             </div>
 
-            {!loading && timesheets.length > 0 && (
+            {loading ? (
+                <div style={{ padding: '0 2rem' }}>
+                    <CardGridSkeleton cards={4} height={100} />
+                </div>
+            ) : timesheets.length > 0 && (
                 <div className="timesheet-stats-row">
                     <div className="ts-stat-card">
                         <span className="ts-stat-label">Total Time</span>
@@ -153,10 +158,7 @@ const TimesheetView: React.FC = () => {
 
             <div className="timesheet-card">
                 {loading ? (
-                    <div className="timesheet-loading">
-                        <div className="spinner"></div>
-                        <span>Syncing daily logs...</span>
-                    </div>
+                    <TableSkeleton rows={8} cols={7} />
                 ) : dailyLogs.length === 0 ? (
                     <div className="timesheet-empty">
                         <span className="timesheet-empty-icon">

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { coordinatorService } from '../services/coordinatorService';
 import { supabase } from '../lib/supabaseClient';
+import { TableSkeleton } from './Skeletons';
 import './CoordinatorDashboard.css';
 
 const ApprovalsView: React.FC = () => {
@@ -63,7 +64,7 @@ const ApprovalsView: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="loading-state">Loading pending approvals...</div>;
+    // Removal of old simple loading state return
     if (error) return (
         <div className="view-container">
             <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '1.5rem 2rem', color: '#f87171' }}>
@@ -75,7 +76,7 @@ const ApprovalsView: React.FC = () => {
 
     return (
         <div className="view-container fade-in">
-            <div className="view-header">
+            <div className="view-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h2 className="view-title">Pending Approvals</h2>
                     <p className="view-subtitle">Review student requirement submissions</p>
@@ -94,7 +95,9 @@ const ApprovalsView: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {documents.length > 0 ? (
+                        {loading ? (
+                            <TableSkeleton rows={5} cols={5} />
+                        ) : documents.length > 0 ? (
                             documents.map(doc => (
                                 <tr key={doc.id}>
                                     <td style={{ fontWeight: '500', color: 'var(--text-bright)' }}>

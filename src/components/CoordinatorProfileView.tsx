@@ -78,6 +78,8 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
         textTransform: 'uppercase',
     };
 
+    const cardStyle: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px' };
+
     return (
         <div className="view-container fade-in">
             <div className="view-header">
@@ -87,22 +89,28 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+            <div className="profile-top-grid">
                 {/* Left — Avatar card */}
-                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                <div className="profile-avatar-card" style={{ ...cardStyle, padding: '2rem 1.5rem' }}>
                     {/* Big avatar */}
-                    <div style={{ width: 90, height: 90, borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 700, color: '#fff', boxShadow: '0 8px 24px rgba(16,185,129,0.3)', letterSpacing: '0.05em' }}>
+                    <div style={{
+                        width: 90, height: 90, borderRadius: '50%', flexShrink: 0,
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '2rem', fontWeight: 700, color: '#fff',
+                        boxShadow: '0 8px 24px rgba(16,185,129,0.3)', letterSpacing: '0.05em'
+                    }}>
                         {initials}
                     </div>
 
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'center' }} className="profile-hero-text">
                         <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-bright)' }}>
-                            {firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Coordinator'}
+                            {firstName && !firstName.includes('@') ? `${firstName} ${lastName}`.trim() : 'Coordinator'}
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#10b981', marginTop: '0.25rem', fontWeight: 600 }}>
                             ● Coordinator
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{email}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }} className="d-none-mobile">{email}</div>
                     </div>
 
                     <div style={{ width: '100%', borderTop: '1px solid var(--border)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
@@ -111,19 +119,19 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
                             { label: 'Member Since', value: joinDate },
                             { label: 'Account Status', value: 'Active' },
                         ].map(item => (
-                            <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.label}</span>
-                                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: item.label === 'Account Status' ? '#10b981' : 'var(--text-bright)' }}>{item.value}</span>
+                            <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                                <span style={{ color: 'var(--text-muted)' }}>{item.label}</span>
+                                <span style={{ fontWeight: 600, color: item.label === 'Account Status' ? '#10b981' : 'var(--text-bright)' }}>{item.value}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
                 {/* Right — Edit form */}
-                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.75rem 2rem' }}>
+                <div style={{ ...cardStyle, padding: '1.75rem 2rem' }}>
                     <h3 style={{ margin: '0 0 1.5rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)' }}>Personal Information</h3>
                     <form onSubmit={handleSave}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                        <div className="profile-name-grid">
                             <div>
                                 <label style={labelStyle}>First Name</label>
                                 <input

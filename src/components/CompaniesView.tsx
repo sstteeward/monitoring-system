@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { coordinatorService, type Company, type CompanyRequest } from '../services/coordinatorService';
+import { CardGridSkeleton, ListSkeleton, TableSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
 
@@ -168,7 +169,7 @@ const CompaniesView: React.FC = () => {
                     }}>
                         <div style={{
                             background: 'var(--layer-2)', border: '1px solid rgba(239,68,68,0.3)',
-                            borderRadius: 20, padding: '2rem', width: '100%', maxWidth: 420,
+                            borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
                             boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                             animation: 'fadeIn 0.2s ease',
                         }}>
@@ -278,41 +279,43 @@ const CompaniesView: React.FC = () => {
                         Interns at {selectedCompany.name}
                     </div>
                     {detailLoading ? (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading students…</div>
+                        <TableSkeleton rows={3} cols={5} />
                     ) : companyStudents.length > 0 ? (
-                        <table className="data-table" style={{ width: '100%' }}>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Required OJT Hours</th>
-                                    <th>Absences</th>
-                                    <th>Since</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {companyStudents.map(student => (
-                                    <tr key={student.id}>
-                                        <td style={{ fontWeight: 500, color: 'var(--text-bright)' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                                                    {student.first_name?.[0]?.toUpperCase() ?? '?'}
-                                                </div>
-                                                {student.first_name} {student.last_name}
-                                            </div>
-                                        </td>
-                                        <td>{student.email}</td>
-                                        <td>{student.required_ojt_hours}h</td>
-                                        <td>
-                                            <span style={{ color: student.absences > 3 ? '#ef4444' : 'inherit', fontWeight: student.absences > 3 ? 700 : 'normal' }}>
-                                                {student.absences}
-                                            </span>
-                                        </td>
-                                        <td>{new Date(student.created_at).toLocaleDateString()}</td>
+                        <div className="table-container">
+                            <table className="data-table" style={{ width: '100%' }}>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Required OJT Hours</th>
+                                        <th>Absences</th>
+                                        <th>Since</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {companyStudents.map(student => (
+                                        <tr key={student.id}>
+                                            <td style={{ fontWeight: 500, color: 'var(--text-bright)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                                                        {student.first_name?.[0]?.toUpperCase() ?? '?'}
+                                                    </div>
+                                                    {student.first_name} {student.last_name}
+                                                </div>
+                                            </td>
+                                            <td>{student.email}</td>
+                                            <td>{student.required_ojt_hours}h</td>
+                                            <td>
+                                                <span style={{ color: (student.absences ?? 0) > 3 ? '#ef4444' : 'inherit', fontWeight: (student.absences ?? 0) > 3 ? 700 : 'normal' }}>
+                                                    {student.absences ?? 0}
+                                                </span>
+                                            </td>
+                                            <td>{new Date(student.created_at).toLocaleDateString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     ) : (
                         <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.3 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
@@ -342,7 +345,7 @@ const CompaniesView: React.FC = () => {
                 <div style={{ background: 'var(--layer-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
                     <h3 style={{ marginBottom: '1.25rem', color: 'var(--text-bright)', fontSize: '1rem', fontWeight: 600 }}>New Company Details</h3>
                     <form onSubmit={handleAddCompany}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Company Name *</label>
                                 <input style={inputStyle} value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Tech Solutions Inc." required />
@@ -374,7 +377,12 @@ const CompaniesView: React.FC = () => {
             )}
 
             {/* ── Pending Company Requests ── */}
-            {pendingRequests.length > 0 && (
+            {loading ? (
+                <div style={{ marginBottom: '2rem' }}>
+                    <div className="skeleton skeleton-text" style={{ width: 200, height: 24, marginBottom: '1.5rem' }} />
+                    <ListSkeleton items={2} />
+                </div>
+            ) : pendingRequests.length > 0 && (
                 <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 14, padding: '1.25rem 1.5rem', marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -438,7 +446,7 @@ const CompaniesView: React.FC = () => {
             )}
 
             {loading ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading companies…</div>
+                <CardGridSkeleton cards={6} height={180} />
             ) : companies.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
                     {companies.map(company => (

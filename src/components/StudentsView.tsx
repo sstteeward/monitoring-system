@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { coordinatorService } from '../services/coordinatorService';
+import { TableSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
 
@@ -35,7 +36,7 @@ const StudentsView: React.FC = () => {
         return colors[(name.charCodeAt(0) ?? 0) % colors.length];
     };
 
-    if (loading) return <div className="loading-state">Loading students…</div>;
+    // Removal of old simple loading state return
     if (error) return (
         <div className="view-container">
             <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '1.5rem 2rem', color: '#f87171' }}>
@@ -47,13 +48,13 @@ const StudentsView: React.FC = () => {
 
     return (
         <div className="view-container fade-in">
-            <div className="view-header">
+            <div className="view-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h2 className="view-title">Enrolled Students</h2>
                     <p className="view-subtitle">{students.length} student{students.length !== 1 ? 's' : ''} in the SIL program</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
+                    <div style={{ position: 'relative', width: 'min(320px, 100%)' }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                         <input
                             type="text"
@@ -61,7 +62,7 @@ const StudentsView: React.FC = () => {
                             className="form-input"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            style={{ paddingLeft: '2.25rem', width: '240px' }}
+                            style={{ paddingLeft: '2.25rem', width: '100%' }}
                         />
                     </div>
                 </div>
@@ -79,7 +80,9 @@ const StudentsView: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredStudents.length > 0 ? (
+                        {loading ? (
+                            <TableSkeleton rows={8} cols={5} />
+                        ) : filteredStudents.length > 0 ? (
                             filteredStudents.map(student => {
                                 const color = avatarColor(student.first_name ?? 'A');
                                 return (

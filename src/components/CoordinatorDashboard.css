@@ -535,6 +535,54 @@
     margin-top: 1px;
 }
 
+/* ── Quick Actions Grid ── */
+.cd-quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.cd-quick-action-btn {
+    border-right: 1px solid var(--border) !important;
+}
+
+.cd-quick-action-btn:last-child {
+    border-right: none !important;
+}
+
+.cd-quick-action-btn:hover {
+    background: var(--bg-elevated) !important;
+}
+
+@media (max-width: 1024px) {
+    .cd-quick-actions-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .cd-quick-action-btn:nth-child(2n) {
+        border-right: none !important;
+    }
+
+    .cd-quick-action-btn:nth-child(1),
+    .cd-quick-action-btn:nth-child(2) {
+        border-bottom: 1px solid var(--border) !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .cd-quick-actions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cd-quick-action-btn {
+        border-right: none !important;
+        border-bottom: 1px solid var(--border) !important;
+    }
+
+    .cd-quick-action-btn:last-child {
+        border-bottom: none !important;
+    }
+}
+
 /* ═══════════════════════════════════════════════════
    VIEW CONTAINER — used in child views
 ═══════════════════════════════════════════════════ */
@@ -572,7 +620,8 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 14px;
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
