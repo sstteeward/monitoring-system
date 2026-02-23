@@ -18,6 +18,10 @@ const SettingsView: React.FC = () => {
     const [pwSuccess, setPwSuccess] = useState(false);
     const [pwError, setPwError] = useState<string | null>(null);
 
+    const [passkeyLoading, setPasskeyLoading] = useState(false);
+    const [passkeySuccess, setPasskeySuccess] = useState(false);
+    const [passkeyError, setPasskeyError] = useState<string | null>(null);
+
     const handleSaveNotifications = () => {
         setNotifSaved(true);
         setTimeout(() => setNotifSaved(false), 2500);
@@ -41,6 +45,25 @@ const SettingsView: React.FC = () => {
             setPwError(err.message ?? 'Failed to update password.');
         } finally {
             setPwSaving(false);
+        }
+    };
+
+    const handleRegisterPasskey = async () => {
+        setPasskeyError(null);
+        setPasskeySuccess(false);
+        setPasskeyLoading(true);
+        try {
+            const { data, error } = await supabase.auth.mfa.webauthn.register({
+                friendlyName: 'Face ID / Touch ID'
+            });
+            if (error) throw error;
+
+            setPasskeySuccess(true);
+            setTimeout(() => setPasskeySuccess(false), 3000);
+        } catch (err: any) {
+            setPasskeyError(err.message ?? 'Failed to register passkey.');
+        } finally {
+            setPasskeyLoading(false);
         }
     };
 
@@ -167,6 +190,26 @@ const SettingsView: React.FC = () => {
                         </div>
                     </form>
                 )}
+
+                {/* Biometric Login (Passkey) - HIDDEN UNTIL SUPABASE CLOUD ENABLES WEBAUTHN NATIVELY */}
+                {/*
+                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '0.35rem' }}>Biometric Login (Passkey)</h4>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Use Face ID, Touch ID, or Windows Hello to sign in without a password.</p>
+
+                    {passkeySuccess && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 10, padding: '0.65rem 1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
+                            Passkey registered successfully!
+                        </div>
+                    )}
+                    {passkeyError && <div style={{ color: '#f87171', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{passkeyError}</div>}
+
+                    <button className="btn btn-secondary" onClick={handleRegisterPasskey} disabled={passkeyLoading}>
+                        {passkeyLoading ? 'Waiting for prompt…' : 'Register Face ID / Touch ID'}
+                    </button>
+                </div>
+                */}
             </div>
 
             {/* ── About ── */}
@@ -184,6 +227,21 @@ const SettingsView: React.FC = () => {
                         <span style={{ color: 'var(--text-bright)', fontWeight: 500 }}>{value}</span>
                     </div>
                 ))}
+
+                {/* Socials Section */}
+                <div style={{ marginTop: '1.25rem' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Socials</div>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <a href="https://web.facebook.com/AsianCollegeDumaguete/" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                            Facebook
+                        </a>
+                        <a href="https://www.asiancollege.edu.ph/" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: '#10b981', textDecoration: 'none', fontWeight: 500 }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                            Website
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     );

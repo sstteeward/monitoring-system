@@ -6,6 +6,7 @@ import CoordinatorDashboard from "./components/CoordinatorDashboard"; // Will bu
 import { supabase } from "./lib/supabaseClient";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
+
 function App() {
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);

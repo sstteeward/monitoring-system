@@ -34,13 +34,13 @@
 .auth-card {
     display: flex;
     width: 100%;
-    max-width: 960px;
+    max-width: 880px;
+    /* Reduced from 960px to make it more compact */
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 12px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    /* height: min(700px, 90vh);  Optional: constrain height if desired, but auto is safer for forms */
 }
 
 /* ══════════════════════════════════════════
@@ -121,25 +121,34 @@
     background: var(--surface);
     position: relative;
     border-left: 1px solid var(--border);
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.auth-form-wrapper {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
 }
 
 .auth-form {
-    padding: 2.5rem;
     display: flex;
     flex-direction: column;
-    height: 100%;
-    justify-content: center;
 }
 
 /* Header */
 .card-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    /* Reduced from 2rem */
 }
 
 .card-header h1,
 .card-header h2 {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
+    /* Reduced from 1.5rem */
     font-weight: 700;
     color: var(--text);
     margin: 0;
@@ -156,11 +165,10 @@
 .form-scrollable {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-    /* In case content overflows height */
+    gap: 1rem;
+    /* Reduced from 1.25rem */
     overflow-y: auto;
     padding: 0 2px;
-    /* Prevent outline clipping */
 }
 
 /* Form Rows & Inputs */
@@ -181,12 +189,15 @@
 }
 
 input {
-    padding: 0.75rem 0.9rem;
-    border-radius: 9px;
+    padding: 0.65rem 0.8rem;
+    /* Reduced padding from 0.75rem */
+    border-radius: 8px;
     border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
+    /* Slightly darker background */
     color: var(--text);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    /* Reduced from 0.9rem */
     font-family: inherit;
     outline: none;
     transition: all 0.2s;
@@ -296,6 +307,8 @@ input:focus {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+
 
 /* Footer & Muted utils */
 .auth-footer {
