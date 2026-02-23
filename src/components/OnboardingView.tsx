@@ -18,6 +18,9 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [lastName, setLastName] = useState(profile.last_name ?? '');
     const [requiredHours, setRequiredHours] = useState(profile.required_ojt_hours ?? 400);
     const [saving, setSaving] = useState(false);
+    const [requestingCompany, setRequestingCompany] = useState(false);
+    const [requestSent, setRequestSent] = useState(false);
+    const [requestedName, setRequestedName] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [step, setStep] = useState<1 | 2>(1);
 
@@ -39,6 +42,31 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         setShowDropdown(false);
     };
 
+    const handleRequestCompany = async () => {
+        const name = search.trim();
+        if (!name) return;
+        setRequestingCompany(true);
+        setError(null);
+        try {
+            const { error: err } = await supabase
+                .from('company_requests')
+                .insert({
+                    name,
+                    student_name: `${firstName} ${lastName}`.trim() || null,
+                    status: 'pending',
+                });
+            if (err) throw err;
+            setRequestedName(name);
+            setRequestSent(true);
+            setShowDropdown(false);
+        } catch (err: any) {
+            setError(err.message ?? 'Failed to submit request.');
+        } finally {
+            setRequestingCompany(false);
+        }
+    };
+
+
     const handleNext = (e: React.FormEvent) => {
         e.preventDefault();
         if (!firstName.trim() || !lastName.trim()) {
@@ -51,22 +79,23 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedCompanyId) {
-            setError('Please select your internship company.');
+        if (!selectedCompanyId && !requestSent) {
+            setError('Please select your internship company or request a new one.');
             return;
         }
         setSaving(true);
         setError(null);
         try {
+            const authId = (await supabase.auth.getUser()).data.user?.id;
             const { error: err } = await supabase
                 .from('profiles')
                 .update({
                     first_name: firstName.trim(),
                     last_name: lastName.trim(),
-                    company_id: selectedCompanyId,
+                    ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
                     required_ojt_hours: requiredHours,
                 })
-                .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id);
+                .eq('auth_user_id', authId);
 
             if (err) throw err;
             onComplete();
@@ -212,15 +241,57 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     <div style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0,
                                         background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                                        borderRadius: 12, padding: '0.75rem 1rem', color: 'var(--text-muted)',
-                                        fontSize: '0.85rem', zIndex: 1000, marginTop: 4,
+                                        borderRadius: 12, zIndex: 1000, marginTop: 4,
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)', overflow: 'hidden',
                                     }}>
-                                        No companies found. Ask your coordinator to add it.
+                                        <div style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+                                            No companies match &ldquo;{search}&rdquo;
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={requestingCompany}
+                                            onClick={handleRequestCompany}
+                                            style={{
+                                                width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem',
+                                                padding: '0.75rem 1rem', background: 'transparent', border: 'none',
+                                                cursor: requestingCompany ? 'not-allowed' : 'pointer',
+                                                color: '#10b981', fontSize: '0.88rem', fontWeight: 600,
+                                                fontFamily: 'Inter, sans-serif', textAlign: 'left',
+                                            }}
+                                            onMouseOver={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.08)')}
+                                            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                                        >
+                                            {requestingCompany ? (
+                                                <span style={{ opacity: 0.7 }}>Submitting request…</span>
+                                            ) : (
+                                                <>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                                                    Request &ldquo;{search}&rdquo; — notify coordinator
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 )}
                             </div>
 
-                            {selectedCompany && (
+                            {/* Request sent success banner */}
+                            {requestSent && (
+                                <div style={{
+                                    background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+                                    borderRadius: 12, padding: '0.9rem 1rem', marginBottom: '1.25rem',
+                                    display: 'flex', alignItems: 'flex-start', gap: '0.65rem',
+                                }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><polyline points="20 6 9 17 4 12" /></svg>
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#10b981' }}>Request sent!</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                            Your coordinator has been notified to add <strong style={{ color: 'var(--text-bright)' }}>{requestedName}</strong>. You can proceed to the dashboard now.
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedCompany && !requestSent && (
                                 <div style={{
                                     background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
                                     borderRadius: 12, padding: '0.75rem 1rem', marginBottom: '1.25rem',
@@ -243,7 +314,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                 >
                                     ← Back
                                 </button>
-                                <button type="submit" style={{ ...btnPrimary, flex: 1 }} disabled={saving || !selectedCompanyId}>
+                                <button type="submit" style={{ ...btnPrimary, flex: 1 }} disabled={saving || (!selectedCompanyId && !requestSent)}>
                                     {saving ? 'Saving…' : 'Go to Dashboard →'}
                                 </button>
                             </div>

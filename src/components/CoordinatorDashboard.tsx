@@ -52,6 +52,7 @@ const CoordinatorDashboard: React.FC = () => {
     const [studentCount, setStudentCount] = useState(0);
     const [pendingDocsCount, setPendingDocsCount] = useState(0);
     const [companyCount, setCompanyCount] = useState(0);
+    const [pendingCompanyRequestsCount, setPendingCompanyRequestsCount] = useState(0);
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -61,16 +62,18 @@ const CoordinatorDashboard: React.FC = () => {
     const loadCoordinatorData = async () => {
         setLoading(true);
         try {
-            const [currentProfile, students, pendingDocs, companies] = await Promise.all([
+            const [currentProfile, students, pendingDocs, companies, companyRequests] = await Promise.all([
                 profileService.getCurrentProfile(),
                 coordinatorService.getAllStudents(),
                 coordinatorService.getPendingDocuments(),
                 coordinatorService.getAllCompanies(),
+                coordinatorService.getPendingCompanyRequests(),
             ]);
             setProfile(currentProfile);
             setStudentCount(students.length);
             setPendingDocsCount(pendingDocs.length);
             setCompanyCount(companies.length);
+            setPendingCompanyRequestsCount(companyRequests.length);
         } catch (err) {
             console.error('Error loading coordinator data:', err);
         } finally {
@@ -106,7 +109,7 @@ const CoordinatorDashboard: React.FC = () => {
             label: 'Management',
             items: [
                 { id: 'overview', label: 'Overview', icon: Icon.grid },
-                { id: 'companies', label: 'Companies', icon: Icon.building },
+                { id: 'companies', label: 'Companies', icon: Icon.building, badge: pendingCompanyRequestsCount > 0 ? pendingCompanyRequestsCount : undefined },
                 { id: 'students', label: 'Students', icon: Icon.users },
                 { id: 'approvals', label: 'Approvals', icon: Icon.file, badge: pendingDocsCount > 0 ? pendingDocsCount : undefined },
             ],

@@ -25,6 +25,15 @@ export interface Company {
     intern_count?: number; // virtual, populated by query joins
 }
 
+export interface CompanyRequest {
+    id: string;
+    name: string;
+    requested_by: string | null;
+    student_name: string | null;
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+}
+
 export const coordinatorService = {
     /**
      * Fetch all students (profiles where account_type = 'student')
@@ -224,5 +233,90 @@ export const coordinatorService = {
         }
 
         return data as Company;
-    }
+    },
+
+    // ─── Company Request Methods ────────────────────────────────────────
+
+    /**
+     * Fetch all pending company requests
+     */
+    async getPendingCompanyRequests() {
+        const { data, error } = await supabase
+            .from('company_requests')
+            .select('*')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching company requests:', error);
+            throw error;
+        }
+
+        return (data ?? []) as CompanyRequest[];
+    },
+
+    /**
+     * Approve a company request: create the real company then mark ALL requests
+     * with the same name (case-insensitive) as approved to avoid duplicates.
+     */
+    async approveCompanyRequest(name: string) {
+        // 1. Insert one company (coordinator context — RLS allows this)
+        const { data: newCompany, error: createErr } = await supabase
+            .from('companies')
+            .insert([{ name }])
+            .select()
+            .single();
+
+        if (createErr) {
+            console.error('Error creating company from request:', createErr);
+            throw createErr;
+        }
+
+        // 2. Mark ALL pending requests with the same name as approved
+        const { error: updateErr } = await supabase
+            .from('company_requests')
+            .update({ status: 'approved' })
+            .eq('status', 'pending')
+            .ilike('name', name); // case-insensitive match
+
+        if (updateErr) {
+            console.error('Error batch-approving company requests:', updateErr);
+            throw updateErr;
+        }
+
+        return newCompany as Company;
+    },
+
+    /**
+     * Reject a company request
+     */
+    async rejectCompanyRequest(requestId: string) {
+        const { error } = await supabase
+            .from('company_requests')
+            .update({ status: 'rejected' })
+            .eq('id', requestId);
+
+        if (error) {
+            console.error('Error rejecting company request:', error);
+            throw error;
+        }
+
+        return true;
+    },
+
+    /**
+     * Delete a company by ID
+     */
+    async deleteCompany(companyId: string) {
+        const { error } = await supabase
+            .from('companies')
+            .delete()
+            .eq('id', companyId);
+
+        if (error) {
+            console.error('Error deleting company:', error);
+            throw error;
+        }
+        return true;
+    },
 };
