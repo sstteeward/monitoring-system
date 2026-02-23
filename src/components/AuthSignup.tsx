@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
 import { signUp, signIn } from "../services/auth";
-import { supabase } from '../lib/supabaseClient';
+// import { supabase } from '../lib/supabaseClient';
 
 export default function AuthSignup() {
     const [mode, setMode] = useState<"signup" | "login">("signup");

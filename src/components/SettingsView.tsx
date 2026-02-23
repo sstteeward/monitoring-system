@@ -18,9 +18,11 @@ const SettingsView: React.FC = () => {
     const [pwSuccess, setPwSuccess] = useState(false);
     const [pwError, setPwError] = useState<string | null>(null);
 
+    /* 
     const [passkeyLoading, setPasskeyLoading] = useState(false);
     const [passkeySuccess, setPasskeySuccess] = useState(false);
     const [passkeyError, setPasskeyError] = useState<string | null>(null);
+    */
 
     const handleSaveNotifications = () => {
         setNotifSaved(true);
@@ -48,6 +50,7 @@ const SettingsView: React.FC = () => {
         }
     };
 
+    /*
     const handleRegisterPasskey = async () => {
         setPasskeyError(null);
         setPasskeySuccess(false);
@@ -66,6 +69,7 @@ const SettingsView: React.FC = () => {
             setPasskeyLoading(false);
         }
     };
+    */
 
     const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '1.75rem 2rem', marginBottom: '1.25rem' };
     const sectionTitle: React.CSSProperties = { margin: '0 0 0.35rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)' };
