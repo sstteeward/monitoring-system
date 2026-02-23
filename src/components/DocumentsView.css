@@ -208,11 +208,19 @@
     color: #ef4444;
 }
 
+.action-btn.delete svg {
+    stroke: #ef4444;
+}
+
 .action-btn.delete:hover {
     background: #ef4444;
     color: white;
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.action-btn.delete:hover svg {
+    stroke: white;
 }
 
 @media (max-width: 640px) {

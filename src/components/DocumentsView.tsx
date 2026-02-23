@@ -16,6 +16,7 @@ const DocumentsView: React.FC = () => {
     const [previewFileName, setPreviewFileName] = useState<string | null>(null);
     const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
     const [previewLoading, setPreviewLoading] = useState<string | null>(null);
+    const [documentToDelete, setDocumentToDelete] = useState<{ id: string, path: string, name: string } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -65,11 +66,12 @@ const DocumentsView: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: string, filePath: string) => {
-        if (!window.confirm('Are you sure you want to delete this document?')) return;
+    const handleDelete = async () => {
+        if (!documentToDelete) return;
 
         try {
-            await documentService.deleteDocument(id, filePath);
+            await documentService.deleteDocument(documentToDelete.id, documentToDelete.path);
+            setDocumentToDelete(null);
             loadDocuments();
         } catch (err) {
             console.error('Delete failed:', err);
@@ -167,15 +169,14 @@ const DocumentsView: React.FC = () => {
                                 <div className="document-actions">
                                     <button
                                         className="action-btn delete"
-                                        onClick={(e) => { e.stopPropagation(); handleDelete(doc.id, doc.file_path); }}
-                                        title="Delete"
+                                        onClick={(e) => { e.stopPropagation(); setDocumentToDelete({ id: doc.id, path: doc.file_path, name: doc.file_name }); }}
+                                        title="Delete Document"
                                     >
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M3 6h18"></path>
-                                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="3 6 5 6 21 6" />
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            <line x1="10" y1="11" x2="10" y2="17" />
+                                            <line x1="14" y1="11" x2="14" y2="17" />
                                         </svg>
                                     </button>
                                 </div>
@@ -247,6 +248,60 @@ const DocumentsView: React.FC = () => {
                                     <button className="btn btn-primary" onClick={() => previewFilePath && previewFileName && handleDownload(previewFilePath, previewFileName)}>Download to View</button>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {documentToDelete && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 1000,
+                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <div style={{
+                        background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.3)',
+                        borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        animation: 'fadeIn 0.2s ease',
+                    }}>
+                        {/* Icon */}
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                <path d="M10 11v6" /><path d="M14 11v6" />
+                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            </svg>
+                        </div>
+                        <h3 style={{ textAlign: 'center', color: 'var(--text-primary)', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Delete Document?</h3>
+                        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1rem' }}>
+                            Are you sure you want to permanently delete
+                        </p>
+                        <p style={{ textAlign: 'center', fontWeight: 600, color: '#ef4444', fontSize: '1.05rem', margin: '0 0 1.5rem', background: 'rgba(239,68,68,0.08)', borderRadius: 10, padding: '0.75rem 1rem', wordBreak: 'break-all' }}>
+                            "{documentToDelete.name}"
+                        </p>
+                        <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.85rem', margin: '0 0 1.75rem' }}>
+                            This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => setDocumentToDelete(null)}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
+                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-card)'}
+                                onMouseOut={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(239,68,68,0.35)', transition: 'opacity 0.15s' }}
+                                onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
+                                onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                            >
+                                Yes, Delete It
+                            </button>
                         </div>
                     </div>
                 </div>
