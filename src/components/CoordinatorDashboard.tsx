@@ -8,6 +8,7 @@ import AnnouncementsView from './AnnouncementsView';
 import CompaniesView from './CompaniesView';
 import CoordinatorProfileView from './CoordinatorProfileView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
+import { useTheme } from '../contexts/ThemeContext';
 import './CoordinatorDashboard.css';
 
 // ─── Icon helpers ────────────────────────────────────────────────────────────
@@ -39,15 +40,10 @@ const CoordinatorDashboard: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [currentView, setCurrentView] = useState<View>('overview');
-    const [isDark, setIsDark] = useState(() => {
-        const saved = localStorage.getItem('cd-theme');
-        return saved !== 'light'; // default dark
-    });
 
-    useEffect(() => {
-        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-        localStorage.setItem('cd-theme', isDark ? 'dark' : 'light');
-    }, [isDark]);
+    const { theme, setTheme } = useTheme();
+    const isDark = theme === 'dark';
+    const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
 
     const [studentCount, setStudentCount] = useState(0);
     const [pendingDocsCount, setPendingDocsCount] = useState(0);
@@ -58,6 +54,19 @@ const CoordinatorDashboard: React.FC = () => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
         loadCoordinatorData();
     }, []);
+
+    useEffect(() => {
+        const titles: Record<string, string> = {
+            overview: 'Overview',
+            companies: 'OJT Companies',
+            students: 'Students',
+            approvals: 'Approvals',
+            announcements: 'Announcements',
+            profile: 'My Profile',
+            settings: 'Settings',
+        };
+        document.title = `${titles[currentView] ?? 'Dashboard'} | SIL Monitor`;
+    }, [currentView]);
 
     const loadCoordinatorData = async () => {
         setLoading(true);
@@ -269,7 +278,7 @@ const CoordinatorDashboard: React.FC = () => {
                     {currentView === 'settings' && (
                         <CoordinatorSettingsView
                             isDark={isDark}
-                            onToggleTheme={() => setIsDark(d => !d)}
+                            onToggleTheme={toggleTheme}
                         />
                     )}
                 </div>

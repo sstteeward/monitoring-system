@@ -13,9 +13,9 @@
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Default Theme (Dark) — Restored to original high-contrast aesthetic */
-:root,
-[data-theme="dark"] {
+/* Default Theme (Dark) */
+html,
+html[data-theme="dark"] {
   --bg-page: #0d0e1a;
   --bg-sidebar: #13141f;
   --bg-card: #13141f;
@@ -39,8 +39,8 @@
   background-color: var(--bg-page);
 }
 
-/* Light Theme overrides */
-[data-theme="light"] {
+/* Light Theme */
+html[data-theme="light"] {
   --bg-page: #f8fafc;
   --bg-sidebar: #ffffff;
   --bg-card: #ffffff;
@@ -110,17 +110,6 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-
-  a:hover {
-    color: #747bff;
-  }
-
-  button {
-    background-color: #f9f9f9;
-  }
-}
+/* NOTE: Removed @media (prefers-color-scheme: light) block.
+   Theme is managed manually via data-theme attribute.
+   The OS system theme preference should not override the user's saved setting. */

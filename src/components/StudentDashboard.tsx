@@ -27,6 +27,8 @@ const StudentDashboard: React.FC = () => {
     const [needsOnboarding, setNeedsOnboarding] = useState(false);
     const timerRef = useRef<number | null>(null);
 
+
+
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
         loadSession();
@@ -34,6 +36,20 @@ const StudentDashboard: React.FC = () => {
         checkAnnouncements();
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, []);
+
+    useEffect(() => {
+        const titles: Record<string, string> = {
+            dashboard: 'Time Tracking',
+            timesheets: 'Timesheets',
+            journal: 'Daily Journal',
+            performance: 'Performance',
+            documents: 'Documents',
+            school: 'Announcements',
+            profile: 'My Profile',
+            settings: 'Settings',
+        };
+        document.title = `${titles[currentView] ?? 'Dashboard'} | SIL Monitor`;
+    }, [currentView]);
 
     const checkAnnouncements = async () => {
         try {

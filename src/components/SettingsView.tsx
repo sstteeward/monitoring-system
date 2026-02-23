@@ -1,18 +1,11 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useTheme } from '../contexts/ThemeContext';
 
 const SettingsView: React.FC = () => {
-    // Theme — read/write directly from localStorage (same key as coordinator)
-    const [isDark, setIsDark] = useState(() => {
-        const saved = localStorage.getItem('cd-theme');
-        return saved !== 'light';
-    });
-    const toggleTheme = () => {
-        const next = !isDark;
-        setIsDark(next);
-        document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
-        localStorage.setItem('cd-theme', next ? 'dark' : 'light');
-    };
+    const { theme, setTheme } = useTheme();
+    const isDark = theme === 'dark';
+    const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
 
     const [emailNotifications, setEmailNotifications] = useState(true);
     const [browserNotifications, setBrowserNotifications] = useState(false);
@@ -77,23 +70,47 @@ const SettingsView: React.FC = () => {
                 <h3 style={sectionTitle}>Appearance</h3>
                 <p style={sectionSub}>Choose your preferred dashboard theme.</p>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    {(['dark', 'light'] as const).map(theme => {
-                        const active = theme === 'dark' ? isDark : !isDark;
-                        return (
-                            <button
-                                key={theme}
-                                onClick={toggleTheme}
-                                style={{
-                                    flex: 1, padding: '0.9rem', borderRadius: 12, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.88rem', transition: 'all .2s',
-                                    background: active ? 'rgba(16,185,129,0.12)' : 'var(--bg-elevated)',
-                                    border: active ? '2px solid #10b981' : '2px solid var(--border)',
-                                    color: active ? '#10b981' : 'var(--text-muted)',
-                                }}
-                            >
-                                {theme === 'dark' ? '🌙  Dark' : '☀️  Light'}
-                            </button>
-                        );
-                    })}
+                    {/* Dark mode button */}
+                    <button
+                        onClick={() => !isDark && toggleTheme()}
+                        style={{
+                            flex: 1, padding: '1.1rem 1rem', borderRadius: 14, cursor: isDark ? 'default' : 'pointer',
+                            fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.88rem', transition: 'all .25s',
+                            background: isDark ? 'linear-gradient(135deg, rgba(124,58,237,0.18), rgba(79,70,229,0.1))' : 'var(--bg-elevated)',
+                            border: isDark ? '2px solid #7c3aed' : '2px solid var(--border)',
+                            color: isDark ? '#a78bfa' : 'var(--text-muted)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+                            boxShadow: isDark ? '0 0 0 4px rgba(124,58,237,0.12)' : 'none',
+                        }}
+                    >
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                        </svg>
+                        Dark
+                    </button>
+
+                    {/* Light mode button */}
+                    <button
+                        onClick={() => isDark && toggleTheme()}
+                        style={{
+                            flex: 1, padding: '1.1rem 1rem', borderRadius: 14, cursor: !isDark ? 'default' : 'pointer',
+                            fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.88rem', transition: 'all .25s',
+                            background: !isDark ? 'linear-gradient(135deg, rgba(245,158,11,0.18), rgba(251,191,36,0.08))' : 'var(--bg-elevated)',
+                            border: !isDark ? '2px solid #f59e0b' : '2px solid var(--border)',
+                            color: !isDark ? '#f59e0b' : 'var(--text-muted)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+                            boxShadow: !isDark ? '0 0 0 4px rgba(245,158,11,0.12)' : 'none',
+                        }}
+                    >
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="5" />
+                            <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                            <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                        </svg>
+                        Light
+                    </button>
                 </div>
             </div>
 
