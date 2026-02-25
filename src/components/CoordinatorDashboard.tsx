@@ -38,7 +38,6 @@ const CoordinatorDashboard: React.FC = () => {
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
-    const [collapsed, setCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [currentView, setCurrentView] = useState<View>('overview');
 
@@ -128,13 +127,6 @@ const CoordinatorDashboard: React.FC = () => {
                 { id: 'announcements', label: 'Announcements', icon: Icon.megaphone },
             ],
         },
-        {
-            label: 'Account',
-            items: [
-                { id: 'profile', label: 'Profile', icon: Icon.user },
-                { id: 'settings', label: 'Settings', icon: Icon.settings },
-            ],
-        },
     ];
 
     const viewTitles: Record<View, string> = {
@@ -150,7 +142,7 @@ const CoordinatorDashboard: React.FC = () => {
     if (loading && !user) return <DashboardSkeleton />;
 
     return (
-        <div className={`dashboard-container ${collapsed ? 'sidebar-collapsed' : ''} ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
+        <div className={`dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
             {/* Mobile overlay */}
             <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)} />
 
@@ -167,9 +159,6 @@ const CoordinatorDashboard: React.FC = () => {
                             <div className="sidebar-logo-sub">Asian College Dumaguete</div>
                         </div>
                     </div>
-                    <button className="sidebar-toggle-btn d-none-mobile" onClick={() => setCollapsed(c => !c)} title={collapsed ? 'Expand' : 'Collapse'}>
-                        {collapsed ? Icon.chevronRight : Icon.chevronLeft}
-                    </button>
                     <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>{Icon.close}</button>
                 </div>
 
@@ -213,8 +202,12 @@ const CoordinatorDashboard: React.FC = () => {
                     ))}
                 </div>
 
-                {/* Logout */}
+                {/* Logout & Settings */}
                 <div className="sidebar-bottom">
+                    <button className="logout-btn" onClick={() => navigate('settings')} title="Settings" style={{ marginBottom: '0.25rem', background: currentView === 'settings' ? 'var(--bg-elevated)' : 'transparent', color: currentView === 'settings' ? 'var(--text-bright)' : 'var(--text-muted)' }}>
+                        <span className="nav-icon">{Icon.settings}</span>
+                        <span className="nav-text">Settings</span>
+                    </button>
                     <button className="logout-btn" onClick={handleLogout} title="Sign Out">
                         <span className="nav-icon">{Icon.logout}</span>
                         <span className="nav-text">Sign out</span>

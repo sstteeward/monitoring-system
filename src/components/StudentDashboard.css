@@ -32,52 +32,109 @@
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
     z-index: 110;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: width;
-    overflow: hidden;
-    /* Hide overflowing text during transition */
+    /* Changed from hidden so dropdown menus can overflow */
+    overflow: visible;
 }
 
-/* ── Collapsed State ── */
-.dashboard-container.sidebar-collapsed .sidebar {
-    width: 72px;
-}
+@media (min-width: 1025px) {
 
-.dashboard-container.sidebar-collapsed .sidebar-logo-text-group,
-.dashboard-container.sidebar-collapsed .sidebar-user-info,
-.dashboard-container.sidebar-collapsed .nav-text,
-.dashboard-container.sidebar-collapsed .sidebar-section-label {
-    opacity: 0;
-    pointer-events: none;
-    display: none;
-}
+    /* Hover mode - default behavior */
+    .sidebar.sidebar-mode-hover:not(:hover) {
+        width: 72px;
+    }
 
-.dashboard-container.sidebar-collapsed .sidebar-logo {
-    justify-content: center;
-    padding: 1.25rem 0;
-    /* center the logo vertically/horizontally */
-}
+    .sidebar.sidebar-mode-hover:hover {
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+    }
 
-.dashboard-container.sidebar-collapsed .sidebar-user {
-    justify-content: center;
-    padding: 1rem 0;
-}
+    .sidebar.sidebar-mode-hover:not(:hover) .sidebar-logo-text-group,
+    .sidebar.sidebar-mode-hover:not(:hover) .sidebar-user-info,
+    .sidebar.sidebar-mode-hover:not(:hover) .nav-text,
+    .sidebar.sidebar-mode-hover:not(:hover) .sidebar-section-label {
+        opacity: 0;
+        display: none;
+    }
 
-.dashboard-container.sidebar-collapsed .sidebar-nav-item {
-    justify-content: center;
-    padding: 0.75rem 0;
-}
+    .sidebar.sidebar-mode-hover:not(:hover) .sidebar-logo,
+    .sidebar.sidebar-mode-hover:not(:hover) .sidebar-user,
+    .sidebar.sidebar-mode-hover:not(:hover) .sidebar-nav-item,
+    .sidebar.sidebar-mode-hover:not(:hover) .logout-btn {
+        justify-content: center;
+    }
 
-.dashboard-container.sidebar-collapsed .nav-icon {
-    margin: 0;
-}
+    .sidebar.sidebar-mode-hover:not(:hover) .sidebar-logo {
+        padding: 1.25rem 0;
+    }
 
-.dashboard-container.sidebar-collapsed .logout-btn {
-    justify-content: center;
-    padding: 0.75rem 0;
+    .sidebar.sidebar-mode-hover:not(:hover) .sidebar-user {
+        padding: 1rem 0;
+    }
+
+    .sidebar.sidebar-mode-hover:not(:hover) .sidebar-nav-item {
+        padding: 0.75rem 0;
+    }
+
+    .sidebar.sidebar-mode-hover:not(:hover) .nav-icon {
+        margin-right: 0 !important;
+        margin: 0;
+    }
+
+    .sidebar.sidebar-mode-hover:not(:hover) .logout-btn {
+        padding: 0.75rem 0;
+    }
+
+    /* Collapsed mode - always collapsed */
+    .sidebar.sidebar-mode-collapsed {
+        width: 72px;
+    }
+
+    .sidebar.sidebar-mode-collapsed .sidebar-logo-text-group,
+    .sidebar.sidebar-mode-collapsed .sidebar-user-info,
+    .sidebar.sidebar-mode-collapsed .nav-text,
+    .sidebar.sidebar-mode-collapsed .sidebar-section-label {
+        opacity: 0;
+        display: none;
+    }
+
+    .sidebar.sidebar-mode-collapsed .sidebar-logo,
+    .sidebar.sidebar-mode-collapsed .sidebar-user,
+    .sidebar.sidebar-mode-collapsed .sidebar-nav-item,
+    .sidebar.sidebar-mode-collapsed .logout-btn {
+        justify-content: center;
+    }
+
+    .sidebar.sidebar-mode-collapsed .sidebar-logo {
+        padding: 1.25rem 0;
+    }
+
+    .sidebar.sidebar-mode-collapsed .sidebar-user {
+        padding: 1rem 0;
+    }
+
+    .sidebar.sidebar-mode-collapsed .sidebar-nav-item {
+        padding: 0.75rem 0;
+    }
+
+    .sidebar.sidebar-mode-collapsed .nav-icon {
+        margin-right: 0 !important;
+        margin: 0;
+    }
+
+    .sidebar.sidebar-mode-collapsed .logout-btn {
+        padding: 0.75rem 0;
+    }
+
+    /* Expanded mode - always expanded */
+    .sidebar.sidebar-mode-expanded {
+        width: 240px;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+    }
 }
 
 /* ── Sidebar Header (Logo + Toggle) ── */
@@ -143,45 +200,8 @@
 
 /* ── Toggle Button ── */
 .sidebar-toggle-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 6px;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    flex-shrink: 0;
-}
-
-.sidebar-toggle-btn:hover {
-    background: var(--bg-elevated);
-    color: var(--text-secondary);
-}
-
-/* In collapsed mode, we might want to hide the toggle or move it. 
-   Currently kept in header, but header padding changes. */
-.dashboard-container.sidebar-collapsed .sidebar-header {
-    padding: 1rem 0;
-    /* reduce padding to center items vertically */
-    flex-direction: column;
-    /* stack logo and toggle, or just hide logo text */
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    height: auto;
-}
-
-.dashboard-container.sidebar-collapsed .sidebar-toggle-btn {
-    width: 28px;
-    height: 28px;
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.dashboard-container.sidebar-collapsed .sidebar-toggle-btn svg {
-    transform: rotate(180deg);
+    display: none;
+    /* Removed entirely, not needed */
 }
 
 
@@ -279,7 +299,8 @@
 
 .sidebar-nav-item:hover {
     background: var(--bg-elevated);
-    color: var(--text-secondary);
+    color: var(--text-bright);
+    transform: translateX(4px);
 }
 
 .sidebar-nav-item.active {
@@ -335,6 +356,90 @@
 .logout-btn:hover {
     background: rgba(239, 68, 68, 0.1);
     color: #f87171;
+    transform: translateX(4px);
+}
+
+/* Sidebar Control Popover */
+.sidebar-control-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0.5rem;
+    width: 200px;
+    margin-bottom: 0.5rem;
+    background: #1a1b26;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    z-index: 101;
+    overflow: hidden;
+    animation: slideUp 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sidebar-control-header {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-control-options {
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem;
+}
+
+.sidebar-control-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    color: var(--text-bright);
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.1s;
+}
+
+.sidebar-control-option:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-control-radio {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.1s;
+}
+
+.sidebar-control-option:hover .sidebar-control-radio {
+    border-color: var(--text-muted);
+}
+
+.sidebar-control-radio:has(.sidebar-control-radio-inner) {
+    border-color: var(--text-bright);
+}
+
+.sidebar-control-radio-inner {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-bright);
 }
 
 /* ══════════════════════════════════════════
@@ -347,6 +452,13 @@
     min-width: 0;
     overflow-y: auto;
     height: 100vh;
+}
+
+@media (min-width: 1025px) {
+    .dashboard-main {
+        margin-left: 72px;
+        /* Leaves space for the collapsed sidebar */
+    }
 }
 
 /* Top bar */
@@ -1136,11 +1248,6 @@
         /* hidden by default — shown only when menu is open */
     }
 
-    .dashboard-container.sidebar-collapsed .sidebar {
-        width: 240px !important;
-        left: -260px;
-    }
-
     /* Hide desktop toggle, show hamburger */
     .sidebar-toggle-btn {
         display: none;
@@ -1355,11 +1462,6 @@
         position: fixed;
         left: -240px;
         transition: left 0.3s ease;
-    }
-
-    .dashboard-container.sidebar-collapsed .sidebar {
-        width: 240px;
-        left: -240px;
     }
 
     .mobile-menu-open .sidebar {
