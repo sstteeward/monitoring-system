@@ -11,6 +11,7 @@ export interface Profile {
     grade: string | null;
     absences: number;
     company_id: string | null;
+    avatar_url: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -50,5 +51,29 @@ export const profileService = {
         }
 
         return true;
+    },
+
+    async uploadAvatar(file: File): Promise<string> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("No user logged in");
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            console.error('Error uploading avatar:', uploadError);
+            throw uploadError;
+        }
+
+        const { data } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
     }
 };

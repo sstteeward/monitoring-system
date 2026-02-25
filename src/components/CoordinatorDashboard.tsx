@@ -175,7 +175,12 @@ const CoordinatorDashboard: React.FC = () => {
 
                 {/* User block */}
                 <div className="sidebar-user" onClick={() => navigate('profile')}>
-                    <div className="sidebar-avatar cd-avatar">{initials}</div>
+                    <div className="sidebar-avatar cd-avatar" style={{
+                        background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
+                        color: profile?.avatar_url ? 'transparent' : undefined
+                    }}>
+                        {profile?.avatar_url ? '' : initials}
+                    </div>
                     <div className="sidebar-user-info">
                         <div className="sidebar-user-name">{displayName}</div>
                         <div className="sidebar-user-role cd-role-badge">Coordinator</div>
@@ -239,8 +244,11 @@ const CoordinatorDashboard: React.FC = () => {
                                 {pendingDocsCount} pending
                             </button>
                         )}
-                        <div className="cd-topbar-avatar" onClick={() => navigate('profile')} title="Profile">
-                            {initials}
+                        <div className="cd-topbar-avatar" onClick={() => navigate('profile')} title="Profile" style={{
+                            background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
+                            color: profile?.avatar_url ? 'transparent' : undefined
+                        }}>
+                            {profile?.avatar_url ? '' : initials}
                         </div>
                     </div>
                 </div>

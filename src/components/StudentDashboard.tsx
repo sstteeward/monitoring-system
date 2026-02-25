@@ -297,7 +297,12 @@ const StudentDashboard: React.FC = () => {
 
                 {/* User */}
                 <div className="sidebar-user" title={user?.email} onClick={() => { setCurrentView('profile'); closeMobileMenu(); }}>
-                    <div className="sidebar-avatar">{initials}</div>
+                    <div className="sidebar-avatar" style={{
+                        background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
+                        color: profile?.avatar_url ? 'transparent' : undefined
+                    }}>
+                        {profile?.avatar_url ? '' : initials}
+                    </div>
                     <div className="sidebar-user-info">
                         <div className="sidebar-user-name">{displayName}</div>
                         <div className="sidebar-user-role" style={{ textTransform: 'capitalize' }}>
@@ -642,7 +647,7 @@ const StudentDashboard: React.FC = () => {
                     ) : currentView === 'school' ? (
                         <AnnouncementsView viewType="school" />
                     ) : currentView === 'profile' ? (
-                        <ProfileView />
+                        <ProfileView onProfileUpdated={setProfile} />
                     ) : currentView === 'settings' ? (
                         <SettingsView />
                     ) : (

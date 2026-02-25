@@ -12,6 +12,8 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
     const [firstName, setFirstName] = useState(initialProfile?.first_name ?? '');
     const [lastName, setLastName] = useState(initialProfile?.last_name ?? '');
     const [email, setEmail] = useState(initialProfile?.email ?? '');
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(initialProfile?.avatar_url ?? null);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -24,10 +26,19 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
                     setFirstName(p.first_name ?? '');
                     setLastName(p.last_name ?? '');
                     setEmail(p.email ?? '');
+                    setAvatarUrl(p.avatar_url ?? null);
                 }
             });
         }
     }, [initialProfile]);
+
+    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            setAvatarFile(file);
+            setAvatarUrl(URL.createObjectURL(file)); // Preview
+        }
+    };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,13 +46,23 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
         setSuccess(false);
         setError(null);
         try {
-            await profileService.updateProfile({ first_name: firstName, last_name: lastName });
+            let currentAvatarUrl = avatarUrl;
+            if (avatarFile) {
+                currentAvatarUrl = await profileService.uploadAvatar(avatarFile);
+            }
+
+            await profileService.updateProfile({
+                first_name: firstName,
+                last_name: lastName,
+                avatar_url: currentAvatarUrl,
+            });
             setSuccess(true);
             const updated = await profileService.getCurrentProfile();
             if (updated) {
                 setProfile(updated);
                 onProfileUpdated?.(updated);
             }
+            setAvatarFile(null);
             setTimeout(() => setSuccess(false), 3000);
         } catch (err: any) {
             setError(err.message ?? 'Failed to save changes.');
@@ -93,14 +114,26 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
                 {/* Left — Avatar card */}
                 <div className="profile-avatar-card" style={{ ...cardStyle, padding: '2rem 1.5rem' }}>
                     {/* Big avatar */}
-                    <div style={{
-                        width: 90, height: 90, borderRadius: '50%', flexShrink: 0,
-                        background: 'linear-gradient(135deg, #10b981, #059669)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '2rem', fontWeight: 700, color: '#fff',
-                        boxShadow: '0 8px 24px rgba(16,185,129,0.3)', letterSpacing: '0.05em'
-                    }}>
-                        {initials}
+                    <div
+                        style={{
+                            width: 90, height: 90, borderRadius: '50%', flexShrink: 0,
+                            background: avatarUrl ? `url(${avatarUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #10b981, #059669)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '2rem', fontWeight: 700, color: '#fff',
+                            boxShadow: '0 8px 24px rgba(16,185,129,0.3)', letterSpacing: '0.05em',
+                            cursor: 'pointer', position: 'relative', overflow: 'hidden'
+                        }}
+                        onClick={() => document.getElementById('coordinator-avatar-upload')?.click()}
+                        title="Click to change profile photo"
+                    >
+                        {!avatarUrl && initials}
+                        <input
+                            id="coordinator-avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={handleAvatarChange}
+                        />
                     </div>
 
                     <div style={{ textAlign: 'center' }} className="profile-hero-text">

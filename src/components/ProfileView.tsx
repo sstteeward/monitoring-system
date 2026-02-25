@@ -5,7 +5,11 @@ import { FormSkeleton } from './Skeletons';
 
 interface Company { id: string; name: string; address?: string; }
 
-const ProfileView: React.FC = () => {
+interface ProfileViewProps {
+    onProfileUpdated?: (profile: Profile) => void;
+}
+
+const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -15,6 +19,8 @@ const ProfileView: React.FC = () => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
     // Student-specific fields
     const [requiredHours, setRequiredHours] = useState(500);
@@ -43,6 +49,7 @@ const ProfileView: React.FC = () => {
                 setFirstName(data.first_name ?? '');
                 setLastName(data.last_name ?? '');
                 setEmail(data.email ?? '');
+                setAvatarUrl(data.avatar_url ?? null);
                 setRequiredHours(data.required_ojt_hours ?? 500);
                 setGrade(data.grade ?? '');
                 setAbsences(data.absences ?? 0);
@@ -63,11 +70,24 @@ const ProfileView: React.FC = () => {
         }
     }, [companyId, companies]);
 
+    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            setAvatarFile(file);
+            setAvatarUrl(URL.createObjectURL(file)); // Preview
+        }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         setError(null);
         try {
+            let currentAvatarUrl = avatarUrl;
+            if (avatarFile) {
+                currentAvatarUrl = await profileService.uploadAvatar(avatarFile);
+            }
+
             await profileService.updateProfile({
                 first_name: firstName,
                 last_name: lastName,
@@ -75,9 +95,15 @@ const ProfileView: React.FC = () => {
                 grade,
                 absences,
                 company_id: companyId || null,
+                avatar_url: currentAvatarUrl,
             });
             setSuccess(true);
             await loadProfile();
+            const updated = await profileService.getCurrentProfile();
+            if (updated) {
+                onProfileUpdated?.(updated);
+            }
+            setAvatarFile(null);
             setTimeout(() => setSuccess(false), 3000);
         } catch (err: any) {
             setError(err.message ?? 'Failed to save profile.');
@@ -117,8 +143,26 @@ const ProfileView: React.FC = () => {
 
                 {/* Left — Avatar card */}
                 <div className="profile-avatar-card" style={{ ...card, marginBottom: 0 }}>
-                    <div style={{ width: 90, height: 90, borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 700, color: '#fff', boxShadow: '0 8px 24px rgba(16,185,129,0.3)', letterSpacing: '0.05em' }}>
-                        {initials}
+                    <div
+                        style={{
+                            width: 90, height: 90, borderRadius: '50%',
+                            background: avatarUrl ? `url(${avatarUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #10b981, #059669)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '2rem', fontWeight: 700, color: '#fff',
+                            boxShadow: '0 8px 24px rgba(16,185,129,0.3)', letterSpacing: '0.05em',
+                            cursor: 'pointer', position: 'relative', overflow: 'hidden'
+                        }}
+                        onClick={() => document.getElementById('avatar-upload')?.click()}
+                        title="Click to change profile photo"
+                    >
+                        {!avatarUrl && initials}
+                        <input
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={handleAvatarChange}
+                        />
                     </div>
                     <div>
                         <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-bright)', marginBottom: '0.25rem' }}>
