@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { messageService, type Message } from '../services/messageService';
-import { profileService, type Profile } from '../services/profileService';
+import { type Profile } from '../services/profileService';
 import './ChatWidget.css';
 
 interface ChatWidgetProps {
