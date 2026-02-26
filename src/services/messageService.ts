@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabaseClient';
-import type { Profile } from './profileService';
 
 export interface Message {
     id: string;
