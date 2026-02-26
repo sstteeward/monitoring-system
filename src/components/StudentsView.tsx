@@ -55,7 +55,10 @@ const StudentsView: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
                     <div style={{ position: 'relative', width: 'min(320px, 100%)' }}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                            <circle cx="11" cy="11" r="8" stroke="var(--text-muted)" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="var(--text-muted)" />
+                        </svg>
                         <input
                             type="text"
                             placeholder="Search students…"
@@ -125,7 +128,10 @@ const StudentsView: React.FC = () => {
                             <tr>
                                 <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
                                     <div style={{ color: 'var(--text-muted)' }}>
-                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.3 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.6 }}>
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#7c3aed" />
+                                            <circle cx="9" cy="7" r="4" stroke="#7c3aed" />
+                                        </svg>
                                         <p style={{ fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>
                                             {searchTerm ? `No students matching "${searchTerm}"` : 'No students enrolled yet'}
                                         </p>

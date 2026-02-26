@@ -215,7 +215,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                                     onChange={e => setNewMessage(e.target.value)}
                                 />
                                 <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+                                        <line x1="22" y1="2" x2="11" y2="13" stroke="#10b981" />
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2" stroke="#10b981" />
+                                    </svg>
                                 </button>
                             </form>
                         </div>
