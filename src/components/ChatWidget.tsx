@@ -22,6 +22,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
     // To keep track of messages globally to calculate unread counts for the badge
     const [allMessages, setAllMessages] = useState<Message[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [listFilter, setListFilter] = useState<'all' | 'unread' | 'users'>('all');
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -221,11 +222,63 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                     ) : (
                         // ─── CONVERSATION LIST ───
                         <>
-                            <div className="chat-header">
-                                <div className="chat-header-title">Messages</div>
-                                <button className="chat-close-btn" onClick={() => setIsOpen(false)}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                                </button>
+                            <div className="chat-header" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'stretch' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div className="chat-header-title">Messages</div>
+                                    <button className="chat-close-btn" onClick={() => setIsOpen(false)}>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                    </button>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        onClick={() => setListFilter('all')}
+                                        style={{
+                                            padding: '0.4rem 1rem',
+                                            borderRadius: '20px',
+                                            border: 'none',
+                                            background: listFilter === 'all' ? 'var(--primary)' : 'var(--bg-elevated)',
+                                            color: listFilter === 'all' ? 'white' : 'var(--text-muted)',
+                                            fontSize: '0.85rem',
+                                            cursor: 'pointer',
+                                            fontWeight: listFilter === 'all' ? '600' : 'normal',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        All
+                                    </button>
+                                    <button
+                                        onClick={() => setListFilter('unread')}
+                                        style={{
+                                            padding: '0.4rem 1rem',
+                                            borderRadius: '20px',
+                                            border: 'none',
+                                            background: listFilter === 'unread' ? 'var(--primary)' : 'var(--bg-elevated)',
+                                            color: listFilter === 'unread' ? 'white' : 'var(--text-muted)',
+                                            fontSize: '0.85rem',
+                                            cursor: 'pointer',
+                                            fontWeight: listFilter === 'unread' ? '600' : 'normal',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        Unread
+                                    </button>
+                                    <button
+                                        onClick={() => setListFilter('users')}
+                                        style={{
+                                            padding: '0.4rem 1rem',
+                                            borderRadius: '20px',
+                                            border: 'none',
+                                            background: listFilter === 'users' ? 'var(--primary)' : 'var(--bg-elevated)',
+                                            color: listFilter === 'users' ? 'white' : 'var(--text-muted)',
+                                            fontSize: '0.85rem',
+                                            cursor: 'pointer',
+                                            fontWeight: listFilter === 'users' ? '600' : 'normal',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        Users
+                                    </button>
+                                </div>
                             </div>
                             <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid var(--border)' }}>
                                 <input
@@ -246,18 +299,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                             </div>
                             <div className="chat-list">
                                 {users.filter(u => {
+                                    if (listFilter === 'unread' && u.unreadCount === 0) return false;
                                     const name = getName(u).toLowerCase();
                                     const q = searchQuery.toLowerCase();
                                     const hasHistory = allMessages.some(m => m.sender_id === u.auth_user_id || m.receiver_id === u.auth_user_id);
 
                                     if (q) return name.includes(q);
-                                    return hasHistory || u.isOnline; // Show online users or users with history by default
+                                    if (listFilter === 'users') return true; // Show all valid profiles
+                                    return hasHistory || u.isOnline; // Otherwise show online users or users with history by default
                                 }).length > 0 ? users.filter(u => {
+                                    if (listFilter === 'unread' && u.unreadCount === 0) return false;
                                     const name = getName(u).toLowerCase();
                                     const q = searchQuery.toLowerCase();
                                     const hasHistory = allMessages.some(m => m.sender_id === u.auth_user_id || m.receiver_id === u.auth_user_id);
 
                                     if (q) return name.includes(q);
+                                    if (listFilter === 'users') return true;
                                     return hasHistory || u.isOnline;
                                 }).sort((a, b) => {
                                     // 1. Unread count (descending)
