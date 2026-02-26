@@ -15,6 +15,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -317,7 +318,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                 <button
                     className="btn btn-secondary"
                     style={{ color: '#f87171', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)' }}
-                    onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }}
+                    onClick={() => setShowLogoutConfirm(true)}
                 >
                     Sign Out
                 </button>
@@ -326,6 +327,52 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
             {/* Click outside to close company dropdown */}
             {showCompanyDropdown && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={() => setShowCompanyDropdown(false)} />
+            )}
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutConfirm && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 1000,
+                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <div style={{
+                        background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.3)',
+                        borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        animation: 'fadeIn 0.2s ease',
+                    }}>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                <polyline points="16 17 21 12 16 7" />
+                                <line x1="21" y1="12" x2="9" y2="12" />
+                            </svg>
+                        </div>
+                        <h3 style={{ textAlign: 'center', color: 'var(--text-primary)', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Sign Out?</h3>
+                        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.75rem' }}>
+                            Are you sure you want to sign out of your account? You will need to log in again to access the dashboard.
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => setShowLogoutConfirm(false)}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
+                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-card)'}
+                                onMouseOut={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(239,68,68,0.35)', transition: 'opacity 0.15s' }}
+                                onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
+                                onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                            >
+                                Yes, Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

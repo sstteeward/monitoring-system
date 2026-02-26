@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
-import { signUp, signIn } from "../services/auth";
+import { signUp, signIn, resetPasswordForEmail } from "../services/auth";
 // import { supabase } from '../lib/supabaseClient';
 
 export default function AuthSignup() {
-    const [mode, setMode] = useState<"signup" | "login">("signup");
+    const [mode, setMode] = useState<"signup" | "login" | "forgot">("login");
 
     // Signup state
     const [firstName, setFirstName] = useState("");
@@ -21,6 +21,9 @@ export default function AuthSignup() {
     const [loginEmail, setLoginEmail] = useState("");
     const [password, setPassword] = useState("");
 
+    // Forgot password state
+    const [forgotEmail, setForgotEmail] = useState("");
+
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -30,7 +33,7 @@ export default function AuthSignup() {
 
 
     useEffect(() => {
-        document.title = mode === "signup" ? "Create Your Account | SIL Monitoring System" : "Login | SIL Monitoring System";
+        document.title = mode === "signup" ? "Create Your Account | SIL Monitoring System" : mode === "login" ? "Login | SIL Monitoring System" : "Reset Password | SIL Monitoring System";
     }, [mode]);
 
     const isEduPh = (value: string) => /\.edu\.ph$/i.test(value.trim());
@@ -118,6 +121,31 @@ export default function AuthSignup() {
             setIsSubmitting(false);
         } catch (err: any) {
             setErrors(prev => ({ ...prev, general: err.message || String(err) }));
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleForgotPassword = async (ev: React.FormEvent) => {
+        ev.preventDefault();
+        setInfoMessage(null);
+        setErrors({});
+
+        if (!forgotEmail.trim()) {
+            setErrors({ forgotEmail: "Email is required" });
+            return;
+        } else if (!isEduPh(forgotEmail)) {
+            setErrors({ forgotEmail: "Email must end with .edu.ph" });
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await resetPasswordForEmail(forgotEmail);
+            setInfoMessage("If your email is registered, you will receive a password reset link shortly.");
+            setForgotEmail("");
+        } catch (err: any) {
+            setErrors(prev => ({ ...prev, general: err.message || String(err) }));
+        } finally {
             setIsSubmitting(false);
         }
     };
@@ -321,7 +349,7 @@ export default function AuthSignup() {
                                 </div>
                             </form>
                         </div>
-                    ) : (
+                    ) : mode === "login" ? (
                         <div className="auth-form-wrapper">
                             <div className="card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h2>Login</h2>
@@ -363,7 +391,7 @@ export default function AuthSignup() {
                                     </label>
 
                                     <div className="verification-line" style={{ alignItems: "center" }}>
-                                        <a className="muted" href="#" onClick={(e) => e.preventDefault()}>Forgot password?</a>
+                                        <a className="muted" href="#" onClick={(e) => { e.preventDefault(); setMode("forgot"); setErrors({}); setInfoMessage(null); }}>Forgot password?</a>
                                         <div style={{ flex: 1 }} />
                                     </div>
 
@@ -379,8 +407,49 @@ export default function AuthSignup() {
 
                                 <div className="auth-footer">
                                     <p className="foot muted">Secure .edu.ph portal • Trusted by Asian College Dumaguete.</p>
-                                    <button type="button" className="muted switch-btn" onClick={() => { setMode("signup"); setErrors({}); }}>
+                                    <button type="button" className="muted switch-btn" onClick={() => { setMode("signup"); setErrors({}); setInfoMessage(null); }}>
                                         Create an account
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    ) : (
+                        <div className="auth-form-wrapper">
+                            <div className="card-header" style={{ marginBottom: '1.25rem' }}>
+                                <h2>Reset Password</h2>
+                                <p className="subtitle">Enter your <strong>.edu.ph</strong> email to receive a password reset link.</p>
+                            </div>
+
+                            <form className="auth-form" onSubmit={handleForgotPassword} noValidate>
+                                <div className="form-scrollable">
+                                    <label className="full-width">
+                                        Email Address *
+                                        <input
+                                            type="email"
+                                            value={forgotEmail}
+                                            onChange={e => {
+                                                setForgotEmail(e.target.value);
+                                                setErrors(prev => ({ ...prev, forgotEmail: "" }));
+                                            }}
+                                            placeholder="name@school.edu.ph"
+                                        />
+                                        <div id="email-note" className="muted">Only emails ending with <code>.edu.ph</code> are accepted.</div>
+                                        {errors.forgotEmail && <span className="error">{errors.forgotEmail}</span>}
+                                    </label>
+
+                                    {errors.general && <div className="error">{errors.general}</div>}
+                                    {infoMessage && <div className="info-msg">{infoMessage}</div>}
+
+                                    <div className="cta-row" style={{ marginTop: '1rem' }}>
+                                        <button className="primary" type="submit" disabled={isSubmitting}>
+                                            {isSubmitting ? "Sending..." : "Send Reset Link"}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="auth-footer">
+                                    <button type="button" className="muted switch-btn" onClick={() => { setMode("login"); setErrors({}); setInfoMessage(null); }}>
+                                        Back to Login
                                     </button>
                                 </div>
                             </form>

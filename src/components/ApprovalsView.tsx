@@ -135,7 +135,13 @@ const ApprovalsView: React.FC = () => {
                             <TableSkeleton rows={5} cols={5} />
                         ) : documents.length > 0 ? (
                             documents.map(doc => (
-                                <tr key={doc.id}>
+                                <tr
+                                    key={doc.id}
+                                    onClick={() => handlePreview(doc.file_path, doc.file_name)}
+                                    style={{ cursor: 'pointer', transition: 'background 0.2s' }}
+                                    className="hover-row"
+                                    title="Click to preview document"
+                                >
                                     <td style={{ fontWeight: '500', color: 'var(--text-bright)' }}>
                                         {doc.profiles?.first_name} {doc.profiles?.last_name}
                                     </td>
@@ -149,7 +155,7 @@ const ApprovalsView: React.FC = () => {
                                         <button
                                             className="btn btn-secondary"
                                             style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', background: 'transparent', border: '1px solid var(--border)' }}
-                                            onClick={() => handlePreview(doc.file_path, doc.file_name)}
+                                            onClick={(e) => { e.stopPropagation(); handlePreview(doc.file_path, doc.file_name); }}
                                             title="Preview File"
                                             disabled={previewLoading === doc.file_path}
                                         >
@@ -167,7 +173,7 @@ const ApprovalsView: React.FC = () => {
                                             <button
                                                 className="btn btn-primary"
                                                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', background: '#10b981', borderColor: '#10b981', color: '#fff' }}
-                                                onClick={() => handleAction(doc.id, 'approved')}
+                                                onClick={(e) => { e.stopPropagation(); handleAction(doc.id, 'approved'); }}
                                                 disabled={actionLoading === doc.id}
                                             >
                                                 {actionLoading === doc.id ? '...' : 'Approve'}
@@ -175,7 +181,7 @@ const ApprovalsView: React.FC = () => {
                                             <button
                                                 className="btn btn-secondary"
                                                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', color: '#ef4444', borderColor: '#ef4444' }}
-                                                onClick={() => handleAction(doc.id, 'rejected')}
+                                                onClick={(e) => { e.stopPropagation(); handleAction(doc.id, 'rejected'); }}
                                                 disabled={actionLoading === doc.id}
                                             >
                                                 {actionLoading === doc.id ? '...' : 'Reject'}

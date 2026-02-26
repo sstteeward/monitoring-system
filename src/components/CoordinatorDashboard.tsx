@@ -9,6 +9,7 @@ import CompaniesView from './CompaniesView';
 import CoordinatorProfileView from './CoordinatorProfileView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
 import DashboardSkeleton from './DashboardSkeleton';
+import ChatWidget from './ChatWidget';
 import { useTheme } from '../contexts/ThemeContext';
 import './CoordinatorDashboard.css';
 
@@ -40,6 +41,8 @@ const CoordinatorDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [currentView, setCurrentView] = useState<View>('overview');
+    const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
+    const [isSidebarMenuOpen, setIsSidebarMenuOpen] = useState(false);
 
     useTheme();
 
@@ -88,11 +91,6 @@ const CoordinatorDashboard: React.FC = () => {
         }
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        window.location.reload();
-    };
-
     const navigate = (view: View) => {
         setCurrentView(view);
         setIsMobileMenuOpen(false);
@@ -107,9 +105,17 @@ const CoordinatorDashboard: React.FC = () => {
         ? `${profile.first_name[0]}${profile.last_name?.[0] ?? ''}`.toUpperCase()
         : user?.email?.[0]?.toUpperCase() ?? '?';
 
-    const displayName = profile?.first_name && profile?.last_name
-        ? (profile.first_name.includes('@') ? 'Coordinator' : `${profile.first_name} ${profile.last_name}`)
-        : (profile?.first_name && !profile.first_name.includes('@') ? profile.first_name : 'Coordinator');
+    const formatSlug = (slug: string) => {
+        return slug.split(/[._-]/).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+    };
+
+    const displayName = profile?.first_name && profile?.last_name && !profile.first_name.includes('@')
+        ? `${profile.first_name} ${profile.last_name}`
+        : profile?.first_name && !profile.first_name.includes('@')
+            ? profile.first_name
+            : user?.email
+                ? formatSlug(user.email.split('@')[0])
+                : 'Coordinator';
 
     const navSections: { label: string; items: NavItem[] }[] = [
         {
@@ -147,7 +153,7 @@ const CoordinatorDashboard: React.FC = () => {
             <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)} />
 
             {/* ══ SIDEBAR ══ */}
-            <aside className={`sidebar${isMobileMenuOpen ? ' mobile-open' : ''}`}>
+            <aside className={`sidebar sidebar-mode-${sidebarMode} ${isMobileMenuOpen ? ' mobile-open' : ''}`}>
                 {/* Header */}
                 <div className="sidebar-header">
                     <div className="sidebar-logo">
@@ -202,16 +208,55 @@ const CoordinatorDashboard: React.FC = () => {
                     ))}
                 </div>
 
-                {/* Logout & Settings */}
+                {/* Sidebar Control & Settings */}
                 <div className="sidebar-bottom">
-                    <button className="logout-btn" onClick={() => navigate('settings')} title="Settings" style={{ marginBottom: '0.25rem', background: currentView === 'settings' ? 'var(--bg-elevated)' : 'transparent', color: currentView === 'settings' ? 'var(--text-bright)' : 'var(--text-muted)' }}>
+                    <div style={{ position: 'relative' }}>
+                        {isSidebarMenuOpen && (
+                            <>
+                                <div
+                                    style={{ position: 'fixed', inset: 0, zIndex: 100 }}
+                                    onClick={() => setIsSidebarMenuOpen(false)}
+                                />
+                                <div className="sidebar-control-menu">
+                                    <div className="sidebar-control-header">Sidebar control</div>
+                                    <div className="sidebar-control-options">
+                                        {(['expanded', 'collapsed', 'hover'] as const).map(mode => (
+                                            <div
+                                                key={mode}
+                                                className="sidebar-control-option"
+                                                onClick={() => { setSidebarMode(mode); setIsSidebarMenuOpen(false); }}
+                                            >
+                                                <div className="sidebar-control-radio">
+                                                    {sidebarMode === mode && <div className="sidebar-control-radio-inner" />}
+                                                </div>
+                                                <span style={{ textTransform: 'capitalize' }}>
+                                                    {mode === 'hover' ? 'Expand on hover' : mode}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        <div
+                            className={`sidebar-nav-item ${isSidebarMenuOpen ? 'active' : ''}`}
+                            onClick={() => setIsSidebarMenuOpen(!isSidebarMenuOpen)}
+                            title="Sidebar control"
+                            style={{ marginBottom: '0.25rem' }}
+                        >
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="3" x2="9" y2="21" /></svg></span>
+                            <span className="nav-text">Layout</span>
+                        </div>
+                    </div>
+
+                    <div
+                        className={`sidebar-nav-item ${currentView === 'settings' ? 'active' : ''}`}
+                        title="Settings"
+                        onClick={() => { navigate('settings'); }}
+                    >
                         <span className="nav-icon">{Icon.settings}</span>
                         <span className="nav-text">Settings</span>
-                    </button>
-                    <button className="logout-btn" onClick={handleLogout} title="Sign Out">
-                        <span className="nav-icon">{Icon.logout}</span>
-                        <span className="nav-text">Sign out</span>
-                    </button>
+                    </div>
                 </div>
             </aside>
 
@@ -273,6 +318,10 @@ const CoordinatorDashboard: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {user && profile && (
+                <ChatWidget currentUser={user} currentProfile={profile} />
+            )}
         </div>
     );
 };
@@ -437,8 +486,6 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, studentC
                     ))}
                 </div>
             </div>
-
-
         </div>
     );
 };

@@ -11,6 +11,7 @@ import AnnouncementsView from './AnnouncementsView';
 import DocumentsView from './DocumentsView';
 import OnboardingView from './OnboardingView';
 import DashboardSkeleton from './DashboardSkeleton';
+import ChatWidget from './ChatWidget';
 import './StudentDashboard.css';
 
 const StudentDashboard: React.FC = () => {
@@ -672,6 +673,10 @@ const StudentDashboard: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {user && profile && (
+                <ChatWidget currentUser={user} currentProfile={profile} />
+            )}
         </div>
     );
 };

@@ -63,3 +63,11 @@ export async function signIn({ email, password }: { email: string; password: str
   if (error) throw error;
   return data;
 }
+
+export async function resetPasswordForEmail(email: string) {
+  const supabase = await getClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/`,
+  });
+  if (error) throw error;
+}
