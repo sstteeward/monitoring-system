@@ -34,6 +34,25 @@ export interface CompanyRequest {
     created_at: string;
 }
 
+async function checkPermission(permissionKey: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('account_type, permissions')
+        .eq('auth_user_id', user.id)
+        .single();
+
+    if (!profile) return false;
+
+    // Admins have all permissions implicitly
+    if (profile.account_type === 'admin') return true;
+
+    // Check specific permission for coordinators
+    return profile.permissions ? !!profile.permissions[permissionKey] : true; // Default true if no permissions set
+}
+
 export const coordinatorService = {
     /**
      * Fetch all students (profiles where account_type = 'student')
@@ -97,6 +116,9 @@ export const coordinatorService = {
      * Approve or reject a document
      */
     async updateDocumentStatus(documentId: string, status: 'approved' | 'rejected') {
+        const hasPermission = await checkPermission('can_approve_journals');
+        if (!hasPermission) throw new Error("You do not have permission to approve/reject journals.");
+
         const { error } = await supabase
             .from('student_documents')
             .update({ status, updated_at: new Date().toISOString() })
@@ -233,6 +255,46 @@ export const coordinatorService = {
         }
 
         return data as Company;
+    },
+
+    /**
+     * Update a student's grade
+     */
+    async updateStudentGrade(studentId: string, grade: string) {
+        const hasPermission = await checkPermission('can_edit_grades');
+        if (!hasPermission) throw new Error("You do not have permission to edit grades.");
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ grade })
+            .eq('id', studentId);
+
+        if (error) {
+            console.error("Error updating grade:", error);
+            throw error;
+        }
+
+        return true;
+    },
+
+    /**
+     * Delete a student
+     */
+    async deleteStudent(studentId: string) {
+        const hasPermission = await checkPermission('can_delete_students');
+        if (!hasPermission) throw new Error("You do not have permission to delete students.");
+
+        const { error } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', studentId);
+
+        if (error) {
+            console.error("Error deleting student:", error);
+            throw error;
+        }
+
+        return true;
     },
 
     // ─── Company Request Methods ────────────────────────────────────────

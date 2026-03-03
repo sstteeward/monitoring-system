@@ -59,8 +59,38 @@ export async function signUp({ email, password, firstName, middleName, lastName,
 
 export async function signIn({ email, password }: { email: string; password: string; }) {
   const supabase = await getClient();
+
+  // 1. Check if user is locked or deactivated BEFORE signing in
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_active, locked_until')
+    .eq('email', email.toLowerCase())
+    .single();
+
+  if (profile) {
+    if (profile.is_active === false) {
+      throw new Error("ACCOUNT_DEACTIVATED: Your account has been deactivated by an admin.");
+    }
+    if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
+      const unlockTime = new Date(profile.locked_until).toLocaleTimeString();
+      throw new Error(`ACCOUNT_LOCKED: Too many failed attempts. Try again after ${unlockTime}.`);
+    }
+  }
+
+  // 2. Attempt login
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+
+  if (error) {
+    // 3. If login fails, increment failed attempts (via RPC, bypassing RLS)
+    if (error.message.includes('Invalid login credentials')) {
+      await supabase.rpc('increment_failed_login', { user_email: email.toLowerCase() });
+    }
+    throw error;
+  }
+
+  // 4. On success, reset failed attempts
+  await supabase.rpc('reset_failed_login', { user_email: email.toLowerCase() });
+
   return data;
 }
 

@@ -128,9 +128,9 @@ const StudentsView: React.FC = () => {
                             <tr>
                                 <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
                                     <div style={{ color: 'var(--text-muted)' }}>
-                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.6 }}>
-                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#7c3aed" />
-                                            <circle cx="9" cy="7" r="4" stroke="#7c3aed" />
+                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.6 }}>
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="var(--primary)" />
+                                            <circle cx="9" cy="7" r="4" stroke="var(--primary)" />
                                         </svg>
                                         <p style={{ fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>
                                             {searchTerm ? `No students matching "${searchTerm}"` : 'No students enrolled yet'}

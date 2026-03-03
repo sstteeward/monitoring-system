@@ -10,6 +10,7 @@ import CoordinatorProfileView from './CoordinatorProfileView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
 import DashboardSkeleton from './DashboardSkeleton';
 import ChatWidget from './ChatWidget';
+import FeedbackModal from './FeedbackModal';
 import { useTheme } from '../contexts/ThemeContext';
 import './CoordinatorDashboard.css';
 
@@ -43,6 +44,7 @@ const CoordinatorDashboard: React.FC = () => {
     const [currentView, setCurrentView] = useState<View>('overview');
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
     const [isSidebarMenuOpen, setIsSidebarMenuOpen] = useState(false);
+    const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
     useTheme();
 
@@ -257,6 +259,15 @@ const CoordinatorDashboard: React.FC = () => {
                         <span className="nav-icon">{Icon.settings}</span>
                         <span className="nav-text">Settings</span>
                     </div>
+
+                    <div
+                        className="sidebar-nav-item"
+                        title="Submit Feedback"
+                        onClick={() => { setIsFeedbackModalOpen(true); setIsMobileMenuOpen(false); }}
+                    >
+                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg></span>
+                        <span className="nav-text">Submit Feedback</span>
+                    </div>
                 </div>
             </aside>
 
@@ -321,6 +332,14 @@ const CoordinatorDashboard: React.FC = () => {
 
             {user && profile && (
                 <ChatWidget currentUser={user} currentProfile={profile} />
+            )}
+
+            {user && (
+                <FeedbackModal
+                    isOpen={isFeedbackModalOpen}
+                    onClose={() => setIsFeedbackModalOpen(false)}
+                    userId={user.id}
+                />
             )}
         </div>
     );

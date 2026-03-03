@@ -14,6 +14,12 @@ export interface Profile {
     avatar_url: string | null;
     created_at: string;
     updated_at: string;
+    // Enterprise fields
+    department_id?: string | null;
+    permissions?: any;
+    is_active?: boolean;
+    failed_login_attempts?: number;
+    locked_until?: string | null;
 }
 
 export const profileService = {

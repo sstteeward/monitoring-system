@@ -139,6 +139,109 @@
     box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.05);
 }
 
+.journal-photo-upload {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.photo-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+    width: 100%;
+}
+
+.photo-preview-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+}
+
+.photo-preview {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.remove-photo-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.remove-photo-btn:hover {
+    background: rgba(239, 68, 68, 0.9);
+}
+
+.photo-upload-label {
+    display: block;
+    width: 100%;
+    cursor: pointer;
+}
+
+.upload-placeholder {
+    width: 100%;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.2s;
+}
+
+.upload-placeholder:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(124, 58, 237, 0.05);
+}
+
+.compact-upload-label {
+    display: block;
+    cursor: pointer;
+    height: 100%;
+}
+
+.compact-upload-box {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.2s;
+}
+
+.compact-upload-box:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(124, 58, 237, 0.05);
+}
+
 .journal-loading-overlay {
     position: absolute;
     top: 0;
@@ -219,4 +322,52 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Lightbox */
+.photo-preview {
+    cursor: pointer;
+}
+
+.lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+    backdrop-filter: blur(4px);
+}
+
+.lightbox-image {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    z-index: 10000;
+}
+
+.lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.3);
 }

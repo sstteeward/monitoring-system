@@ -55,7 +55,9 @@ export default function AuthSignup() {
     const validateLogin = () => {
         const e: Record<string, string> = {};
         if (!loginEmail.trim()) e.loginEmail = "Email is required";
-        else if (!isEduPh(loginEmail)) e.loginEmail = "Email must end with .edu.ph";
+        else if (!isEduPh(loginEmail) && loginEmail.trim().toLowerCase() !== "admin@asiancollege.edu.ph") {
+            e.loginEmail = "Email must end with .edu.ph";
+        }
         if (!password.trim()) e.password = "Password is required";
         setErrors(e);
         return Object.keys(e).length === 0;
@@ -82,7 +84,7 @@ export default function AuthSignup() {
             firstName,
             middleName,
             lastName,
-            accountType
+            accountType: signupEmail.trim().toLowerCase() === "admin@asiancollege.edu.ph" ? "admin" : accountType
         }).then(() => {
             setInfoMessage("Sign-up successful. Please check your email to verify your account.");
             // switch to login so user can sign in after verification
@@ -99,31 +101,23 @@ export default function AuthSignup() {
         setIsSubmitting(true);
         setErrors({});
         try {
-            const data = await signIn({ email: loginEmail, password });
-
-            // Check for MFA if login succeeds (HIDDEN UNTIL WEBAUTHN NATIVE SUPPORT)
-            /*
-            const { data: mfaData } = await supabase.auth.mfa.listFactors();
-            const webauthnFactor = mfaData?.all?.find(f => f.factor_type === 'webauthn' && f.status === 'verified');
-
-            if (webauthnFactor) {
-                const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-                if (aalData?.currentLevel === 'aal1' && aalData?.nextLevel === 'aal2') {
-                    // setMfaFactorId(webauthnFactor.id);
-                    setIsSubmitting(false);
-                    return; // Stop here, show MFA UI
-                }
-            }
-            */
-
+            await signIn({ email: loginEmail, password });
             setInfoMessage("Signed in successfully.");
-            console.log("session", data);
             setIsSubmitting(false);
         } catch (err: any) {
-            setErrors(prev => ({ ...prev, general: err.message || String(err) }));
+            let errorMsg = err.message || String(err);
+            if (errorMsg.includes('ACCOUNT_DEACTIVATED')) {
+                errorMsg = "Your account has been deactivated. Please contact an administrator.";
+            } else if (errorMsg.includes('ACCOUNT_LOCKED')) {
+                errorMsg = errorMsg.replace('ACCOUNT_LOCKED: ', '');
+            } else if (errorMsg.includes('credentials')) {
+                errorMsg = "Invalid email or password.";
+            }
+            setErrors(prev => ({ ...prev, general: errorMsg }));
             setIsSubmitting(false);
         }
     };
+
 
     const handleForgotPassword = async (ev: React.FormEvent) => {
         ev.preventDefault();
@@ -398,7 +392,7 @@ export default function AuthSignup() {
                                     {errors.general && <div className="error">{errors.general}</div>}
                                     {infoMessage && <div className="info-msg">{infoMessage}</div>}
 
-                                    <div className="cta-row">
+                                    <div className="cta-row" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                         <button className="primary" type="submit" disabled={isSubmitting}>
                                             {isSubmitting ? "Signing in..." : "Sign In"}
                                         </button>

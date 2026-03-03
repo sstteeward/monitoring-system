@@ -147,9 +147,9 @@ const ApprovalsView: React.FC = () => {
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#7c3aed" />
-                                                <polyline points="14 2 14 8 20 8" stroke="#7c3aed" />
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="var(--primary)" />
+                                                <polyline points="14 2 14 8 20 8" stroke="var(--primary)" />
                                             </svg>
                                             {doc.title}
                                         </div>
@@ -165,9 +165,9 @@ const ApprovalsView: React.FC = () => {
                                             {previewLoading === doc.file_path ? (
                                                 <span className="preview-spinner" style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(124, 58, 237, 0.3)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'cd-spin 0.7s linear infinite', marginRight: '4px' }}></span>
                                             ) : (
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
-                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#7c3aed" />
-                                                    <circle cx="12" cy="12" r="3" stroke="#7c3aed" />
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="var(--primary)" />
+                                                    <circle cx="12" cy="12" r="3" stroke="var(--primary)" />
                                                 </svg>
                                             )}
                                             {doc.file_name}

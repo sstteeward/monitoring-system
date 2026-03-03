@@ -145,11 +145,11 @@ const CompaniesView: React.FC = () => {
     };
 
     const inputStyle: React.CSSProperties = {
-        background: 'var(--layer-1)',
-        border: '1px solid var(--border)',
+        background: 'var(--admin-bg)',
+        border: '1px solid var(--admin-border)',
         borderRadius: '8px',
         padding: '0.6rem 0.9rem',
-        color: 'var(--text-bright)',
+        color: 'var(--admin-text-primary)',
         fontSize: '0.9rem',
         width: '100%',
         outline: 'none',
@@ -168,7 +168,7 @@ const CompaniesView: React.FC = () => {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                         <div style={{
-                            background: 'var(--layer-2)', border: '1px solid rgba(239,68,68,0.3)',
+                            background: 'var(--admin-card-bg)', border: '1px solid rgba(239,68,68,0.3)',
                             borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
                             boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                             animation: 'fadeIn 0.2s ease',
@@ -195,9 +195,9 @@ const CompaniesView: React.FC = () => {
                             <div style={{ display: 'flex', gap: '0.75rem' }}>
                                 <button
                                     onClick={() => setShowDeleteModal(false)}
-                                    style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--layer-1)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', transition: 'background 0.15s' }}
-                                    onMouseOver={e => e.currentTarget.style.background = 'var(--layer-2)'}
-                                    onMouseOut={e => e.currentTarget.style.background = 'var(--layer-1)'}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', transition: 'background 0.15s' }}
+                                    onMouseOver={e => e.currentTarget.style.background = 'var(--admin-card-bg)'}
+                                    onMouseOut={e => e.currentTarget.style.background = 'var(--admin-bg)'}
                                 >
                                     Cancel
                                 </button>
@@ -220,7 +220,7 @@ const CompaniesView: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <button
                             onClick={handleBack}
-                            style={{ background: 'var(--layer-2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem 0.9rem', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                            style={{ background: 'var(--admin-bg)', border: '1px solid var(--admin-border)', borderRadius: '8px', padding: '0.5rem 0.9rem', color: 'var(--admin-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                             Back to Companies
@@ -252,34 +252,36 @@ const CompaniesView: React.FC = () => {
                 {/* Company meta */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                     {selectedCompany.address && (
-                        <div style={{ background: 'var(--layer-2)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--border)' }}>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>📍 Address</div>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-bright)' }}>{selectedCompany.address}</div>
+                        <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>📍 Address</div>
+                            <div style={{ fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{selectedCompany.address}</div>
                         </div>
                     )}
                     {selectedCompany.contact_person && (
-                        <div style={{ background: 'var(--layer-2)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--border)' }}>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>👤 Contact</div>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-bright)' }}>{selectedCompany.contact_person}</div>
+                        <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>👤 Contact</div>
+                            <div style={{ fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{selectedCompany.contact_person}</div>
                             {selectedCompany.contact_email && (
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedCompany.contact_email}</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--admin-text-secondary)' }}>{selectedCompany.contact_email}</div>
                             )}
                         </div>
                     )}
-                    <div style={{ background: 'var(--layer-2)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--border)' }}>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>🎓 Total Interns</div>
+                    <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>🎓 Total Interns</div>
                         <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#10b981' }}>{companyStudents.length}</div>
                     </div>
                 </div>
 
                 {/* Students table */}
-                <div style={{ background: 'var(--layer-2)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ background: 'var(--admin-bg)', borderRadius: '12px', border: '1px solid var(--admin-border)', overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--admin-border)', fontWeight: 600, color: 'var(--admin-text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
                         Interns at {selectedCompany.name}
                     </div>
                     {detailLoading ? (
-                        <TableSkeleton rows={3} cols={5} />
+                        <div style={{ padding: '0 1rem' }}>
+                            <TableSkeleton rows={3} cols={5} />
+                        </div>
                     ) : companyStudents.length > 0 ? (
                         <div className="table-container">
                             <table className="data-table" style={{ width: '100%' }}>
@@ -295,7 +297,7 @@ const CompaniesView: React.FC = () => {
                                 <tbody>
                                     {companyStudents.map(student => (
                                         <tr key={student.id}>
-                                            <td style={{ fontWeight: 500, color: 'var(--text-bright)' }}>
+                                            <td style={{ fontWeight: 500, color: 'var(--admin-text-primary)' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                                                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                                                         {student.first_name?.[0]?.toUpperCase() ?? '?'}
@@ -342,28 +344,28 @@ const CompaniesView: React.FC = () => {
 
             {/* Add Company Form */}
             {showAddForm && (
-                <div style={{ background: 'var(--layer-2)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
-                    <h3 style={{ marginBottom: '1.25rem', color: 'var(--text-bright)', fontSize: '1rem', fontWeight: 600 }}>New Company Details</h3>
+                <div style={{ background: 'var(--admin-card-bg)', border: '1px solid var(--admin-border)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+                    <h3 style={{ marginBottom: '1.25rem', color: 'var(--admin-text-primary)', fontSize: '1rem', fontWeight: 600 }}>New Company Details</h3>
                     <form onSubmit={handleAddCompany}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Company Name *</label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Company Name *</label>
                                 <input style={inputStyle} value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Tech Solutions Inc." required />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Industry</label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Industry</label>
                                 <input style={inputStyle} value={newCompany.industry} onChange={e => setNewCompany(p => ({ ...p, industry: e.target.value }))} placeholder="e.g. Information Technology" />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Address</label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Address</label>
                                 <input style={inputStyle} value={newCompany.address} onChange={e => setNewCompany(p => ({ ...p, address: e.target.value }))} placeholder="e.g. Dumaguete City" />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Contact Person</label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Contact Person</label>
                                 <input style={inputStyle} value={newCompany.contact_person} onChange={e => setNewCompany(p => ({ ...p, contact_person: e.target.value }))} placeholder="e.g. Juan dela Cruz" />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Contact Email</label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Contact Email</label>
                                 <input type="email" style={inputStyle} value={newCompany.contact_email} onChange={e => setNewCompany(p => ({ ...p, contact_email: e.target.value }))} placeholder="contact@company.com" />
                             </div>
                         </div>
@@ -391,7 +393,7 @@ const CompaniesView: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                         {pendingRequests.map(req => (
                             <div key={req.id} style={{
-                                background: 'var(--layer-1)', border: '1px solid var(--border)',
+                                background: 'var(--admin-card-bg)', border: '1px solid var(--admin-border)',
                                 borderRadius: 10, padding: '0.85rem 1rem',
                                 display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap',
                             }}>
@@ -401,8 +403,8 @@ const CompaniesView: React.FC = () => {
                                 </div>
                                 {/* Info */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-bright)' }}>{req.name}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{req.name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginTop: '0.15rem' }}>
                                         Requested by <strong>{req.student_name ?? 'a student'}</strong> &bull; {new Date(req.created_at).toLocaleDateString()}
                                     </div>
                                 </div>
@@ -453,9 +455,9 @@ const CompaniesView: React.FC = () => {
                         <div
                             key={company.id}
                             onClick={() => handleCompanyClick(company)}
-                            style={{ background: 'var(--layer-2)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.5rem', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', overflow: 'hidden' }}
+                            style={{ background: 'var(--admin-card-bg)', border: '1px solid var(--admin-border)', borderRadius: '14px', padding: '1.5rem', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', overflow: 'hidden' }}
                             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)'; (e.currentTarget as HTMLElement).style.borderColor = '#7c3aed'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; (e.currentTarget as HTMLElement).style.borderColor = 'var(--admin-border)'; }}
                         >
                             {/* Decoration */}
                             <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderRadius: '0 14px 0 80px', background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.05))' }} />
@@ -465,12 +467,12 @@ const CompaniesView: React.FC = () => {
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <h3 style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-bright)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{company.name}</h3>
-                                    {company.industry && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>{company.industry}</p>}
+                                    <h3 style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--admin-text-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{company.name}</h3>
+                                    {company.industry && <p style={{ fontSize: '0.8rem', color: 'var(--admin-text-secondary)', margin: '0.2rem 0 0' }}>{company.industry}</p>}
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '1rem' }}>
                                 {company.address && (
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
@@ -490,7 +492,7 @@ const CompaniesView: React.FC = () => {
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                                     {company.intern_count ?? 0} Intern{(company.intern_count ?? 0) !== 1 ? 's' : ''}
                                 </span>
-                                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <span style={{ fontSize: '0.78rem', color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                     View Students
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                                 </span>
