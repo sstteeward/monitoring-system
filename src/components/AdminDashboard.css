@@ -198,6 +198,7 @@ html[data-theme="light"] {
   flex-direction: column;
   gap: 0.25rem;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .admin-nav-item {
@@ -282,6 +283,7 @@ html[data-theme="light"] {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  overflow-x: hidden;
 }
 
 .admin-sidebar-control-menu {

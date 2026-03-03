@@ -133,6 +133,124 @@ export const coordinatorService = {
     },
 
     /**
+     * Fetch all pending journals across all students
+     */
+    async getPendingJournals() {
+        // Step 1: fetch pending journals
+        const { data: journals, error: journalsError } = await supabase
+            .from('daily_journals')
+            .select('*')
+            .eq('approval_status', 'pending')
+            .order('created_at', { ascending: false });
+
+        if (journalsError) {
+            console.error("Error fetching pending journals:", journalsError);
+            throw journalsError;
+        }
+
+        if (!journals || journals.length === 0) return [];
+
+        // Step 2: collect unique user_ids and fetch matching profiles
+        const userIds = [...new Set(journals.map((d: any) => d.user_id))];
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('auth_user_id, first_name, last_name, email')
+            .in('auth_user_id', userIds);
+
+        if (profilesError) {
+            console.error("Error fetching profiles for journals:", profilesError);
+            throw profilesError;
+        }
+
+        // Step 3: merge — attach profile info onto each journal
+        const profileMap: Record<string, any> = {};
+        (profiles ?? []).forEach((p: any) => { profileMap[p.auth_user_id] = p; });
+
+        return journals.map((j: any) => ({
+            ...j,
+            profiles: profileMap[j.user_id] ?? null,
+        }));
+    },
+
+    /**
+     * Approve or reject a journal
+     */
+    async updateJournalStatus(journalId: string, status: 'approved' | 'rejected') {
+        const hasPermission = await checkPermission('can_approve_journals');
+        if (!hasPermission) throw new Error("You do not have permission to approve/reject journals.");
+
+        const { error } = await supabase
+            .from('daily_journals')
+            .update({ approval_status: status, updated_at: new Date().toISOString() })
+            .eq('id', journalId);
+
+        if (error) {
+            console.error(`Error updating journal to ${status}:`, error);
+            throw error;
+        }
+
+        return true;
+    },
+
+    /**
+     * Fetch all pending timesheets across all students
+     */
+    async getPendingTimesheets() {
+        const { data: timesheets, error: timesheetsError } = await supabase
+            .from('timesheets')
+            .select('*')
+            .eq('status', 'completed')
+            .eq('approval_status', 'pending')
+            .order('clock_out', { ascending: false });
+
+        if (timesheetsError) {
+            console.error("Error fetching pending timesheets:", timesheetsError);
+            throw timesheetsError;
+        }
+
+        if (!timesheets || timesheets.length === 0) return [];
+
+        const userIds = [...new Set(timesheets.map((d: any) => d.user_id))];
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('auth_user_id, first_name, last_name, email')
+            .in('auth_user_id', userIds);
+
+        if (profilesError) {
+            console.error("Error fetching profiles for timesheets:", profilesError);
+            throw profilesError;
+        }
+
+        const profileMap: Record<string, any> = {};
+        (profiles ?? []).forEach((p: any) => { profileMap[p.auth_user_id] = p; });
+
+        return timesheets.map((ts: any) => ({
+            ...ts,
+            profiles: profileMap[ts.user_id] ?? null,
+        }));
+    },
+
+    /**
+     * Approve or reject a timesheet
+     */
+    async updateTimesheetStatus(timesheetId: string, status: 'approved' | 'rejected') {
+        const hasPermission = await checkPermission('can_approve_journals');
+        if (!hasPermission) throw new Error("You do not have permission to approve/reject timesheets.");
+
+        const { error } = await supabase
+            .from('timesheets')
+            .update({ approval_status: status })
+            .eq('id', timesheetId);
+
+        if (error) {
+            console.error(`Error updating timesheet to ${status}:`, error);
+            throw error;
+        }
+
+        return true;
+    },
+
+    /**
      * Fetch timesheets for a specific student
      */
     async getStudentTimesheets(studentId: string) {

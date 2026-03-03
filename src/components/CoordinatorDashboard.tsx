@@ -311,7 +311,6 @@ const CoordinatorDashboard: React.FC = () => {
                         <OverviewView
                             greeting={greeting}
                             displayName={displayName}
-                            studentCount={studentCount}
                             pendingDocsCount={pendingDocsCount}
                             companyCount={companyCount}
                             stats={overviewStats}
@@ -353,14 +352,13 @@ const CoordinatorDashboard: React.FC = () => {
 interface OverviewProps {
     greeting: string;
     displayName: string;
-    studentCount: number;
     pendingDocsCount: number;
     companyCount: number;
     stats: any;
     navigate: (v: View) => void;
 }
 
-const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, studentCount, pendingDocsCount, companyCount, stats, navigate }) => {
+const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingDocsCount, companyCount, stats, navigate }) => {
     const quickStats = stats ? [
         {
             label: 'Total Assigned',
@@ -464,21 +462,21 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, studentC
                     <div className="cd-card-header">
                         <span className="cd-card-title">Student Progress</span>
                     </div>
-                    <div className="cd-card-body cd-scroll-body cd-dynamic-body">
+                    <div className="cd-card-body cd-scroll-body cd-dynamic-body" style={{ paddingTop: '1rem' }}>
                         {stats?.progressData && stats.progressData.length > 0 ? stats.progressData.map((p: any) => (
-                            <div key={p.id} className="cd-progress-item" style={{ marginBottom: '1.25rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div key={p.id} className="cd-progress-item" style={{ padding: '0 1.5rem', paddingBottom: '1.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '1rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
                                         {p.avatar ? (
-                                            <img src={p.avatar} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                                            <img src={p.avatar} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                                         ) : (
-                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.85rem' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.85rem', flexShrink: 0 }}>
                                                 {p.name.charAt(0)}
                                             </div>
                                         )}
-                                        <span style={{ fontWeight: 500, fontSize: '0.95rem', color: 'var(--text-bright)' }}>{p.name}</span>
+                                        <span style={{ fontWeight: 500, fontSize: '0.95rem', color: 'var(--text-bright)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
                                     </div>
-                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{p.hours} / {p.target} hrs</span>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', flexShrink: 0 }}>{p.hours} / {p.target} hrs</span>
                                 </div>
                                 <div style={{ background: 'var(--bg-secondary)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
                                     <div
@@ -493,7 +491,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, studentC
                 </div>
             </div>
 
-            <div className="cd-overview-side-col">
+            <div className="cd-overview-side-col" style={{ paddingBottom: '6rem' }}>
                 {/* Weekly Activity Summary */}
                 <div className="cd-card">
                     <div className="cd-card-body" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
