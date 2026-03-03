@@ -381,4 +381,96 @@ export const coordinatorService = {
         }
         return true;
     },
+
+    // ─── Dashboard Stats Methods ────────────────────────────────────────
+
+    /**
+     * Fetch comprehensive stats for the coordinator dashboard
+     */
+    async getOverviewStats() {
+        const [students, docs, journalsRes, timesheetsRes] = await Promise.all([
+            this.getAllStudents(),
+            this.getPendingDocuments(),
+            supabase.from('daily_journals')
+                .select('id, user_id, entry_date, created_at, tasks')
+                .order('created_at', { ascending: false })
+                .limit(5),
+            supabase.from('timesheets')
+                .select('user_id, clock_in, clock_out, status')
+        ]);
+
+        const assignedStudents = students.filter(s => s.company_id != null);
+        const atRiskStudents = students.filter(s => (s.absences || 0) >= 3);
+
+        const studentHours: Record<string, number> = {};
+        let weeklyActivityCount = 0;
+
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        if (timesheetsRes.data) {
+            timesheetsRes.data.forEach((ts: any) => {
+                if (ts.status === 'completed' && ts.clock_out) {
+                    const start = new Date(ts.clock_in).getTime();
+                    const end = new Date(ts.clock_out).getTime();
+                    const hours = (end - start) / (1000 * 3600);
+                    studentHours[ts.user_id] = (studentHours[ts.user_id] || 0) + hours;
+                }
+
+                const clockInDate = new Date(ts.clock_in);
+                if (clockInDate >= startOfWeek) {
+                    weeklyActivityCount++;
+                }
+            });
+        }
+
+        let completedCount = 0;
+        let inProgressCount = 0;
+        const progressData: Array<{ name: string; hours: number; target: number; avatar?: string; id: string }> = [];
+
+        students.forEach(s => {
+            const hours = studentHours[s.auth_user_id] || 0;
+            const target = s.required_ojt_hours || 400;
+
+            if (hours >= target) {
+                completedCount++;
+            } else if (hours > 0) {
+                inProgressCount++;
+            }
+
+            if (s.company_id) {
+                progressData.push({
+                    id: s.id,
+                    name: `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'Unknown Student',
+                    hours: Math.round(hours * 10) / 10,
+                    target,
+                    avatar: s.avatar_url || undefined
+                });
+            }
+        });
+
+        const studentMap = new Map(students.map(s => [s.auth_user_id, s]));
+        const recentActivity = (journalsRes.data || []).map(j => {
+            const student = studentMap.get(j.user_id);
+            return {
+                ...j,
+                student_name: student ? `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown Student' : 'Unknown Student',
+                student_avatar: student?.avatar_url || undefined
+            };
+        });
+
+        return {
+            totalAssigned: assignedStudents.length,
+            completed: completedCount,
+            inProgress: inProgressCount,
+            atRisk: atRiskStudents.length,
+            pendingApprovals: docs.length,
+            pendingTimeLogs: 0,
+            recentActivity,
+            thisWeekActivityCount: weeklyActivityCount,
+            progressData: progressData.sort((a, b) => b.hours - a.hours)
+        };
+    }
 };

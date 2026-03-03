@@ -712,3 +712,95 @@
     animation: cd-spin 0.7s linear infinite;
     flex-shrink: 0;
 }
+
+/* ═══════════════════════════════════════════════════
+   OVERVIEW LAYOUT
+═══════════════════════════════════════════════════ */
+.cd-overview-layout {
+    display: flex;
+    gap: 1.5rem;
+    align-items: stretch;
+    height: calc(100vh - 120px);
+    /* 120px roughly accounts for topbar + page padding */
+}
+
+.cd-overview-main-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: 100%;
+}
+
+.cd-overview-side-col {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: 100%;
+}
+
+.cd-overview-dynamic-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 200px;
+    /* Base min height before it triggers scroll */
+}
+
+.cd-dynamic-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+@media (max-width: 1100px) {
+    .cd-overview-layout {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .cd-overview-side-col {
+        width: 100%;
+        height: auto;
+    }
+
+    .cd-overview-main-col {
+        height: auto;
+    }
+
+    .cd-overview-dynamic-card {
+        flex: none;
+    }
+
+    .cd-dynamic-body {
+        max-height: 400px;
+    }
+}
+
+.cd-scroll-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.cd-scroll-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.cd-scroll-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.cd-scroll-body::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+.hover-row {
+    transition: background 0.15s;
+}
+
+.hover-row:hover {
+    background: var(--bg-elevated);
+}
