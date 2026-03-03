@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
-import { adminService, type SystemSetting } from '../services/adminService';
+import { adminService } from '../services/adminService';
 
 const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
     const { theme, setTheme } = useTheme();
