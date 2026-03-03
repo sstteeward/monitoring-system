@@ -9,14 +9,12 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
     const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
 
     // System Settings State
-    const [settings, setSettings] = useState<SystemSetting[]>([]);
     const [loading, setLoading] = useState(true);
     const [savingSettings, setSavingSettings] = useState(false);
 
     // Derived Setting States for Forms
     const [ojtHours, setOjtHours] = useState({ required: 300, max_daily: 8 });
     const [journalRules, setJournalRules] = useState({ deadline_days: 7 });
-    const [fileRules, setFileRules] = useState({ max_size_mb: 10, allowed_types: ["application/pdf", "image/png", "image/jpeg"] });
     const [maintenance, setMaintenance] = useState({ enabled: false, message: "" });
 
     // Password State
@@ -35,13 +33,10 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
         setLoading(true);
         try {
             const data = await adminService.getSystemSettings();
-            setSettings(data);
-
             // Map settings to specialized state objects
             data.forEach(s => {
                 if (s.key === 'ojt_hours') setOjtHours(s.value);
                 if (s.key === 'journal_submission') setJournalRules(s.value);
-                if (s.key === 'file_uploads') setFileRules(s.value);
                 if (s.key === 'maintenance_mode') setMaintenance(s.value);
             });
         } catch (e) {
