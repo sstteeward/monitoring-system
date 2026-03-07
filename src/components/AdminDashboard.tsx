@@ -38,6 +38,8 @@ const AdminDashboard: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarMenuOpen, setIsSidebarMenuOpen] = useState(false);
     const [newFeedbackCount, setNewFeedbackCount] = useState(0);
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+    const [deletingUser, setDeletingUser] = useState(false);
 
     useTheme();
 
@@ -109,382 +111,435 @@ const AdminDashboard: React.FC = () => {
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
     return (
-        <div className={`admin-dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
-            {/* Mobile overlay */}
-            <div className="admin-mobile-overlay" onClick={() => setIsMobileMenuOpen(false)} />
+        <>
+            <div className={`admin-dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
+                {/* Mobile overlay */}
+                <div className="admin-mobile-overlay" onClick={() => setIsMobileMenuOpen(false)} />
 
-            {/* --- SIDEBAR --- */}
-            <aside className={`admin-sidebar sidebar-mode-${sidebarMode} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-                <div className="admin-sidebar-header">
-                    <div className="admin-logo-icon">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
-                    </div>
-                    <div className="admin-logo-text-group">
-                        <div className="admin-logo-text">SIL Admin</div>
-                        <div className="admin-logo-sub">Asian College Dumaguete</div>
-                    </div>
-                </div>
-
-                <div className="admin-sidebar-user" onClick={() => { setCurrentView('profile'); setIsMobileMenuOpen(false); }}>
-                    <div className="admin-user-avatar">
-                        {initials}
-                    </div>
-                    <div className="admin-sidebar-user-info">
-                        <div className="admin-user-name">{profile?.first_name} {profile?.last_name}</div>
-                        <div className="admin-user-role-badge">Super Admin</div>
-                    </div>
-                </div>
-
-                <nav className="admin-nav">
-                    <div className={`admin-nav-item ${currentView === 'overview' ? 'active' : ''}`} onClick={() => { setCurrentView('overview'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon">{Icon.grid}</span> <span className="nav-text">Overview</span>
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'users' ? 'active' : ''}`} onClick={() => { setCurrentView('users'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon">{Icon.users}</span> <span className="nav-text">User Management</span>
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'roles' ? 'active' : ''}`} onClick={() => { setCurrentView('roles'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
-                        <span className="nav-text">Role Permissions</span>
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'companies' ? 'active' : ''}`} onClick={() => { setCurrentView('companies'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon">{Icon.building}</span> <span className="nav-text">Companies</span>
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'approvals' ? 'active' : ''}`} onClick={() => { setCurrentView('approvals'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="16 13 8 13"></polyline><polyline points="16 17 8 17"></polyline><polyline points="10 9 9 9 8 9"></polyline></svg></span>
-                        <span className="nav-text">Approvals</span>
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'students' ? 'active' : ''}`} onClick={() => { setCurrentView('students'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
-                        <span className="nav-text">All Students</span>
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'departments' ? 'active' : ''}`} onClick={() => { setCurrentView('departments'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg></span>
-                        <span className="nav-text">Departments</span>
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'feedback' ? 'active' : ''}`} onClick={() => { setCurrentView('feedback'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon">{Icon.feedback}</span>
-                        <span className="nav-text">User Feedback</span>
-                        {newFeedbackCount > 0 && (
-                            <span className="nav-badge">{newFeedbackCount}</span>
-                        )}
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'audit' ? 'active' : ''}`} onClick={() => { setCurrentView('audit'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
-                        <span className="nav-text">Audit Logs</span>
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'backup' ? 'active' : ''}`} onClick={() => { setCurrentView('backup'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
-                        <span className="nav-text">Backup & Restore</span>
-                    </div>
-                    <div className={`admin-nav-item ${currentView === 'health' ? 'active' : ''}`} onClick={() => { setCurrentView('health'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
-                        <span className="nav-text">System Health</span>
-                    </div>
-                </nav>
-
-                <div className="admin-sidebar-bottom">
-                    <div style={{ position: 'relative' }}>
-                        {isSidebarMenuOpen && (
-                            <>
-                                <div style={{ position: 'fixed', inset: 0, zIndex: 100 }} onClick={() => setIsSidebarMenuOpen(false)} />
-                                <div className="admin-sidebar-control-menu">
-                                    <div className="admin-sidebar-control-header">Sidebar control</div>
-                                    <div className="admin-sidebar-control-options">
-                                        {(['expanded', 'collapsed', 'hover'] as const).map(mode => (
-                                            <div key={mode} className="admin-sidebar-control-option" onClick={() => { setSidebarMode(mode); setIsSidebarMenuOpen(false); }}>
-                                                <div className="admin-sidebar-control-radio">
-                                                    {sidebarMode === mode && <div className="admin-sidebar-control-radio-inner" />}
-                                                </div>
-                                                <span style={{ textTransform: 'capitalize' }}>{mode === 'hover' ? 'Expand on hover' : mode}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                        <div className={`admin-nav-item ${isSidebarMenuOpen ? 'active' : ''}`} onClick={() => setIsSidebarMenuOpen(!isSidebarMenuOpen)}>
-                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="3" x2="9" y2="21" /></svg></span>
-                            <span className="nav-text">Layout</span>
+                {/* --- SIDEBAR --- */}
+                <aside className={`admin-sidebar sidebar-mode-${sidebarMode} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+                    <div className="admin-sidebar-header">
+                        <div className="admin-logo-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
+                        </div>
+                        <div className="admin-logo-text-group">
+                            <div className="admin-logo-text">SIL Admin</div>
+                            <div className="admin-logo-sub">Asian College Dumaguete</div>
                         </div>
                     </div>
-                    <div className={`admin-nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => { setCurrentView('settings'); setIsMobileMenuOpen(false); }}>
-                        <span className="nav-icon">{Icon.settings}</span> <span className="nav-text">Admin Settings</span>
-                    </div>
-                </div>
-            </aside>
 
-            {/* --- MAIN --- */}
-            <main className="admin-main">
-                <header className="admin-topbar">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <button className="admin-mobile-toggle" onClick={() => setIsMobileMenuOpen(true)}>
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-                        </button>
-                        <div>
-                            <div className="admin-topbar-title">
-                                {currentView === 'overview' && 'Admin Overview'}
-                                {currentView === 'users' && 'User Management'}
-                                {currentView === 'companies' && 'Company Management'}
-                                {currentView === 'feedback' && 'User Feedback'}
-                                {currentView === 'approvals' && 'Approvals'}
-                                {currentView === 'students' && 'All Students'}
-                                {currentView === 'departments' && 'Departments'}
-                                {currentView === 'audit' && 'Audit Logs'}
-                                {currentView === 'backup' && 'Backup & Restore'}
-                                {currentView === 'health' && 'System Health'}
-                                {currentView === 'roles' && 'Role Permissions'}
-                                {currentView === 'profile' && 'Admin Profile'}
-                                {currentView === 'settings' && 'System Settings'}
-                            </div>
+                    <div className="admin-sidebar-user" onClick={() => { setCurrentView('profile'); setIsMobileMenuOpen(false); }}>
+                        <div className="admin-user-avatar">
+                            {initials}
+                        </div>
+                        <div className="admin-sidebar-user-info">
+                            <div className="admin-user-name">{profile?.first_name} {profile?.last_name}</div>
+                            <div className="admin-user-role-badge">Super Admin</div>
                         </div>
                     </div>
-                </header>
 
-                <div className="admin-page-content">
-                    {currentView === 'overview' && (
-                        <div className="fade-in">
-                            {/* Welcome Banner */}
-                            <div className="admin-welcome-banner">
-                                <div className="admin-welcome-bg" />
-                                <div className="admin-welcome-content">
-                                    <div>
-                                        <p className="admin-welcome-greeting">{greeting},</p>
-                                        <h2 className="admin-welcome-name">{profile?.first_name} {profile?.last_name} 👋</h2>
-                                        <p className="admin-welcome-sub">Super Admin • System Status: Active</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-                                <div className="admin-stat-card">
-                                    <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>{Icon.users}</div>
-                                    <div>
-                                        <div className="admin-stat-value">{stats.studentCount}</div>
-                                        <div className="admin-stat-label">Total Students</div>
-                                    </div>
-                                </div>
-                                <div className="admin-stat-card">
-                                    <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#0d9488', border: '1px solid rgba(13, 148, 136, 0.2)' }}>{Icon.users}</div>
-                                    <div>
-                                        <div className="admin-stat-value">{stats.coordinatorCount}</div>
-                                        <div className="admin-stat-label">Coordinators</div>
-                                    </div>
-                                </div>
-                                <div className="admin-stat-card">
-                                    <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: 'var(--primary)', border: '1px solid var(--nav-active-bg)' }}>{Icon.building}</div>
-                                    <div>
-                                        <div className="admin-stat-value">{stats.companyCount}</div>
-                                        <div className="admin-stat-label">Partner Companies</div>
-                                    </div>
-                                </div>
-                                <div className="admin-stat-card">
-                                    <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg>
-                                    </div>
-                                    <div>
-                                        <div className="admin-stat-value">{stats.departmentCount}</div>
-                                        <div className="admin-stat-label">Departments</div>
-                                    </div>
-                                </div>
-                                <div className="admin-stat-card">
-                                    <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.2)' }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                                    </div>
-                                    <div>
-                                        <div className="admin-stat-value">{stats.totalLogs}</div>
-                                        <div className="admin-stat-label">Audit Logs</div>
-                                    </div>
-                                </div>
-                            </div>
+                    <nav className="admin-nav">
+                        <div className={`admin-nav-item ${currentView === 'overview' ? 'active' : ''}`} onClick={() => { setCurrentView('overview'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon">{Icon.grid}</span> <span className="nav-text">Overview</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'users' ? 'active' : ''}`} onClick={() => { setCurrentView('users'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon">{Icon.users}</span> <span className="nav-text">User Management</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'roles' ? 'active' : ''}`} onClick={() => { setCurrentView('roles'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
+                            <span className="nav-text">Role Permissions</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'companies' ? 'active' : ''}`} onClick={() => { setCurrentView('companies'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon">{Icon.building}</span> <span className="nav-text">Companies</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'approvals' ? 'active' : ''}`} onClick={() => { setCurrentView('approvals'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="16 13 8 13"></polyline><polyline points="16 17 8 17"></polyline><polyline points="10 9 9 9 8 9"></polyline></svg></span>
+                            <span className="nav-text">Approvals</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'students' ? 'active' : ''}`} onClick={() => { setCurrentView('students'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+                            <span className="nav-text">All Students</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'departments' ? 'active' : ''}`} onClick={() => { setCurrentView('departments'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg></span>
+                            <span className="nav-text">Departments</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'feedback' ? 'active' : ''}`} onClick={() => { setCurrentView('feedback'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon">{Icon.feedback}</span>
+                            <span className="nav-text">User Feedback</span>
+                            {newFeedbackCount > 0 && (
+                                <span className="nav-badge">{newFeedbackCount}</span>
+                            )}
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'audit' ? 'active' : ''}`} onClick={() => { setCurrentView('audit'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
+                            <span className="nav-text">Audit Logs</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'backup' ? 'active' : ''}`} onClick={() => { setCurrentView('backup'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
+                            <span className="nav-text">Backup & Restore</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'health' ? 'active' : ''}`} onClick={() => { setCurrentView('health'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
+                            <span className="nav-text">System Health</span>
+                        </div>
+                    </nav>
 
-
-                            <div className="admin-table-card">
-                                <div className="admin-table-header">
-                                    <div className="admin-table-title">Recent User Registrations</div>
-                                    <button className="role-select" onClick={() => setCurrentView('users')}>View All</button>
-                                </div>
-                                <table className="admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>User</th>
-                                            <th>Email</th>
-                                            <th>Role</th>
-                                            <th>Joined</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {allProfiles.slice(0, 5).map(p => (
-                                            <tr key={p.id}>
-                                                <td>
-                                                    <div className="admin-user-cell">
-                                                        <div className="admin-user-avatar">
-                                                            {p.first_name?.[0]}{p.last_name?.[0]}
-                                                        </div>
-                                                        <div>{p.first_name} {p.last_name}</div>
+                    <div className="admin-sidebar-bottom">
+                        <div style={{ position: 'relative' }}>
+                            {isSidebarMenuOpen && (
+                                <>
+                                    <div style={{ position: 'fixed', inset: 0, zIndex: 100 }} onClick={() => setIsSidebarMenuOpen(false)} />
+                                    <div className="admin-sidebar-control-menu">
+                                        <div className="admin-sidebar-control-header">Sidebar control</div>
+                                        <div className="admin-sidebar-control-options">
+                                            {(['expanded', 'collapsed', 'hover'] as const).map(mode => (
+                                                <div key={mode} className="admin-sidebar-control-option" onClick={() => { setSidebarMode(mode); setIsSidebarMenuOpen(false); }}>
+                                                    <div className="admin-sidebar-control-radio">
+                                                        {sidebarMode === mode && <div className="admin-sidebar-control-radio-inner" />}
                                                     </div>
-                                                </td>
-                                                <td>{p.email}</td>
-                                                <td>
-                                                    <span className={`admin-badge badge-${p.account_type}`}>
-                                                        {p.account_type.toUpperCase()}
-                                                    </span>
-                                                </td>
-                                                <td style={{ color: 'var(--admin-text-secondary)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                                    <span style={{ textTransform: 'capitalize' }}>{mode === 'hover' ? 'Expand on hover' : mode}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            <div className={`admin-nav-item ${isSidebarMenuOpen ? 'active' : ''}`} onClick={() => setIsSidebarMenuOpen(!isSidebarMenuOpen)}>
+                                <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="3" x2="9" y2="21" /></svg></span>
+                                <span className="nav-text">Layout</span>
                             </div>
                         </div>
-                    )}
+                        <div className={`admin-nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => { setCurrentView('settings'); setIsMobileMenuOpen(false); }}>
+                            <span className="nav-icon">{Icon.settings}</span> <span className="nav-text">Admin Settings</span>
+                        </div>
+                    </div>
+                </aside>
 
-                    {currentView === 'users' && (
-                        <div className="fade-in">
-                            <div className="admin-table-card">
-                                <div className="admin-table-header">
-                                    <div className="admin-table-title">All Users</div>
-                                    <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.875rem' }}>Total: {allProfiles.length} users</div>
+                {/* --- MAIN --- */}
+                <main className="admin-main">
+                    <header className="admin-topbar">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <button className="admin-mobile-toggle" onClick={() => setIsMobileMenuOpen(true)}>
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                            </button>
+                            <div>
+                                <div className="admin-topbar-title">
+                                    {currentView === 'overview' && 'Admin Overview'}
+                                    {currentView === 'users' && 'User Management'}
+                                    {currentView === 'companies' && 'Company Management'}
+                                    {currentView === 'feedback' && 'User Feedback'}
+                                    {currentView === 'approvals' && 'Approvals'}
+                                    {currentView === 'students' && 'All Students'}
+                                    {currentView === 'departments' && 'Departments'}
+                                    {currentView === 'audit' && 'Audit Logs'}
+                                    {currentView === 'backup' && 'Backup & Restore'}
+                                    {currentView === 'health' && 'System Health'}
+                                    {currentView === 'roles' && 'Role Permissions'}
+                                    {currentView === 'profile' && 'Admin Profile'}
+                                    {currentView === 'settings' && 'System Settings'}
                                 </div>
-                                <table className="admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Email</th>
-                                            <th>Account Type</th>
-                                            <th>Manage Role</th>
-                                            <th style={{ textAlign: 'right' }}>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {allProfiles.map(p => (
-                                            <tr key={p.id}>
-                                                <td>{p.first_name} {p.last_name}</td>
-                                                <td>{p.email}</td>
-                                                <td>
-                                                    <span className={`admin-badge badge-${p.account_type}`}>
-                                                        {p.account_type}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <select
-                                                        className="role-select"
-                                                        value={p.account_type}
-                                                        disabled={updatingUserId === p.auth_user_id}
-                                                        style={{ background: 'var(--admin-bg)', color: 'var(--admin-text-primary)' }}
-                                                        onChange={(e) => handleRoleUpdate(p.auth_user_id, e.target.value as 'student' | 'coordinator' | 'admin')}
-                                                    >
-                                                        <option value="student">Student</option>
-                                                        <option value="coordinator">Coordinator</option>
-                                                        <option value="admin">Admin</option>
-                                                    </select>
-                                                </td>
-                                                <td style={{ textAlign: 'right' }}>
-                                                    <button
-                                                        style={{
-                                                            background: 'none',
-                                                            border: 'none',
-                                                            color: '#ef4444',
-                                                            cursor: 'pointer',
-                                                            padding: '0.4rem 0.6rem',
-                                                            fontSize: '0.85rem',
-                                                            fontWeight: 600
-                                                        }}
-                                                        onClick={async () => {
-                                                            if (confirm(`CRITICAL WARNING: Are you sure you want to completely delete the account for ${p.first_name} ${p.last_name}? This will remove all their data and cannot be undone.`)) {
-                                                                setUpdatingUserId(p.auth_user_id);
-                                                                try {
-                                                                    await adminService.deleteUserAccount(p.auth_user_id);
-                                                                    await adminService.logAction('delete_account', 'profiles', p.auth_user_id);
-                                                                    setAllProfiles(prev => prev.filter(user => user.auth_user_id !== p.auth_user_id));
-                                                                    alert('Account deleted successfully.');
-                                                                } catch (e) {
-                                                                    alert('Failed to delete account. Did you run the RPC script?');
-                                                                } finally {
-                                                                    setUpdatingUserId(null);
-                                                                }
-                                                            }
-                                                        }}
-                                                        disabled={updatingUserId === p.auth_user_id}
-                                                    >
-                                                        {updatingUserId === p.auth_user_id ? '...' : 'Delete'}
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
-                    )}
+                    </header>
 
-                    {currentView === 'companies' && (
-                        <div className="fade-in">
-                            <CompaniesView />
+                    <div className="admin-page-content">
+                        {currentView === 'overview' && (
+                            <div className="fade-in">
+                                {/* Welcome Banner */}
+                                <div className="admin-welcome-banner">
+                                    <div className="admin-welcome-bg" />
+                                    <div className="admin-welcome-content">
+                                        <div>
+                                            <p className="admin-welcome-greeting">{greeting},</p>
+                                            <h2 className="admin-welcome-name">{profile?.first_name} {profile?.last_name} 👋</h2>
+                                            <p className="admin-welcome-sub">Super Admin • System Status: Active</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                                    <div className="admin-stat-card">
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>{Icon.users}</div>
+                                        <div>
+                                            <div className="admin-stat-value">{stats.studentCount}</div>
+                                            <div className="admin-stat-label">Total Students</div>
+                                        </div>
+                                    </div>
+                                    <div className="admin-stat-card">
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#0d9488', border: '1px solid rgba(13, 148, 136, 0.2)' }}>{Icon.users}</div>
+                                        <div>
+                                            <div className="admin-stat-value">{stats.coordinatorCount}</div>
+                                            <div className="admin-stat-label">Coordinators</div>
+                                        </div>
+                                    </div>
+                                    <div className="admin-stat-card">
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: 'var(--primary)', border: '1px solid var(--nav-active-bg)' }}>{Icon.building}</div>
+                                        <div>
+                                            <div className="admin-stat-value">{stats.companyCount}</div>
+                                            <div className="admin-stat-label">Partner Companies</div>
+                                        </div>
+                                    </div>
+                                    <div className="admin-stat-card">
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg>
+                                        </div>
+                                        <div>
+                                            <div className="admin-stat-value">{stats.departmentCount}</div>
+                                            <div className="admin-stat-label">Departments</div>
+                                        </div>
+                                    </div>
+                                    <div className="admin-stat-card">
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.2)' }}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                        </div>
+                                        <div>
+                                            <div className="admin-stat-value">{stats.totalLogs}</div>
+                                            <div className="admin-stat-label">Audit Logs</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <div className="admin-table-card">
+                                    <div className="admin-table-header">
+                                        <div className="admin-table-title">Recent User Registrations</div>
+                                        <button className="role-select" onClick={() => setCurrentView('users')}>View All</button>
+                                    </div>
+                                    <table className="admin-table">
+                                        <thead>
+                                            <tr>
+                                                <th>User</th>
+                                                <th>Email</th>
+                                                <th>Role</th>
+                                                <th>Joined</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {allProfiles.slice(0, 5).map(p => (
+                                                <tr key={p.id}>
+                                                    <td>
+                                                        <div className="admin-user-cell">
+                                                            <div className="admin-user-avatar">
+                                                                {p.first_name?.[0]}{p.last_name?.[0]}
+                                                            </div>
+                                                            <div>{p.first_name} {p.last_name}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td>{p.email}</td>
+                                                    <td>
+                                                        <span className={`admin-badge badge-${p.account_type}`}>
+                                                            {p.account_type.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ color: 'var(--admin-text-secondary)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentView === 'users' && (
+                            <div className="fade-in">
+                                <div className="admin-table-card">
+                                    <div className="admin-table-header">
+                                        <div className="admin-table-title">All Users</div>
+                                        <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.875rem' }}>Total: {allProfiles.length} users</div>
+                                    </div>
+                                    <table className="admin-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Email</th>
+                                                <th>Account Type</th>
+                                                <th>Manage Role</th>
+                                                <th style={{ textAlign: 'right' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {allProfiles.map(p => (
+                                                <tr key={p.id}>
+                                                    <td>{p.first_name} {p.last_name}</td>
+                                                    <td>{p.email}</td>
+                                                    <td>
+                                                        <span className={`admin-badge badge-${p.account_type}`}>
+                                                            {p.account_type}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <select
+                                                            className="role-select"
+                                                            value={p.account_type}
+                                                            disabled={updatingUserId === p.auth_user_id}
+                                                            style={{ background: 'var(--admin-bg)', color: 'var(--admin-text-primary)' }}
+                                                            onChange={(e) => handleRoleUpdate(p.auth_user_id, e.target.value as 'student' | 'coordinator' | 'admin')}
+                                                        >
+                                                            <option value="student">Student</option>
+                                                            <option value="coordinator">Coordinator</option>
+                                                            <option value="admin">Admin</option>
+                                                        </select>
+                                                    </td>
+                                                    <td style={{ textAlign: 'right' }}>
+                                                        <button
+                                                            style={{
+                                                                background: 'none',
+                                                                border: 'none',
+                                                                color: '#ef4444',
+                                                                cursor: 'pointer',
+                                                                padding: '0.4rem 0.6rem',
+                                                                fontSize: '0.85rem',
+                                                                fontWeight: 600
+                                                            }}
+                                                            onClick={() => setDeleteTarget({ id: p.auth_user_id, name: `${p.first_name} ${p.last_name}` })}
+                                                            disabled={updatingUserId === p.auth_user_id}
+                                                        >
+                                                            {updatingUserId === p.auth_user_id ? '...' : 'Delete'}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentView === 'companies' && (
+                            <div className="fade-in">
+                                <CompaniesView />
+                            </div>
+                        )}
+
+                        {currentView === 'settings' && (
+                            <AdminSettingsView profile={profile} />
+                        )}
+
+                        {currentView === 'profile' && (
+                            <div className="fade-in">
+                                <AdminProfileView
+                                    initialProfile={profile}
+                                    onProfileUpdated={setProfile}
+                                />
+                            </div>
+                        )}
+
+                        {currentView === 'feedback' && (
+                            <div className="fade-in">
+                                <AdminFeedbackView onFeedbackAction={loadNewFeedbackCount} />
+                            </div>
+                        )}
+
+                        {currentView === 'audit' && (
+                            <div className="fade-in">
+                                <AdminAuditLogView />
+                            </div>
+                        )}
+
+                        {currentView === 'departments' && (
+                            <div className="fade-in">
+                                <AdminDepartmentsView />
+                            </div>
+                        )}
+
+                        {currentView === 'roles' && (
+                            <div className="fade-in">
+                                <AdminRoleManagementView />
+                            </div>
+                        )}
+
+                        {currentView === 'backup' && (
+                            <div className="fade-in">
+                                <AdminBackupRestoreView />
+                            </div>
+                        )}
+
+                        {currentView === 'health' && (
+                            <div className="fade-in">
+                                <AdminSystemHealthView />
+                            </div>
+                        )}
+
+                        {currentView === 'approvals' && (
+                            <div className="fade-in">
+                                <ApprovalsView />
+                            </div>
+                        )}
+
+                        {currentView === 'students' && (
+                            <div className="fade-in">
+                                <StudentsView isAdmin={true} />
+                            </div>
+                        )}
+                    </div>
+                </main>
+            </div>
+            {/* Delete Confirmation Modal */}
+            {
+                deleteTarget && (
+                    <div style={{
+                        position: 'fixed', inset: 0, zIndex: 1000,
+                        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <div style={{
+                            background: 'var(--admin-bg, #0f172a)', border: '1px solid rgba(239,68,68,0.3)',
+                            borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
+                            boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                            animation: 'fadeIn 0.2s ease',
+                        }}>
+                            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    <line x1="10" y1="11" x2="10" y2="17" />
+                                    <line x1="14" y1="11" x2="14" y2="17" />
+                                </svg>
+                            </div>
+                            <h3 style={{ textAlign: 'center', color: '#f8fafc', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Delete Account?</h3>
+                            <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem', margin: '0 0 1.75rem', lineHeight: 1.5 }}>
+                                Are you sure you want to permanently delete <strong style={{ color: '#f8fafc' }}>{deleteTarget.name}</strong>? All their data including timesheets, journals, and documents will be removed. This cannot be undone.
+                            </p>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <button
+                                    onClick={() => setDeleteTarget(null)}
+                                    disabled={deletingUser}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--admin-border, #1e293b)', background: 'rgba(30, 41, 59, 0.5)', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
+                                    onMouseOver={e => e.currentTarget.style.background = 'rgba(30, 41, 59, 0.8)'}
+                                    onMouseOut={e => e.currentTarget.style.background = 'rgba(30, 41, 59, 0.5)'}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (!deleteTarget) return;
+                                        setDeletingUser(true);
+                                        try {
+                                            await adminService.deleteUserAccount(deleteTarget.id);
+                                            await adminService.logAction('delete_account', 'profiles', deleteTarget.id);
+                                            setAllProfiles(prev => prev.filter(user => user.auth_user_id !== deleteTarget.id));
+                                            setDeleteTarget(null);
+                                        } catch (e: any) {
+                                            const detail = e?.message || e?.details || JSON.stringify(e);
+                                            alert(`Failed to delete account.\n\nError: ${detail}\n\nMake sure you have run the fix_admin_functions.sql script in your Supabase SQL Editor.`);
+                                            console.error('Delete user error:', e);
+                                        } finally {
+                                            setDeletingUser(false);
+                                        }
+                                    }}
+                                    disabled={deletingUser}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', cursor: deletingUser ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(239,68,68,0.35)', transition: 'opacity 0.15s', opacity: deletingUser ? 0.7 : 1 }}
+                                    onMouseOver={e => { if (!deletingUser) e.currentTarget.style.opacity = '0.9'; }}
+                                    onMouseOut={e => { if (!deletingUser) e.currentTarget.style.opacity = '1'; }}
+                                >
+                                    {deletingUser ? 'Deleting...' : 'Yes, Delete'}
+                                </button>
+                            </div>
                         </div>
-                    )}
-
-                    {currentView === 'settings' && (
-                        <AdminSettingsView profile={profile} />
-                    )}
-
-                    {currentView === 'profile' && (
-                        <div className="fade-in">
-                            <AdminProfileView
-                                initialProfile={profile}
-                                onProfileUpdated={setProfile}
-                            />
-                        </div>
-                    )}
-
-                    {currentView === 'feedback' && (
-                        <div className="fade-in">
-                            <AdminFeedbackView onFeedbackAction={loadNewFeedbackCount} />
-                        </div>
-                    )}
-
-                    {currentView === 'audit' && (
-                        <div className="fade-in">
-                            <AdminAuditLogView />
-                        </div>
-                    )}
-
-                    {currentView === 'departments' && (
-                        <div className="fade-in">
-                            <AdminDepartmentsView />
-                        </div>
-                    )}
-
-                    {currentView === 'roles' && (
-                        <div className="fade-in">
-                            <AdminRoleManagementView />
-                        </div>
-                    )}
-
-                    {currentView === 'backup' && (
-                        <div className="fade-in">
-                            <AdminBackupRestoreView />
-                        </div>
-                    )}
-
-                    {currentView === 'health' && (
-                        <div className="fade-in">
-                            <AdminSystemHealthView />
-                        </div>
-                    )}
-
-                    {currentView === 'approvals' && (
-                        <div className="fade-in">
-                            <ApprovalsView />
-                        </div>
-                    )}
-
-                    {currentView === 'students' && (
-                        <div className="fade-in">
-                            <StudentsView isAdmin={true} />
-                        </div>
-                    )}
-                </div>
-            </main>
-        </div>
+                    </div>
+                )
+            }
+        </>
     );
 };
 

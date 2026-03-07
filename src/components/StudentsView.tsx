@@ -16,6 +16,8 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
     const [searchTerm, setSearchTerm] = useState('');
     const [filterTab, setFilterTab] = useState(initialFilter);
     const [error, setError] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => { loadStudents(); }, []);
 
@@ -58,19 +60,20 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
         return colors[(name.charCodeAt(0) ?? 0) % colors.length];
     };
 
-    const handleDeleteStudent = async (studentId: string, name: string) => {
-        if (!confirm(`CRITICAL WARNING: Are you sure you want to completely delete the account for ${name}? This will remove all their data and cannot be undone.`)) {
-            return;
-        }
-
+    const confirmDeleteStudent = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await adminService.deleteUserAccount(studentId);
-            setStudents(prev => prev.filter(s => s.auth_user_id !== studentId));
-            await adminService.logAction('delete_student_account', 'profiles', studentId);
-            alert(`Student ${name} deleted successfully.`);
-        } catch (e) {
-            alert('Failed to delete student. Have you run the RPC script in your Supabase SQL editor?');
-            console.error(e);
+            await adminService.deleteUserAccount(deleteTarget.id);
+            setStudents(prev => prev.filter(s => s.auth_user_id !== deleteTarget.id));
+            await adminService.logAction('delete_student_account', 'profiles', deleteTarget.id);
+            setDeleteTarget(null);
+        } catch (e: any) {
+            const detail = e?.message || e?.details || JSON.stringify(e);
+            alert(`Failed to delete student.\n\nError: ${detail}\n\nMake sure you have run the fix_admin_functions.sql script in your Supabase SQL Editor.`);
+            console.error('Delete user error:', e);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -207,7 +210,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                                                         fontSize: '0.8rem',
                                                         fontWeight: 500
                                                     }}
-                                                    onClick={() => handleDeleteStudent(student.auth_user_id, `${student.first_name} ${student.last_name}`)}
+                                                    onClick={() => setDeleteTarget({ id: student.auth_user_id, name: `${student.first_name} ${student.last_name}` })}
                                                 >
                                                     Delete
                                                 </button>
@@ -235,6 +238,55 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                     </tbody>
                 </table>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteTarget && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 1000,
+                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <div style={{
+                        background: 'var(--bg-card, #0f172a)', border: '1px solid rgba(239,68,68,0.3)',
+                        borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        animation: 'fadeIn 0.2s ease',
+                    }}>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                <line x1="10" y1="11" x2="10" y2="17" />
+                                <line x1="14" y1="11" x2="14" y2="17" />
+                            </svg>
+                        </div>
+                        <h3 style={{ textAlign: 'center', color: 'var(--text-bright, #f8fafc)', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Delete Account?</h3>
+                        <p style={{ textAlign: 'center', color: 'var(--text-muted, #94a3b8)', fontSize: '0.9rem', margin: '0 0 1.75rem', lineHeight: 1.5 }}>
+                            Are you sure you want to permanently delete <strong style={{ color: 'var(--text-bright, #f8fafc)' }}>{deleteTarget.name}</strong>? All their data including timesheets, journals, and documents will be removed. This cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => setDeleteTarget(null)}
+                                disabled={deleting}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border, #1e293b)', background: 'rgba(30, 41, 59, 0.5)', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
+                                onMouseOver={e => e.currentTarget.style.background = 'rgba(30, 41, 59, 0.8)'}
+                                onMouseOut={e => e.currentTarget.style.background = 'rgba(30, 41, 59, 0.5)'}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeleteStudent}
+                                disabled={deleting}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', cursor: deleting ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(239,68,68,0.35)', transition: 'opacity 0.15s', opacity: deleting ? 0.7 : 1 }}
+                                onMouseOver={e => { if (!deleting) e.currentTarget.style.opacity = '0.9'; }}
+                                onMouseOut={e => { if (!deleting) e.currentTarget.style.opacity = '1'; }}
+                            >
+                                {deleting ? 'Deleting...' : 'Yes, Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
