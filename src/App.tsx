@@ -4,6 +4,7 @@ import AuthSignup from "./components/AuthSignup";
 import StudentDashboard from "./components/StudentDashboard";
 import CoordinatorDashboard from "./components/CoordinatorDashboard";
 import AdminDashboard from "./components/AdminDashboard";
+import PendingApprovalView from "./components/PendingApprovalView";
 import { supabase } from "./lib/supabaseClient";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
@@ -50,7 +51,7 @@ function App() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('account_type')
+        .select('account_type, is_active')
         .eq('auth_user_id', userId)
         .single();
 
@@ -70,6 +71,11 @@ function App() {
 
   // Determine which dashboard to show based on account type or hash slug
   const renderDashboard = () => {
+    // If coordinator is inactive, show pending approval screen
+    if (profile?.account_type === 'coordinator' && profile?.is_active === false) {
+      return <PendingApprovalView />;
+    }
+
     // Priority: Hash Slugs (Override)
     if (currentHash === '#/admin') {
       return <AdminDashboard />;

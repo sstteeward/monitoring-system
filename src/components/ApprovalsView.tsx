@@ -4,8 +4,12 @@ import { supabase } from '../lib/supabaseClient';
 import { TableSkeleton } from './Skeletons';
 import './CoordinatorDashboard.css';
 
-const ApprovalsView: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'documents' | 'journals' | 'dtr'>('documents');
+interface ApprovalsViewProps {
+    initialTab?: 'documents' | 'journals' | 'dtr';
+}
+
+const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' }) => {
+    const [activeTab, setActiveTab] = useState<'documents' | 'journals' | 'dtr'>(initialTab);
     const [documents, setDocuments] = useState<any[]>([]);
     const [journals, setJournals] = useState<any[]>([]);
     const [timesheets, setTimesheets] = useState<any[]>([]);
@@ -176,7 +180,7 @@ const ApprovalsView: React.FC = () => {
                             transition: 'all 0.2s',
                         }}
                     >
-                        {tab === 'dtr' ? 'DTR (Timesheets)' : tab}
+                        {tab === 'dtr' ? 'DTR (Timesheets)' : tab === 'journals' ? 'Approvals' : tab}
                     </button>
                 ))}
             </div>

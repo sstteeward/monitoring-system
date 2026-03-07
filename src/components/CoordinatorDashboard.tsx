@@ -8,7 +8,6 @@ import AnnouncementsView from './AnnouncementsView';
 import CompaniesView from './CompaniesView';
 import CoordinatorProfileView from './CoordinatorProfileView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
-import DashboardSkeleton from './DashboardSkeleton';
 import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
 import { useTheme } from '../contexts/ThemeContext';
@@ -42,13 +41,13 @@ const CoordinatorDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [currentView, setCurrentView] = useState<View>('overview');
+    const [studentFilter, setStudentFilter] = useState<'all' | 'assigned' | 'completed' | 'in-progress' | 'at-risk'>('all');
+    const [approvalsTab, setApprovalsTab] = useState<'documents' | 'journals' | 'dtr'>('documents');
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
     const [isSidebarMenuOpen, setIsSidebarMenuOpen] = useState(false);
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
     useTheme();
-
-    const [studentCount, setStudentCount] = useState(0);
     const [pendingDocsCount, setPendingDocsCount] = useState(0);
     const [companyCount, setCompanyCount] = useState(0);
     const [pendingCompanyRequestsCount, setPendingCompanyRequestsCount] = useState(0);
@@ -69,13 +68,13 @@ const CoordinatorDashboard: React.FC = () => {
             profile: 'My Profile',
             settings: 'Settings',
         };
-        document.title = `${titles[currentView] ?? 'Dashboard'} | SIL Monitor`;
+        document.title = `${titles[currentView] ?? 'Dashboard'} | SIL Monitoring`;
     }, [currentView]);
 
     const loadCoordinatorData = async () => {
         setLoading(true);
         try {
-            const [currentProfile, students, pendingDocs, companies, companyRequests, stats] = await Promise.all([
+            const [currentProfile, _students, pendingDocs, companies, companyRequests, stats] = await Promise.all([
                 profileService.getCurrentProfile(),
                 coordinatorService.getAllStudents(),
                 coordinatorService.getPendingDocuments(),
@@ -84,7 +83,6 @@ const CoordinatorDashboard: React.FC = () => {
                 coordinatorService.getOverviewStats(),
             ]);
             setProfile(currentProfile);
-            setStudentCount(students.length);
             setPendingDocsCount(pendingDocs.length);
             setCompanyCount(companies.length);
             setPendingCompanyRequestsCount(companyRequests.length);
@@ -96,8 +94,21 @@ const CoordinatorDashboard: React.FC = () => {
         }
     };
 
-    const navigate = (view: View) => {
+    const navigate = (view: View, param?: any) => {
         setCurrentView(view);
+
+        if (view === 'students' && param) {
+            setStudentFilter(param);
+        } else if (view === 'students') {
+            setStudentFilter('all');
+        }
+
+        if (view === 'approvals' && param) {
+            setApprovalsTab(param);
+        } else if (view === 'approvals') {
+            setApprovalsTab('documents');
+        }
+
         setIsMobileMenuOpen(false);
     };
 
@@ -150,7 +161,15 @@ const CoordinatorDashboard: React.FC = () => {
         settings: 'Settings',
     };
 
-    if (loading && !user) return <DashboardSkeleton />;
+    if (loading && !user) {
+        return (
+            <div className="dashboard-container" style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
+                <div className="sidebar-logo-icon cd-logo-icon fade-in" style={{ width: 64, height: 64, borderRadius: '16px' }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
@@ -318,8 +337,8 @@ const CoordinatorDashboard: React.FC = () => {
                         />
                     )}
                     {currentView === 'companies' && <CompaniesView />}
-                    {currentView === 'students' && <StudentsView />}
-                    {currentView === 'approvals' && <ApprovalsView />}
+                    {currentView === 'students' && <StudentsView initialFilter={studentFilter} />}
+                    {currentView === 'approvals' && <ApprovalsView initialTab={approvalsTab} key={approvalsTab} />}
                     {currentView === 'announcements' && <AnnouncementsView isCoordinator={true} />}
                     {currentView === 'profile' && (
                         <CoordinatorProfileView
@@ -355,7 +374,7 @@ interface OverviewProps {
     pendingDocsCount: number;
     companyCount: number;
     stats: any;
-    navigate: (v: View) => void;
+    navigate: (v: View, filter?: string) => void;
 }
 
 const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingDocsCount, companyCount, stats, navigate }) => {
@@ -367,7 +386,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: '#3b82f6',
             glow: 'rgba(59,130,246,0.15)',
             icon: Icon.users,
-            action: () => navigate('students'),
+            action: () => navigate('students', 'assigned'),
         },
         {
             label: 'Completed',
@@ -376,7 +395,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: '#10b981',
             glow: 'rgba(16,185,129,0.15)',
             icon: Icon.check,
-            action: () => navigate('students'),
+            action: () => navigate('students', 'completed'),
         },
         {
             label: 'In Progress',
@@ -385,7 +404,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: '#8b5cf6',
             glow: 'rgba(139,92,246,0.15)',
             icon: Icon.clock,
-            action: () => navigate('students'),
+            action: () => navigate('students', 'in-progress'),
         },
         {
             label: 'At-Risk Students',
@@ -394,16 +413,16 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: '#ef4444',
             glow: 'rgba(239,68,68,0.15)',
             icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
-            action: () => navigate('students'),
+            action: () => navigate('students', 'at-risk'),
         },
         {
-            label: 'Journal Approvals',
+            label: 'Reports Approval',
             value: stats.pendingApprovals,
             sub: stats.pendingApprovals === 0 ? 'All caught up' : 'Pending review',
             color: stats.pendingApprovals > 0 ? '#f59e0b' : '#10b981',
             glow: stats.pendingApprovals > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
             icon: Icon.file,
-            action: () => navigate('approvals'),
+            action: () => navigate('approvals', 'journals'),
         },
         {
             label: 'Time Log Approvals',
@@ -412,7 +431,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: stats.pendingTimeLogs > 0 ? '#f59e0b' : '#10b981',
             glow: stats.pendingTimeLogs > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
             icon: Icon.clock,
-            action: () => navigate('approvals'),
+            action: () => navigate('approvals', 'dtr'),
         },
     ] : [];
 

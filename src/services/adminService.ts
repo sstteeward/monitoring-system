@@ -115,6 +115,20 @@ export const adminService = {
     },
 
     /**
+     * Delete a user's account permanently
+     */
+    async deleteUserAccount(userId: string) {
+        const { error } = await supabase
+            .rpc('admin_delete_user', { target_user_id: userId });
+
+        if (error) {
+            console.error("Error deleting user account:", error);
+            throw error;
+        }
+        return true;
+    },
+
+    /**
      * Reset a user's failed login attempts or unlock account
      */
     async unlockUserAccount(userId: string) {

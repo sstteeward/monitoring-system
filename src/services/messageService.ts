@@ -7,6 +7,7 @@ export interface Message {
     content: string;
     created_at: string;
     read_at: string | null;
+    edited_at?: string | null;
 }
 
 export const messageService = {
@@ -68,6 +69,124 @@ export const messageService = {
 
         if (error) {
             console.error("Error marking messages as read:", error);
+        }
+    },
+
+    /**
+     * Mark all read messages from a specific user as unread (sets read_at to null)
+     */
+    async markAsUnread(senderId: string): Promise<void> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+            .from('messages')
+            .update({ read_at: null })
+            .eq('sender_id', senderId)
+            .eq('receiver_id', user.id)
+            .not('read_at', 'is', null);
+
+        if (error) {
+            console.error("Error marking messages as unread:", error);
+        }
+    },
+
+    /**
+     * Mark a single specific message as read
+     */
+    async markSingleMessageAsRead(messageId: string): Promise<void> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+            .from('messages')
+            .update({ read_at: new Date().toISOString() })
+            .eq('id', messageId)
+            .eq('receiver_id', user.id)
+            .is('read_at', null);
+
+        if (error) {
+            console.error("Error marking specific message as read:", error);
+        }
+    },
+
+    /**
+     * Mark a single specific message as unread
+     */
+    async markSingleMessageAsUnread(messageId: string): Promise<void> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+            .from('messages')
+            .update({ read_at: null })
+            .eq('id', messageId)
+            .eq('receiver_id', user.id)
+            .not('read_at', 'is', null);
+
+        if (error) {
+            console.error("Error marking specific message as unread:", error);
+        }
+    },
+
+    /**
+     * Edit a sent message
+     */
+    async updateMessage(messageId: string, newContent: string): Promise<Message> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        const { data, error } = await supabase
+            .from('messages')
+            .update({ content: newContent, edited_at: new Date().toISOString() })
+            .eq('id', messageId)
+            .eq('sender_id', user.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Error updating message:", error);
+            throw error;
+        }
+
+        return data as Message;
+    },
+
+    /**
+     * Delete a sent message
+     */
+    async deleteMessage(messageId: string): Promise<void> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        const { error } = await supabase
+            .from('messages')
+            .delete()
+            .eq('id', messageId)
+            .eq('sender_id', user.id);
+
+        if (error) {
+            console.error("Error deleting message:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Delete an entire conversation between the current user and another user
+     */
+    async deleteConversation(otherUserId: string): Promise<void> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        // We delete all messages where this user is either sender or receiver, AND the other user is the opposite
+        const { error } = await supabase
+            .from('messages')
+            .delete()
+            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`);
+
+        if (error) {
+            console.error("Error deleting conversation:", error);
+            throw error;
         }
     },
 

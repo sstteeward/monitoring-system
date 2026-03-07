@@ -69,7 +69,20 @@ export const coordinatorService = {
             throw error;
         }
 
-        return data as Profile[];
+        const students = data as Profile[];
+
+        // Map company names to students
+        const { data: companiesData } = await supabase.from('companies').select('id, name');
+        if (companiesData) {
+            const companyMap = new Map(companiesData.map((c: any) => [c.id, c.name]));
+            students.forEach(s => {
+                if (s.company_id) {
+                    s.company = { name: companyMap.get(s.company_id) || 'Unknown' };
+                }
+            });
+        }
+
+        return students;
     },
 
     /**

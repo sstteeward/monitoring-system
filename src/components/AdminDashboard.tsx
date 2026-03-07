@@ -151,7 +151,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className={`admin-nav-item ${currentView === 'approvals' ? 'active' : ''}`} onClick={() => { setCurrentView('approvals'); setIsMobileMenuOpen(false); }}>
                         <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="16 13 8 13"></polyline><polyline points="16 17 8 17"></polyline><polyline points="10 9 9 9 8 9"></polyline></svg></span>
-                        <span className="nav-text">Journals (Approvals)</span>
+                        <span className="nav-text">Approvals</span>
                     </div>
                     <div className={`admin-nav-item ${currentView === 'students' ? 'active' : ''}`} onClick={() => { setCurrentView('students'); setIsMobileMenuOpen(false); }}>
                         <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
@@ -226,6 +226,13 @@ const AdminDashboard: React.FC = () => {
                                 {currentView === 'users' && 'User Management'}
                                 {currentView === 'companies' && 'Company Management'}
                                 {currentView === 'feedback' && 'User Feedback'}
+                                {currentView === 'approvals' && 'Approvals'}
+                                {currentView === 'students' && 'All Students'}
+                                {currentView === 'departments' && 'Departments'}
+                                {currentView === 'audit' && 'Audit Logs'}
+                                {currentView === 'backup' && 'Backup & Restore'}
+                                {currentView === 'health' && 'System Health'}
+                                {currentView === 'roles' && 'Role Permissions'}
                                 {currentView === 'profile' && 'Admin Profile'}
                                 {currentView === 'settings' && 'System Settings'}
                             </div>
@@ -344,6 +351,7 @@ const AdminDashboard: React.FC = () => {
                                             <th>Email</th>
                                             <th>Account Type</th>
                                             <th>Manage Role</th>
+                                            <th style={{ textAlign: 'right' }}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -368,6 +376,37 @@ const AdminDashboard: React.FC = () => {
                                                         <option value="coordinator">Coordinator</option>
                                                         <option value="admin">Admin</option>
                                                     </select>
+                                                </td>
+                                                <td style={{ textAlign: 'right' }}>
+                                                    <button
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: '#ef4444',
+                                                            cursor: 'pointer',
+                                                            padding: '0.4rem 0.6rem',
+                                                            fontSize: '0.85rem',
+                                                            fontWeight: 600
+                                                        }}
+                                                        onClick={async () => {
+                                                            if (confirm(`CRITICAL WARNING: Are you sure you want to completely delete the account for ${p.first_name} ${p.last_name}? This will remove all their data and cannot be undone.`)) {
+                                                                setUpdatingUserId(p.auth_user_id);
+                                                                try {
+                                                                    await adminService.deleteUserAccount(p.auth_user_id);
+                                                                    await adminService.logAction('delete_account', 'profiles', p.auth_user_id);
+                                                                    setAllProfiles(prev => prev.filter(user => user.auth_user_id !== p.auth_user_id));
+                                                                    alert('Account deleted successfully.');
+                                                                } catch (e) {
+                                                                    alert('Failed to delete account. Did you run the RPC script?');
+                                                                } finally {
+                                                                    setUpdatingUserId(null);
+                                                                }
+                                                            }
+                                                        }}
+                                                        disabled={updatingUserId === p.auth_user_id}
+                                                    >
+                                                        {updatingUserId === p.auth_user_id ? '...' : 'Delete'}
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -440,7 +479,7 @@ const AdminDashboard: React.FC = () => {
 
                     {currentView === 'students' && (
                         <div className="fade-in">
-                            <StudentsView />
+                            <StudentsView isAdmin={true} />
                         </div>
                     )}
                 </div>

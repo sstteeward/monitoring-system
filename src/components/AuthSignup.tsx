@@ -106,7 +106,9 @@ export default function AuthSignup() {
             setIsSubmitting(false);
         } catch (err: any) {
             let errorMsg = err.message || String(err);
-            if (errorMsg.includes('ACCOUNT_DEACTIVATED')) {
+            if (errorMsg.includes('ACCOUNT_PENDING')) {
+                errorMsg = "Your coordinator account is pending approval from an administrator.";
+            } else if (errorMsg.includes('ACCOUNT_DEACTIVATED')) {
                 errorMsg = "Your account has been deactivated. Please contact an administrator.";
             } else if (errorMsg.includes('ACCOUNT_LOCKED')) {
                 errorMsg = errorMsg.replace('ACCOUNT_LOCKED: ', '');
@@ -154,7 +156,7 @@ export default function AuthSignup() {
                 factorId: mfaFactorId
             });
             if (error) throw error;
-
+ 
             setInfoMessage("Signed in successfully with Face ID / Touch ID!");
             // setMfaFactorId(null);
         } catch (err: any) {

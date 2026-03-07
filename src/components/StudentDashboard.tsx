@@ -10,7 +10,6 @@ import JournalView from './JournalView';
 import AnnouncementsView from './AnnouncementsView';
 import DocumentsView from './DocumentsView';
 import OnboardingView from './OnboardingView';
-import DashboardSkeleton from './DashboardSkeleton';
 import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
 import './StudentDashboard.css';
@@ -53,7 +52,7 @@ const StudentDashboard: React.FC = () => {
             profile: 'My Profile',
             settings: 'Settings',
         };
-        document.title = `${titles[currentView] ?? 'Dashboard'} | SIL Monitor`;
+        document.title = `${titles[currentView] ?? 'Dashboard'} | SIL Monitoring`;
     }, [currentView]);
 
     const checkAnnouncements = async () => {
@@ -247,7 +246,15 @@ const StudentDashboard: React.FC = () => {
             ? formatSlug(user.email.split('@')[0])
             : 'User';
 
-    if (loading && !user) return <DashboardSkeleton />;
+    if (loading && !user) {
+        return (
+            <div className="dashboard-container" style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
+                <div className="sidebar-logo-icon fade-in" style={{ width: 64, height: 64, borderRadius: '16px' }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                </div>
+            </div>
+        );
+    }
 
     // Show onboarding for students who haven't set their company yet
     if (needsOnboarding && profile) {
@@ -276,7 +283,7 @@ const StudentDashboard: React.FC = () => {
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                         </div>
                         <div className="sidebar-logo-text-group">
-                            <div className="sidebar-logo-text">SIL Monitor</div>
+                            <div className="sidebar-logo-text">SIL Monitoring</div>
                             <div className="sidebar-logo-sub">Asian College Dumaguete</div>
                         </div>
                     </div>
@@ -432,7 +439,7 @@ const StudentDashboard: React.FC = () => {
                         title="Settings"
                         onClick={() => { setCurrentView('settings'); closeMobileMenu(); }}
                     >
-                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65(0 0 0 9 19.4a1.65 1.65 (0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg></span>
+                        <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg></span>
                         <span className="nav-text">Settings</span>
                     </div>
 

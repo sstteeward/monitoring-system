@@ -3,11 +3,18 @@ import { coordinatorService } from '../services/coordinatorService';
 import { TableSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
+import { adminService } from '../services/adminService';
 
-const StudentsView: React.FC = () => {
+interface StudentsViewProps {
+    initialFilter?: 'all' | 'assigned' | 'completed' | 'in-progress' | 'at-risk';
+    isAdmin?: boolean;
+}
+
+const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAdmin = false }) => {
     const [students, setStudents] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterTab, setFilterTab] = useState(initialFilter);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => { loadStudents(); }, []);
@@ -26,14 +33,45 @@ const StudentsView: React.FC = () => {
         }
     };
 
-    const filteredStudents = students.filter(student =>
-        `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredStudents = students.filter(student => {
+        const matchesSearch = `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        switch (filterTab) {
+            case 'assigned':
+                return !!student.company_id;
+            case 'completed':
+                return student.grade === 'completed'; // Assuming this maps to completion, or maybe there's a different way
+            case 'in-progress':
+                return !!student.company_id && student.grade !== 'completed';
+            case 'at-risk':
+                return (student.absences ?? 0) >= 3;
+            default:
+                return true;
+        }
+    });
 
     const avatarColor = (name: string) => {
         const colors = ['#7c3aed', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
         return colors[(name.charCodeAt(0) ?? 0) % colors.length];
+    };
+
+    const handleDeleteStudent = async (studentId: string, name: string) => {
+        if (!confirm(`CRITICAL WARNING: Are you sure you want to completely delete the account for ${name}? This will remove all their data and cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            await adminService.deleteUserAccount(studentId);
+            setStudents(prev => prev.filter(s => s.auth_user_id !== studentId));
+            await adminService.logAction('delete_student_account', 'profiles', studentId);
+            alert(`Student ${name} deleted successfully.`);
+        } catch (e) {
+            alert('Failed to delete student. Have you run the RPC script in your Supabase SQL editor?');
+            console.error(e);
+        }
     };
 
     // Removal of old simple loading state return
@@ -71,15 +109,41 @@ const StudentsView: React.FC = () => {
                 </div>
             </div>
 
+            {/* Filter Tabs */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+                {(['all', 'assigned', 'in-progress', 'completed', 'at-risk'] as const).map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setFilterTab(tab)}
+                        style={{
+                            padding: '0.4rem 1rem',
+                            borderRadius: '20px',
+                            fontSize: '0.85rem',
+                            fontWeight: filterTab === tab ? 600 : 500,
+                            whiteSpace: 'nowrap',
+                            background: filterTab === tab ? 'var(--primary)' : 'var(--bg-elevated)',
+                            color: filterTab === tab ? '#fff' : 'var(--text-secondary)',
+                            border: `1px solid ${filterTab === tab ? 'var(--primary)' : 'var(--border)'}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {tab.charAt(0).toUpperCase() + tab.slice(1).replace('-', ' ')}
+                    </button>
+                ))}
+            </div>
+
             <div className="table-container">
                 <table className="data-table">
                     <thead>
                         <tr>
                             <th>Student</th>
                             <th>Email</th>
+                            <th>Company</th>
                             <th>OJT Hours</th>
                             <th>Absences</th>
                             <th>Enrolled</th>
+                            {isAdmin && <th style={{ textAlign: 'right' }}>Actions</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -102,6 +166,16 @@ const StudentsView: React.FC = () => {
                                         </td>
                                         <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{student.email}</td>
                                         <td>
+                                            {student.company?.name ? (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(124,58,237,0.1)', color: '#7c3aed', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600 }}>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
+                                                    {student.company.name}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>Unassigned</span>
+                                            )}
+                                        </td>
+                                        <td>
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem' }}>
                                                 {student.required_ojt_hours}h
                                             </span>
@@ -121,12 +195,30 @@ const StudentsView: React.FC = () => {
                                         <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                                             {new Date(student.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                         </td>
+                                        {isAdmin && (
+                                            <td style={{ textAlign: 'right' }}>
+                                                <button
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: '#ef4444',
+                                                        cursor: 'pointer',
+                                                        padding: '0.2rem 0.5rem',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 500
+                                                    }}
+                                                    onClick={() => handleDeleteStudent(student.auth_user_id, `${student.first_name} ${student.last_name}`)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 );
                             })
                         ) : (
                             <tr>
-                                <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+                                <td colSpan={isAdmin ? 7 : 6} style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
                                     <div style={{ color: 'var(--text-muted)' }}>
                                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.6 }}>
                                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="var(--primary)" />

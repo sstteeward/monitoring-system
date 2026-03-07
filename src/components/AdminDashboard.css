@@ -111,12 +111,11 @@ html[data-theme="light"] {
 .admin-logo-icon {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+  background: var(--secondary);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px var(--admin-primary-glow);
   flex-shrink: 0;
 }
 

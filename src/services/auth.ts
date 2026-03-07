@@ -39,6 +39,7 @@ export async function signUp({ email, password, firstName, middleName, lastName,
   // email confirmation is enabled). Explicitly upsert the account_type to guarantee
   // the profile has the correct value, regardless of trigger timing.
   if (signUpData?.user) {
+    const isCoordinator = accountType === 'coordinator';
     await supabase
       .from('profiles')
       .upsert(
@@ -49,6 +50,7 @@ export async function signUp({ email, password, firstName, middleName, lastName,
           middle_name: middleName ?? null,
           last_name: lastName ?? null,
           account_type: accountType ?? 'student',
+          is_active: isCoordinator ? false : true // Coordinators require admin approval
         },
         { onConflict: 'auth_user_id', ignoreDuplicates: false }
       );
@@ -63,12 +65,15 @@ export async function signIn({ email, password }: { email: string; password: str
   // 1. Check if user is locked or deactivated BEFORE signing in
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_active, locked_until')
+    .select('is_active, locked_until, account_type')
     .eq('email', email.toLowerCase())
     .single();
 
   if (profile) {
     if (profile.is_active === false) {
+      if (profile.account_type === 'coordinator') {
+        throw new Error("ACCOUNT_PENDING: Your coordinator account is pending approval from an administrator.");
+      }
       throw new Error("ACCOUNT_DEACTIVATED: Your account has been deactivated by an admin.");
     }
     if (profile.locked_until && new Date(profile.locked_until) > new Date()) {

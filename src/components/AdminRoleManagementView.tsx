@@ -151,8 +151,11 @@ const AdminRoleManagementView: React.FC = () => {
                                     <td style={{ fontWeight: 600, color: 'var(--admin-text-primary)' }}>{c.first_name} {c.last_name}</td>
                                     <td style={{ color: 'var(--admin-text-secondary)' }}>{c.email}</td>
                                     <td>
-                                        <span className={`admin-badge ${c.is_active !== false ? 'badge-active' : 'badge-student'}`}>
-                                            {c.is_active !== false ? 'ACTIVE' : 'DEACTIVATED'}
+                                        <span className={`admin-badge ${c.is_active !== false ? 'badge-active' : 'badge-student'}`} style={{
+                                            background: c.is_active === false ? 'rgba(245, 158, 11, 0.1)' : undefined,
+                                            color: c.is_active === false ? '#f59e0b' : undefined
+                                        }}>
+                                            {c.is_active !== false ? 'ACTIVE' : 'PENDING'}
                                         </span>
                                     </td>
                                     <td>
@@ -197,7 +200,7 @@ const AdminRoleManagementView: React.FC = () => {
                                 onClick={handleToggleStatus}
                                 disabled={saving}
                             >
-                                {selectedUser.is_active !== false ? 'Deactivate Account' : 'Activate Account'}
+                                {selectedUser.is_active !== false ? 'Deactivate Account' : 'Approve & Activate'}
                             </button>
                             <button
                                 className="role-select"

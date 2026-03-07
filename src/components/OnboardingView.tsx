@@ -135,7 +135,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                         </svg>
                     </div>
                     <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-bright)', margin: 0 }}>
-                        Welcome to SIL Monitor
+                        Welcome to SIL Monitoring
                     </h1>
                     <p style={{ color: 'var(--text-muted)', marginTop: '0.4rem', fontSize: '0.9rem' }}>
                         {step === 1 ? "Let's confirm your name before we get started." : "Where are you doing your internship?"}

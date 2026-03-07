@@ -11,6 +11,7 @@ export interface Profile {
     grade: string | null;
     absences: number;
     company_id: string | null;
+    company?: { name: string } | null;
     avatar_url: string | null;
     created_at: string;
     updated_at: string;
