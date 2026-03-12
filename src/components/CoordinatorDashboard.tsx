@@ -7,6 +7,7 @@ import ApprovalsView from './ApprovalsView';
 import AnnouncementsView from './AnnouncementsView';
 import CompaniesView from './CompaniesView';
 import CoordinatorProfileView from './CoordinatorProfileView';
+import CoordinatorDepartmentView from './CoordinatorDepartmentView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
 import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
@@ -31,7 +32,7 @@ const Icon = {
     clock: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
 };
 
-type View = 'overview' | 'companies' | 'students' | 'approvals' | 'announcements' | 'profile' | 'settings';
+type View = 'overview' | 'companies' | 'students' | 'approvals' | 'announcements' | 'departments' | 'profile' | 'settings';
 
 interface NavItem { id: View; label: string; icon: React.ReactNode; badge?: number; }
 
@@ -62,6 +63,7 @@ const CoordinatorDashboard: React.FC = () => {
         const titles: Record<string, string> = {
             overview: 'Overview',
             companies: 'OJT Companies',
+            departments: 'My Department',
             students: 'Students',
             approvals: 'Approvals',
             announcements: 'Announcements',
@@ -139,6 +141,7 @@ const CoordinatorDashboard: React.FC = () => {
             items: [
                 { id: 'overview', label: 'Overview', icon: Icon.grid },
                 { id: 'companies', label: 'Companies', icon: Icon.building, badge: pendingCompanyRequestsCount > 0 ? pendingCompanyRequestsCount : undefined },
+                { id: 'departments', label: 'Department', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" /><line x1="12" y1="22" x2="12" y2="15.5" /><polyline points="22 8.5 12 15.5 2 8.5" /></svg> },
                 { id: 'students', label: 'Students', icon: Icon.users },
                 { id: 'approvals', label: 'Approvals', icon: Icon.file, badge: pendingDocsCount > 0 ? pendingDocsCount : undefined },
             ],
@@ -154,6 +157,7 @@ const CoordinatorDashboard: React.FC = () => {
     const viewTitles: Record<View, string> = {
         overview: 'Coordinator Overview',
         companies: 'OJT Companies',
+        departments: 'My Department',
         students: 'Student Management',
         approvals: 'Pending Approvals',
         announcements: 'Announcements',
@@ -337,6 +341,7 @@ const CoordinatorDashboard: React.FC = () => {
                         />
                     )}
                     {currentView === 'companies' && <CompaniesView />}
+                    {currentView === 'departments' && <CoordinatorDepartmentView />}
                     {currentView === 'students' && <StudentsView initialFilter={studentFilter} />}
                     {currentView === 'approvals' && <ApprovalsView initialTab={approvalsTab} key={approvalsTab} />}
                     {currentView === 'announcements' && <AnnouncementsView isCoordinator={true} />}

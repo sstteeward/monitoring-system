@@ -16,6 +16,13 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [showDropdown, setShowDropdown] = useState(false);
     const [firstName, setFirstName] = useState(profile.first_name ?? '');
     const [lastName, setLastName] = useState(profile.last_name ?? '');
+    const [birthday, setBirthday] = useState(profile.birthday ?? '');
+    const [address, setAddress] = useState(profile.address ?? '');
+    const [contactNumber, setContactNumber] = useState(profile.contact_number ?? '');
+    const [yearLevel, setYearLevel] = useState(profile.year_level ?? '');
+    const [section, setSection] = useState(profile.section ?? '');
+    const [course, setCourse] = useState(profile.course ?? '');
+    const [department, setDepartment] = useState(profile.department ?? '');
     const [requiredHours, setRequiredHours] = useState(profile.required_ojt_hours ?? 400);
     const [saving, setSaving] = useState(false);
     const [requestingCompany, setRequestingCompany] = useState(false);
@@ -73,6 +80,10 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             setError('Please enter your full name.');
             return;
         }
+        if (!birthday || !address.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim()) {
+            setError('Please fill in all required fields.');
+            return;
+        }
         setError(null);
         setStep(2);
     };
@@ -92,6 +103,13 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 .update({
                     first_name: firstName.trim(),
                     last_name: lastName.trim(),
+                    birthday: birthday || null,
+                    address: address.trim() || null,
+                    contact_number: contactNumber.trim() || null,
+                    year_level: yearLevel.trim() || null,
+                    section: section.trim() || null,
+                    course: course.trim() || null,
+                    department: department.trim() || null,
                     ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
                     required_ojt_hours: requiredHours,
                 })
@@ -170,26 +188,74 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                         }}>{error}</div>
                     )}
 
-                    {/* ── Step 1: Name ── */}
+                    {/* ── Step 1: Personal Info ── */}
                     {step === 1 && (
                         <form onSubmit={handleNext}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-                                <div>
-                                    <label style={labelSt}>First Name</label>
-                                    <input style={inputSt} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Juan" required />
+                            <div style={{ maxHeight: '55vh', overflowY: 'auto', padding: '4px 0.5rem 4px 4px', margin: '-4px -0.5rem 1.25rem -4px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                    <div>
+                                        <label style={labelSt}>First Name *</label>
+                                        <input style={inputSt} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Juan" required />
+                                    </div>
+                                    <div>
+                                        <label style={labelSt}>Last Name *</label>
+                                        <input style={inputSt} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="dela Cruz" required />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style={labelSt}>Last Name</label>
-                                    <input style={inputSt} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="dela Cruz" required />
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                    <div>
+                                        <label style={labelSt}>Birthday *</label>
+                                        <input style={inputSt} type="date" value={birthday} onChange={e => setBirthday(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <label style={labelSt}>Contact Number *</label>
+                                        <input style={inputSt} type="tel" value={contactNumber} onChange={e => setContactNumber(e.target.value)} placeholder="e.g. 09123456789" required />
+                                    </div>
                                 </div>
-                            </div>
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={labelSt}>Required SIL Hours</label>
-                                <input style={inputSt} type="number" min={0} value={requiredHours}
-                                    onChange={e => setRequiredHours(Number(e.target.value))} />
-                                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                                    Your program's required internship hours (default: 400)
-                                </p>
+
+                                <div style={{ marginBottom: '1.25rem' }}>
+                                    <label style={labelSt}>Complete Address *</label>
+                                    <input style={inputSt} value={address} onChange={e => setAddress(e.target.value)} placeholder="123 Main St, Brgy, City, Province" required />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                    <div>
+                                        <label style={labelSt}>Course *</label>
+                                        <input style={inputSt} value={course} onChange={e => setCourse(e.target.value)} placeholder="e.g. BSIT" required />
+                                    </div>
+                                    <div>
+                                        <label style={labelSt}>Department *</label>
+                                        <input style={inputSt} value={department} onChange={e => setDepartment(e.target.value)} placeholder="e.g. CCS" required />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                    <div>
+                                        <label style={labelSt}>Year Level *</label>
+                                        <select style={{...inputSt, appearance: 'auto', cursor: 'pointer'}} value={yearLevel} onChange={e => setYearLevel(e.target.value)} required>
+                                            <option value="" disabled style={{ background: '#1e1e2d', color: '#fff' }}>Select Year</option>
+                                            <option value="1st Year" style={{ background: '#1e1e2d', color: '#fff' }}>1st Year</option>
+                                            <option value="2nd Year" style={{ background: '#1e1e2d', color: '#fff' }}>2nd Year</option>
+                                            <option value="3rd Year" style={{ background: '#1e1e2d', color: '#fff' }}>3rd Year</option>
+                                            <option value="4th Year" style={{ background: '#1e1e2d', color: '#fff' }}>4th Year</option>
+                                            <option value="5th Year" style={{ background: '#1e1e2d', color: '#fff' }}>5th Year</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={labelSt}>Section *</label>
+                                        <input style={inputSt} value={section} onChange={e => setSection(e.target.value)} placeholder="e.g. A" required />
+                                    </div>
+                                </div>
+
+                                <div style={{ marginBottom: '0.5rem' }}>
+                                    <label style={labelSt}>Required SIL Hours</label>
+                                    <input style={inputSt} type="number" min={0} value={requiredHours}
+                                        onChange={e => setRequiredHours(Number(e.target.value))} />
+                                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                                        Your program's required internship hours (default: 400)
+                                    </p>
+                                </div>
                             </div>
                             <button type="submit" style={btnPrimary}>
                                 Continue →
@@ -200,7 +266,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                     {/* ── Step 2: Company ── */}
                     {step === 2 && (
                         <form onSubmit={handleSubmit}>
-                            <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+                            <div style={{ marginBottom: showDropdown ? '14rem' : '1.5rem', position: 'relative', transition: 'margin-bottom 0.2s' }}>
                                 <label style={labelSt}>Internship Company</label>
                                 <input
                                     style={inputSt}
@@ -215,8 +281,8 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     <div style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0,
                                         background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                                        borderRadius: 12, zIndex: 1000, maxHeight: 220, overflowY: 'auto',
-                                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)', marginTop: 4,
+                                        borderRadius: 12, zIndex: 100, maxHeight: 220, overflowY: 'auto',
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)', marginTop: 4,
                                     }}>
                                         {filtered.map(c => (
                                             <div
@@ -231,7 +297,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                                 onMouseOver={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.08)')}
                                                 onMouseOut={e => (e.currentTarget.style.background = selectedCompanyId === c.id ? 'rgba(16,185,129,0.1)' : 'transparent')}
                                             >
-                                                <div style={{ fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{c.name}</div>
+                                                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-bright)' }}>{c.name}</div>
                                                 {c.address && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{c.address}</div>}
                                             </div>
                                         ))}
@@ -241,8 +307,8 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     <div style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0,
                                         background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                                        borderRadius: 12, zIndex: 1000, marginTop: 4,
-                                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)', overflow: 'hidden',
+                                        borderRadius: 12, zIndex: 100, marginTop: 4,
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden',
                                     }}>
                                         <div style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
                                             No companies match &ldquo;{search}&rdquo;
@@ -329,7 +395,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 
             {/* Click outside to close dropdown */}
             {showDropdown && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={() => setShowDropdown(false)} />
+                <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setShowDropdown(false)} />
             )}
         </div>
     );

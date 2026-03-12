@@ -57,10 +57,10 @@ const AdminDepartmentsView: React.FC = () => {
     const handleAssignCoordinator = async (userId: string, departmentId: string) => {
         setAssigningUserId(userId);
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ department_id: departmentId || null })
-                .eq('auth_user_id', userId);
+            const { error } = await supabase.rpc('admin_assign_department', {
+                target_user_id: userId,
+                new_department_id: departmentId || null,
+            });
 
             if (error) throw error;
 

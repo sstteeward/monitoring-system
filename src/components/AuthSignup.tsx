@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
 import { signUp, signIn, resetPasswordForEmail } from "../services/auth";
-// import { supabase } from '../lib/supabaseClient';
 
 export default function AuthSignup() {
     const [mode, setMode] = useState<"signup" | "login" | "forgot">("login");
@@ -14,7 +13,6 @@ export default function AuthSignup() {
     const [signupEmail, setSignupEmail] = useState("");
     const [signupPassword, setSignupPassword] = useState("");
     const [signupConfirm, setSignupConfirm] = useState("");
-    const [accountType, setAccountType] = useState<"student" | "coordinator">("student");
     const [emailVerified, setEmailVerified] = useState(false);
 
     // Login state
@@ -28,9 +26,7 @@ export default function AuthSignup() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-    // MFA State (HIDDEN)
     const [_mfaLoading, _setMfaLoading] = useState(false);
-
 
     useEffect(() => {
         document.title = mode === "signup" ? "Create Your Account | SIL Monitoring System" : mode === "login" ? "Login | SIL Monitoring System" : "Reset Password | SIL Monitoring System";
@@ -68,10 +64,11 @@ export default function AuthSignup() {
             setErrors(prev => ({ ...prev, signupEmail: "Enter a valid .edu.ph email before verifying" }));
             return;
         }
-        // simulate
         setEmailVerified(true);
     };
 
+    // Signup: creates the account with default 'student' type.
+    // App.tsx will detect the fresh account and show AccountTypePicker next.
     const handleSignup = (ev: React.FormEvent) => {
         ev.preventDefault();
         setInfoMessage(null);
@@ -84,11 +81,10 @@ export default function AuthSignup() {
             firstName,
             middleName,
             lastName,
-            accountType: signupEmail.trim().toLowerCase() === "admin@asiancollege.edu.ph" ? "admin" : accountType
+            accountType: signupEmail.trim().toLowerCase() === "admin@asiancollege.edu.ph" ? "admin" : "student"
         }).then(() => {
-            setInfoMessage("Sign-up successful. Please check your email to verify your account.");
-            // switch to login so user can sign in after verification
-            setMode("login");
+            // App.tsx's onAuthStateChange will fire and show AccountTypePicker
+            // for fresh accounts (< 2 min old). Nothing else needed here.
         }).catch(err => {
             setErrors(prev => ({ ...prev, general: err.message || String(err) }));
         }).finally(() => setIsSubmitting(false));
@@ -102,8 +98,6 @@ export default function AuthSignup() {
         setErrors({});
         try {
             await signIn({ email: loginEmail, password });
-            setInfoMessage("Signed in successfully.");
-            setIsSubmitting(false);
         } catch (err: any) {
             let errorMsg = err.message || String(err);
             if (errorMsg.includes('ACCOUNT_PENDING')) {
@@ -119,7 +113,6 @@ export default function AuthSignup() {
             setIsSubmitting(false);
         }
     };
-
 
     const handleForgotPassword = async (ev: React.FormEvent) => {
         ev.preventDefault();
@@ -146,31 +139,9 @@ export default function AuthSignup() {
         }
     };
 
-    /* WebAuthn MFA Verification (HIDDEN)
-    const handleVerifyMfa = async () => {
-        if (!mfaFactorId) return;
-        setMfaLoading(true);
-        setErrors({});
-        try {
-            const { error } = await supabase.auth.mfa.webauthn.authenticate({
-                factorId: mfaFactorId
-            });
-            if (error) throw error;
- 
-            setInfoMessage("Signed in successfully with Face ID / Touch ID!");
-            // setMfaFactorId(null);
-        } catch (err: any) {
-            setErrors(prev => ({ ...prev, general: err.message || String(err) }));
-        } finally {
-            setMfaLoading(false);
-        }
-    };
-    */
-
     return (
         <div className="auth-page">
             <div className={`auth-card ${mode}`}>
-                {/* Left Side: Image */}
                 <div className="auth-card-left">
                     <img src={leftPhoto} className="left-img" alt="Asian College campus" />
                     <div className="auth-left-overlay">
@@ -179,56 +150,13 @@ export default function AuthSignup() {
                     </div>
                 </div>
 
-                {/* Right Side: Form */}
                 <div className="auth-card-right">
-                    {/* --- TWO-FACTOR WebAuthn UI (HIDDEN) --- */}
-                    {/* 
-                    _mfaFactorId ? (
-                        <div className="auth-form">
-                            <div className="card-header">
-                                <h2>Two-Factor Authentication</h2>
-                                <p className="subtitle">Please verify your identity using your registered Face ID or Touch ID passkey.</p>
-                            </div>
-
-                            <div className="form-scrollable" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 0' }}>
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#10b981', marginBottom: '1.5rem' }}>
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                    <path d="M9 12l2 2 4-4" />
-                                </svg>
-
-                                {errors.general && <div className="error" style={{ width: '100%', marginBottom: '1rem' }}>{errors.general}</div>}
-                                {infoMessage && <div className="info-msg" style={{ width: '100%', marginBottom: '1rem' }}>{infoMessage}</div>}
-
-                                <button
-                                    className="primary"
-                                    type="button"
-                                    disabled={_mfaLoading}
-                                    onClick={_handleVerifyMfa}
-                                    style={{ width: '100%' }}
-                                >
-                                    {_mfaLoading ? "Waiting for prompt..." : "Verify with Face ID / Touch ID"}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="muted switch-btn"
-                                    onClick={() => { _setMfaFactorId(null); setMode('login'); }}
-                                    style={{ marginTop: '1rem' }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    ) : 
-                    */}
                     {mode === "signup" ? (
                         <div className="auth-form-wrapper">
                             <div className="card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h1>Create Your Account</h1>
                                 <p className="subtitle">Sign up using your <strong>.edu.ph</strong> email.</p>
                             </div>
-
-
 
                             <form className="auth-form" onSubmit={handleSignup} noValidate>
                                 <div className="form-scrollable">
@@ -303,28 +231,6 @@ export default function AuthSignup() {
                                         <div className={`verify-indicator ${emailVerified ? "ok" : "pending"}`}>
                                             {emailVerified ? "Email verified" : "Unverified"}
                                         </div>
-                                        <div className="account-type">
-                                            <label>
-                                                <input
-                                                    type="radio"
-                                                    name="acct"
-                                                    value="student"
-                                                    checked={accountType === "student"}
-                                                    onChange={() => setAccountType("student")}
-                                                />
-                                                Student
-                                            </label>
-                                            <label>
-                                                <input
-                                                    type="radio"
-                                                    name="acct"
-                                                    value="coordinator"
-                                                    checked={accountType === "coordinator"}
-                                                    onChange={() => setAccountType("coordinator")}
-                                                />
-                                                Coordinator
-                                            </label>
-                                        </div>
                                     </div>
 
                                     {errors.general && <div className="error">{errors.general}</div>}
@@ -332,7 +238,7 @@ export default function AuthSignup() {
 
                                     <div className="cta-row">
                                         <button className="primary" type="submit" disabled={isSubmitting}>
-                                            {isSubmitting ? "Signing up..." : "Sign Up"}
+                                            {isSubmitting ? "Creating account..." : "Create Account"}
                                         </button>
                                     </div>
                                 </div>
@@ -351,8 +257,6 @@ export default function AuthSignup() {
                                 <h2>Login</h2>
                                 <p className="subtitle">SIL Monitoring System — sign in using your <strong>.edu.ph</strong> email.</p>
                             </div>
-
-
 
                             <form className="auth-form" onSubmit={handleLogin} noValidate>
                                 <div className="form-scrollable">

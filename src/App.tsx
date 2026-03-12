@@ -5,6 +5,7 @@ import StudentDashboard from "./components/StudentDashboard";
 import CoordinatorDashboard from "./components/CoordinatorDashboard";
 import AdminDashboard from "./components/AdminDashboard";
 import PendingApprovalView from "./components/PendingApprovalView";
+import AccountTypePicker from "./components/AccountTypePicker";
 import { supabase } from "./lib/supabaseClient";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
@@ -14,11 +15,14 @@ function App() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentHash, setCurrentHash] = useState(window.location.hash);
+  // True when the user just created an account and hasn't picked a type yet
+  const [needsTypePick, setNeedsTypePick] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
+        checkNeedsTypePick(session);
         fetchProfile(session.user.id);
       } else {
         setLoading(false);
@@ -30,9 +34,11 @@ function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
+        checkNeedsTypePick(session);
         fetchProfile(session.user.id);
       } else {
         setProfile(null);
+        setNeedsTypePick(false);
         setLoading(false);
       }
     });
@@ -47,6 +53,20 @@ function App() {
     };
   }, []);
 
+  /**
+   * A freshly created account (< 2 minutes old) that is still 'student' by
+   * default needs the type-picker screen before entering the app.
+   */
+  const checkNeedsTypePick = (session: any) => {
+    const createdAt = session?.user?.created_at;
+    if (!createdAt) return;
+    const ageMs = Date.now() - new Date(createdAt).getTime();
+    // Show type picker only for accounts created within the last 2 minutes
+    if (ageMs < 2 * 60 * 1000) {
+      setNeedsTypePick(true);
+    }
+  };
+
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -57,11 +77,35 @@ function App() {
 
       if (!error && data) {
         setProfile(data);
+        // If they already have a non-default type set, skip the picker
+        // (e.g. coordinator approved, or admin)
+        if (data.account_type !== 'student') {
+          setNeedsTypePick(false);
+        }
       }
     } catch (e) {
       console.error("Error fetching profile for routing", e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTypePicked = async (type: 'student' | 'coordinator') => {
+    if (!session?.user?.id) return;
+    const isCoordinator = type === 'coordinator';
+    await supabase
+      .from('profiles')
+      .update({ account_type: type, is_active: isCoordinator ? false : true })
+      .eq('auth_user_id', session.user.id);
+
+    setNeedsTypePick(false);
+
+    if (isCoordinator) {
+      // Sign them out — coordinator needs admin approval first
+      await supabase.auth.signOut();
+    } else {
+      // Refresh profile so they get routed to their dashboard/onboarding
+      await fetchProfile(session.user.id);
     }
   };
 
@@ -96,7 +140,12 @@ function App() {
 
   return (
     <ThemeProvider>
-      {!session ? <AuthSignup /> : renderDashboard()}
+      {!session
+        ? <AuthSignup />
+        : needsTypePick
+          ? <AccountTypePicker onPick={handleTypePicked} />
+          : renderDashboard()
+      }
     </ThemeProvider>
   );
 }

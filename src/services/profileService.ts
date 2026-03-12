@@ -15,6 +15,14 @@ export interface Profile {
     avatar_url: string | null;
     created_at: string;
     updated_at: string;
+    // Onboarding fields
+    birthday?: string | null;
+    address?: string | null;
+    contact_number?: string | null;
+    year_level?: string | null;
+    section?: string | null;
+    course?: string | null;
+    department?: string | null;
     // Enterprise fields
     department_id?: string | null;
     permissions?: any;

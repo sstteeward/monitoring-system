@@ -513,6 +513,105 @@ export const coordinatorService = {
         return true;
     },
 
+    // ─── Department Methods ──────────────────────────────────────────────
+
+    /**
+     * Fetch the current coordinator's assigned department
+     */
+    async getMyDepartment() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('department_id')
+            .eq('auth_user_id', user.id)
+            .single();
+
+        if (!profile?.department_id) return null;
+
+        const { data: department, error } = await supabase
+            .from('departments')
+            .select('*')
+            .eq('id', profile.department_id)
+            .single();
+
+        if (error) {
+            console.error('Error fetching department:', error);
+            return null;
+        }
+
+        return department as { id: string; name: string; description: string | null; created_at: string };
+    },
+
+    /**
+     * Fetch students assigned to a specific department
+     */
+    async getStudentsByDepartment(departmentId: string) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('account_type', 'student')
+            .eq('department_id', departmentId)
+            .order('last_name', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching students by department:', error);
+            throw error;
+        }
+
+        const students = data as Profile[];
+
+        // Map company names
+        const { data: companiesData } = await supabase.from('companies').select('id, name');
+        if (companiesData) {
+            const companyMap = new Map(companiesData.map((c: any) => [c.id, c.name]));
+            students.forEach(s => {
+                if (s.company_id) {
+                    s.company = { name: companyMap.get(s.company_id) || 'Unknown' };
+                }
+            });
+        }
+
+        return students;
+    },
+
+    /**
+     * Fetch students not assigned to any department
+     */
+    async getUnassignedStudents() {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('account_type', 'student')
+            .is('department_id', null)
+            .order('last_name', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching unassigned students:', error);
+            throw error;
+        }
+
+        return data as Profile[];
+    },
+
+    /**
+     * Assign or unassign a student to/from a department
+     */
+    async assignStudentToDepartment(studentId: string, departmentId: string | null) {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ department_id: departmentId })
+            .eq('id', studentId);
+
+        if (error) {
+            console.error('Error assigning student to department:', error);
+            throw error;
+        }
+
+        return true;
+    },
+
     // ─── Dashboard Stats Methods ────────────────────────────────────────
 
     /**

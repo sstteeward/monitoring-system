@@ -10,6 +10,7 @@ import JournalView from './JournalView';
 import AnnouncementsView from './AnnouncementsView';
 import DocumentsView from './DocumentsView';
 import OnboardingView from './OnboardingView';
+import WelcomeCelebration from './WelcomeCelebration';
 import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
 import './StudentDashboard.css';
@@ -28,15 +29,21 @@ const StudentDashboard: React.FC = () => {
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     const [hasNewAnnouncements, setHasNewAnnouncements] = useState(false);
     const [needsOnboarding, setNeedsOnboarding] = useState(false);
+    const [showWelcome, setShowWelcome] = useState(false);
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const timerRef = useRef<number | null>(null);
 
-
-
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
-        loadSession();
-        loadProfile();
+        
+        // Load everything required before dropping the loading screen
+        Promise.all([
+            loadSession(),
+            loadProfile()
+        ]).finally(() => {
+            setLoading(false);
+        });
+
         checkAnnouncements();
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, []);
@@ -82,8 +89,9 @@ const StudentDashboard: React.FC = () => {
         try {
             const data = await profileService.getCurrentProfile();
             setProfile(data);
-            // Show onboarding if company hasn't been set yet
-            if (!data?.company_id) {
+            // Show onboarding if company hasn't been set yet OR missing crucial new profile fields
+            const isMissingFields = !data?.company_id || !data?.course || !data?.department || !data?.year_level;
+            if (isMissingFields) {
                 setNeedsOnboarding(true);
             }
         } catch (err) {
@@ -98,8 +106,6 @@ const StudentDashboard: React.FC = () => {
             await loadTodaySessions();
         } catch (err) {
             console.error('Error loading session:', err);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -246,7 +252,7 @@ const StudentDashboard: React.FC = () => {
             ? formatSlug(user.email.split('@')[0])
             : 'User';
 
-    if (loading && !user) {
+    if (loading) {
         return (
             <div className="dashboard-container" style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
                 <div className="sidebar-logo-icon fade-in" style={{ width: 64, height: 64, borderRadius: '16px' }}>
@@ -264,13 +270,21 @@ const StudentDashboard: React.FC = () => {
                 onComplete={async () => {
                     await loadProfile();
                     setNeedsOnboarding(false);
+                    setShowWelcome(true);
                 }}
             />
         );
     }
 
     return (
-        <div className={`dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
+        <>
+            {showWelcome && (
+                <WelcomeCelebration 
+                    displayName={displayName} 
+                    onDismiss={() => setShowWelcome(false)} 
+                />
+            )}
+            <div className={`dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
             {/* Mobile Overlay */}
             <div className="mobile-overlay" onClick={closeMobileMenu} />
 
@@ -704,6 +718,7 @@ const StudentDashboard: React.FC = () => {
                 />
             )}
         </div>
+        </>
     );
 };
 
