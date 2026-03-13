@@ -390,18 +390,6 @@ const StudentDashboard: React.FC = () => {
                                 )}
                             </span>
                             <span className="nav-text">Announcements</span>
-                            {hasNewAnnouncements && (
-                                <span style={{
-                                    marginLeft: 'auto',
-                                    background: '#10b981',
-                                    color: '#fff',
-                                    borderRadius: 20,
-                                    fontSize: '0.65rem',
-                                    fontWeight: 700,
-                                    padding: '1px 7px',
-                                    letterSpacing: '0.02em',
-                                }}>NEW</span>
-                            )}
                         </div>
                     </nav>
 
