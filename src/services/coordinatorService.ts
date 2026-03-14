@@ -20,9 +20,12 @@ export interface Company {
     contact_person: string | null;
     contact_email: string | null;
     industry: string | null;
+    department_id: string | null;
+    department_name?: string; // virtual, from join
     created_at: string;
     updated_at: string;
     intern_count?: number; // virtual, populated by query joins
+    is_handled?: boolean; // virtual, from junction table
 }
 
 export interface CompanyRequest {
@@ -302,36 +305,88 @@ export const coordinatorService = {
     // ─── Company Methods ───────────────────────────────────────────────
 
     /**
-     * Fetch all companies with a count of interns assigned
+     * Fetch all companies with department info and handled status
      */
     async getAllCompanies() {
-        const { data, error } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        // 1. Fetch companies and join with department name if possible
+        const { data: companiesData, error: compError } = await supabase
             .from('companies')
-            .select('*')
+            .select('*, departments(name)')
             .order('name', { ascending: true });
 
-        if (error) {
-            console.error("Error fetching companies:", error);
-            throw error;
+        if (compError) {
+            console.error("Error fetching companies:", compError);
+            throw compError;
         }
 
-        // For each company, count the students with that company_id
-        const companies = data as Company[];
-        const { data: profiles } = await supabase
+        // 2. Fetch handled companies for this coordinator
+        const { data: handledData } = await supabase
+            .from('coordinator_handled_companies')
+            .select('company_id')
+            .eq('coordinator_id', user.id);
+
+        const handledIds = new Set((handledData ?? []).map(h => h.company_id));
+
+        // 3. Count interns for each company
+        const { data: profileCounts } = await supabase
             .from('profiles')
             .select('company_id')
             .eq('account_type', 'student')
             .not('company_id', 'is', null);
 
-        if (profiles) {
-            const counts: Record<string, number> = {};
-            profiles.forEach(p => {
-                if (p.company_id) counts[p.company_id] = (counts[p.company_id] || 0) + 1;
+        const internCounts: Record<string, number> = {};
+        if (profileCounts) {
+            profileCounts.forEach(p => {
+                if (p.company_id) internCounts[p.company_id] = (internCounts[p.company_id] || 0) + 1;
             });
-            companies.forEach(c => { c.intern_count = counts[c.id] || 0; });
         }
 
-        return companies;
+        // 4. Transform data
+        return (companiesData as any[]).map(c => ({
+            ...c,
+            department_name: c.departments?.name || 'Uncategorized',
+            intern_count: internCounts[c.id] || 0,
+            is_handled: handledIds.has(c.id)
+        })) as Company[];
+    },
+
+    /**
+     * Toggle whether a coordinator is handling a company
+     */
+    async toggleCompanyHandling(companyId: string, isHandling: boolean) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        if (isHandling) {
+            const { error } = await supabase
+                .from('coordinator_handled_companies')
+                .insert([{ coordinator_id: user.id, company_id: companyId }]);
+            if (error && error.code !== '23505') throw error; // ignore duplicate key
+        } else {
+            const { error } = await supabase
+                .from('coordinator_handled_companies')
+                .delete()
+                .eq('coordinator_id', user.id)
+                .eq('company_id', companyId);
+            if (error) throw error;
+        }
+        return true;
+    },
+
+    /**
+     * Fetch all departments (utility for dropdowns)
+     */
+    async getAllDepartments() {
+        const { data, error } = await supabase
+            .from('departments')
+            .select('id, name')
+            .order('name', { ascending: true });
+        
+        if (error) throw error;
+        return data as { id: string; name: string }[];
     },
 
     /**

@@ -452,12 +452,16 @@
     min-width: 0;
     overflow-y: auto;
     height: 100vh;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (min-width: 1025px) {
     .dashboard-main {
         margin-left: 72px;
         /* Leaves space for the collapsed sidebar */
+    }
+    .dashboard-main.sidebar-expanded {
+        margin-left: 240px;
     }
 }
 

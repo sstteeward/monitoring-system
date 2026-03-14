@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { coordinatorService, type Company, type CompanyRequest } from '../services/coordinatorService';
-import { CardGridSkeleton, ListSkeleton, TableSkeleton } from './Skeletons';
+import { CardGridSkeleton, TableSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
 
@@ -9,6 +9,7 @@ type CompanyViewMode = 'list' | 'detail';
 const CompaniesView: React.FC = () => {
     const [mode, setMode] = useState<CompanyViewMode>('list');
     const [companies, setCompanies] = useState<Company[]>([]);
+    const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
     const [companyStudents, setCompanyStudents] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
@@ -26,13 +27,26 @@ const CompaniesView: React.FC = () => {
         contact_person: '',
         contact_email: '',
         industry: '',
+        department_id: '',
     });
     const [formSubmitting, setFormSubmitting] = useState(false);
 
     useEffect(() => {
-        loadCompanies();
-        loadPendingRequests();
+        Promise.all([
+            loadCompanies(),
+            loadPendingRequests(),
+            loadDepartments()
+        ]);
     }, []);
+
+    const loadDepartments = async () => {
+        try {
+            const data = await coordinatorService.getAllDepartments();
+            setDepartments(data);
+        } catch (err) {
+            console.error('Failed to load departments:', err);
+        }
+    };
 
     const loadCompanies = async () => {
         setLoading(true);
@@ -126,21 +140,37 @@ const CompaniesView: React.FC = () => {
         if (!newCompany.name.trim()) return;
         setFormSubmitting(true);
         try {
-            const created = await coordinatorService.createCompany({
+            await coordinatorService.createCompany({
                 name: newCompany.name,
                 address: newCompany.address || null,
                 contact_person: newCompany.contact_person || null,
                 contact_email: newCompany.contact_email || null,
                 industry: newCompany.industry || null,
+                department_id: newCompany.department_id || null,
             });
-            setCompanies(prev => [...prev, { ...created, intern_count: 0 }].sort((a, b) => a.name.localeCompare(b.name)));
-            setNewCompany({ name: '', address: '', contact_person: '', contact_email: '', industry: '' });
+            // Reload companies to getjoined data (department name, handled status)
+            await loadCompanies();
+            setNewCompany({ name: '', address: '', contact_person: '', contact_email: '', industry: '', department_id: '' });
             setShowAddForm(false);
         } catch (err) {
             console.error('Failed to create company:', err);
             alert('Error: Could not add company.');
         } finally {
             setFormSubmitting(false);
+        }
+    };
+
+    const handleToggleHandling = async (e: React.MouseEvent, company: Company) => {
+        e.stopPropagation();
+        const newStatus = !company.is_handled;
+        try {
+            // Optimistic update
+            setCompanies(prev => prev.map(c => c.id === company.id ? { ...c, is_handled: newStatus } : c));
+            await coordinatorService.toggleCompanyHandling(company.id, newStatus);
+        } catch (err) {
+            console.error('Failed to toggle company handling:', err);
+            // Revert
+            setCompanies(prev => prev.map(c => c.id === company.id ? { ...c, is_handled: !newStatus } : c));
         }
     };
 
@@ -368,6 +398,19 @@ const CompaniesView: React.FC = () => {
                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Contact Email</label>
                                 <input type="email" style={inputStyle} value={newCompany.contact_email} onChange={e => setNewCompany(p => ({ ...p, contact_email: e.target.value }))} placeholder="contact@company.com" />
                             </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Department Category</label>
+                                <select 
+                                    style={inputStyle} 
+                                    value={newCompany.department_id} 
+                                    onChange={e => setNewCompany(p => ({ ...p, department_id: e.target.value }))}
+                                >
+                                    <option value="">Uncategorized</option>
+                                    {departments.map(d => (
+                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <button type="submit" className="btn btn-primary" disabled={formSubmitting}>
@@ -379,12 +422,7 @@ const CompaniesView: React.FC = () => {
             )}
 
             {/* ── Pending Company Requests ── */}
-            {loading ? (
-                <div style={{ marginBottom: '2rem' }}>
-                    <div className="skeleton skeleton-text" style={{ width: 200, height: 24, marginBottom: '1.5rem' }} />
-                    <ListSkeleton items={2} />
-                </div>
-            ) : pendingRequests.length > 0 && (
+            {!loading && pendingRequests.length > 0 && (
                 <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 14, padding: '1.25rem 1.5rem', marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -397,30 +435,20 @@ const CompaniesView: React.FC = () => {
                                 borderRadius: 10, padding: '0.85rem 1rem',
                                 display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap',
                             }}>
-                                {/* Company icon */}
                                 <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                                 </div>
-                                {/* Info */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{req.name}</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginTop: '0.15rem' }}>
                                         Requested by <strong>{req.student_name ?? 'a student'}</strong> &bull; {new Date(req.created_at).toLocaleDateString()}
                                     </div>
                                 </div>
-                                {/* Actions */}
                                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                                     <button
                                         disabled={requestActionId === req.id}
                                         onClick={() => handleApproveRequest(req)}
-                                        style={{
-                                            padding: '0.45rem 0.95rem', borderRadius: 8, border: 'none',
-                                            background: 'rgba(16,185,129,0.15)', color: '#10b981',
-                                            fontWeight: 700, fontSize: '0.82rem', cursor: requestActionId === req.id ? 'not-allowed' : 'pointer',
-                                            fontFamily: 'Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '0.35rem',
-                                        }}
-                                        onMouseOver={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.25)')}
-                                        onMouseOut={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.15)')}
+                                        className="btn-approve"
                                     >
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                                         {requestActionId === req.id ? 'Processing…' : 'Approve'}
@@ -428,14 +456,7 @@ const CompaniesView: React.FC = () => {
                                     <button
                                         disabled={requestActionId === req.id}
                                         onClick={() => handleRejectRequest(req)}
-                                        style={{
-                                            padding: '0.45rem 0.95rem', borderRadius: 8, border: 'none',
-                                            background: 'rgba(239,68,68,0.1)', color: '#ef4444',
-                                            fontWeight: 700, fontSize: '0.82rem', cursor: requestActionId === req.id ? 'not-allowed' : 'pointer',
-                                            fontFamily: 'Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '0.35rem',
-                                        }}
-                                        onMouseOver={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.2)')}
-                                        onMouseOut={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}
+                                        className="btn-reject"
                                     >
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                                         Reject
@@ -450,52 +471,98 @@ const CompaniesView: React.FC = () => {
             {loading ? (
                 <CardGridSkeleton cards={6} height={180} />
             ) : companies.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
-                    {companies.map(company => (
-                        <div
-                            key={company.id}
-                            onClick={() => handleCompanyClick(company)}
-                            style={{ background: 'var(--admin-card-bg)', border: '1px solid var(--admin-border)', borderRadius: '14px', padding: '1.5rem', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', overflow: 'hidden' }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)'; (e.currentTarget as HTMLElement).style.borderColor = '#7c3aed'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; (e.currentTarget as HTMLElement).style.borderColor = 'var(--admin-border)'; }}
-                        >
-                            {/* Decoration */}
-                            <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderRadius: '0 14px 0 80px', background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.05))' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+                    {/* Group companies by department */}
+                    {Array.from(new Set(companies.map(c => c.department_name || 'Uncategorized'))).sort((a, b) => {
+                        if (a === 'Uncategorized') return 1;
+                        if (b === 'Uncategorized') return -1;
+                        return a.localeCompare(b);
+                    }).map(dept => (
+                        <div key={dept}>
+                            <h3 style={{ 
+                                color: 'var(--text-bright)', 
+                                fontSize: '1.2rem', 
+                                marginBottom: '1.25rem', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.75rem',
+                                borderBottom: '1px solid var(--admin-border)',
+                                paddingBottom: '0.75rem'
+                            }}>
+                                <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#7c3aed' }} />
+                                {dept}
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                                {companies.filter(c => (c.department_name || 'Uncategorized') === dept).map(company => (
+                                    <div
+                                        key={company.id}
+                                        onClick={() => handleCompanyClick(company)}
+                                        style={{ 
+                                            background: 'var(--admin-card-bg)', 
+                                            border: `1px solid ${company.is_handled ? '#7c3aed' : 'var(--admin-border)'}`, 
+                                            borderRadius: '14px', 
+                                            padding: '1.5rem', 
+                                            cursor: 'pointer', 
+                                            transition: 'all 0.2s ease', 
+                                            position: 'relative', 
+                                            overflow: 'hidden',
+                                            boxShadow: company.is_handled ? '0 8px 32px rgba(124,58,237,0.1)' : 'none'
+                                        }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)'; (e.currentTarget as HTMLElement).style.borderColor = '#7c3aed'; }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = company.is_handled ? '0 8px 32px rgba(124,58,237,0.1)' : ''; (e.currentTarget as HTMLElement).style.borderColor = company.is_handled ? '#7c3aed' : 'var(--admin-border)'; }}
+                                    >
+                                        <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderRadius: '0 14px 0 80px', background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.05))' }} />
 
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1rem' }}>
-                                <div style={{ width: 42, height: 42, borderRadius: '10px', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <h3 style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--admin-text-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{company.name}</h3>
-                                    {company.industry && <p style={{ fontSize: '0.8rem', color: 'var(--admin-text-secondary)', margin: '0.2rem 0 0' }}>{company.industry}</p>}
-                                </div>
-                            </div>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1rem' }}>
+                                            <div style={{ width: 42, height: 42, borderRadius: '10px', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
+                                            </div>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <h3 style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--admin-text-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{company.name}</h3>
+                                                {company.industry && <p style={{ fontSize: '0.8rem', color: 'var(--admin-text-secondary)', margin: '0.2rem 0 0' }}>{company.industry}</p>}
+                                            </div>
+                                            <button 
+                                                onClick={(e) => handleToggleHandling(e, company)}
+                                                title={company.is_handled ? "Stop handling this company" : "Start handling this company"}
+                                                style={{
+                                                    zIndex: 10,
+                                                    padding: '0.4rem 0.8rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid',
+                                                    borderColor: company.is_handled ? '#7c3aed' : 'var(--admin-border)',
+                                                    background: company.is_handled ? 'rgba(124,58,237,0.1)' : 'var(--admin-bg)',
+                                                    color: company.is_handled ? '#7c3aed' : 'var(--admin-text-secondary)',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s'
+                                                }}
+                                            >
+                                                {company.is_handled ? 'Handling' : 'Handle'}
+                                            </button>
+                                        </div>
 
-                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '1rem' }}>
-                                {company.address && (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                                        {company.address}
-                                    </span>
-                                )}
-                                {company.contact_person && (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                                        {company.contact_person}
-                                    </span>
-                                )}
-                            </div>
+                                        <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '1rem' }}>
+                                            {company.address && (
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                                                    {company.address}
+                                                </span>
+                                            )}
+                                        </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 600, color: company.intern_count ? '#10b981' : 'var(--text-muted)' }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                                    {company.intern_count ?? 0} Intern{(company.intern_count ?? 0) !== 1 ? 's' : ''}
-                                </span>
-                                <span style={{ fontSize: '0.78rem', color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                    View Students
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                                </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 600, color: company.intern_count ? '#10b981' : 'var(--text-muted)' }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                                                {company.intern_count ?? 0} Intern{(company.intern_count ?? 0) !== 1 ? 's' : ''}
+                                            </span>
+                                            <span style={{ fontSize: '0.78rem', color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                View Students
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     ))}

@@ -298,7 +298,7 @@ const CoordinatorDashboard: React.FC = () => {
             </aside>
 
             {/* ══ MAIN ══ */}
-            <div className="dashboard-main">
+            <div className={`dashboard-main sidebar-${sidebarMode}`}>
                 {/* Topbar */}
                 <div className="topbar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -515,7 +515,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                 </div>
             </div>
 
-            <div className="cd-overview-side-col" style={{ paddingBottom: '6rem' }}>
+            <div className="cd-overview-side-col">
                 {/* Weekly Activity Summary */}
                 <div className="cd-card">
                     <div className="cd-card-body" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
