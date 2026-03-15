@@ -84,7 +84,7 @@ const CoordinatorDepartmentView: React.FC = () => {
     };
 
     const avatarColor = (name: string) => {
-        const colors = ['#7c3aed', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+        const colors = ['#10b981', '#3b82f6', '#0d9488', '#f59e0b', '#ef4444', '#14b8a6', '#ec4899'];
         return colors[(name.charCodeAt(0) ?? 0) % colors.length];
     };
 
@@ -112,7 +112,7 @@ const CoordinatorDepartmentView: React.FC = () => {
                 }}>
                     <div style={{
                         width: 72, height: 72, borderRadius: '50%',
-                        background: 'rgba(139,92,246,0.12)', color: '#8b5cf6',
+                        background: 'rgba(16,185,129,0.12)', color: 'var(--primary)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         margin: '0 auto 1.5rem',
                     }}>
@@ -136,8 +136,8 @@ const CoordinatorDepartmentView: React.FC = () => {
         <div className="view-container fade-in">
             {/* Department Header */}
             <div style={{
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.1))',
-                border: '1px solid rgba(139,92,246,0.2)',
+                background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(13,148,136,0.1))',
+                border: '1px solid rgba(16,185,129,0.2)',
                 borderRadius: 20,
                 padding: '2rem 2.5rem',
                 marginBottom: '2rem',
@@ -147,7 +147,7 @@ const CoordinatorDepartmentView: React.FC = () => {
                 <div style={{
                     position: 'absolute', top: -30, right: -30,
                     width: 120, height: 120, borderRadius: '50%',
-                    background: 'rgba(139,92,246,0.08)',
+                    background: 'rgba(16,185,129,0.08)',
                 }} />
                 <div style={{
                     position: 'absolute', bottom: -20, right: 60,
@@ -157,7 +157,7 @@ const CoordinatorDepartmentView: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
                     <div style={{
                         width: 52, height: 52, borderRadius: 14,
-                        background: 'rgba(139,92,246,0.2)', color: '#8b5cf6',
+                        background: 'rgba(16,185,129,0.2)', color: 'var(--primary)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0,
                     }}>
@@ -178,8 +178,8 @@ const CoordinatorDepartmentView: React.FC = () => {
                     </div>
                     <div style={{
                         marginLeft: 'auto',
-                        background: 'rgba(139,92,246,0.15)',
-                        color: '#a78bfa',
+                        background: 'rgba(16,185,129,0.15)',
+                        color: '#34d399',
                         padding: '0.4rem 1rem',
                         borderRadius: 10,
                         fontSize: '0.85rem',
@@ -233,7 +233,7 @@ const CoordinatorDepartmentView: React.FC = () => {
                         padding: '0.6rem 1.25rem',
                         borderRadius: 10,
                         border: 'none',
-                        background: selectedStudentId ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'var(--bg-secondary)',
+                        background: selectedStudentId ? 'linear-gradient(135deg, var(--primary), var(--secondary))' : 'var(--bg-secondary)',
                         color: selectedStudentId ? '#fff' : 'var(--text-muted)',
                         fontWeight: 600,
                         fontSize: '0.85rem',
@@ -287,7 +287,7 @@ const CoordinatorDepartmentView: React.FC = () => {
                                         {student.company?.name ? (
                                             <span style={{
                                                 display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                                background: 'rgba(124,58,237,0.1)', color: '#7c3aed',
+                                                background: 'rgba(16,185,129,0.1)', color: 'var(--primary)',
                                                 padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600,
                                             }}>
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

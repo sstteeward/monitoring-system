@@ -121,10 +121,10 @@ function App() {
     }
 
     // Priority: Hash Slugs (Override)
-    if (currentHash === '#/admin') {
+    if (currentHash.startsWith('#/admin')) {
       return <AdminDashboard />;
     }
-    if (currentHash === '#/coordinator') {
+    if (currentHash.startsWith('#/coordinator')) {
       return <CoordinatorDashboard />;
     }
 

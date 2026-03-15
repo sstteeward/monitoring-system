@@ -147,24 +147,21 @@ const AdminRoleManagementView: React.FC = () => {
                         </thead>
                         <tbody>
                             {filteredCoordinators.map(c => (
-                                <tr key={c.id} style={{ background: selectedUser?.id === c.id ? 'rgba(16, 185, 129, 0.05)' : 'transparent' }}>
+                                <tr key={c.id} style={{ background: selectedUser?.id === c.id ? 'var(--nav-active-bg)' : 'transparent' }}>
                                     <td style={{ fontWeight: 600, color: 'var(--admin-text-primary)' }}>{c.first_name} {c.last_name}</td>
                                     <td style={{ color: 'var(--admin-text-secondary)' }}>{c.email}</td>
                                     <td>
-                                        <span className={`admin-badge ${c.is_active !== false ? 'badge-active' : 'badge-student'}`} style={{
-                                            background: c.is_active === false ? 'rgba(245, 158, 11, 0.1)' : undefined,
-                                            color: c.is_active === false ? '#f59e0b' : undefined
-                                        }}>
+                                        <span className={`admin-badge ${c.is_active !== false ? 'badge-student' : 'badge-admin'}`}>
                                             {c.is_active !== false ? 'ACTIVE' : 'PENDING'}
                                         </span>
                                     </td>
                                     <td>
                                         {c.locked_until && new Date(c.locked_until) > new Date() ? (
-                                            <span style={{ color: '#f43f5e', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.5rem', background: 'rgba(244, 63, 94, 0.1)', borderRadius: 4 }}>
+                                            <span style={{ color: 'var(--danger)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.5rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 4 }}>
                                                 LOCKED
                                             </span>
                                         ) : (
-                                            <span style={{ color: '#10b981', fontSize: '0.75rem' }}>Normal</span>
+                                            <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>Normal</span>
                                         )}
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
@@ -193,8 +190,8 @@ const AdminRoleManagementView: React.FC = () => {
                             <button
                                 className="role-select"
                                 style={{
-                                    background: selectedUser.is_active !== false ? 'rgba(248, 113, 113, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                                    color: selectedUser.is_active !== false ? '#f87171' : '#10b981',
+                                    background: selectedUser.is_active !== false ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                    color: selectedUser.is_active !== false ? 'var(--danger)' : 'var(--primary)',
                                     borderColor: 'transparent'
                                 }}
                                 onClick={handleToggleStatus}
@@ -221,9 +218,9 @@ const AdminRoleManagementView: React.FC = () => {
                             const label = key.replace(/_/g, ' ').replace('can ', 'Can ');
 
                             return (
-                                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', cursor: 'pointer', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: 8, border: '1px solid var(--admin-border)' }}>
+                                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', cursor: 'pointer', background: 'var(--bg-elevated)', padding: '0.75rem', borderRadius: 8, border: '1px solid var(--admin-border)' }}>
                                     <div style={{
-                                        width: '36px', height: '20px', background: isGranted ? '#10b981' : 'rgba(255,255,255,0.1)',
+                                        width: '36px', height: '20px', background: isGranted ? 'var(--primary)' : 'var(--border-strong)',
                                         borderRadius: '10px', position: 'relative', transition: 'all 0.2s'
                                     }}>
                                         <div style={{

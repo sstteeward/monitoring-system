@@ -103,11 +103,11 @@ const SettingsView: React.FC = () => {
                         style={{
                             flex: 1, padding: '1.1rem 1rem', borderRadius: 14, cursor: isDark ? 'default' : 'pointer',
                             fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.88rem', transition: 'all .25s',
-                            background: isDark ? 'linear-gradient(135deg, rgba(124,58,237,0.18), rgba(79,70,229,0.1))' : 'var(--bg-elevated)',
-                            border: isDark ? '2px solid #7c3aed' : '2px solid var(--border)',
-                            color: isDark ? '#a78bfa' : 'var(--text-muted)',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
-                            boxShadow: isDark ? '0 0 0 4px rgba(124,58,237,0.12)' : 'none',
+                            background: isDark ? 'linear-gradient(135deg, rgba(16,185,129,0.18), rgba(13,148,136,0.1))' : 'var(--bg-elevated)',
+                            border: isDark ? '2px solid var(--primary)' : '2px solid var(--border)',
+                            color: isDark ? '#34d399' : 'var(--text-muted)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
+                            boxShadow: isDark ? '0 0 0 4px rgba(16,185,129,0.12)' : 'none',
                         }}
                     >
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

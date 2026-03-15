@@ -13,8 +13,8 @@
     --bg: #0d0e1a;
     --surface: #13141f;
     --border: rgba(255, 255, 255, 0.07);
-    --border-focus: #7c3aed;
-    --accent: #7c3aed;
+    --border-focus: var(--primary);
+    --accent: var(--primary);
     --accent-2: #2563eb;
     --text: #f8fafc;
     --muted: #94a3b8;
@@ -219,9 +219,9 @@ input:focus {
 .verify-btn {
     padding: 0 1rem;
     border-radius: 9px;
-    border: 1px solid rgba(124, 58, 237, 0.35);
-    background: rgba(124, 58, 237, 0.12);
-    color: #a78bfa;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
     font-weight: 600;
     font-size: 0.8rem;
     cursor: pointer;
@@ -229,9 +229,9 @@ input:focus {
 }
 
 .verify-btn:hover {
-    background: rgba(124, 58, 237, 0.22);
-    border-color: rgba(124, 58, 237, 0.55);
-    color: #c4b5fd;
+    background: rgba(16, 185, 129, 0.22);
+    border-color: rgba(16, 185, 129, 0.55);
+    color: #6ee7b7;
 }
 
 .verification-line {
@@ -284,29 +284,7 @@ input:focus {
     margin-top: 0.5rem;
 }
 
-.primary {
-    width: 100%;
-    padding: 0.9rem;
-    border-radius: 10px;
-    border: none;
-    font-size: 0.95rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
-}
 
-.primary:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.5);
-}
-
-.primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
 
 
 

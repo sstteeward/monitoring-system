@@ -132,24 +132,24 @@ const AdminDepartmentsView: React.FC = () => {
                     </div>
 
                     {isCreating && (
-                        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--admin-border)', background: 'rgba(255,255,255,0.02)' }}>
+                        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--admin-border)', background: 'var(--bg-elevated)' }}>
                             <form onSubmit={handleCreate}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', marginBottom: '1rem' }}>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1' }}>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                         Department Name *
                                         <input
                                             value={newName} onChange={e => setNewName(e.target.value)}
                                             placeholder="e.g., Information Technology (IT)"
-                                            style={{ width: '100%', padding: '0.65rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--admin-border)', borderRadius: 8, color: 'white', marginTop: '0.4rem', outline: 'none' }}
+                                            style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-page)', border: '1px solid var(--admin-border)', borderRadius: 8, color: 'var(--text-primary)', marginTop: '0.4rem', outline: 'none' }}
                                             required
                                         />
                                     </label>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1' }}>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                         Description (Optional)
                                         <input
                                             value={newDesc} onChange={e => setNewDesc(e.target.value)}
                                             placeholder="Brief description"
-                                            style={{ width: '100%', padding: '0.65rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--admin-border)', borderRadius: 8, color: 'white', marginTop: '0.4rem', outline: 'none' }}
+                                            style={{ width: '100%', padding: '0.65rem', background: 'var(--bg-page)', border: '1px solid var(--admin-border)', borderRadius: 8, color: 'var(--text-primary)', marginTop: '0.4rem', outline: 'none' }}
                                         />
                                     </label>
                                 </div>

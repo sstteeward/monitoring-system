@@ -68,7 +68,7 @@ const AdminAuditLogView: React.FC = () => {
                 </div>
 
                 {filteredLogs.length === 0 ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>No audit logs found.</div>
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No audit logs found.</div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
                         <table className="admin-table" style={{ width: '100%', minWidth: '800px' }}>
@@ -96,8 +96,8 @@ const AdminAuditLogView: React.FC = () => {
                                         <td>
                                             <span style={{
                                                 display: 'inline-block', padding: '0.2rem 0.6rem',
-                                                background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b',
-                                                borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid rgba(245,158,11,0.2)'
+                                                background: 'var(--badge-admin-bg)', color: 'var(--badge-admin-text)',
+                                                borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid var(--border)'
                                             }}>
                                                 {formatAction(log.action).toUpperCase()}
                                             </span>
@@ -108,9 +108,9 @@ const AdminAuditLogView: React.FC = () => {
                                         </td>
                                         <td style={{ maxWidth: '250px' }}>
                                             <pre style={{
-                                                margin: 0, padding: '0.5rem', background: 'var(--admin-bg)',
-                                                borderRadius: '6px', fontSize: '0.75rem', color: '#a3e635',
-                                                overflowX: 'auto', maxHeight: '60px'
+                                                margin: 0, padding: '0.5rem', background: 'var(--bg-elevated)',
+                                                borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-primary)',
+                                                overflowX: 'auto', maxHeight: '60px', border: '1px solid var(--border)'
                                             }}>
                                                 {log.details ? JSON.stringify(log.details, null, 2) : '{}'}
                                             </pre>

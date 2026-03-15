@@ -117,9 +117,9 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, userId }
                                     minHeight: '120px',
                                     padding: '0.75rem',
                                     borderRadius: '8px',
-                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    background: 'rgba(16,185,129,0.1)',
+                                    color: 'var(--primary)',
                                     border: '1px solid rgba(255, 255, 255, 0.1)',
-                                    color: '#f8fafc',
                                     fontSize: '0.9rem',
                                     resize: 'vertical',
                                     outline: 'none'

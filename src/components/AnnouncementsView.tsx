@@ -125,7 +125,7 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                 <>
                     {/* Create form */}
                     {isCoordinator && showForm && (
-                        <div style={{ backgroundColor: 'var(--layer-2)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
+                        <div style={{ backgroundColor: 'var(--bg-elevated)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
                             <h3 style={{ marginBottom: '1rem', color: 'var(--text-bright)' }}>Create Announcement</h3>
                             <form onSubmit={handleCreateAnnouncement}>
                                 <div style={{ marginBottom: '1rem' }}>

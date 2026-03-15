@@ -209,7 +209,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                         className="hover-row"
                                         title="Click to preview document"
                                     >
-                                        <td style={{ fontWeight: '500', color: 'var(--text-bright)' }}>
+                                        <td style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
                                             {doc.profiles?.first_name} {doc.profiles?.last_name}
                                         </td>
                                         <td>
@@ -230,7 +230,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                                 disabled={previewLoading === doc.file_path}
                                             >
                                                 {previewLoading === doc.file_path ? (
-                                                    <span className="preview-spinner" style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(124, 58, 237, 0.3)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'cd-spin 0.7s linear infinite', marginRight: '4px' }}></span>
+                                                    <span className="preview-spinner" style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(16, 185, 129, 0.3)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'cd-spin 0.7s linear infinite', marginRight: '4px' }}></span>
                                                 ) : (
                                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
                                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="var(--primary)" />
@@ -244,8 +244,8 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <button
-                                                    className="btn btn-primary"
-                                                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', background: '#10b981', borderColor: '#10b981', color: '#fff' }}
+                                                    className="btn btn-approve"
+                                                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }}
                                                     onClick={(e) => { e.stopPropagation(); handleAction(doc.id, 'approved'); }}
                                                     disabled={actionLoading === doc.id}
                                                 >
@@ -257,14 +257,14 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                                     )}
                                                 </button>
                                                 <button
-                                                    className="btn btn-secondary"
-                                                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', color: '#ef4444', borderColor: '#ef4444' }}
+                                                    className="btn btn-reject"
+                                                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }}
                                                     onClick={(e) => { e.stopPropagation(); handleAction(doc.id, 'rejected'); }}
                                                     disabled={actionLoading === doc.id}
                                                 >
                                                     {actionLoading === doc.id ? '...' : (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                                                             Reject
                                                         </div>
                                                     )}
@@ -282,7 +282,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                                 <polyline points="22 4 12 14.01 9 11.01" stroke="#10b981" />
                                             </svg>
                                             <div>
-                                                <p style={{ fontWeight: '500', color: 'var(--text-bright)' }}>All Caught Up!</p>
+                                                <p style={{ fontWeight: '500', color: 'var(--text-primary)' }}>All Caught Up!</p>
                                                 <p style={{ fontSize: '0.9rem' }}>There are no pending documents to review right now.</p>
                                             </div>
                                         </div>
@@ -317,7 +317,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                         style={{ cursor: 'pointer', transition: 'background 0.2s' }}
                                         title="Click to view full journal entry"
                                     >
-                                        <td style={{ fontWeight: '500', color: 'var(--text-bright)' }}>
+                                        <td style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
                                             {j.profiles?.first_name} {j.profiles?.last_name}
                                         </td>
                                         <td style={{ whiteSpace: 'nowrap' }}>{new Date(j.entry_date).toLocaleDateString()}</td>
@@ -336,12 +336,12 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', background: '#10b981', borderColor: '#10b981', color: '#fff' }} onClick={(e) => { e.stopPropagation(); handleAction(j.id, 'approved'); }} disabled={actionLoading === j.id}>
+                                                <button className="btn btn-approve" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }} onClick={(e) => { e.stopPropagation(); handleAction(j.id, 'approved'); }} disabled={actionLoading === j.id}>
                                                     {actionLoading === j.id ? '...' : (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>Approve</div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>Approve</div>
                                                     )}
                                                 </button>
-                                                <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', color: '#ef4444', borderColor: '#ef4444' }} onClick={(e) => { e.stopPropagation(); handleAction(j.id, 'rejected'); }} disabled={actionLoading === j.id}>
+                                                <button className="btn btn-reject" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }} onClick={(e) => { e.stopPropagation(); handleAction(j.id, 'rejected'); }} disabled={actionLoading === j.id}>
                                                     {actionLoading === j.id ? '...' : (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Reject</div>
                                                     )}
@@ -356,7 +356,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
                                             <div>
-                                                <p style={{ fontWeight: '500', color: 'var(--text-bright)' }}>All Caught Up!</p>
+                                                <p style={{ fontWeight: '500', color: 'var(--text-primary)' }}>All Caught Up!</p>
                                                 <p style={{ fontSize: '0.9rem' }}>There are no pending journals to review right now.</p>
                                             </div>
                                         </div>
@@ -395,7 +395,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
 
                                     return (
                                         <tr key={t.id} className="hover-row">
-                                            <td style={{ fontWeight: '500', color: 'var(--text-bright)' }}>
+                                            <td style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
                                                 {t.profiles?.first_name} {t.profiles?.last_name}
                                             </td>
                                             <td style={{ whiteSpace: 'nowrap' }}>{tsStart.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</td>
@@ -403,12 +403,12 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                             <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{hrsHrsStr}</td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <button className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', background: '#10b981', borderColor: '#10b981', color: '#fff' }} onClick={(e) => { e.stopPropagation(); handleAction(t.id, 'approved'); }} disabled={actionLoading === t.id}>
+                                                    <button className="btn btn-approve" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }} onClick={(e) => { e.stopPropagation(); handleAction(t.id, 'approved'); }} disabled={actionLoading === t.id}>
                                                         {actionLoading === t.id ? '...' : (
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>Approve</div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>Approve</div>
                                                         )}
                                                     </button>
-                                                    <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', color: '#ef4444', borderColor: '#ef4444' }} onClick={(e) => { e.stopPropagation(); handleAction(t.id, 'rejected'); }} disabled={actionLoading === t.id}>
+                                                    <button className="btn btn-reject" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }} onClick={(e) => { e.stopPropagation(); handleAction(t.id, 'rejected'); }} disabled={actionLoading === t.id}>
                                                         {actionLoading === t.id ? '...' : (
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Reject</div>
                                                         )}
@@ -424,7 +424,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
                                             <div>
-                                                <p style={{ fontWeight: '500', color: 'var(--text-bright)' }}>All Caught Up!</p>
+                                                <p style={{ fontWeight: '500', color: 'var(--text-primary)' }}>All Caught Up!</p>
                                                 <p style={{ fontSize: '0.9rem' }}>There are no pending timesheets to review right now.</p>
                                             </div>
                                         </div>
@@ -482,7 +482,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                         <div className="preview-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', display: 'block' }}>
                             <div style={{ marginBottom: '1.5rem' }}>
                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Date</div>
-                                <div style={{ color: 'var(--text-bright)', fontSize: '1.05rem' }}>{new Date(previewJournal.entry_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                                <div style={{ color: 'var(--text-primary)', fontSize: '1.05rem' }}>{new Date(previewJournal.entry_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
                             </div>
 
                             <div style={{ marginBottom: '1.5rem' }}>

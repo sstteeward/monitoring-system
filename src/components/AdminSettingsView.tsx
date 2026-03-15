@@ -97,7 +97,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
                     <p style={sectionSub}>Manage global rules and parameters for the monitoring system. Changes take effect immediately.</p>
 
                     {/* OJT Hours */}
-                    <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--admin-border)', borderRadius: 12, marginBottom: '1rem' }}>
+                    <div style={{ padding: '1rem', background: 'var(--bg-elevated)', border: '1px solid var(--admin-border)', borderRadius: 12, marginBottom: '1rem' }}>
                         <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>OJT Requirements</h4>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--admin-text-secondary)' }}>
@@ -113,7 +113,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
                     </div>
 
                     {/* Journal Rules */}
-                    <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--admin-border)', borderRadius: 12, marginBottom: '1rem' }}>
+                    <div style={{ padding: '1rem', background: 'var(--bg-elevated)', border: '1px solid var(--admin-border)', borderRadius: 12, marginBottom: '1rem' }}>
                         <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>Journal Submissions</h4>
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '0.5rem' }}>
                             Submission Deadline (Days after DTR)
@@ -130,7 +130,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
                         </h4>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', cursor: 'pointer' }}>
                             <div style={{
-                                width: '40px', height: '22px', background: maintenance.enabled ? '#f43f5e' : 'rgba(255,255,255,0.1)',
+                                width: '40px', height: '22px', background: maintenance.enabled ? '#f43f5e' : 'var(--border-strong)',
                                 borderRadius: '11px', position: 'relative', transition: 'all 0.2s'
                             }}>
                                 <div style={{
@@ -147,7 +147,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
                                 <input style={{ ...inputStyle, marginTop: '0.4rem' }} value={maintenance.message} onChange={e => setMaintenance({ ...maintenance, message: e.target.value })} />
                             </label>
                         )}
-                        <button className="primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', background: maintenance.enabled ? '#f43f5e' : 'var(--admin-primary)' }} onClick={() => handleSaveSetting('maintenance_mode', maintenance)} disabled={savingSettings}>Update Maintenance State</button>
+                        <button className="primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', background: maintenance.enabled ? '#f43f5e' : 'var(--primary)' }} onClick={() => handleSaveSetting('maintenance_mode', maintenance)} disabled={savingSettings}>Update Maintenance State</button>
                     </div>
                 </div>
             </div>

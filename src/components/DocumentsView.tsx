@@ -17,6 +17,7 @@ const DocumentsView: React.FC = () => {
     const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
     const [previewLoading, setPreviewLoading] = useState<string | null>(null);
     const [documentToDelete, setDocumentToDelete] = useState<{ id: string, path: string, name: string } | null>(null);
+    const [showUploadForm, setShowUploadForm] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -56,6 +57,7 @@ const DocumentsView: React.FC = () => {
             setMessage({ type: 'success', text: 'Document uploaded successfully!' });
             setTitle('');
             setFile(null);
+            setShowUploadForm(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
             loadDocuments();
         } catch (err) {
@@ -137,7 +139,16 @@ const DocumentsView: React.FC = () => {
             </header>
 
             <div className="documents-list-section">
-                <h3 className="section-title">My Documents</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h3 className="section-title" style={{ margin: 0 }}>My Documents</h3>
+                    {!showUploadForm && (
+                        <button className="btn btn-primary" onClick={() => setShowUploadForm(true)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '0.5rem'}}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Add Document
+                        </button>
+                    )}
+                </div>
+                
                 {loading ? (
                     <CardGridSkeleton cards={3} height={120} />
                 ) : documents.length > 0 ? (
@@ -152,7 +163,7 @@ const DocumentsView: React.FC = () => {
                             >
                                 <div className="document-icon">
                                     {previewLoading === doc.file_path ? (
-                                        <span className="preview-spinner" style={{ display: 'inline-block', width: '24px', height: '24px', border: '3px solid rgba(124, 58, 237, 0.2)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'cd-spin 0.7s linear infinite' }}></span>
+                                        <span className="preview-spinner" style={{ display: 'inline-block', width: '24px', height: '24px', border: '3px solid rgba(16, 185, 129, 0.2)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'cd-spin 0.7s linear infinite' }}></span>
                                     ) : (
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                                     )}
@@ -188,39 +199,46 @@ const DocumentsView: React.FC = () => {
                 )}
             </div>
 
-            <div className="upload-card">
-                <h3 className="section-title">Upload New Document</h3>
-                <form onSubmit={handleUpload} className="upload-form">
-                    <div className="form-group">
-                        <label>Document Title</label>
-                        <input
-                            type="text"
-                            placeholder="e.g., Medical Certificate, Weekly Report 1..."
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="form-input"
-                            disabled={uploading}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Select File</label>
-                        <input
-                            type="file"
-                            onChange={handleFileChange}
-                            ref={fileInputRef}
-                            className="file-input"
-                            disabled={uploading}
-                        />
-                        <p className="file-hint">Supports any file type (PDF, Images, DOCX, etc.)</p>
-                    </div>
-                    <div className="form-actions">
-                        <button type="submit" className="btn btn-primary" disabled={uploading}>
-                            {uploading ? 'Uploading...' : 'Upload Document'}
+            {showUploadForm && (
+                <div className="upload-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h3 className="section-title" style={{ margin: 0 }}>Upload New Document</h3>
+                        <button className="btn btn-secondary" onClick={() => setShowUploadForm(false)} style={{ padding: '0.4rem' }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                         </button>
-                        {message && <div className={`upload-message ${message.type}`}>{message.text}</div>}
                     </div>
-                </form>
-            </div>
+                    <form onSubmit={handleUpload} className="upload-form">
+                        <div className="form-group">
+                            <label>Document Title</label>
+                            <input
+                                type="text"
+                                placeholder="e.g., Medical Certificate, Weekly Report 1..."
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="form-input"
+                                disabled={uploading}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Select File</label>
+                            <input
+                                type="file"
+                                onChange={handleFileChange}
+                                ref={fileInputRef}
+                                className="file-input"
+                                disabled={uploading}
+                            />
+                            <p className="file-hint">Supports any file type (PDF, Images, DOCX, etc.)</p>
+                        </div>
+                        <div className="form-actions">
+                            <button type="submit" className="btn btn-primary" disabled={uploading}>
+                                {uploading ? 'Uploading...' : 'Upload Document'}
+                            </button>
+                            {message && <div className={`upload-message ${message.type}`}>{message.text}</div>}
+                        </div>
+                    </form>
+                </div>
+            )}
 
             {/* Preview Modal */}
             {previewUrl && (

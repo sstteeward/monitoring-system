@@ -53,19 +53,19 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'new': return { bg: 'rgba(239, 68, 68, 0.1)', color: '#f87171', border: 'rgba(239, 68, 68, 0.2)' };
-            case 'reviewed': return { bg: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.2)' };
-            case 'resolved': return { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: 'rgba(16, 185, 129, 0.2)' };
-            default: return { bg: 'rgba(148, 163, 184, 0.1)', color: '#94a3b8', border: 'rgba(148, 163, 184, 0.2)' };
+            case 'new': return { bg: 'var(--badge-student-bg)', color: 'var(--badge-student-text)', border: 'var(--border)' }; // Reuse student for danger/new
+            case 'reviewed': return { bg: 'var(--badge-admin-bg)', color: 'var(--badge-admin-text)', border: 'var(--border)' }; // Reuse admin for warning/reviewed
+            case 'resolved': return { bg: 'var(--badge-student-bg)', color: 'var(--badge-student-text)', border: 'var(--border)' };
+            default: return { bg: 'var(--bg-elevated)', color: 'var(--text-muted)', border: 'var(--border)' };
         }
     };
 
     const getTypeColor = (type: string) => {
         switch (type) {
-            case 'bug': return { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' };
-            case 'suggestion': return { bg: 'rgba(56, 187, 248, 0.1)', color: '#38bdf8' };
-            case 'other': return { bg: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' };
-            default: return { bg: 'rgba(148, 163, 184, 0.1)', color: '#94a3b8' };
+            case 'bug': return { bg: 'var(--badge-student-bg)', color: 'var(--badge-student-text)' };
+            case 'suggestion': return { bg: 'var(--badge-coordinator-bg)', color: 'var(--badge-coordinator-text)' };
+            case 'other': return { bg: 'var(--bg-elevated)', color: 'var(--text-muted)' };
+            default: return { bg: 'var(--bg-elevated)', color: 'var(--text-muted)' };
         }
     };
 
@@ -90,9 +90,9 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
                             key={status}
                             onClick={() => setFilterStatus(status)}
                             style={{
-                                background: filterStatus === status ? 'var(--admin-primary)' : 'rgba(30,30,40,0.5)',
-                                color: filterStatus === status ? '#fff' : '#94a3b8',
-                                border: `1px solid ${filterStatus === status ? 'var(--admin-primary)' : 'var(--admin-border)'}`,
+                                background: filterStatus === status ? 'var(--primary)' : 'var(--bg-elevated)',
+                                color: filterStatus === status ? '#fff' : 'var(--text-muted)',
+                                border: `1px solid ${filterStatus === status ? 'var(--primary)' : 'var(--border)'}`,
                                 padding: '0.4rem 0.8rem',
                                 borderRadius: '6px',
                                 fontSize: '0.8rem',
@@ -137,7 +137,7 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
                     background: 'var(--admin-card-bg)', border: '1px dashed var(--admin-border)',
                     borderRadius: '12px', padding: '4rem 2rem', textAlign: 'center'
                 }}>
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem' }}>
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                     <h3 style={{ color: 'var(--admin-text-primary)', fontSize: '1.1rem', margin: '0 0 0.5rem' }}>No Feedback Found</h3>
@@ -161,8 +161,7 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                                         <div style={{
-                                            width: 40, height: 40, borderRadius: '50%',
-                                            background: 'rgba(16, 185, 129, 0.1)', color: '#10b981',
+                                            background: 'var(--bg-elevated)', color: 'var(--primary)',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             fontSize: '1rem', fontWeight: 600
                                         }}>
@@ -201,7 +200,8 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
                                 </div>
 
                                 <div style={{
-                                    background: 'rgba(var(--admin-bg-rgb, 15, 23, 42), 0.4)',
+                                    background: 'var(--bg-elevated)',
+                                    border: '1px solid var(--border)',
                                     borderRadius: '8px',
                                     padding: '1rem',
                                     color: 'var(--admin-text-primary)',
@@ -219,7 +219,7 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
                                             onClick={() => handleUpdateStatus(item.id, 'new')}
                                             disabled={updatingId === item.id}
                                             style={{
-                                                background: 'transparent', color: '#94a3b8', border: '1px solid var(--admin-border)',
+                                                background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)',
                                                 padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer'
                                             }}
                                         >

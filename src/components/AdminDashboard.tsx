@@ -44,6 +44,26 @@ const AdminDashboard: React.FC = () => {
     useTheme();
 
     useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash;
+            if (hash.startsWith('#/admin/')) {
+                const slug = hash.replace('#/admin/', '');
+                const validSlugs = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'departments', 'backup', 'health', 'approvals', 'students'];
+                if (validSlugs.includes(slug)) {
+                    setCurrentView(slug as any);
+                }
+            } else if (hash === '#/admin') {
+                setCurrentView('overview');
+            }
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        handleHashChange(); // Initial check
+
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
+
+    useEffect(() => {
         loadAdminData();
         const interval = setInterval(loadNewFeedbackCount, 30000); // Check every 30s
         return () => clearInterval(interval);
@@ -139,47 +159,47 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <nav className="admin-nav">
-                        <div className={`admin-nav-item ${currentView === 'overview' ? 'active' : ''}`} onClick={() => { setCurrentView('overview'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'overview' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/overview'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon">{Icon.grid}</span> <span className="nav-text">Overview</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'users' ? 'active' : ''}`} onClick={() => { setCurrentView('users'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'users' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/users'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon">{Icon.users}</span> <span className="nav-text">User Management</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'roles' ? 'active' : ''}`} onClick={() => { setCurrentView('roles'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'roles' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/roles'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
                             <span className="nav-text">Role Permissions</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'companies' ? 'active' : ''}`} onClick={() => { setCurrentView('companies'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'companies' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/companies'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon">{Icon.building}</span> <span className="nav-text">Companies</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'approvals' ? 'active' : ''}`} onClick={() => { setCurrentView('approvals'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'approvals' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/approvals'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="16 13 8 13"></polyline><polyline points="16 17 8 17"></polyline><polyline points="10 9 9 9 8 9"></polyline></svg></span>
                             <span className="nav-text">Approvals</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'students' ? 'active' : ''}`} onClick={() => { setCurrentView('students'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'students' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/students'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
                             <span className="nav-text">All Students</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'departments' ? 'active' : ''}`} onClick={() => { setCurrentView('departments'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'departments' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/departments'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg></span>
                             <span className="nav-text">Departments</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'feedback' ? 'active' : ''}`} onClick={() => { setCurrentView('feedback'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'feedback' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/feedback'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon">{Icon.feedback}</span>
                             <span className="nav-text">User Feedback</span>
                             {newFeedbackCount > 0 && (
                                 <span className="nav-badge">{newFeedbackCount}</span>
                             )}
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'audit' ? 'active' : ''}`} onClick={() => { setCurrentView('audit'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'audit' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/audit'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
                             <span className="nav-text">Audit Logs</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'backup' ? 'active' : ''}`} onClick={() => { setCurrentView('backup'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'backup' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/backup'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
                             <span className="nav-text">Backup & Restore</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'health' ? 'active' : ''}`} onClick={() => { setCurrentView('health'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'health' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/health'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
                             <span className="nav-text">System Health</span>
                         </div>
@@ -210,7 +230,7 @@ const AdminDashboard: React.FC = () => {
                                 <span className="nav-text">Layout</span>
                             </div>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => { setCurrentView('settings'); setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/settings'; setIsMobileMenuOpen(false); }}>
                             <span className="nav-icon">{Icon.settings}</span> <span className="nav-text">Admin Settings</span>
                         </div>
                     </div>
@@ -259,28 +279,28 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                                 <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                                     <div className="admin-stat-card">
-                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>{Icon.users}</div>
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>{Icon.users}</div>
                                         <div>
                                             <div className="admin-stat-value">{stats.studentCount}</div>
                                             <div className="admin-stat-label">Total Students</div>
                                         </div>
                                     </div>
                                     <div className="admin-stat-card">
-                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#0d9488', border: '1px solid rgba(13, 148, 136, 0.2)' }}>{Icon.users}</div>
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#0d9488', border: '1px solid rgba(13, 148, 136, 0.2)' }}>{Icon.users}</div>
                                         <div>
                                             <div className="admin-stat-value">{stats.coordinatorCount}</div>
                                             <div className="admin-stat-label">Coordinators</div>
                                         </div>
                                     </div>
                                     <div className="admin-stat-card">
-                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: 'var(--primary)', border: '1px solid var(--nav-active-bg)' }}>{Icon.building}</div>
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: 'var(--primary)', border: '1px solid var(--nav-active-bg)' }}>{Icon.building}</div>
                                         <div>
                                             <div className="admin-stat-value">{stats.companyCount}</div>
                                             <div className="admin-stat-label">Partner Companies</div>
                                         </div>
                                     </div>
                                     <div className="admin-stat-card">
-                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg>
                                         </div>
                                         <div>
@@ -289,7 +309,7 @@ const AdminDashboard: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className="admin-stat-card">
-                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--admin-bg)', color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.2)' }}>
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.2)' }}>
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
                                         </div>
                                         <div>
@@ -303,7 +323,7 @@ const AdminDashboard: React.FC = () => {
                                 <div className="admin-table-card">
                                     <div className="admin-table-header">
                                         <div className="admin-table-title">Recent User Registrations</div>
-                                        <button className="role-select" onClick={() => setCurrentView('users')}>View All</button>
+                                        <button className="role-select" onClick={() => { window.location.hash = '#/admin/users'; }}>View All</button>
                                     </div>
                                     <table className="admin-table">
                                         <thead>
@@ -483,7 +503,7 @@ const AdminDashboard: React.FC = () => {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                         <div style={{
-                            background: 'var(--admin-bg, #0f172a)', border: '1px solid rgba(239,68,68,0.3)',
+                            background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.3)',
                             borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
                             boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                             animation: 'fadeIn 0.2s ease',
@@ -496,17 +516,17 @@ const AdminDashboard: React.FC = () => {
                                     <line x1="14" y1="11" x2="14" y2="17" />
                                 </svg>
                             </div>
-                            <h3 style={{ textAlign: 'center', color: '#f8fafc', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Delete Account?</h3>
-                            <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem', margin: '0 0 1.75rem', lineHeight: 1.5 }}>
-                                Are you sure you want to permanently delete <strong style={{ color: '#f8fafc' }}>{deleteTarget.name}</strong>? All their data including timesheets, journals, and documents will be removed. This cannot be undone.
+                            <h3 style={{ textAlign: 'center', color: 'var(--text-primary)', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Delete Account?</h3>
+                            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.75rem', lineHeight: 1.5 }}>
+                                Are you sure you want to permanently delete <strong style={{ color: 'var(--text-bright)' }}>{deleteTarget.name}</strong>? All their data including timesheets, journals, and documents will be removed. This cannot be undone.
                             </p>
                             <div style={{ display: 'flex', gap: '0.75rem' }}>
                                 <button
                                     onClick={() => setDeleteTarget(null)}
                                     disabled={deletingUser}
-                                    style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--admin-border, #1e293b)', background: 'rgba(30, 41, 59, 0.5)', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
-                                    onMouseOver={e => e.currentTarget.style.background = 'rgba(30, 41, 59, 0.8)'}
-                                    onMouseOut={e => e.currentTarget.style.background = 'rgba(30, 41, 59, 0.5)'}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
+                                    onMouseOver={e => e.currentTarget.style.background = 'var(--bg-card)'}
+                                    onMouseOut={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                                 >
                                     Cancel
                                 </button>

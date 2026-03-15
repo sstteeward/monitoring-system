@@ -175,11 +175,11 @@ const CompaniesView: React.FC = () => {
     };
 
     const inputStyle: React.CSSProperties = {
-        background: 'var(--admin-bg)',
-        border: '1px solid var(--admin-border)',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border)',
         borderRadius: '8px',
         padding: '0.6rem 0.9rem',
-        color: 'var(--admin-text-primary)',
+        color: 'var(--text-primary)',
         fontSize: '0.9rem',
         width: '100%',
         outline: 'none',
@@ -212,7 +212,7 @@ const CompaniesView: React.FC = () => {
                                     <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                                 </svg>
                             </div>
-                            <h3 style={{ textAlign: 'center', color: 'var(--text-bright)', margin: '0 0 0.5rem', fontSize: '1.1rem', fontWeight: 700 }}>Remove Company?</h3>
+                            <h3 style={{ textAlign: 'center', color: 'var(--text-primary)', margin: '0 0 0.5rem', fontSize: '1.1rem', fontWeight: 700 }}>Remove Company?</h3>
                             <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 0.5rem' }}>
                                 You are about to permanently remove
                             </p>
@@ -329,7 +329,7 @@ const CompaniesView: React.FC = () => {
                                         <tr key={student.id}>
                                             <td style={{ fontWeight: 500, color: 'var(--admin-text-primary)' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                                                         {student.first_name?.[0]?.toUpperCase() ?? '?'}
                                                     </div>
                                                     {student.first_name} {student.last_name}
@@ -448,7 +448,7 @@ const CompaniesView: React.FC = () => {
                                     <button
                                         disabled={requestActionId === req.id}
                                         onClick={() => handleApproveRequest(req)}
-                                        className="btn-approve"
+                                        className="btn btn-approve"
                                     >
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                                         {requestActionId === req.id ? 'Processing…' : 'Approve'}
@@ -456,7 +456,7 @@ const CompaniesView: React.FC = () => {
                                     <button
                                         disabled={requestActionId === req.id}
                                         onClick={() => handleRejectRequest(req)}
-                                        className="btn-reject"
+                                        className="btn btn-reject"
                                     >
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                                         Reject
@@ -480,16 +480,16 @@ const CompaniesView: React.FC = () => {
                     }).map(dept => (
                         <div key={dept}>
                             <h3 style={{ 
-                                color: 'var(--text-bright)', 
+                                color: 'var(--text-primary)', 
                                 fontSize: '1.2rem', 
                                 marginBottom: '1.25rem', 
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 gap: '0.75rem',
-                                borderBottom: '1px solid var(--admin-border)',
+                                borderBottom: '1px solid var(--border)',
                                 paddingBottom: '0.75rem'
                             }}>
-                                <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#7c3aed' }} />
+                                <span style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--primary)' }} />
                                 {dept}
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
@@ -498,23 +498,25 @@ const CompaniesView: React.FC = () => {
                                         key={company.id}
                                         onClick={() => handleCompanyClick(company)}
                                         style={{ 
-                                            background: 'var(--admin-card-bg)', 
-                                            border: `1px solid ${company.is_handled ? '#7c3aed' : 'var(--admin-border)'}`, 
+                                            background: company.is_handled 
+                                                ? 'rgba(16,185,129,0.05)' 
+                                                : 'var(--bg-card)',
+                                            border: `1px solid ${company.is_handled ? 'var(--primary)' : 'var(--admin-border)'}`, 
                                             borderRadius: '14px', 
                                             padding: '1.5rem', 
                                             cursor: 'pointer', 
                                             transition: 'all 0.2s ease', 
                                             position: 'relative', 
                                             overflow: 'hidden',
-                                            boxShadow: company.is_handled ? '0 8px 32px rgba(124,58,237,0.1)' : 'none'
+                                            boxShadow: company.is_handled ? '0 8px 32px rgba(16,185,129,0.1)' : 'none'
                                         }}
-                                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)'; (e.currentTarget as HTMLElement).style.borderColor = '#7c3aed'; }}
-                                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = company.is_handled ? '0 8px 32px rgba(124,58,237,0.1)' : ''; (e.currentTarget as HTMLElement).style.borderColor = company.is_handled ? '#7c3aed' : 'var(--admin-border)'; }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary)'; }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = company.is_handled ? '0 8px 32px rgba(16,185,129,0.1)' : ''; (e.currentTarget as HTMLElement).style.borderColor = company.is_handled ? 'var(--primary)' : 'var(--admin-border)'; }}
                                     >
-                                        <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderRadius: '0 14px 0 80px', background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.05))' }} />
+                                        <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderRadius: '0 14px 0 80px', background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(13,148,136,0.05))' }} />
 
                                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1rem' }}>
-                                            <div style={{ width: 42, height: 42, borderRadius: '10px', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <div style={{ width: 42, height: 42, borderRadius: '10px', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -529,9 +531,9 @@ const CompaniesView: React.FC = () => {
                                                     padding: '0.4rem 0.8rem',
                                                     borderRadius: '8px',
                                                     border: '1px solid',
-                                                    borderColor: company.is_handled ? '#7c3aed' : 'var(--admin-border)',
-                                                    background: company.is_handled ? 'rgba(124,58,237,0.1)' : 'var(--admin-bg)',
-                                                    color: company.is_handled ? '#7c3aed' : 'var(--admin-text-secondary)',
+                                                    borderColor: company.is_handled ? 'var(--primary)' : 'var(--admin-border)',
+                                                    background: company.is_handled ? 'rgba(16,185,129,0.1)' : 'var(--admin-bg)',
+                                                    color: company.is_handled ? 'var(--primary)' : 'var(--admin-text-secondary)',
                                                     fontSize: '0.75rem',
                                                     fontWeight: 700,
                                                     cursor: 'pointer',
@@ -570,7 +572,7 @@ const CompaniesView: React.FC = () => {
             ) : (
                 <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.3 }}><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
-                    <p style={{ fontWeight: 500, color: 'var(--text-bright)', marginBottom: '0.5rem' }}>No Companies Yet</p>
+                    <p style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>No Companies Yet</p>
                     <p style={{ fontSize: '0.9rem' }}>Click "Add Company" to register your first OJT partner.</p>
                 </div>
             )}
