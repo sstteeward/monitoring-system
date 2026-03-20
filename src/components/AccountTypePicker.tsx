@@ -17,7 +17,7 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
     return (
         <div style={{
             minHeight: '100vh',
-            width: '100vw',
+            width: '100%',
             background: 'var(--bg-page)',
             display: 'flex',
             alignItems: 'center',
@@ -48,7 +48,7 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                     <h1 style={{ color: 'var(--text-bright)', fontSize: '1.6rem', fontWeight: 800, margin: '0 0 0.5rem' }}>
                         What's your role?
                     </h1>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem', margin: 0 }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0 }}>
                         Choose the account type that best describes you.
                     </p>
                 </div>
@@ -62,7 +62,7 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                         style={{
                             display: 'flex', alignItems: 'center', gap: '1.25rem',
                             padding: '1.25rem 1.5rem', borderRadius: 16, cursor: 'pointer',
-                            border: `2px solid ${selected === 'student' ? '#10b981' : 'rgba(255,255,255,0.08)'}`,
+                            border: `2px solid ${selected === 'student' ? '#10b981' : 'var(--border)'}`,
                             background: selected === 'student' ? 'rgba(16,185,129,0.12)' : 'var(--bg-card)',
                             boxShadow: selected === 'student' ? '0 4px 20px rgba(16,185,129,0.15)' : 'none',
                             textAlign: 'left', transition: 'all 0.2s', fontFamily: 'inherit',
@@ -72,7 +72,7 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                             width: 52, height: 52, borderRadius: 14, flexShrink: 0,
                             background: selected === 'student' ? 'rgba(16,185,129,0.25)' : 'var(--bg-elevated)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: selected === 'student' ? '#34d399' : 'rgba(255,255,255,0.35)',
+                            color: selected === 'student' ? '#34d399' : 'var(--text-dim)',
                             transition: 'all 0.2s',
                         }}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -81,16 +81,16 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                             </svg>
                         </div>
                         <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '1rem', fontWeight: 700, color: selected === 'student' ? '#fff' : 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
+                            <div style={{ fontSize: '1rem', fontWeight: 700, color: selected === 'student' ? 'var(--text-bright)' : 'var(--text-primary)', marginBottom: '0.25rem' }}>
                                 Student
                             </div>
-                            <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                                 Track OJT hours, submit journals & documents
                             </div>
                         </div>
                         <div style={{
                             width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                            border: `2px solid ${selected === 'student' ? '#10b981' : 'rgba(255,255,255,0.2)'}`,
+                            border: `2px solid ${selected === 'student' ? '#10b981' : 'var(--border)'}`,
                             background: selected === 'student' ? '#10b981' : 'transparent',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             transition: 'all 0.2s',
@@ -109,7 +109,7 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                         style={{
                             display: 'flex', alignItems: 'center', gap: '1.25rem',
                             padding: '1.25rem 1.5rem', borderRadius: 16, cursor: 'pointer',
-                            border: `2px solid ${selected === 'coordinator' ? '#10b981' : 'rgba(255,255,255,0.08)'}`,
+                            border: `2px solid ${selected === 'coordinator' ? '#10b981' : 'var(--border)'}`,
                             background: selected === 'coordinator' ? 'rgba(16,185,129,0.12)' : 'var(--bg-card)',
                             boxShadow: selected === 'coordinator' ? '0 4px 20px rgba(16,185,129,0.15)' : 'none',
                             textAlign: 'left', transition: 'all 0.2s', fontFamily: 'inherit',
@@ -119,7 +119,7 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                             width: 52, height: 52, borderRadius: 14, flexShrink: 0,
                             background: selected === 'coordinator' ? 'rgba(16,185,129,0.25)' : 'var(--bg-elevated)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: selected === 'coordinator' ? '#34d399' : 'rgba(255,255,255,0.35)',
+                            color: selected === 'coordinator' ? '#34d399' : 'var(--text-dim)',
                             transition: 'all 0.2s',
                         }}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -130,16 +130,16 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                             </svg>
                         </div>
                         <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '1rem', fontWeight: 700, color: selected === 'coordinator' ? '#fff' : 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
+                            <div style={{ fontSize: '1rem', fontWeight: 700, color: selected === 'coordinator' ? 'var(--text-bright)' : 'var(--text-primary)', marginBottom: '0.25rem' }}>
                                 Coordinator
                             </div>
-                            <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                                 Supervise students, review submissions &amp; manage departments
                             </div>
                         </div>
                         <div style={{
                             width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                            border: `2px solid ${selected === 'coordinator' ? '#10b981' : 'rgba(255,255,255,0.2)'}`,
+                            border: `2px solid ${selected === 'coordinator' ? '#10b981' : 'var(--border)'}`,
                             background: selected === 'coordinator' ? '#10b981' : 'transparent',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             transition: 'all 0.2s',

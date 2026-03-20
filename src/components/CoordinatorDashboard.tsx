@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { profileService, type Profile } from '../services/profileService';
 import { coordinatorService } from '../services/coordinatorService';
@@ -41,7 +42,6 @@ const CoordinatorDashboard: React.FC = () => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [currentView, setCurrentView] = useState<View>('overview');
     const [studentFilter, setStudentFilter] = useState<'all' | 'assigned' | 'completed' | 'in-progress' | 'at-risk'>('all');
     const [approvalsTab, setApprovalsTab] = useState<'documents' | 'journals' | 'dtr'>('documents');
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
@@ -49,6 +49,13 @@ const CoordinatorDashboard: React.FC = () => {
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
     useTheme();
+    const routerNavigate = useNavigate();
+    const location = useLocation();
+
+    // Determine current view from pathname
+    const lastPart = location.pathname.split('/').pop();
+    const currentView: View = (lastPart === 'coordinator' ? 'overview' : lastPart as View) || 'overview';
+
     const [pendingDocsCount, setPendingDocsCount] = useState(0);
     const [companyCount, setCompanyCount] = useState(0);
     const [pendingCompanyRequestsCount, setPendingCompanyRequestsCount] = useState(0);
@@ -57,26 +64,6 @@ const CoordinatorDashboard: React.FC = () => {
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
         loadCoordinatorData();
-    }, []);
-
-    useEffect(() => {
-        const handleHashChange = () => {
-            const hash = window.location.hash;
-            if (hash.startsWith('#/coordinator/')) {
-                const slug = hash.replace('#/coordinator/', '');
-                const validSlugs = ['overview', 'companies', 'students', 'approvals', 'announcement', 'departments', 'profile', 'settings'];
-                if (validSlugs.includes(slug)) {
-                    setCurrentView(slug as any);
-                }
-            } else if (hash === '#/coordinator') {
-                setCurrentView('overview');
-            }
-        };
-
-        window.addEventListener('hashchange', handleHashChange);
-        handleHashChange(); // Initial check
-
-        return () => window.removeEventListener('hashchange', handleHashChange);
     }, []);
 
     useEffect(() => {
@@ -116,8 +103,8 @@ const CoordinatorDashboard: React.FC = () => {
         }
     };
 
-    const navigate = (view: View, param?: any) => {
-        window.location.hash = `#/coordinator/${view}`;
+    const navigateTo = (view: View, param?: any) => {
+        routerNavigate(view === 'overview' ? '/coordinator' : `/coordinator/${view}`);
 
         if (view === 'students' && param) {
             setStudentFilter(param);
@@ -217,7 +204,7 @@ const CoordinatorDashboard: React.FC = () => {
                 </div>
 
                 {/* User block */}
-                <div className="sidebar-user" onClick={() => navigate('profile')}>
+                <div className="sidebar-user" onClick={() => navigateTo('profile')}>
                     <div className="sidebar-avatar cd-avatar" style={{
                         background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
                         color: profile?.avatar_url ? 'transparent' : undefined
@@ -240,7 +227,7 @@ const CoordinatorDashboard: React.FC = () => {
                                     <div
                                         key={item.id}
                                         className={`sidebar-nav-item ${currentView === item.id ? 'active' : ''}`}
-                                        onClick={() => navigate(item.id)}
+                                        onClick={() => navigateTo(item.id)}
                                     >
                                         <span className="nav-icon" style={{ position: 'relative' }}>
                                             {item.icon}
@@ -300,7 +287,7 @@ const CoordinatorDashboard: React.FC = () => {
                     <div
                         className={`sidebar-nav-item ${currentView === 'settings' ? 'active' : ''}`}
                         title="Settings"
-                        onClick={() => { navigate('settings'); }}
+                        onClick={() => { navigateTo('settings'); }}
                     >
                         <span className="nav-icon">{Icon.settings}</span>
                         <span className="nav-text">Settings</span>
@@ -332,14 +319,14 @@ const CoordinatorDashboard: React.FC = () => {
                         {pendingDocsCount > 0 && (
                             <button
                                 className="cd-alert-btn"
-                                onClick={() => navigate('approvals')}
+                                onClick={() => navigateTo('approvals')}
                                 title={`${pendingDocsCount} documents pending review`}
                             >
                                 <span className="cd-alert-dot" />
                                 {pendingDocsCount} pending
                             </button>
                         )}
-                        <div className="cd-topbar-avatar" onClick={() => navigate('profile')} title="Profile" style={{
+                        <div className="cd-topbar-avatar" onClick={() => navigateTo('profile')} title="Profile" style={{
                             background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
                             color: profile?.avatar_url ? 'transparent' : undefined
                         }}>
@@ -357,7 +344,7 @@ const CoordinatorDashboard: React.FC = () => {
                             pendingDocsCount={pendingDocsCount}
                             companyCount={companyCount}
                             stats={overviewStats}
-                            navigate={navigate}
+                            navigateTo={navigateTo}
                         />
                     )}
                     {currentView === 'companies' && <CompaniesView />}
@@ -399,10 +386,10 @@ interface OverviewProps {
     pendingDocsCount: number;
     companyCount: number;
     stats: any;
-    navigate: (v: View, filter?: string) => void;
+    navigateTo: (v: View, filter?: string) => void;
 }
 
-const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingDocsCount, companyCount, stats, navigate }) => {
+const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingDocsCount, companyCount, stats, navigateTo }) => {
     const quickStats = stats ? [
         {
             label: 'Total Assigned',
@@ -411,7 +398,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: '#3b82f6',
             glow: 'rgba(59,130,246,0.15)',
             icon: Icon.users,
-            action: () => navigate('students', 'assigned'),
+            action: () => navigateTo('students', 'assigned'),
         },
         {
             label: 'Completed',
@@ -420,7 +407,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: '#10b981',
             glow: 'rgba(16,185,129,0.15)',
             icon: Icon.check,
-            action: () => navigate('students', 'completed'),
+            action: () => navigateTo('students', 'completed'),
         },
         {
             label: 'In Progress',
@@ -429,7 +416,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: 'var(--primary)',
             glow: 'rgba(16,185,129,0.15)',
             icon: Icon.clock,
-            action: () => navigate('students', 'in-progress'),
+            action: () => navigateTo('students', 'in-progress'),
         },
         {
             label: 'At-Risk Students',
@@ -438,7 +425,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: '#ef4444',
             glow: 'rgba(239,68,68,0.15)',
             icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
-            action: () => navigate('students', 'at-risk'),
+            action: () => navigateTo('students', 'at-risk'),
         },
         {
             label: 'Reports Approval',
@@ -447,7 +434,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: stats.pendingApprovals > 0 ? '#f59e0b' : '#10b981',
             glow: stats.pendingApprovals > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
             icon: Icon.file,
-            action: () => navigate('approvals', 'journals'),
+            action: () => navigateTo('approvals', 'journals'),
         },
         {
             label: 'Time Log Approvals',
@@ -456,7 +443,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             color: stats.pendingTimeLogs > 0 ? '#f59e0b' : '#10b981',
             glow: stats.pendingTimeLogs > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
             icon: Icon.clock,
-            action: () => navigate('approvals', 'dtr'),
+            action: () => navigateTo('approvals', 'dtr'),
         },
     ] : [];
 
@@ -473,8 +460,8 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                             <p className="cd-welcome-sub">Here's your SIL program snapshot for today.</p>
                         </div>
                         <div className="cd-welcome-actions">
-                            <button className="btn btn-primary cd-btn-light" onClick={() => navigate('students')}>View Students</button>
-                            <button className="btn btn-secondary cd-btn-ghost" onClick={() => navigate('announcement')}>Post Announcement</button>
+                            <button className="btn btn-primary cd-btn-light" onClick={() => navigateTo('students')}>View Students</button>
+                            <button className="btn btn-secondary cd-btn-ghost" onClick={() => navigateTo('announcement')}>Post Announcement</button>
                         </div>
                     </div>
                 </div>
@@ -554,11 +541,11 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                 <div className="cd-card cd-overview-dynamic-card" style={{ marginTop: '1rem' }}>
                     <div className="cd-card-header">
                         <span className="cd-card-title">Recent Submissions</span>
-                        <button className="cd-card-action" onClick={() => navigate('approvals')} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.85rem' }}>View All</button>
+                        <button className="cd-card-action" onClick={() => navigateTo('approvals')} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.85rem' }}>View All</button>
                     </div>
                     <div className="cd-card-body cd-scroll-body cd-dynamic-body" style={{ padding: 0 }}>
                         {stats?.recentActivity && stats.recentActivity.length > 0 ? stats.recentActivity.map((act: any) => (
-                            <div key={act.id} style={{ display: 'flex', gap: '1rem', padding: '1rem', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }} onClick={() => navigate('approvals')} className="hover-row">
+                            <div key={act.id} style={{ display: 'flex', gap: '1rem', padding: '1rem', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }} onClick={() => navigateTo('approvals')} className="hover-row">
                                 {act.student_avatar ? (
                                     <img src={act.student_avatar} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
                                 ) : (
@@ -612,7 +599,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                         ].map(action => (
                             <button
                                 key={action.label}
-                                onClick={() => navigate(action.view)}
+                                onClick={() => navigateTo(action.view)}
                                 className="cd-quick-action-btn"
                                 style={{
                                     display: 'flex',

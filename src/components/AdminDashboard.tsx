@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { profileService, type Profile } from '../services/profileService';
 import { adminService } from '../services/adminService';
 import { useTheme } from '../contexts/ThemeContext';
@@ -8,11 +9,13 @@ import AdminProfileView from './AdminProfileView';
 import AdminFeedbackView from './AdminFeedbackView';
 import AdminAuditLogView from './AdminAuditLogView';
 import AdminDepartmentsView from './AdminDepartmentsView';
+import AdminCoursesView from './AdminCoursesView';
 import AdminRoleManagementView from './AdminRoleManagementView';
 import AdminBackupRestoreView from './AdminBackupRestoreView';
 import AdminSystemHealthView from './AdminSystemHealthView';
 import ApprovalsView from './ApprovalsView';
 import StudentsView from './StudentsView';
+import CustomSelect from './CustomSelect';
 import './AdminDashboard.css';
 
 // --- Icons (Same SVGs as coordinator, but with admin colors) ---
@@ -25,9 +28,11 @@ const Icon = {
     feedback: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2-2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>,
 };
 
-type View = 'overview' | 'users' | 'roles' | 'companies' | 'profile' | 'settings' | 'feedback' | 'audit' | 'departments' | 'backup' | 'health' | 'approvals' | 'students';
+type View = 'overview' | 'users' | 'roles' | 'companies' | 'profile' | 'settings' | 'feedback' | 'audit' | 'departments' | 'courses' | 'backup' | 'health' | 'approvals' | 'students';
 
 const AdminDashboard: React.FC = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentView, setCurrentView] = useState<View>('overview');
@@ -44,24 +49,20 @@ const AdminDashboard: React.FC = () => {
     useTheme();
 
     useEffect(() => {
-        const handleHashChange = () => {
-            const hash = window.location.hash;
-            if (hash.startsWith('#/admin/')) {
-                const slug = hash.replace('#/admin/', '');
-                const validSlugs = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'departments', 'backup', 'health', 'approvals', 'students'];
-                if (validSlugs.includes(slug)) {
-                    setCurrentView(slug as any);
-                }
-            } else if (hash === '#/admin') {
-                setCurrentView('overview');
-            }
-        };
+        const path = location.pathname.replace('/admin/', '').replace('/admin', '');
+        const validSlugs: View[] = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'departments', 'courses', 'backup', 'health', 'approvals', 'students'];
+        
+        if (validSlugs.includes(path as View)) {
+            setCurrentView(path as View);
+        } else if (location.pathname === '/admin' || location.pathname === '/admin/') {
+            setCurrentView('overview');
+        }
+    }, [location]);
 
-        window.addEventListener('hashchange', handleHashChange);
-        handleHashChange(); // Initial check
-
-        return () => window.removeEventListener('hashchange', handleHashChange);
-    }, []);
+    const navigateTo = (view: View) => {
+        navigate(view === 'overview' ? '/admin' : `/admin/${view}`);
+        setIsMobileMenuOpen(false);
+    };
 
     useEffect(() => {
         loadAdminData();
@@ -148,7 +149,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="admin-sidebar-user" onClick={() => { setCurrentView('profile'); setIsMobileMenuOpen(false); }}>
+                    <div className="admin-sidebar-user" onClick={() => navigateTo('profile')}>
                         <div className="admin-user-avatar">
                             {initials}
                         </div>
@@ -159,47 +160,51 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <nav className="admin-nav">
-                        <div className={`admin-nav-item ${currentView === 'overview' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/overview'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'overview' ? 'active' : ''}`} onClick={() => navigateTo('overview')}>
                             <span className="nav-icon">{Icon.grid}</span> <span className="nav-text">Overview</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'users' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/users'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'users' ? 'active' : ''}`} onClick={() => navigateTo('users')}>
                             <span className="nav-icon">{Icon.users}</span> <span className="nav-text">User Management</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'roles' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/roles'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'roles' ? 'active' : ''}`} onClick={() => navigateTo('roles')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
                             <span className="nav-text">Role Permissions</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'companies' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/companies'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'companies' ? 'active' : ''}`} onClick={() => navigateTo('companies')}>
                             <span className="nav-icon">{Icon.building}</span> <span className="nav-text">Companies</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'approvals' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/approvals'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'approvals' ? 'active' : ''}`} onClick={() => navigateTo('approvals')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="16 13 8 13"></polyline><polyline points="16 17 8 17"></polyline><polyline points="10 9 9 9 8 9"></polyline></svg></span>
                             <span className="nav-text">Approvals</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'students' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/students'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'students' ? 'active' : ''}`} onClick={() => navigateTo('students')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
                             <span className="nav-text">All Students</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'departments' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/departments'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'departments' ? 'active' : ''}`} onClick={() => navigateTo('departments')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg></span>
                             <span className="nav-text">Departments</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'feedback' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/feedback'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'courses' ? 'active' : ''}`} onClick={() => navigateTo('courses')}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>
+                            <span className="nav-text">Courses</span>
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'feedback' ? 'active' : ''}`} onClick={() => navigateTo('feedback')}>
                             <span className="nav-icon">{Icon.feedback}</span>
                             <span className="nav-text">User Feedback</span>
                             {newFeedbackCount > 0 && (
                                 <span className="nav-badge">{newFeedbackCount}</span>
                             )}
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'audit' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/audit'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'audit' ? 'active' : ''}`} onClick={() => navigateTo('audit')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
                             <span className="nav-text">Audit Logs</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'backup' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/backup'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'backup' ? 'active' : ''}`} onClick={() => navigateTo('backup')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
                             <span className="nav-text">Backup & Restore</span>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'health' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/health'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'health' ? 'active' : ''}`} onClick={() => navigateTo('health')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
                             <span className="nav-text">System Health</span>
                         </div>
@@ -230,7 +235,7 @@ const AdminDashboard: React.FC = () => {
                                 <span className="nav-text">Layout</span>
                             </div>
                         </div>
-                        <div className={`admin-nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => { window.location.hash = '#/admin/settings'; setIsMobileMenuOpen(false); }}>
+                        <div className={`admin-nav-item ${currentView === 'settings' ? 'active' : ''}`} onClick={() => navigateTo('settings')}>
                             <span className="nav-icon">{Icon.settings}</span> <span className="nav-text">Admin Settings</span>
                         </div>
                     </div>
@@ -252,6 +257,7 @@ const AdminDashboard: React.FC = () => {
                                     {currentView === 'approvals' && 'Approvals'}
                                     {currentView === 'students' && 'All Students'}
                                     {currentView === 'departments' && 'Departments'}
+                                    {currentView === 'courses' && 'Courses'}
                                     {currentView === 'audit' && 'Audit Logs'}
                                     {currentView === 'backup' && 'Backup & Restore'}
                                     {currentView === 'health' && 'System Health'}
@@ -323,7 +329,7 @@ const AdminDashboard: React.FC = () => {
                                 <div className="admin-table-card">
                                     <div className="admin-table-header">
                                         <div className="admin-table-title">Recent User Registrations</div>
-                                        <button className="role-select" onClick={() => { window.location.hash = '#/admin/users'; }}>View All</button>
+                                        <button className="role-select" onClick={() => navigateTo('users')}>View All</button>
                                     </div>
                                     <table className="admin-table">
                                         <thead>
@@ -387,18 +393,17 @@ const AdminDashboard: React.FC = () => {
                                                             {p.account_type}
                                                         </span>
                                                     </td>
-                                                    <td>
-                                                        <select
-                                                            className="role-select"
+                                                <td>
+                                                        <CustomSelect
                                                             value={p.account_type}
                                                             disabled={updatingUserId === p.auth_user_id}
-                                                            style={{ background: 'var(--admin-bg)', color: 'var(--admin-text-primary)' }}
-                                                            onChange={(e) => handleRoleUpdate(p.auth_user_id, e.target.value as 'student' | 'coordinator' | 'admin')}
-                                                        >
-                                                            <option value="student">Student</option>
-                                                            <option value="coordinator">Coordinator</option>
-                                                            <option value="admin">Admin</option>
-                                                        </select>
+                                                            onChange={(val) => handleRoleUpdate(p.auth_user_id, val as 'student' | 'coordinator' | 'admin')}
+                                                            options={[
+                                                                { value: 'student', label: 'Student' },
+                                                                { value: 'coordinator', label: 'Coordinator' },
+                                                                { value: 'admin', label: 'Admin' },
+                                                            ]}
+                                                        />
                                                     </td>
                                                     <td style={{ textAlign: 'right' }}>
                                                         <button
@@ -459,6 +464,12 @@ const AdminDashboard: React.FC = () => {
                         {currentView === 'departments' && (
                             <div className="fade-in">
                                 <AdminDepartmentsView />
+                            </div>
+                        )}
+
+                        {currentView === 'courses' && (
+                            <div className="fade-in">
+                                <AdminCoursesView />
                             </div>
                         )}
 

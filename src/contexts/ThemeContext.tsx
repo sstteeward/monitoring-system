@@ -7,19 +7,27 @@ interface ThemeContextType {
     setTheme: (theme: Theme) => void;
 }
 
-const THEME_KEY = 'cd-theme';
-
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const getKey = (userId?: string) => userId ? `cd-theme-${userId}` : 'cd-theme';
+
+export const ThemeProvider: React.FC<{ userId?: string; children: React.ReactNode }> = ({ userId, children }) => {
     const [theme, setThemeState] = useState<Theme>(() => {
-        const saved = localStorage.getItem(THEME_KEY);
+        const saved = localStorage.getItem(getKey(userId));
         return saved === 'light' ? 'light' : 'dark'; // default: dark
     });
 
+    // When the userId changes (different user logs in), reload their saved theme preference
+    useEffect(() => {
+        const saved = localStorage.getItem(getKey(userId));
+        const resolved: Theme = saved === 'light' ? 'light' : 'dark';
+        setThemeState(resolved);
+        document.documentElement.setAttribute('data-theme', resolved);
+    }, [userId]);
+
     const setTheme = (newTheme: Theme) => {
         setThemeState(newTheme);
-        localStorage.setItem(THEME_KEY, newTheme);
+        localStorage.setItem(getKey(userId), newTheme);
         document.documentElement.setAttribute('data-theme', newTheme);
     };
 

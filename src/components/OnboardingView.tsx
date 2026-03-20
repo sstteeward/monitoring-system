@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { adminService } from '../services/adminService';
 import type { Profile } from '../services/profileService';
+import CustomSelect from './CustomSelect';
 
 interface Company { id: string; name: string; address?: string; }
 
@@ -30,11 +32,15 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [requestedName, setRequestedName] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [step, setStep] = useState<1 | 2>(1);
+    const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+    const [courses, setCourses] = useState<{ id: string; name: string; description?: string }[]>([]);
 
     useEffect(() => {
         supabase.from('companies').select('id, name, address').order('name').then(({ data }) => {
             setCompanies(data ?? []);
         });
+        adminService.getDepartments().then(setDepartments);
+        adminService.getCourses().then(setCourses);
     }, []);
 
     const filtered = companies.filter(c =>
@@ -127,7 +133,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     return (
         <div style={{
             minHeight: '100vh',
-            width: '100vw',
+            width: '100%',
             background: 'var(--bg-page)',
             display: 'flex',
             alignItems: 'center',
@@ -191,7 +197,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                     {/* ── Step 1: Personal Info ── */}
                     {step === 1 && (
                         <form onSubmit={handleNext}>
-                            <div style={{ maxHeight: '55vh', overflowY: 'auto', padding: '4px 0.5rem 4px 4px', margin: '-4px -0.5rem 1.25rem -4px' }}>
+                            <div style={{ marginBottom: '1.25rem' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                                     <div>
                                         <label style={labelSt}>First Name *</label>
@@ -222,25 +228,41 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                                     <div>
                                         <label style={labelSt}>Course *</label>
-                                        <input style={inputSt} value={course} onChange={e => setCourse(e.target.value)} placeholder="e.g. BSIT" required />
+                                        <CustomSelect
+                                            value={course}
+                                            onChange={setCourse}
+                                            placeholder="Select Course"
+                                            options={courses.map(c => ({
+                                                value: c.description || c.name,
+                                                label: c.description ? `${c.description} — ${c.name}` : c.name,
+                                            }))}
+                                        />
                                     </div>
                                     <div>
                                         <label style={labelSt}>Department *</label>
-                                        <input style={inputSt} value={department} onChange={e => setDepartment(e.target.value)} placeholder="e.g. CCS" required />
+                                        <CustomSelect
+                                            value={department}
+                                            onChange={setDepartment}
+                                            placeholder="Select Department"
+                                            options={departments.map(d => ({ value: d.name, label: d.name }))}
+                                        />
                                     </div>
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                                     <div>
                                         <label style={labelSt}>Year Level *</label>
-                                        <select style={{...inputSt, appearance: 'auto', cursor: 'pointer'}} value={yearLevel} onChange={e => setYearLevel(e.target.value)} required>
-                                            <option value="" disabled style={{ background: '#1e1e2d', color: '#fff' }}>Select Year</option>
-                                            <option value="1st Year" style={{ background: '#1e1e2d', color: '#fff' }}>1st Year</option>
-                                            <option value="2nd Year" style={{ background: '#1e1e2d', color: '#fff' }}>2nd Year</option>
-                                            <option value="3rd Year" style={{ background: '#1e1e2d', color: '#fff' }}>3rd Year</option>
-                                            <option value="4th Year" style={{ background: '#1e1e2d', color: '#fff' }}>4th Year</option>
-                                            <option value="5th Year" style={{ background: '#1e1e2d', color: '#fff' }}>5th Year</option>
-                                        </select>
+                                        <CustomSelect
+                                            value={yearLevel}
+                                            onChange={setYearLevel}
+                                            placeholder="Select Year"
+                                            options={[
+                                                { value: '1st Year', label: '1st Year' },
+                                                { value: '2nd Year', label: '2nd Year' },
+                                                { value: '3rd Year', label: '3rd Year' },
+                                                { value: '4th Year', label: '4th Year' },
+                                            ]}
+                                        />
                                     </div>
                                     <div>
                                         <label style={labelSt}>Section *</label>
@@ -253,7 +275,6 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     <input style={inputSt} type="number" min={0} value={requiredHours}
                                         onChange={e => setRequiredHours(Number(e.target.value))} />
                                     <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                                        Your program's required internship hours (default: 400)
                                     </p>
                                 </div>
                             </div>
@@ -400,6 +421,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         </div>
     );
 };
+
 
 // Shared micro-styles
 const labelSt: React.CSSProperties = {

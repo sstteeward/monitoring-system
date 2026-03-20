@@ -514,6 +514,7 @@ html[data-theme="light"] .journal-search-input::placeholder {
 .journal-carousel-container {
     width: 100%;
     overflow-x: auto;
+    padding-top: 0.5rem;
     padding-bottom: 0.5rem;
     
     /* Custom scrollbar for horizontal scroll */

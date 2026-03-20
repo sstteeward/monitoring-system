@@ -23,6 +23,12 @@ export interface Department {
     description: string;
 }
 
+export interface Course {
+    id: string;
+    name: string;
+    description?: string;
+}
+
 export interface AuditLog {
     id: string;
     user_id: string;
@@ -317,6 +323,33 @@ export const adminService = {
         if (error) throw error;
         await this.logAction('create_department', 'departments', data.id, { name, description });
         return data as Department;
+    },
+
+    // --- Courses ---
+    async getCourses() {
+        const { data, error } = await supabase
+            .from('courses')
+            .select('*')
+            .order('name', { ascending: true });
+        if (error) return [];
+        return data as Course[];
+    },
+
+    async createCourse(name: string, description?: string) {
+        const { data, error } = await supabase
+            .from('courses')
+            .insert([{ name, description }])
+            .select()
+            .single();
+        if (error) throw error;
+        await this.logAction('create_course', 'courses', data.id, { name });
+        return data as Course;
+    },
+
+    async deleteCourse(id: string, name: string) {
+        const { error } = await supabase.from('courses').delete().eq('id', id);
+        if (error) throw error;
+        await this.logAction('delete_course', 'courses', id, { name });
     },
 
     // --- Enterprise Features: Audit Logging ---

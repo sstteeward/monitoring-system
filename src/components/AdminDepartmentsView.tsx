@@ -3,6 +3,7 @@ import { adminService, type Department } from '../services/adminService';
 import type { Profile } from '../services/profileService';
 import { supabase } from '../lib/supabaseClient';
 import { TableSkeleton, CardSkeleton } from './Skeletons';
+import CustomSelect from './CustomSelect';
 
 const AdminDepartmentsView: React.FC = () => {
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -214,18 +215,17 @@ const AdminDepartmentsView: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <select
-                                    className="role-select"
+                                <CustomSelect
                                     value={coord.department_id || ''}
-                                    onChange={(e) => handleAssignCoordinator(coord.auth_user_id, e.target.value)}
+                                    onChange={(val) => handleAssignCoordinator(coord.auth_user_id, val)}
                                     disabled={assigningUserId === coord.auth_user_id}
-                                    style={{ width: '100%', marginTop: '0.5rem' }}
-                                >
-                                    <option value="">-- No Department Assigned --</option>
-                                    {departments.map(d => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
-                                    ))}
-                                </select>
+                                    placeholder="-- No Department Assigned --"
+                                    options={[
+                                        { value: '', label: '-- No Department Assigned --' },
+                                        ...departments.map(d => ({ value: d.id, label: d.name }))
+                                    ]}
+                                    style={{ marginTop: '0.5rem' }}
+                                />
                             </div>
                         ))}
                         {coordinators.length === 0 && (

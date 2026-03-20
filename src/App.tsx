@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import AuthSignup from "./components/AuthSignup";
 import StudentDashboard from "./components/StudentDashboard";
@@ -9,13 +10,10 @@ import AccountTypePicker from "./components/AccountTypePicker";
 import { supabase } from "./lib/supabaseClient";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
-
-function App() {
+function AppContent() {
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [currentHash, setCurrentHash] = useState(window.location.hash);
-  // True when the user just created an account and hasn't picked a type yet
   const [needsTypePick, setNeedsTypePick] = useState(false);
 
   useEffect(() => {
@@ -43,25 +41,15 @@ function App() {
       }
     });
 
-    // Listen for hash changes
-    const onHashChange = () => setCurrentHash(window.location.hash);
-    window.addEventListener("hashchange", onHashChange);
-
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener("hashchange", onHashChange);
     };
   }, []);
 
-  /**
-   * A freshly created account (< 2 minutes old) that is still 'student' by
-   * default needs the type-picker screen before entering the app.
-   */
   const checkNeedsTypePick = (session: any) => {
     const createdAt = session?.user?.created_at;
     if (!createdAt) return;
     const ageMs = Date.now() - new Date(createdAt).getTime();
-    // Show type picker only for accounts created within the last 2 minutes
     if (ageMs < 2 * 60 * 1000) {
       setNeedsTypePick(true);
     }
@@ -77,8 +65,6 @@ function App() {
 
       if (!error && data) {
         setProfile(data);
-        // If they already have a non-default type set, skip the picker
-        // (e.g. coordinator approved, or admin)
         if (data.account_type !== 'student') {
           setNeedsTypePick(false);
         }
@@ -101,10 +87,8 @@ function App() {
     setNeedsTypePick(false);
 
     if (isCoordinator) {
-      // Sign them out — coordinator needs admin approval first
       await supabase.auth.signOut();
     } else {
-      // Refresh profile so they get routed to their dashboard/onboarding
       await fetchProfile(session.user.id);
     }
   };
@@ -113,39 +97,49 @@ function App() {
     return <div style={{ color: 'var(--text-muted)', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
   }
 
-  // Determine which dashboard to show based on account type or hash slug
-  const renderDashboard = () => {
-    // If coordinator is inactive, show pending approval screen
-    if (profile?.account_type === 'coordinator' && profile?.is_active === false) {
-      return <PendingApprovalView />;
-    }
+  if (!session) {
+    return <AuthSignup />;
+  }
 
-    // Priority: Hash Slugs (Override)
-    if (currentHash.startsWith('#/admin')) {
-      return <AdminDashboard />;
-    }
-    if (currentHash.startsWith('#/coordinator')) {
-      return <CoordinatorDashboard />;
-    }
+  if (needsTypePick) {
+    return <AccountTypePicker onPick={handleTypePicked} />;
+  }
 
-    // Default: Account Type
-    if (profile?.account_type === 'admin') {
-      return <AdminDashboard />;
-    }
-    if (profile?.account_type === 'coordinator') {
-      return <CoordinatorDashboard />;
-    }
-    return <StudentDashboard />;
-  };
+  if (profile?.account_type === 'coordinator' && profile?.is_active === false) {
+    return <PendingApprovalView />;
+  }
 
   return (
-    <ThemeProvider>
-      {!session
-        ? <AuthSignup />
-        : needsTypePick
-          ? <AccountTypePicker onPick={handleTypePicked} />
-          : renderDashboard()
-      }
+    <Routes>
+      <Route path="/admin/*" element={profile?.account_type === 'admin' ? <AdminDashboard /> : <Navigate to="/" />} />
+      <Route path="/coordinator/*" element={profile?.account_type === 'coordinator' ? <CoordinatorDashboard /> : <Navigate to="/" />} />
+      <Route path="/*" element={
+        profile?.account_type === 'admin' ? <Navigate to="/admin" /> :
+        profile?.account_type === 'coordinator' ? <Navigate to="/coordinator" /> :
+        <StudentDashboard />
+      } />
+    </Routes>
+  );
+}
+
+function App() {
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return (
+    <ThemeProvider userId={userId}>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </ThemeProvider>
   );
 }

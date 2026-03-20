@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { profileService, type Profile } from '../services/profileService';
@@ -15,6 +16,8 @@ import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
 import './StudentDashboard.css';
 
+type View = 'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'announcement';
+
 const StudentDashboard: React.FC = () => {
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -25,13 +28,19 @@ const StudentDashboard: React.FC = () => {
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
     const [isSidebarMenuOpen, setIsSidebarMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [currentView, setCurrentView] = useState<'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'announcement'>('dashboard');
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     const [hasNewAnnouncements, setHasNewAnnouncements] = useState(false);
     const [needsOnboarding, setNeedsOnboarding] = useState(false);
     const [showWelcome, setShowWelcome] = useState(false);
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const timerRef = useRef<number | null>(null);
+
+    const routerNavigate = useNavigate();
+    const location = useLocation();
+
+    // Determine current view from pathname
+    const lastPart = location.pathname.split('/').pop();
+    const currentView: View = (lastPart === '' || lastPart === 'monitoring-system' || lastPart === undefined ? 'dashboard' : lastPart as View) || 'dashboard';
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -46,26 +55,6 @@ const StudentDashboard: React.FC = () => {
 
         checkAnnouncements();
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, []);
-
-    useEffect(() => {
-        const handleHashChange = () => {
-            const hash = window.location.hash;
-            if (hash.startsWith('#/')) {
-                const slug = hash.replace('#/', '');
-                const validSlugs = ['dashboard', 'timesheets', 'journal', 'performance', 'profile', 'settings', 'documents', 'announcement'];
-                if (validSlugs.includes(slug)) {
-                    setCurrentView(slug as any);
-                }
-            } else if (!hash) {
-                setCurrentView('dashboard');
-            }
-        };
-
-        window.addEventListener('hashchange', handleHashChange);
-        handleHashChange(); // Initial check
-
-        return () => window.removeEventListener('hashchange', handleHashChange);
     }, []);
 
     useEffect(() => {
@@ -211,8 +200,8 @@ const StudentDashboard: React.FC = () => {
         finally { setLoading(false); }
     };
 
-    const navigateTo = (view: typeof currentView) => {
-        window.location.hash = `#/${view}`;
+    const navigateTo = (view: View) => {
+        routerNavigate(view === 'dashboard' ? '/' : `/${view}`);
         setIsMobileMenuOpen(false);
     };
 
@@ -277,6 +266,19 @@ const StudentDashboard: React.FC = () => {
             ? formatSlug(user.email.split('@')[0])
             : 'User';
 
+    const renderView = () => {
+        switch (currentView) {
+            case 'timesheets': return <TimesheetView />;
+            case 'performance': return <PerformanceView />;
+            case 'profile': return <ProfileView onProfileUpdated={setProfile} />;
+            case 'settings': return <SettingsView />;
+            case 'journal': return <JournalView />;
+            case 'announcement': return <AnnouncementsView />;
+            case 'documents': return <DocumentsView />;
+            default: return null;
+        }
+    };
+
     if (loading) {
         return (
             <div className="dashboard-container" style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
@@ -333,7 +335,7 @@ const StudentDashboard: React.FC = () => {
                 </div>
 
                 {/* User */}
-                <div className="sidebar-user" title={user?.email} onClick={() => { setCurrentView('profile'); closeMobileMenu(); }}>
+                <div className="sidebar-user" title={user?.email} onClick={() => { navigateTo('profile'); }}>
                     <div className="sidebar-avatar" style={{
                         background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
                         color: profile?.avatar_url ? 'transparent' : undefined
@@ -473,7 +475,7 @@ const StudentDashboard: React.FC = () => {
                     <div
                         className="sidebar-nav-item"
                         title="Submit Feedback"
-                        onClick={() => { setIsFeedbackModalOpen(true); closeMobileMenu(); }}
+                        onClick={() => { setIsFeedbackModalOpen(true); setIsMobileMenuOpen(false); }}
                     >
                         <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg></span>
                         <span className="nav-text">Submit Feedback</span>
@@ -694,27 +696,8 @@ const StudentDashboard: React.FC = () => {
                                 </div>
                             </div>
                         </>
-                    ) : currentView === 'timesheets' ? (
-                        <TimesheetView />
-                    ) : currentView === 'journal' ? (
-                        <JournalView />
-                    ) : currentView === 'performance' ? (
-                        <PerformanceView />
-                    ) : currentView === 'documents' ? (
-                        <DocumentsView />
-                    ) : currentView === 'announcement' ? (
-                        <AnnouncementsView />
-                    ) : currentView === 'profile' ? (
-                        <ProfileView onProfileUpdated={setProfile} />
-                    ) : currentView === 'settings' ? (
-                        <SettingsView />
                     ) : (
-                        <div className="view-placeholder">
-                            <div style={{ textAlign: 'center', color: '#64748b', padding: '4rem 0' }}>
-                                <h3>View Not Found</h3>
-                                <p style={{ marginTop: '0.5rem' }}>This page does not exist or has been moved.</p>
-                            </div>
-                        </div>
+                        renderView()
                     )}
                 </div>
             </div>

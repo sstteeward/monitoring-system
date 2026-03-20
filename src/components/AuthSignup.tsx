@@ -2,6 +2,23 @@ import React, { useEffect, useState } from "react";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
 import { signUp, signIn, resetPasswordForEmail } from "../services/auth";
+import { supabase } from "../lib/supabaseClient";
+
+const EyeIcon = () => (
+    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="eye-icon">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+    </svg>
+);
+
+const EyeOffIcon = () => (
+    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="eye-icon closed">
+        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+        <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+);
 
 export default function AuthSignup() {
     const [mode, setMode] = useState<"signup" | "login" | "forgot">("login");
@@ -14,10 +31,19 @@ export default function AuthSignup() {
     const [signupPassword, setSignupPassword] = useState("");
     const [signupConfirm, setSignupConfirm] = useState("");
     const [emailVerified, setEmailVerified] = useState(false);
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpValue, setOtpValue] = useState("");
+    const [sendingOtp, setSendingOtp] = useState(false);
+    const [otpCooldown, setOtpCooldown] = useState(0);
 
     // Login state
     const [loginEmail, setLoginEmail] = useState("");
     const [password, setPassword] = useState("");
+
+    // Visibility toggles
+    const [showSignupPassword, setShowSignupPassword] = useState(false);
+    const [showSignupConfirm, setShowSignupConfirm] = useState(false);
+    const [showLoginPassword, setShowLoginPassword] = useState(false);
 
     // Forgot password state
     const [forgotEmail, setForgotEmail] = useState("");
@@ -59,16 +85,61 @@ export default function AuthSignup() {
         return Object.keys(e).length === 0;
     };
 
-    const handleSendVerification = () => {
+    const handleSendVerification = async () => {
         if (!isEduPh(signupEmail)) {
             setErrors(prev => ({ ...prev, signupEmail: "Enter a valid .edu.ph email before verifying" }));
             return;
         }
-        setEmailVerified(true);
+        setSendingOtp(true);
+        setInfoMessage(null);
+        setErrors(prev => ({ ...prev, signupEmail: '' }));
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email: signupEmail.trim(),
+                options: { shouldCreateUser: true },
+            });
+            if (error) throw error;
+            setOtpSent(true);
+            setOtpValue("");
+            setInfoMessage("An 8-digit code was sent to your email. Enter it below.");
+            setOtpCooldown(60);
+            const timer = setInterval(() => {
+                setOtpCooldown(prev => {
+                    if (prev <= 1) { clearInterval(timer); return 0; }
+                    return prev - 1;
+                });
+            }, 1000);
+        } catch (err: any) {
+            setErrors(prev => ({ ...prev, signupEmail: err.message || "Failed to send verification email." }));
+        } finally {
+            setSendingOtp(false);
+        }
     };
 
-    // Signup: creates the account with default 'student' type.
-    // App.tsx will detect the fresh account and show AccountTypePicker next.
+    const handleVerifyOtp = async () => {
+        if (otpValue.length < 8) return;
+        setSendingOtp(true);
+        setErrors(prev => ({ ...prev, otp: '' }));
+        try {
+            const { error } = await supabase.auth.verifyOtp({
+                email: signupEmail.trim(),
+                token: otpValue.trim(),
+                type: 'email',
+            });
+            if (error) throw error;
+            await supabase.auth.signOut();
+            setEmailVerified(true);
+            setOtpSent(false);
+            setOtpValue("");
+            setInfoMessage(null);
+        } catch (err: any) {
+            setErrors(prev => ({ ...prev, otp: "Invalid or expired code. Try again." }));
+        } finally {
+            setSendingOtp(false);
+        }
+    };
+
+    // Signup: creates the account, then Supabase sends a confirmation email automatically.
     const handleSignup = (ev: React.FormEvent) => {
         ev.preventDefault();
         setInfoMessage(null);
@@ -83,8 +154,7 @@ export default function AuthSignup() {
             lastName,
             accountType: signupEmail.trim().toLowerCase() === "admin@asiancollege.edu.ph" ? "admin" : "student"
         }).then(() => {
-            // App.tsx's onAuthStateChange will fire and show AccountTypePicker
-            // for fresh accounts (< 2 min old). Nothing else needed here.
+            setInfoMessage("✅ Account created! Check your email for a confirmation link before logging in.");
         }).catch(err => {
             setErrors(prev => ({ ...prev, general: err.message || String(err) }));
         }).finally(() => setIsSubmitting(false));
@@ -191,8 +261,19 @@ export default function AuthSignup() {
                                                 placeholder="name@school.edu.ph"
                                                 aria-describedby="email-note"
                                             />
-                                            <button type="button" className="verify-btn" onClick={handleSendVerification}>
-                                                Send verification
+                                            <button
+                                                type="button"
+                                                className="verify-btn"
+                                                onClick={handleSendVerification}
+                                                disabled={sendingOtp || otpCooldown > 0 || emailVerified}
+                                            >
+                                                {emailVerified
+                                                    ? "Verified ✓"
+                                                    : sendingOtp
+                                                    ? "Sending..."
+                                                    : otpCooldown > 0
+                                                    ? `Resend (${otpCooldown}s)`
+                                                    : "Send code"}
                                             </button>
                                         </div>
                                         <div id="email-note" className="muted">Only emails ending with <code>.edu.ph</code> are accepted.</div>
@@ -201,35 +282,83 @@ export default function AuthSignup() {
 
                                     <label className="full-width">
                                         Password *
-                                        <input
-                                            type="password"
-                                            value={signupPassword}
-                                            onChange={e => {
-                                                setSignupPassword(e.target.value);
-                                                setErrors(prev => ({ ...prev, signupPassword: "" }));
-                                            }}
-                                            placeholder="Create a password (min 8 characters)"
-                                        />
+                                        <div className="password-input-wrapper">
+                                            <input
+                                                type={showSignupPassword ? "text" : "password"}
+                                                value={signupPassword}
+                                                onChange={e => {
+                                                    setSignupPassword(e.target.value);
+                                                    setErrors(prev => ({ ...prev, signupPassword: "" }));
+                                                }}
+                                                placeholder="Create a password (min 8 characters)"
+                                            />
+                                            <button 
+                                                type="button" 
+                                                className="password-toggle-btn" 
+                                                onClick={() => setShowSignupPassword(!showSignupPassword)}
+                                                tabIndex={-1}
+                                            >
+                                                {showSignupPassword ? <EyeIcon /> : <EyeOffIcon />}
+                                            </button>
+                                        </div>
                                         {errors.signupPassword && <span className="error">{errors.signupPassword}</span>}
                                     </label>
 
                                     <label className="full-width">
                                         Re-enter Password *
-                                        <input
-                                            type="password"
-                                            value={signupConfirm}
-                                            onChange={e => {
-                                                setSignupConfirm(e.target.value);
-                                                setErrors(prev => ({ ...prev, signupConfirm: "" }));
-                                            }}
-                                            placeholder="Re-enter your password"
-                                        />
+                                        <div className="password-input-wrapper">
+                                            <input
+                                                type={showSignupConfirm ? "text" : "password"}
+                                                value={signupConfirm}
+                                                onChange={e => {
+                                                    setSignupConfirm(e.target.value);
+                                                    setErrors(prev => ({ ...prev, signupConfirm: "" }));
+                                                }}
+                                                placeholder="Re-enter your password"
+                                            />
+                                            <button 
+                                                type="button" 
+                                                className="password-toggle-btn" 
+                                                onClick={() => setShowSignupConfirm(!showSignupConfirm)}
+                                                tabIndex={-1}
+                                            >
+                                                {showSignupConfirm ? <EyeIcon /> : <EyeOffIcon />}
+                                            </button>
+                                        </div>
                                         {errors.signupConfirm && <span className="error">{errors.signupConfirm}</span>}
                                     </label>
 
+                                    {otpSent && !emailVerified && (
+                                        <label className="full-width" style={{ marginTop: '0.75rem' }}>
+                                            Verification Code *
+                                            <div className="email-row">
+                                                <input
+                                                    type="text"
+                                                    maxLength={8}
+                                                    value={otpValue}
+                                                    onChange={e => {
+                                                        setOtpValue(e.target.value.replace(/\D/g, ''));
+                                                        setErrors(prev => ({ ...prev, otp: '' }));
+                                                    }}
+                                                    placeholder="8-digit code"
+                                                    style={{ letterSpacing: '0.25em', fontWeight: 600 }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="verify-btn"
+                                                    onClick={handleVerifyOtp}
+                                                    disabled={sendingOtp || otpValue.length < 8}
+                                                >
+                                                    {sendingOtp ? "Verifying..." : "Verify"}
+                                                </button>
+                                            </div>
+                                            {errors.otp && <span className="error">{errors.otp}</span>}
+                                        </label>
+                                    )}
+
                                     <div className="verification-line">
                                         <div className={`verify-indicator ${emailVerified ? "ok" : "pending"}`}>
-                                            {emailVerified ? "Email verified" : "Unverified"}
+                                            {emailVerified ? "Email verified ✓" : "Email not verified"}
                                         </div>
                                     </div>
 
@@ -278,15 +407,25 @@ export default function AuthSignup() {
 
                                     <label className="full-width">
                                         Password *
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={e => {
-                                                setPassword(e.target.value);
-                                                setErrors(prev => ({ ...prev, password: "" }));
-                                            }}
-                                            placeholder="Enter your password"
-                                        />
+                                        <div className="password-input-wrapper">
+                                            <input
+                                                type={showLoginPassword ? "text" : "password"}
+                                                value={password}
+                                                onChange={e => {
+                                                    setPassword(e.target.value);
+                                                    setErrors(prev => ({ ...prev, password: "" }));
+                                                }}
+                                                placeholder="Enter your password"
+                                            />
+                                            <button 
+                                                type="button" 
+                                                className="password-toggle-btn" 
+                                                onClick={() => setShowLoginPassword(!showLoginPassword)}
+                                                tabIndex={-1}
+                                            >
+                                                {showLoginPassword ? <EyeIcon /> : <EyeOffIcon />}
+                                            </button>
+                                        </div>
                                         {errors.password && <span className="error">{errors.password}</span>}
                                     </label>
 
