@@ -7,6 +7,7 @@ import CoordinatorDashboard from "./components/CoordinatorDashboard";
 import AdminDashboard from "./components/AdminDashboard";
 import PendingApprovalView from "./components/PendingApprovalView";
 import AccountTypePicker from "./components/AccountTypePicker";
+import UpdatePasswordView from "./components/UpdatePasswordView";
 import { supabase } from "./lib/supabaseClient";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
@@ -15,24 +16,33 @@ function AppContent() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [needsTypePick, setNeedsTypePick] = useState(false);
+  const [isRecovery, setIsRecovery] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
-        checkNeedsTypePick(session);
+        checkNeedsTypePick();
         fetchProfile(session.user.id);
       } else {
         setLoading(false);
+      }
+
+      if (window.location.hash.includes('type=recovery')) {
+        setIsRecovery(true);
       }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovery(true);
+      }
+      
       setSession(session);
       if (session) {
-        checkNeedsTypePick(session);
+        checkNeedsTypePick();
         fetchProfile(session.user.id);
       } else {
         setProfile(null);
@@ -46,11 +56,9 @@ function AppContent() {
     };
   }, []);
 
-  const checkNeedsTypePick = (session: any) => {
-    const createdAt = session?.user?.created_at;
-    if (!createdAt) return;
-    const ageMs = Date.now() - new Date(createdAt).getTime();
-    if (ageMs < 2 * 60 * 1000) {
+  const checkNeedsTypePick = () => {
+    // Check if this is a fresh signup via the sessionStorage flag
+    if (sessionStorage.getItem('just_signed_up') === 'true') {
       setNeedsTypePick(true);
     }
   };
@@ -65,7 +73,8 @@ function AppContent() {
 
       if (!error && data) {
         setProfile(data);
-        if (data.account_type !== 'student') {
+        // Only skip the type picker if account type was explicitly set AND the flag is not present
+        if (data.account_type !== 'student' && sessionStorage.getItem('just_signed_up') !== 'true') {
           setNeedsTypePick(false);
         }
       }
@@ -84,6 +93,8 @@ function AppContent() {
       .update({ account_type: type, is_active: isCoordinator ? false : true })
       .eq('auth_user_id', session.user.id);
 
+    // Clear the flag — user has picked their type
+    sessionStorage.removeItem('just_signed_up');
     setNeedsTypePick(false);
 
     if (isCoordinator) {
@@ -95,6 +106,10 @@ function AppContent() {
 
   if (loading) {
     return <div style={{ color: 'var(--text-muted)', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
+  }
+
+  if (isRecovery) {
+    return <UpdatePasswordView onComplete={() => setIsRecovery(false)} />;
   }
 
   if (!session) {

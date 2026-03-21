@@ -22,12 +22,16 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
     const [open, setOpen] = React.useState(false);
     const [dropRect, setDropRect] = React.useState<DOMRect | null>(null);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
+    const panelRef = React.useRef<HTMLDivElement>(null);
 
     // Close on outside click
     React.useEffect(() => {
         if (!open) return;
         const handler = (e: MouseEvent) => {
-            if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
+            if (
+                triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+                panelRef.current && !panelRef.current.contains(e.target as Node)
+            ) {
                 setOpen(false);
             }
         };
@@ -62,6 +66,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
 
     const panel = open && dropRect ? ReactDOM.createPortal(
         <div
+            ref={panelRef}
             style={{
                 position: 'fixed',
                 top: dropRect.bottom + 6,

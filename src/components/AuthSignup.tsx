@@ -118,22 +118,67 @@ export default function AuthSignup() {
 
     const handleVerifyOtp = async () => {
         if (otpValue.length < 8) return;
+
+        // Validate that password fields are filled before verifying
+        const e: Record<string, string> = {};
+        if (!firstName.trim()) e.firstName = "First name is required";
+        if (!lastName.trim()) e.lastName = "Last name is required";
+        if (!signupPassword) e.signupPassword = "Password is required";
+        else if (signupPassword.length < 8) e.signupPassword = "Password must be at least 8 characters";
+        if (!signupConfirm) e.signupConfirm = "Please confirm your password";
+        else if (signupPassword !== signupConfirm) e.signupConfirm = "Passwords do not match";
+        if (Object.keys(e).length > 0) {
+            setErrors(prev => ({ ...prev, ...e }));
+            return;
+        }
+
         setSendingOtp(true);
         setErrors(prev => ({ ...prev, otp: '' }));
         try {
-            const { error } = await supabase.auth.verifyOtp({
+            // Set the flag BEFORE verifyOtp, because verifyOtp triggers onAuthStateChange immediately
+            sessionStorage.setItem('just_signed_up', 'true');
+
+            // Step 1: Verify OTP — this logs the user in with a magic-link session
+            const { error: verifyError } = await supabase.auth.verifyOtp({
                 email: signupEmail.trim(),
                 token: otpValue.trim(),
                 type: 'email',
             });
-            if (error) throw error;
-            await supabase.auth.signOut();
-            setEmailVerified(true);
-            setOtpSent(false);
-            setOtpValue("");
-            setInfoMessage(null);
+            if (verifyError) {
+                sessionStorage.removeItem('just_signed_up');
+                throw verifyError;
+            }
+
+            // Step 2: Use the live session to set the password and user metadata
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: signupPassword,
+                data: {
+                    first_name: firstName.trim(),
+                    middle_name: middleName.trim() || null,
+                    last_name: lastName.trim(),
+                },
+            });
+            if (updateError) throw updateError;
+
+            // Step 3: Upsert just the name info — account_type will be set by AccountTypePicker
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await supabase.from('profiles').upsert(
+                    {
+                        auth_user_id: user.id,
+                        email: signupEmail.trim().toLowerCase(),
+                        first_name: firstName.trim(),
+                        middle_name: middleName.trim() || null,
+                        last_name: lastName.trim(),
+                    },
+                    { onConflict: 'auth_user_id', ignoreDuplicates: false }
+                );
+            }
+
+            // Session is now live — App.tsx will detect the flag and show AccountTypePicker
+            setInfoMessage("✅ Account created! Redirecting...");
         } catch (err: any) {
-            setErrors(prev => ({ ...prev, otp: "Invalid or expired code. Try again." }));
+            setErrors(prev => ({ ...prev, otp: err.message || "Invalid or expired code. Try again." }));
         } finally {
             setSendingOtp(false);
         }
@@ -331,27 +376,17 @@ export default function AuthSignup() {
                                     {otpSent && !emailVerified && (
                                         <label className="full-width" style={{ marginTop: '0.75rem' }}>
                                             Verification Code *
-                                            <div className="email-row">
-                                                <input
-                                                    type="text"
-                                                    maxLength={8}
-                                                    value={otpValue}
-                                                    onChange={e => {
-                                                        setOtpValue(e.target.value.replace(/\D/g, ''));
-                                                        setErrors(prev => ({ ...prev, otp: '' }));
-                                                    }}
-                                                    placeholder="8-digit code"
-                                                    style={{ letterSpacing: '0.25em', fontWeight: 600 }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="verify-btn"
-                                                    onClick={handleVerifyOtp}
-                                                    disabled={sendingOtp || otpValue.length < 8}
-                                                >
-                                                    {sendingOtp ? "Verifying..." : "Verify"}
-                                                </button>
-                                            </div>
+                                            <input
+                                                type="text"
+                                                maxLength={8}
+                                                value={otpValue}
+                                                onChange={e => {
+                                                    setOtpValue(e.target.value.replace(/\D/g, ''));
+                                                    setErrors(prev => ({ ...prev, otp: '' }));
+                                                }}
+                                                placeholder="8-digit code"
+                                                style={{ letterSpacing: '0.25em', fontWeight: 600 }}
+                                            />
                                             {errors.otp && <span className="error">{errors.otp}</span>}
                                         </label>
                                     )}
@@ -366,8 +401,13 @@ export default function AuthSignup() {
                                     {infoMessage && <div className="info-msg">{infoMessage}</div>}
 
                                     <div className="cta-row">
-                                        <button className="primary" type="submit" disabled={isSubmitting}>
-                                            {isSubmitting ? "Creating account..." : "Create Account"}
+                                        <button
+                                            className="primary"
+                                            type="button"
+                                            disabled={sendingOtp || isSubmitting || !otpSent}
+                                            onClick={handleVerifyOtp}
+                                        >
+                                            {sendingOtp ? "Creating account..." : "Verify & Create Account"}
                                         </button>
                                     </div>
                                 </div>

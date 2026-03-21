@@ -1,0 +1,63 @@
+flowchart TD
+    %% Base Level
+    START((Admin Login))
+    
+    %% Authentication Process
+    Auth{Is Admin Authorized?}
+    START --> Auth
+    Auth -->|No| RejectAuth[Show Error / Redirect]
+    Auth -->|Yes| AdminDash[Admin Dashboard Home]
+
+    %% Main Navigation
+    AdminDash --> Nav{Choose Action}
+
+    %% Branch 1: Approvals Process
+    Nav -->|Manage Approvals| ApprovalsList[View Pending Approvals]
+    ApprovalsList --> SelectApproval[Select Document / Journal / DTR]
+    SelectApproval --> Preview[Preview Submission]
+    Preview --> Valid{Is Submission Valid?}
+    Valid -->|Yes| ApproveAction[Click Approve]
+    Valid -->|No| RejectAction[Click Reject]
+    ApproveAction --> SaveApprove[Update Status to Approved]
+    RejectAction --> SaveReject[Update Status to Rejected]
+    SaveApprove --> Notify[Notify User]
+    SaveReject --> Notify
+
+    %% Branch 2: User Management Process
+    Nav -->|Manage Users| UsersList[View All Users]
+    UsersList --> SelectUser[Select User]
+    SelectUser --> UserAction{What to do?}
+    
+    UserAction -->|Change Role| RoleChange[Select New Role]
+    RoleChange --> SaveRole[Update User Role]
+    
+    UserAction -->|Edit Status| StatusAction{Current Status?}
+    StatusAction -->|Active| Deactivate[Deactivate Account]
+    StatusAction -->|Inactive| Activate[Activate Account]
+    
+    UserAction -->|Delete| ConfirmDel{Confirm Deletion?}
+    ConfirmDel -->|Yes| DeleteDB[Remove from Database]
+    ConfirmDel -->|No| CancelDel[Cancel Action]
+
+    %% Branch 3: Role Management (Coordinators)
+    Nav -->|Manage Roles| CoordsList[View Coordinators]
+    CoordsList --> EditPerms[Edit Granular Permissions]
+    EditPerms --> SavePerms[Update Permissions]
+
+    %% Branch 4: System Operations
+    Nav -->|System Health / Backup| SysAction{Select System Tool}
+    SysAction -->|Backup| RunBackup[Execute Database Backup]
+    SysAction -->|Audit Logs| ReviewLogs[Review Activity Tracking]
+
+    %% Styling
+    classDef processNode fill:#e2e8f0,stroke:#64748b,stroke-width:2px,color:#0f172a;
+    classDef decisionNode fill:#fef08a,stroke:#ca8a04,stroke-width:2px,color:#854d0e;
+    classDef startNode fill:#22c55e,stroke:#16a34a,stroke-width:2px,color:#fff;
+    classDef endNode fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#fff;
+    classDef dashNode fill:#3b82f6,stroke:#2563eb,stroke-width:2px,color:#fff;
+
+    class START startNode;
+    class Auth,Nav,Valid,UserAction,StatusAction,ConfirmDel,SysAction decisionNode;
+    class AdminDash dashNode;
+    class RejectAuth,SaveApprove,SaveReject,SaveRole,Deactivate,Activate,DeleteDB,SavePerms,RunBackup endNode;
+    class ApprovalsList,SelectApproval,Preview,ApproveAction,RejectAction,Notify,UsersList,SelectUser,RoleChange,CancelDel,CoordsList,EditPerms,ReviewLogs processNode;
