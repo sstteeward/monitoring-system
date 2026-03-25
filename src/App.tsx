@@ -113,15 +113,30 @@ function AppContent() {
   }
 
   if (!session) {
-    return <AuthSignup />;
+    return (
+      <Routes>
+        <Route path="/" element={<AuthSignup />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
   }
 
   if (needsTypePick) {
-    return <AccountTypePicker onPick={handleTypePicked} />;
+    return (
+      <Routes>
+        <Route path="/" element={<AccountTypePicker onPick={handleTypePicked} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
   }
 
   if (profile?.account_type === 'coordinator' && profile?.is_active === false) {
-    return <PendingApprovalView />;
+    return (
+      <Routes>
+        <Route path="/" element={<PendingApprovalView />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
   }
 
   return (

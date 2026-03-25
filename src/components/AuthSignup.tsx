@@ -177,6 +177,7 @@ export default function AuthSignup() {
 
             // Session is now live — App.tsx will detect the flag and show AccountTypePicker
             setInfoMessage("✅ Account created! Redirecting...");
+            window.location.href = '/';
         } catch (err: any) {
             setErrors(prev => ({ ...prev, otp: err.message || "Invalid or expired code. Try again." }));
         } finally {
@@ -213,6 +214,7 @@ export default function AuthSignup() {
         setErrors({});
         try {
             await signIn({ email: loginEmail, password });
+            window.location.href = '/';
         } catch (err: any) {
             let errorMsg = err.message || String(err);
             if (errorMsg.includes('ACCOUNT_PENDING')) {
