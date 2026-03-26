@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { coordinatorService, type Company, type CompanyRequest } from '../services/coordinatorService';
 import { CardGridSkeleton, TableSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
+import UserClickableName from './UserClickableName';
 import './CoordinatorDashboard.css';
 
 type CompanyViewMode = 'list' | 'detail';
@@ -332,7 +333,10 @@ const CompaniesView: React.FC = () => {
                                                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                                                         {student.first_name?.[0]?.toUpperCase() ?? '?'}
                                                     </div>
-                                                    {student.first_name} {student.last_name}
+                                                    <UserClickableName 
+                                                        userId={student.id} 
+                                                        userName={`${student.first_name} ${student.last_name}`} 
+                                                    />
                                                 </div>
                                             </td>
                                             <td>{student.email}</td>

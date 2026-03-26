@@ -525,6 +525,16 @@ const StudentDashboard: React.FC = () => {
                                     <div className="greeting-banner-sub">{greeting},</div>
                                     <div className="greeting-banner-name">{displayName}</div>
                                     <div className="greeting-banner-date">Here's your SIL program snapshot for today.</div>
+                                    <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(16,185,129,0.12)', color: '#10b981', padding: '0.3rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(16,185,129,0.15)' }}>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
+                                            {profile?.company?.name || 'No Company Assigned'}
+                                        </span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(59,130,246,0.12)', color: '#3b82f6', padding: '0.3rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(59,130,246,0.15)' }}>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c0 2 4 3 6 3s6-1 6-3v-5" /></svg>
+                                            {profile?.department || profile?.course || 'No Department'}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="greeting-banner-actions">
                                     <button className="greeting-banner-btn" onClick={() => navigateTo('timesheets')}>

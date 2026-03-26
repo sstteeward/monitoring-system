@@ -12,6 +12,8 @@ import CoordinatorDepartmentView from './CoordinatorDepartmentView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
 import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
+import UserProfileModal from './UserProfileModal';
+import UserClickableName from './UserClickableName';
 import { useTheme } from '../contexts/ThemeContext';
 import './CoordinatorDashboard.css';
 
@@ -390,6 +392,7 @@ interface OverviewProps {
 }
 
 const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingDocsCount, companyCount, stats, navigateTo }) => {
+    const [viewProfileId, setViewProfileId] = React.useState<string | null>(null);
     const quickStats = stats ? [
         {
             label: 'Total Assigned',
@@ -495,7 +498,11 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                     </div>
                     <div className="cd-card-body cd-scroll-body cd-dynamic-body" style={{ paddingTop: '1rem' }}>
                         {stats?.progressData && stats.progressData.length > 0 ? stats.progressData.map((p: any) => (
-                            <div key={p.id} className="cd-progress-item" style={{ padding: '0 1.5rem', paddingBottom: '1.5rem' }}>
+                            <div key={p.id} className="cd-progress-item" style={{ padding: '0 1.5rem', paddingBottom: '1.5rem', cursor: 'pointer', borderRadius: 8, transition: 'background 0.15s' }}
+                                onClick={() => setViewProfileId(p.id)}
+                                onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-card)')}
+                                onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                            >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '1rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
                                         {p.avatar ? (
@@ -505,7 +512,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                                                 {p.name.charAt(0)}
                                             </div>
                                         )}
-                                        <span style={{ fontWeight: 500, fontSize: '0.95rem', color: 'var(--text-bright)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
+                                        <UserClickableName userId={p.id} userName={p.name} style={{ fontWeight: 500, fontSize: '0.95rem', color: 'var(--text-bright)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} />
                                     </div>
                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', flexShrink: 0 }}>{p.hours} / {p.target} hrs</span>
                                 </div>
@@ -637,6 +644,11 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                     </div>
                 </div>
             </div>
+
+            <UserProfileModal
+                profileId={viewProfileId}
+                onClose={() => setViewProfileId(null)}
+            />
         </div>
     );
 };

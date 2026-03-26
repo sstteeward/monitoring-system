@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService, type Feedback } from '../services/adminService';
 import { TableSkeleton } from './Skeletons';
+import UserClickableName from './UserClickableName';
 
 interface AdminFeedbackViewProps {
     onFeedbackAction?: () => void;
@@ -169,7 +170,12 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
                                         </div>
                                         <div>
                                             <div style={{ color: 'var(--admin-text-primary)', fontWeight: 600, fontSize: '0.95rem' }}>
-                                                {user ? `${user.first_name} ${user.last_name}` : 'Unknown User'}
+                                                {user ? (
+                                                    <UserClickableName 
+                                                        userId={user.id} 
+                                                        userName={`${user.first_name} ${user.last_name}`} 
+                                                    />
+                                                ) : 'Unknown User'}
                                             </div>
                                             <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <span>{user?.account_type || 'User'}</span>

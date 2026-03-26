@@ -15,6 +15,8 @@ import AdminBackupRestoreView from './AdminBackupRestoreView';
 import AdminSystemHealthView from './AdminSystemHealthView';
 import ApprovalsView from './ApprovalsView';
 import StudentsView from './StudentsView';
+import UserProfileModal from './UserProfileModal';
+import UserClickableName from './UserClickableName';
 import CustomSelect from './CustomSelect';
 import './AdminDashboard.css';
 
@@ -45,6 +47,7 @@ const AdminDashboard: React.FC = () => {
     const [newFeedbackCount, setNewFeedbackCount] = useState(0);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
     const [deletingUser, setDeletingUser] = useState(false);
+    const [viewProfileId, setViewProfileId] = useState<string | null>(null);
 
     useTheme();
 
@@ -342,13 +345,13 @@ const AdminDashboard: React.FC = () => {
                                         </thead>
                                         <tbody>
                                             {allProfiles.slice(0, 5).map(p => (
-                                                <tr key={p.id}>
+                                                <tr key={p.id} onClick={() => setViewProfileId(p.id)} className="clickable-row">
                                                     <td>
                                                         <div className="admin-user-cell">
                                                             <div className="admin-user-avatar">
                                                                 {p.first_name?.[0]}{p.last_name?.[0]}
                                                             </div>
-                                                            <div>{p.first_name} {p.last_name}</div>
+                                                            <div><UserClickableName userId={p.id} userName={`${p.first_name} ${p.last_name}`} /></div>
                                                         </div>
                                                     </td>
                                                     <td>{p.email}</td>
@@ -385,8 +388,8 @@ const AdminDashboard: React.FC = () => {
                                         </thead>
                                         <tbody>
                                             {allProfiles.map(p => (
-                                                <tr key={p.id}>
-                                                    <td>{p.first_name} {p.last_name}</td>
+                                                <tr key={p.id} onClick={() => setViewProfileId(p.id)} className="clickable-row">
+                                                    <td><UserClickableName userId={p.id} userName={`${p.first_name} ${p.last_name}`} /></td>
                                                     <td>{p.email}</td>
                                                     <td>
                                                         <span className={`admin-badge badge-${p.account_type}`}>
@@ -416,7 +419,7 @@ const AdminDashboard: React.FC = () => {
                                                                 fontSize: '0.85rem',
                                                                 fontWeight: 600
                                                             }}
-                                                            onClick={() => setDeleteTarget({ id: p.auth_user_id, name: `${p.first_name} ${p.last_name}` })}
+                                                            onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: p.auth_user_id, name: `${p.first_name} ${p.last_name}` }); }}
                                                             disabled={updatingUserId === p.auth_user_id}
                                                         >
                                                             {updatingUserId === p.auth_user_id ? '...' : 'Delete'}
@@ -505,6 +508,11 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </main>
             </div>
+            
+            <UserProfileModal 
+                profileId={viewProfileId} 
+                onClose={() => setViewProfileId(null)} 
+            />
             {/* Delete Confirmation Modal */}
             {
                 deleteTarget && (

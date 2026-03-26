@@ -671,3 +671,17 @@ html[data-theme="light"] {
     padding: 1.5rem;
   }
 }
+
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.clickable-row:hover td {
+  background: var(--bg-elevated) !important;
+  color: var(--text-bright) !important;
+}
+
+.clickable-row:active {
+  transform: scale(0.998);
+}

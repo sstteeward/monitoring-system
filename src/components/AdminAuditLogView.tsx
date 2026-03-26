@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService, type AuditLog } from '../services/adminService';
 import { TableSkeleton } from './Skeletons';
+import UserClickableName from './UserClickableName';
 
 const AdminAuditLogView: React.FC = () => {
     const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -90,7 +91,10 @@ const AdminAuditLogView: React.FC = () => {
                                                 <div className="admin-user-avatar" style={{ width: 24, height: 24, fontSize: '0.7rem' }}>
                                                     {log.profiles?.first_name?.[0]}{log.profiles?.last_name?.[0]}
                                                 </div>
-                                                <span>{log.profiles ? `${log.profiles.first_name} ${log.profiles.last_name}` : 'Unknown User'}</span>
+                                                <UserClickableName 
+                                                    userId={log.user_id} 
+                                                    userName={log.profiles ? `${log.profiles.first_name} ${log.profiles.last_name}` : 'Unknown User'} 
+                                                />
                                             </div>
                                         </td>
                                         <td>

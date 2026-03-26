@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { messageService, type Message } from '../services/messageService';
 import { type Profile } from '../services/profileService';
+import UserProfileModal from './UserProfileModal';
 import './ChatWidget.css';
 
 interface ChatWidgetProps {
@@ -29,6 +30,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
     const [conversationMenuId, setConversationMenuId] = useState<string | null>(null);
+    const [viewProfileId, setViewProfileId] = useState<string | null>(null);
 
     // Click outside to close menu
     useEffect(() => {
@@ -312,12 +314,23 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                                     <button className="chat-back-btn" onClick={() => setActiveThreadUser(null)}>
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                                     </button>
-                                    <div className="chat-list-avatar" style={{ width: 32, height: 32, fontSize: '0.75rem' }}>
+                                    <div
+                                        className="chat-list-avatar"
+                                        style={{ width: 32, height: 32, fontSize: '0.75rem', cursor: 'pointer' }}
+                                        title="View profile"
+                                        onClick={() => setViewProfileId(activeThreadUser.id)}
+                                    >
                                         {activeThreadUser.avatar_url ? <img src={activeThreadUser.avatar_url} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : getInitials(activeThreadUser)}
                                         <div className={`online-indicator ${activeThreadUser.isOnline ? '' : 'offline'}`} style={{ width: 8, height: 8 }} />
                                     </div>
                                     <div>
-                                        {getName(activeThreadUser)}
+                                        <span
+                                            style={{ cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}
+                                            title="View profile"
+                                            onClick={() => setViewProfileId(activeThreadUser.id)}
+                                        >
+                                            {getName(activeThreadUser)}
+                                        </span>
                                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
                                             {activeThreadUser.isOnline ? 'Online' : 'Offline'}
                                         </div>
@@ -624,6 +637,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                                                                 Mark Unread
                                                             </button>
                                                         )}
+                                                        <button className="chat-menu-item" onClick={(e) => { e.stopPropagation(); setConversationMenuId(null); setViewProfileId(u.id); }}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                                            View Profile
+                                                        </button>
                                                         <button className="chat-menu-item danger" onClick={(e) => handleDeleteConversation(u, e)}>
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                                             Delete Chat
@@ -654,6 +671,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                     <div className="chat-unread-badge">{globalUnreadCount}</div>
                 )}
             </button>
+
+            <UserProfileModal
+                profileId={viewProfileId}
+                onClose={() => setViewProfileId(null)}
+            />
         </div>
     );
 };

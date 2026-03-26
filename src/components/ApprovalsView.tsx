@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { coordinatorService } from '../services/coordinatorService';
 import { supabase } from '../lib/supabaseClient';
 import { TableSkeleton } from './Skeletons';
+import UserClickableName from './UserClickableName';
 import './CoordinatorDashboard.css';
 
 interface ApprovalsViewProps {
@@ -210,7 +211,10 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                         title="Click to preview document"
                                     >
                                         <td style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
-                                            {doc.profiles?.first_name} {doc.profiles?.last_name}
+                                            <UserClickableName 
+                                                userId={doc.user_id} 
+                                                userName={`${doc.profiles?.first_name} ${doc.profiles?.last_name}`} 
+                                            />
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -318,7 +322,10 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                         title="Click to view full journal entry"
                                     >
                                         <td style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
-                                            {j.profiles?.first_name} {j.profiles?.last_name}
+                                            <UserClickableName 
+                                                userId={j.user_id} 
+                                                userName={`${j.profiles?.first_name} ${j.profiles?.last_name}`} 
+                                            />
                                         </td>
                                         <td style={{ whiteSpace: 'nowrap' }}>{new Date(j.entry_date).toLocaleDateString()}</td>
                                         <td>
@@ -396,7 +403,10 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                     return (
                                         <tr key={t.id} className="hover-row">
                                             <td style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
-                                                {t.profiles?.first_name} {t.profiles?.last_name}
+                                                <UserClickableName 
+                                                    userId={t.user_id} 
+                                                    userName={`${t.profiles?.first_name} ${t.profiles?.last_name}`} 
+                                                />
                                             </td>
                                             <td style={{ whiteSpace: 'nowrap' }}>{tsStart.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</td>
                                             <td style={{ whiteSpace: 'nowrap' }}>{tsEnd ? tsEnd.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</td>

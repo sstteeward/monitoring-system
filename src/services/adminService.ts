@@ -60,6 +60,27 @@ export const adminService = {
     },
 
     /**
+     * Search for profiles by name or email
+     */
+    async searchProfiles(query: string) {
+        if (!query || query.length < 2) return [];
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%`)
+            .order('last_name', { ascending: true })
+            .limit(10);
+
+        if (error) {
+            console.error("Error searching profiles:", error);
+            throw error;
+        }
+
+        return data as Profile[];
+    },
+
+    /**
      * Fetch all coordinators
      */
     async getAllCoordinators() {

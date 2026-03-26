@@ -85,6 +85,17 @@ export const coordinatorService = {
             });
         }
 
+        // Map department names to students
+        const { data: departmentsData } = await supabase.from('departments').select('id, name');
+        if (departmentsData) {
+            const deptMap = new Map(departmentsData.map((d: any) => [d.id, d.name]));
+            students.forEach(s => {
+                if (s.department_id) {
+                    s.department_info = { name: deptMap.get(s.department_id) || 'Unknown' };
+                }
+            });
+        }
+
         return students;
     },
 
@@ -624,6 +635,17 @@ export const coordinatorService = {
             students.forEach(s => {
                 if (s.company_id) {
                     s.company = { name: companyMap.get(s.company_id) || 'Unknown' };
+                }
+            });
+        }
+
+        // Map department names
+        const { data: deptsData } = await supabase.from('departments').select('id, name');
+        if (deptsData) {
+            const deptMap = new Map(deptsData.map((d: any) => [d.id, d.name]));
+            students.forEach(s => {
+                if (s.department_id) {
+                    s.department_info = { name: deptMap.get(s.department_id) || 'Unknown' };
                 }
             });
         }

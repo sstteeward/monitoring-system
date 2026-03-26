@@ -12,6 +12,7 @@ export interface Profile {
     absences: number;
     company_id: string | null;
     company?: { name: string } | null;
+    department_info?: { name: string } | null;
     avatar_url: string | null;
     created_at: string;
     updated_at: string;
@@ -38,7 +39,7 @@ export const profileService = {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select('*, company:companies(name)')
             .eq('auth_user_id', user.id)
             .single();
 
@@ -66,6 +67,20 @@ export const profileService = {
         }
 
         return true;
+    },
+
+    async getProfileById(id: string): Promise<Profile | null> {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*, company:companies(name, address)')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            console.error('Error fetching profile by id:', error);
+            return null;
+        }
+        return data as Profile;
     },
 
     async uploadAvatar(file: File): Promise<string> {

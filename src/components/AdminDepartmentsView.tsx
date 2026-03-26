@@ -4,6 +4,7 @@ import type { Profile } from '../services/profileService';
 import { supabase } from '../lib/supabaseClient';
 import { TableSkeleton, CardSkeleton } from './Skeletons';
 import CustomSelect from './CustomSelect';
+import UserClickableName from './UserClickableName';
 
 const AdminDepartmentsView: React.FC = () => {
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -210,7 +211,7 @@ const AdminDepartmentsView: React.FC = () => {
                                         {coord.first_name?.[0]}{coord.last_name?.[0]}
                                     </div>
                                     <div>
-                                        <div style={{ color: 'var(--admin-text-primary)', fontSize: '0.9rem', fontWeight: 500 }}>{coord.first_name} {coord.last_name}</div>
+                                        <div style={{ color: 'var(--admin-text-primary)', fontSize: '0.9rem', fontWeight: 500 }}><UserClickableName userId={coord.id} userName={`${coord.first_name} ${coord.last_name}`} /></div>
                                         <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.75rem' }}>{coord.email}</div>
                                     </div>
                                 </div>

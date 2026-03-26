@@ -4,6 +4,8 @@ import { TableSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
 import { adminService } from '../services/adminService';
+import UserProfileModal from './UserProfileModal';
+import UserClickableName from './UserClickableName';
 
 interface StudentsViewProps {
     initialFilter?: 'all' | 'assigned' | 'completed' | 'in-progress' | 'at-risk';
@@ -18,6 +20,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
     const [error, setError] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [viewProfileId, setViewProfileId] = useState<string | null>(null);
 
     useEffect(() => { loadStudents(); }, []);
 
@@ -143,6 +146,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                             <th>Student</th>
                             <th>Email</th>
                             <th>Company</th>
+                            <th>Department</th>
                             <th>OJT Hours</th>
                             <th>Absences</th>
                             <th>Enrolled</th>
@@ -151,19 +155,26 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                     </thead>
                     <tbody>
                         {loading ? (
-                            <TableSkeleton rows={8} cols={5} />
+                            <TableSkeleton rows={8} cols={6} />
                         ) : filteredStudents.length > 0 ? (
                             filteredStudents.map(student => {
                                 const color = avatarColor(student.first_name ?? 'A');
                                 return (
-                                    <tr key={student.id}>
+                                    <tr
+                                        key={student.id}
+                                        onClick={() => setViewProfileId(student.id)}
+                                        style={{ cursor: 'pointer' }}
+                                        className="hoverable-row"
+                                    >
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, ${color}bb)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                                                     {student.first_name?.[0]?.toUpperCase() ?? '?'}
                                                 </div>
                                                 <div>
-                                                    <div style={{ fontWeight: 600, color: 'var(--text-bright)', fontSize: '0.88rem' }}>{student.first_name} {student.last_name}</div>
+                                                    <div style={{ fontWeight: 600, color: 'var(--text-bright)', fontSize: '0.88rem' }}>
+                                                     <UserClickableName userId={student.id} userName={`${student.first_name} ${student.last_name}`} />
+                                                 </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -173,6 +184,16 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(16,185,129,0.1)', color: 'var(--primary)', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600 }}>
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                                                     {student.company.name}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>Unassigned</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            {student.department_info?.name ? (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600 }}>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+                                                    {student.department_info.name}
                                                 </span>
                                             ) : (
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>Unassigned</span>
@@ -210,7 +231,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                                                         fontSize: '0.8rem',
                                                         fontWeight: 500
                                                     }}
-                                                    onClick={() => setDeleteTarget({ id: student.auth_user_id, name: `${student.first_name} ${student.last_name}` })}
+                                                    onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: student.auth_user_id, name: `${student.first_name} ${student.last_name}` }); }}
                                                 >
                                                     Delete
                                                 </button>
@@ -221,7 +242,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                             })
                         ) : (
                             <tr>
-                                <td colSpan={isAdmin ? 7 : 6} style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+                                <td colSpan={isAdmin ? 8 : 7} style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
                                     <div style={{ color: 'var(--text-muted)' }}>
                                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.6 }}>
                                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="var(--primary)" />
@@ -287,6 +308,11 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                     </div>
                 </div>
             )}
+
+            <UserProfileModal
+                profileId={viewProfileId}
+                onClose={() => setViewProfileId(null)}
+            />
         </div>
     );
 };

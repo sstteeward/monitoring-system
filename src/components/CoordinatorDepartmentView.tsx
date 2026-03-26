@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { coordinatorService } from '../services/coordinatorService';
 import type { Profile } from '../services/profileService';
+import UserClickableName from './UserClickableName';
 import './CoordinatorDashboard.css';
 
 interface Department {
@@ -277,9 +278,10 @@ const CoordinatorDepartmentView: React.FC = () => {
                                             }}>
                                                 {!student.avatar_url && (student.first_name?.[0]?.toUpperCase() ?? '?')}
                                             </div>
-                                            <div style={{ fontWeight: 600, color: 'var(--text-bright)', fontSize: '0.88rem' }}>
-                                                {student.first_name} {student.last_name}
-                                            </div>
+                                            <UserClickableName 
+                                                userId={student.id} 
+                                                userName={`${student.first_name} ${student.last_name}`} 
+                                            />
                                         </div>
                                     </td>
                                     <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{student.email}</td>
