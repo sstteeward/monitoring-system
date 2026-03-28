@@ -42,6 +42,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
     const roleColor = roleColors[profile?.account_type ?? 'student'] ?? '#10b981';
 
     const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.stopPropagation();
         if (e.target === e.currentTarget) onClose();
     };
 
@@ -80,7 +81,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
             >
                 {/* Close Button - Floated top right */}
                 <button
-                    onClick={onClose}
+                    type="button"
+                    className="close-modal-btn"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                    }}
                     title="Close"
                     style={{
                         position: 'absolute',
@@ -98,18 +104,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                         color: 'var(--text-muted)', 
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         zIndex: 10,
-                    }}
-                    onMouseOver={e => { 
-                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; 
-                        e.currentTarget.style.color = '#ef4444';
-                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
-                        e.currentTarget.style.transform = 'rotate(90deg)';
-                    }}
-                    onMouseOut={e => { 
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; 
-                        e.currentTarget.style.color = 'var(--text-muted)';
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                        e.currentTarget.style.transform = 'rotate(0deg)';
                     }}
                 >
                     <span style={{ fontSize: '1.4rem', fontWeight: 300 }}>✕</span>
@@ -281,6 +275,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                     background: rgba(255, 255, 255, 0.2);
                     background-clip: content-box;
+                }
+                
+                .close-modal-btn:hover {
+                    background: rgba(239, 68, 68, 0.15) !important;
+                    color: #ef4444 !important;
+                    border-color: rgba(239, 68, 68, 0.2) !important;
                 }
                 
                 /* For Firefox */

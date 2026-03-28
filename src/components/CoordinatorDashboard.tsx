@@ -205,20 +205,6 @@ const CoordinatorDashboard: React.FC = () => {
                     <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>{Icon.close}</button>
                 </div>
 
-                {/* User block */}
-                <div className="sidebar-user" onClick={() => navigateTo('profile')}>
-                    <div className="sidebar-avatar cd-avatar" style={{
-                        background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
-                        color: profile?.avatar_url ? 'transparent' : undefined
-                    }}>
-                        {profile?.avatar_url ? '' : initials}
-                    </div>
-                    <div className="sidebar-user-info">
-                        <div className="sidebar-user-name">{displayName}</div>
-                        <div className="sidebar-user-role cd-role-badge">Coordinator</div>
-                    </div>
-                </div>
-
                 {/* Nav */}
                 <div className="sidebar-scrollable">
                     {navSections.map(section => (
@@ -318,21 +304,27 @@ const CoordinatorDashboard: React.FC = () => {
                         </div>
                     </div>
                     <div className="topbar-right">
-                        {pendingDocsCount > 0 && (
-                            <button
-                                className="cd-alert-btn"
-                                onClick={() => navigateTo('approvals')}
-                                title={`${pendingDocsCount} documents pending review`}
-                            >
-                                <span className="cd-alert-dot" />
-                                {pendingDocsCount} pending
+                        <div className="topbar-actions">
+                            <button className="topbar-icon-btn" onClick={() => navigateTo('announcement')} title="Notifications">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                                {pendingDocsCount > 0 && <span className="topbar-notification-dot" />}
                             </button>
-                        )}
-                        <div className="cd-topbar-avatar" onClick={() => navigateTo('profile')} title="Profile" style={{
-                            background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
-                            color: profile?.avatar_url ? 'transparent' : undefined
-                        }}>
-                            {profile?.avatar_url ? '' : initials}
+                            <button className="topbar-icon-btn" onClick={() => navigateTo('settings')} title="Settings">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                            </button>
+                            <div className="topbar-divider" />
+                            <button className="topbar-user-btn" onClick={() => navigateTo('profile')}>
+                                <div className="topbar-user-info">
+                                    <div className="topbar-user-name">{displayName}</div>
+                                    <div className="topbar-user-role cd-role-badge" style={{ padding: 0 }}>Coordinator</div>
+                                </div>
+                                <div className="topbar-avatar cd-topbar-avatar" style={{
+                                    background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
+                                    color: profile?.avatar_url ? 'transparent' : undefined
+                                }}>
+                                    {profile?.avatar_url ? '' : initials}
+                                </div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -459,7 +451,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                     <div className="cd-welcome-content">
                         <div>
                             <p className="cd-welcome-greeting">{greeting},</p>
-                            <h2 className="cd-welcome-name">{displayName} 👋</h2>
+                            <h2 className="cd-welcome-name">{displayName} </h2>
                             <p className="cd-welcome-sub">Here's your SIL program snapshot for today.</p>
                         </div>
                         <div className="cd-welcome-actions">

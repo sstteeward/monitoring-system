@@ -18,6 +18,19 @@ export interface UserNotification {
     created_at: string;
 }
 
+export interface AnnouncementReaction {
+    id: string;
+    announcement_id: string;
+    user_id: string;
+    reaction_type: 'like' | 'celebrate' | 'heart' | 'acknowledge';
+    created_at: string;
+    profiles?: {
+        first_name: string;
+        last_name: string;
+        avatar_url?: string;
+    };
+}
+
 export const notificationService = {
     async getAnnouncements() {
         const { data, error } = await supabase
@@ -51,5 +64,57 @@ export const notificationService = {
 
         if (error) throw error;
         return true;
+    },
+
+    async getAnnouncementReactions(announcementId: string) {
+        const { data, error } = await supabase
+            .from('announcement_reactions')
+            .select(`
+                *,
+                profiles:user_id (
+                    first_name,
+                    last_name,
+                    avatar_url
+                )
+            `)
+            .eq('announcement_id', announcementId);
+
+        if (error) throw error;
+        return data as AnnouncementReaction[];
+    },
+
+    async toggleReaction(announcementId: string, reactionType: 'like' | 'celebrate' | 'heart' | 'acknowledge') {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        // Check if reaction already exists
+        const { data: existing } = await supabase
+            .from('announcement_reactions')
+            .select('id')
+            .eq('announcement_id', announcementId)
+            .eq('user_id', user.id)
+            .eq('reaction_type', reactionType)
+            .maybeSingle();
+
+        if (existing) {
+            // Remove reaction
+            const { error } = await supabase
+                .from('announcement_reactions')
+                .delete()
+                .eq('id', existing.id);
+            if (error) throw error;
+            return { action: 'removed' };
+        } else {
+            // Add reaction
+            const { error } = await supabase
+                .from('announcement_reactions')
+                .insert([{
+                    announcement_id: announcementId,
+                    user_id: user.id,
+                    reaction_type: reactionType
+                }]);
+            if (error) throw error;
+            return { action: 'added' };
+        }
     }
 };

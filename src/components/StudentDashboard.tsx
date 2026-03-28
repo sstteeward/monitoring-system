@@ -14,6 +14,7 @@ import OnboardingView from './OnboardingView';
 import WelcomeCelebration from './WelcomeCelebration';
 import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
+import GroupStudentsModal from './GroupStudentsModal';
 import './StudentDashboard.css';
 
 type View = 'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'announcement';
@@ -33,6 +34,7 @@ const StudentDashboard: React.FC = () => {
     const [needsOnboarding, setNeedsOnboarding] = useState(false);
     const [showWelcome, setShowWelcome] = useState(false);
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+    const [groupModalState, setGroupModalState] = useState<{isOpen: boolean, title: string, filterType: 'company' | 'department', filterValue: string}>({isOpen: false, title: '', filterType: 'company', filterValue: ''});
     const timerRef = useRef<number | null>(null);
 
     const routerNavigate = useNavigate();
@@ -334,21 +336,7 @@ const StudentDashboard: React.FC = () => {
                     </button>
                 </div>
 
-                {/* User */}
-                <div className="sidebar-user" title={user?.email} onClick={() => { navigateTo('profile'); }}>
-                    <div className="sidebar-avatar" style={{
-                        background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
-                        color: profile?.avatar_url ? 'transparent' : undefined
-                    }}>
-                        {profile?.avatar_url ? '' : initials}
-                    </div>
-                    <div className="sidebar-user-info">
-                        <div className="sidebar-user-name">{displayName}</div>
-                        <div className="sidebar-user-role" style={{ textTransform: 'capitalize' }}>
-                            {profile?.account_type ?? 'Student'}
-                        </div>
-                    </div>
-                </div>
+
 
                 {/* Nav */}
                 <div className="sidebar-scrollable">
@@ -506,12 +494,28 @@ const StudentDashboard: React.FC = () => {
                         </div>
                     </div>
                     <div className="topbar-right">
-                        <span className={`status-pill ${statusKey}`}>
-                            <span className="status-dot" />
-                            <span className="d-none-mobile">
-                                {statusKey === 'working' ? 'Working' : statusKey === 'break' ? 'On Break' : 'Inactive'}
-                            </span>
-                        </span>
+                        <div className="topbar-actions">
+                            <button className="topbar-icon-btn" onClick={() => { navigateTo('announcement'); markAnnouncementsSeen(); }} title="Notifications">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                                {hasNewAnnouncements && <span className="topbar-notification-dot" />}
+                            </button>
+                            <button className="topbar-icon-btn" onClick={() => navigateTo('settings')} title="Settings">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                            </button>
+                            <div className="topbar-divider" />
+                            <button className="topbar-user-btn" onClick={() => navigateTo('profile')}>
+                                <div className="topbar-user-info">
+                                    <div className="topbar-user-name">{displayName}</div>
+                                    <div className="topbar-user-role">{profile?.account_type ?? 'BSIT STUDENT'}</div>
+                                </div>
+                                <div className="topbar-avatar" style={{
+                                    background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
+                                    color: profile?.avatar_url ? 'transparent' : undefined
+                                }}>
+                                    {profile?.avatar_url ? '' : initials}
+                                </div>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -526,14 +530,49 @@ const StudentDashboard: React.FC = () => {
                                     <div className="greeting-banner-name">{displayName}</div>
                                     <div className="greeting-banner-date">Here's your SIL program snapshot for today.</div>
                                     <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(16,185,129,0.12)', color: '#10b981', padding: '0.3rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(16,185,129,0.15)' }}>
+                                        <button
+                                            onClick={() => {
+                                                if (profile?.company?.name && profile?.company_id) {
+                                                    setGroupModalState({ isOpen: true, title: `Students in ${profile.company.name}`, filterType: 'company', filterValue: profile.company_id });
+                                                }
+                                            }}
+                                            style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                                background: 'rgba(255, 255, 255, 0.15)', color: '#ffffff',
+                                                padding: '0.35rem 0.8rem', borderRadius: '8px', fontSize: '0.85rem',
+                                                fontWeight: 600, border: '1px solid rgba(255, 255, 255, 0.25)',
+                                                cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s',
+                                                outline: 'none', backdropFilter: 'blur(4px)'
+                                            }}
+                                            onMouseOver={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'}
+                                            onMouseOut={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
+                                            title="View peers in company"
+                                        >
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                                             {profile?.company?.name || 'No Company Assigned'}
-                                        </span>
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(59,130,246,0.12)', color: '#3b82f6', padding: '0.3rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(59,130,246,0.15)' }}>
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const dept = profile?.department || profile?.course;
+                                                if (dept) {
+                                                    setGroupModalState({ isOpen: true, title: `Students in ${dept}`, filterType: 'department', filterValue: dept });
+                                                }
+                                            }}
+                                            style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                                background: 'rgba(255, 255, 255, 0.15)', color: '#ffffff',
+                                                padding: '0.35rem 0.8rem', borderRadius: '8px', fontSize: '0.85rem',
+                                                fontWeight: 600, border: '1px solid rgba(255, 255, 255, 0.25)',
+                                                cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s',
+                                                outline: 'none', backdropFilter: 'blur(4px)'
+                                            }}
+                                            onMouseOver={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'}
+                                            onMouseOut={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
+                                            title="View peers in department"
+                                        >
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c0 2 4 3 6 3s6-1 6-3v-5" /></svg>
                                             {profile?.department || profile?.course || 'No Department'}
-                                        </span>
+                                        </button>
                                     </div>
                                 </div>
                                 <div className="greeting-banner-actions">
@@ -723,6 +762,15 @@ const StudentDashboard: React.FC = () => {
                     userId={user.id}
                 />
             )}
+
+            <GroupStudentsModal
+                isOpen={groupModalState.isOpen}
+                onClose={() => setGroupModalState(prev => ({ ...prev, isOpen: false }))}
+                title={groupModalState.title}
+                filterType={groupModalState.filterType}
+                filterValue={groupModalState.filterValue}
+                currentUserId={user?.id}
+            />
         </div>
         </>
     );

@@ -54,7 +54,7 @@ const AdminDashboard: React.FC = () => {
     useEffect(() => {
         const path = location.pathname.replace('/admin/', '').replace('/admin', '');
         const validSlugs: View[] = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'departments', 'courses', 'backup', 'health', 'approvals', 'students'];
-        
+
         if (validSlugs.includes(path as View)) {
             setCurrentView(path as View);
         } else if (location.pathname === '/admin' || location.pathname === '/admin/') {
@@ -152,15 +152,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="admin-sidebar-user" onClick={() => navigateTo('profile')}>
-                        <div className="admin-user-avatar">
-                            {initials}
-                        </div>
-                        <div className="admin-sidebar-user-info">
-                            <div className="admin-user-name">{profile?.first_name} {profile?.last_name}</div>
-                            <div className="admin-user-role-badge">Super Admin</div>
-                        </div>
-                    </div>
+
 
                     <nav className="admin-nav">
                         <div className={`admin-nav-item ${currentView === 'overview' ? 'active' : ''}`} onClick={() => navigateTo('overview')}>
@@ -189,7 +181,7 @@ const AdminDashboard: React.FC = () => {
                             <span className="nav-text">Departments</span>
                         </div>
                         <div className={`admin-nav-item ${currentView === 'courses' ? 'active' : ''}`} onClick={() => navigateTo('courses')}>
-                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></span>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg></span>
                             <span className="nav-text">Courses</span>
                         </div>
                         <div className={`admin-nav-item ${currentView === 'feedback' ? 'active' : ''}`} onClick={() => navigateTo('feedback')}>
@@ -270,6 +262,30 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+                        <div className="admin-topbar-right">
+                            <div className="admin-topbar-actions">
+                                <button className="admin-topbar-icon-btn" onClick={() => { }} title="Notifications">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                                    {/* Notifications dot placeholder */}
+                                </button>
+                                <button className="admin-topbar-icon-btn" onClick={() => navigateTo('settings')} title="Settings">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                                </button>
+                                <div className="admin-topbar-divider" />
+                                <button className="admin-topbar-user-btn" onClick={() => navigateTo('profile')}>
+                                    <div className="admin-topbar-user-info">
+                                        <div className="admin-topbar-user-name">{profile?.first_name} {profile?.last_name}</div>
+                                        <div className="admin-topbar-user-role">SUPER ADMIN</div>
+                                    </div>
+                                    <div className="admin-topbar-avatar" style={{
+                                        background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : undefined,
+                                        color: profile?.avatar_url ? 'transparent' : undefined
+                                    }}>
+                                        {profile?.avatar_url ? '' : initials}
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
                     </header>
 
                     <div className="admin-page-content">
@@ -281,7 +297,7 @@ const AdminDashboard: React.FC = () => {
                                     <div className="admin-welcome-content">
                                         <div>
                                             <p className="admin-welcome-greeting">{greeting},</p>
-                                            <h2 className="admin-welcome-name">{profile?.first_name} {profile?.last_name} 👋</h2>
+                                            <h2 className="admin-welcome-name">{profile?.first_name} {profile?.last_name} </h2>
                                             <p className="admin-welcome-sub">Super Admin • System Status: Active</p>
                                         </div>
                                     </div>
@@ -396,7 +412,7 @@ const AdminDashboard: React.FC = () => {
                                                             {p.account_type}
                                                         </span>
                                                     </td>
-                                                <td>
+                                                    <td>
                                                         <CustomSelect
                                                             value={p.account_type}
                                                             disabled={updatingUserId === p.auth_user_id}
@@ -508,10 +524,10 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </main>
             </div>
-            
-            <UserProfileModal 
-                profileId={viewProfileId} 
-                onClose={() => setViewProfileId(null)} 
+
+            <UserProfileModal
+                profileId={viewProfileId}
+                onClose={() => setViewProfileId(null)}
             />
             {/* Delete Confirmation Modal */}
             {

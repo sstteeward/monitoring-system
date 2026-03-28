@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { notificationService, type Announcement, type UserNotification } from '../services/notificationService';
+import { notificationService, type Announcement, type UserNotification, type AnnouncementReaction } from '../services/notificationService';
 import { supabase } from '../lib/supabaseClient';
 import { ListSkeleton } from './Skeletons';
 import './AnnouncementsView.css';
@@ -14,6 +14,58 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
     const [notifications, setNotifications] = useState<UserNotification[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+
+    // Reactions state
+    const [reactions, setReactions] = useState<AnnouncementReaction[]>([]);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [showReactionsModal, setShowReactionsModal] = useState(false);
+    const [activeReactionTab, setActiveReactionTab] = useState<'all' | 'like' | 'celebrate' | 'heart' | 'acknowledge'>('all');
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => {
+            if (data?.user) setCurrentUserId(data.user.id);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (selectedAnnouncement) {
+            notificationService.getAnnouncementReactions(selectedAnnouncement.id)
+                .then(data => setReactions(data))
+                .catch(console.error);
+        } else {
+            setReactions([]);
+        }
+    }, [selectedAnnouncement]);
+
+    const handleToggleReaction = async (type: 'like' | 'celebrate' | 'heart' | 'acknowledge') => {
+        if (!selectedAnnouncement || !currentUserId) return;
+        
+        const isReacted = reactions.some(r => r.user_id === currentUserId && r.reaction_type === type);
+        let updatedReactions = [...reactions];
+        
+        if (isReacted) {
+             updatedReactions = updatedReactions.filter(r => !(r.user_id === currentUserId && r.reaction_type === type));
+        } else {
+             updatedReactions.push({
+                 id: Math.random().toString(),
+                 announcement_id: selectedAnnouncement.id,
+                 user_id: currentUserId,
+                 reaction_type: type,
+                 created_at: new Date().toISOString()
+             });
+        }
+        setReactions(updatedReactions);
+
+        try {
+            await notificationService.toggleReaction(selectedAnnouncement.id, type);
+            const fresh = await notificationService.getAnnouncementReactions(selectedAnnouncement.id);
+            setReactions(fresh);
+        } catch (error) {
+            console.error(error);
+            const fresh = await notificationService.getAnnouncementReactions(selectedAnnouncement.id);
+            setReactions(fresh);
+        }
+    };
 
     // New Announcement Form State
     const [newTitle, setNewTitle] = useState('');
@@ -120,6 +172,50 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                     <div style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
                         {selectedAnnouncement.content}
                     </div>
+
+                    <div className="reactions-container">
+                        <div className="reactions-bar">
+                            {([ {type: 'like', emoji: '👍'}, {type: 'celebrate', emoji: '🙌'}, {type: 'heart', emoji: '❤️'} ] as const).map(({type, emoji}) => {
+                                const count = reactions.filter(r => r.reaction_type === type).length;
+                                const isReacted = reactions.some(r => r.reaction_type === type && r.user_id === currentUserId);
+                                return (
+                                    <button
+                                        key={type}
+                                        className={`reaction-btn ${isReacted ? 'active' : ''}`}
+                                        onClick={() => handleToggleReaction(type)}
+                                    >
+                                        <span className="emoji">{emoji}</span>
+                                        {count > 0 && <span className="count">{count}</span>}
+                                    </button>
+                                );
+                            })}
+                            
+                            <button
+                                className={`reaction-btn ack-btn ${reactions.some(r => r.reaction_type === 'acknowledge' && r.user_id === currentUserId) ? 'active' : ''}`}
+                                onClick={() => handleToggleReaction('acknowledge')}
+                            >
+                                <span className="emoji">✅</span>
+                                <span className="ack-text">Acknowledge</span>
+                                {reactions.filter(r => r.reaction_type === 'acknowledge').length > 0 && (
+                                     <span className="count ack-count">{reactions.filter(r => r.reaction_type === 'acknowledge').length}</span>
+                                )}
+                            </button>
+                        </div>
+                        
+                        {reactions.length > 0 && (
+                            <div className="reactions-summary" data-tooltip={(() => {
+                                const names = reactions.map(r => `${r.profiles?.first_name || 'Someone'} ${r.profiles?.last_name || ''}`.trim());
+                                if (names.length === 0) return '';
+                                if (names.length <= 5) return names.join('\n');
+                                return `${names.slice(0, 5).join('\n')}\nand ${names.length - 5} more...`;
+                            })()} onClick={() => {
+                                setActiveReactionTab('all');
+                                setShowReactionsModal(true);
+                            }}>
+                                <span className="summary-text">{reactions.length} reaction{reactions.length > 1 ? 's' : ''}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             ) : (
                 <>
@@ -219,6 +315,61 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                         </div>
                     )}
                 </>
+            )}
+
+            {/* Reactions Modal */}
+            {showReactionsModal && (
+                <div className="modal-overlay" onClick={() => setShowReactionsModal(false)}>
+                    <div className="reactions-modal fade-in" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-bright)' }}>Reactions</h3>
+                            <button className="close-btn" onClick={() => setShowReactionsModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        
+                        <div className="reactions-tabs">
+                            <button className={`tab-btn ${activeReactionTab === 'all' ? 'active' : ''}`} onClick={() => setActiveReactionTab('all')}>
+                                All ({reactions.length})
+                            </button>
+                            {([ {type: 'like', emoji: '👍'}, {type: 'celebrate', emoji: '🙌'}, {type: 'heart', emoji: '❤️'}, {type: 'acknowledge', emoji: '✅'} ] as const).map(({type, emoji}) => {
+                                const count = reactions.filter(r => r.reaction_type === type).length;
+                                if (count === 0) return null;
+                                return (
+                                    <button 
+                                        key={type}
+                                        className={`tab-btn ${activeReactionTab === type ? 'active' : ''}`} 
+                                        onClick={() => setActiveReactionTab(type)}
+                                    >
+                                        {emoji} {count}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        
+                        <div className="reactions-list">
+                            {reactions
+                                .filter(r => activeReactionTab === 'all' || r.reaction_type === activeReactionTab)
+                                .map(r => (
+                                <div key={r.id} className="reaction-user-item">
+                                    <div className="user-info">
+                                        <div className="user-avatar" style={{ 
+                                            backgroundImage: `url(${r.profiles?.avatar_url || 'https://ui-avatars.com/api/?background=random&name=' + encodeURIComponent(r.profiles?.first_name || 'User')})`,
+                                            backgroundSize: 'cover'
+                                        }}></div>
+                                        <span className="user-name">{r.profiles?.first_name || 'Anonymous'} {r.profiles?.last_name || ''}</span>
+                                    </div>
+                                    <div className="user-reaction-emoji">
+                                        {r.reaction_type === 'like' && '👍'}
+                                        {r.reaction_type === 'celebrate' && '🙌'}
+                                        {r.reaction_type === 'heart' && '❤️'}
+                                        {r.reaction_type === 'acknowledge' && '✅'}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
