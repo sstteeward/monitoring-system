@@ -288,7 +288,7 @@ const JournalView: React.FC = () => {
                         ) : allJournals.length === 0 ? (
                             <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No entries found.</div>
                         ) : (
-                            allJournals.map((j, index) => {
+                            allJournals.map((j) => {
                                 const d = new Date(j.entry_date);
                                 const month = d.toLocaleDateString('en-US', { month: 'short' });
                                 const day = d.getDate();
