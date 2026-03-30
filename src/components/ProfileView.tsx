@@ -39,7 +39,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
     // Department Change Request
     const [departments, setDepartments] = useState<Department[]>([]);
     const [activeRequest, setActiveRequest] = useState<DepartmentChangeRequest | null>(null);
-    const [requestHistory, setRequestHistory] = useState<DepartmentChangeRequest[]>([]);
     const [requestDeptId, setRequestDeptId] = useState('');
     const [requestReason, setRequestReason] = useState('');
     const [requestLoading, setRequestLoading] = useState(false);
@@ -51,14 +50,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
 
     const loadDepartmentInfo = async () => {
         try {
-            const [depts, req, history] = await Promise.all([
+            const [depts, req] = await Promise.all([
                 adminService.getDepartments(),
-                departmentRequestService.getMyRequest(),
-                departmentRequestService.getMyHistory()
+                departmentRequestService.getMyRequest()
             ]);
             setDepartments(depts);
             setActiveRequest(req);
-            setRequestHistory(history);
         } catch (err) {
             console.error("Failed to load department info:", err);
         }
