@@ -58,10 +58,11 @@ const CoordinatorDashboard: React.FC = () => {
     const lastPart = location.pathname.split('/').pop();
     const currentView: View = (lastPart === 'coordinator' ? 'overview' : lastPart as View) || 'overview';
 
-    const [pendingDocsCount, setPendingDocsCount] = useState(0);
+    const [totalPendingCount, setTotalPendingCount] = useState(0);
     const [companyCount, setCompanyCount] = useState(0);
     const [pendingCompanyRequestsCount, setPendingCompanyRequestsCount] = useState(0);
     const [overviewStats, setOverviewStats] = useState<any>(null);
+    const [coordinatorDepartment, setCoordinatorDepartment] = useState<any>(null);
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -85,19 +86,22 @@ const CoordinatorDashboard: React.FC = () => {
     const loadCoordinatorData = async () => {
         setLoading(true);
         try {
-            const [currentProfile, _students, pendingDocs, companies, companyRequests, stats] = await Promise.all([
+            const [currentProfile, companies, companyRequests, dept] = await Promise.all([
                 profileService.getCurrentProfile(),
-                coordinatorService.getAllStudents(),
-                coordinatorService.getPendingDocuments(),
                 coordinatorService.getAllCompanies(),
                 coordinatorService.getPendingCompanyRequests(),
-                coordinatorService.getOverviewStats(),
+                coordinatorService.getMyDepartment(),
             ]);
+
+            // Fetch stats using departmentId if available
+            const stats = await coordinatorService.getOverviewStats(dept?.id);
+            setOverviewStats(stats);
+            setTotalPendingCount(stats.totalPendingCount || 0);
+
             setProfile(currentProfile);
-            setPendingDocsCount(pendingDocs.length);
             setCompanyCount(companies.length);
             setPendingCompanyRequestsCount(companyRequests.length);
-            setOverviewStats(stats);
+            setCoordinatorDepartment(dept);
         } catch (err) {
             console.error('Error loading coordinator data:', err);
         } finally {
@@ -152,7 +156,7 @@ const CoordinatorDashboard: React.FC = () => {
                 { id: 'companies', label: 'Companies', icon: Icon.building, badge: pendingCompanyRequestsCount > 0 ? pendingCompanyRequestsCount : undefined },
                 { id: 'departments', label: 'Department', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" /><line x1="12" y1="22" x2="12" y2="15.5" /><polyline points="22 8.5 12 15.5 2 8.5" /></svg> },
                 { id: 'students', label: 'Students', icon: Icon.users },
-                { id: 'approvals', label: 'Approvals', icon: Icon.file, badge: pendingDocsCount > 0 ? pendingDocsCount : undefined },
+                { id: 'approvals', label: 'Approvals', icon: Icon.file, badge: totalPendingCount > 0 ? totalPendingCount : undefined },
             ],
         },
         {
@@ -305,9 +309,9 @@ const CoordinatorDashboard: React.FC = () => {
                     </div>
                     <div className="topbar-right">
                         <div className="topbar-actions">
-                            <button className="topbar-icon-btn" onClick={() => navigateTo('announcement')} title="Notifications">
+                            <button className="topbar-icon-btn" onClick={() => navigateTo('approvals')} title="Notifications">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-                                {pendingDocsCount > 0 && <span className="topbar-notification-dot" />}
+                                {totalPendingCount > 0 && <span className="topbar-notification-dot" />}
                             </button>
                             <button className="topbar-icon-btn" onClick={() => navigateTo('settings')} title="Settings">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
@@ -335,10 +339,11 @@ const CoordinatorDashboard: React.FC = () => {
                         <OverviewView
                             greeting={greeting}
                             displayName={displayName}
-                            pendingDocsCount={pendingDocsCount}
+                            totalPendingCount={totalPendingCount}
                             companyCount={companyCount}
                             stats={overviewStats}
                             navigateTo={navigateTo}
+                            departmentName={coordinatorDepartment?.name}
                         />
                     )}
                     {currentView === 'companies' && <CompaniesView />}
@@ -377,13 +382,14 @@ const CoordinatorDashboard: React.FC = () => {
 interface OverviewProps {
     greeting: string;
     displayName: string;
-    pendingDocsCount: number;
+    totalPendingCount: number;
     companyCount: number;
     stats: any;
     navigateTo: (v: View, filter?: string) => void;
+    departmentName?: string;
 }
 
-const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingDocsCount, companyCount, stats, navigateTo }) => {
+const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, totalPendingCount, companyCount, stats, navigateTo, departmentName }) => {
     const [viewProfileId, setViewProfileId] = React.useState<string | null>(null);
     const quickStats = stats ? [
         {
@@ -440,6 +446,15 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
             icon: Icon.clock,
             action: () => navigateTo('approvals', 'dtr'),
         },
+        {
+            label: 'Dept Changes',
+            value: stats.pendingDeptRequests,
+            sub: 'Pending transfers',
+            color: (stats.pendingDeptRequests || 0) > 0 ? '#f59e0b' : '#10b981',
+            glow: (stats.pendingDeptRequests || 0) > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5" /><path d="M8 3H3v5" /><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.828L3 3" /><path d="M15 13.846L21 21" /><path d="M10.584 10.584L13.5 13.5" /><path d="M12 22L12 22" /></svg>,
+            action: () => navigateTo('approvals', 'dept_changes'),
+        },
     ] : [];
 
     return (
@@ -451,7 +466,10 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                     <div className="cd-welcome-content">
                         <div>
                             <p className="cd-welcome-greeting">{greeting},</p>
-                            <h2 className="cd-welcome-name">{displayName} </h2>
+                            <h2 className="cd-welcome-name">
+                                {displayName}
+                                {departmentName && <span style={{ fontSize: '0.9rem', fontWeight: 500, opacity: 0.8, marginLeft: '0.75rem', verticalAlign: 'middle', background: 'rgba(255,255,255,0.15)', padding: '0.2rem 0.6rem', borderRadius: '6px' }}>{departmentName}</span>}
+                            </h2>
                             <p className="cd-welcome-sub">Here's your SIL program snapshot for today.</p>
                         </div>
                         <div className="cd-welcome-actions">
@@ -573,7 +591,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, pendingD
                         {[
                             {
                                 label: 'Review Documents',
-                                sub: `${pendingDocsCount} awaiting review`,
+                                sub: `${totalPendingCount} awaiting review`,
                                 view: 'approvals' as View,
                                 color: '#f59e0b',
                                 bg: 'rgba(245,158,11,0.12)',

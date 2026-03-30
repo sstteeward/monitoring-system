@@ -131,53 +131,52 @@
     border-bottom: 1px solid var(--border);
 }
 
-.shift-header {
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    background: rgba(16, 185, 129, 0.03) !important;
-    color: var(--primary) !important;
-}
-
-.sub-header th {
-    font-size: 0.6rem;
-    padding: 0.75rem 0.5rem;
-    background: rgba(255, 255, 255, 0.005);
-}
-
-.timesheet-table tr:last-child td {
-    border-bottom: none;
-}
-
-.timesheet-table tbody tr {
-    transition: all 0.15s ease;
-}
-
-.timesheet-table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.015);
-}
-
-/* Cell refinements */
-.date-cell {
-    font-weight: 600;
-    color: var(--text-primary) !important;
+.timesheet-table.flat-list th {
     text-align: left;
-    padding-left: 1.5rem !important;
+    padding-left: 1rem;
 }
 
-.time-cell {
-    font-family: var(--font-inter);
-    color: var(--text-dim) !important;
-    font-variant-numeric: tabular-nums;
+.timesheet-table.flat-list td {
+    text-align: left;
+    padding-left: 1rem;
 }
 
-.duration-cell {
+/* Date Grouping */
+.new-day-row td {
+    border-top: 1px solid var(--border);
+}
+
+.date-group-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.date-main {
+    font-size: 0.95rem;
     font-weight: 700;
-    color: var(--primary) !important;
-    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
 }
 
+.date-detail {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.timesheet-table .duration-cell {
+    text-align: left;
+}
+
+.timesheet-table .status-cell {
+    text-align: right;
+    padding-right: 1.5rem;
+}
 
 /* ── Status Pills ── */
+
 .status-pill {
     display: inline-flex;
     align-items: center;
@@ -278,8 +277,65 @@
     }
 }
 
+@media (max-width: 768px) {
+    .timesheet-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .refresh-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .header-text h2 {
+        font-size: 1.25rem;
+    }
+
+    .timesheet-loading,
+    .timesheet-empty {
+        padding: 3rem 1.5rem;
+    }
+}
+
 @media (max-width: 640px) {
     .timesheet-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .ts-stat-card {
+        padding: 1rem;
+    }
+
+    .ts-stat-value {
+        font-size: 1.25rem;
+    }
+
+    .timesheet-table th {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.6rem;
+    }
+
+    .timesheet-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.82rem;
+    }
+
+    .date-cell {
+        padding-left: 0.75rem !important;
+    }
+}
+
+@media (max-width: 400px) {
+    .timesheet-stats-row {
         grid-template-columns: 1fr;
+    }
+
+    .ts-stat-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
     }
 }

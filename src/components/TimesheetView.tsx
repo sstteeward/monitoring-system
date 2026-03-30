@@ -42,73 +42,37 @@ const TimesheetView: React.FC = () => {
 
 
 
-    interface DailyLog {
-        date: string;
-        morningIn: string | null;
-        morningOut: string | null;
-        afternoonIn: string | null;
-        afternoonOut: string | null;
-        totalSeconds: number;
-        status: string;
-    }
-
-    const groupSessionsByDay = (): DailyLog[] => {
-        // Sort sessions by date and time (descending by date, ascending by time within a date)
-        const sorted = [...timesheets].sort((a, b) => new Date(a.clock_in).getTime() - new Date(b.clock_in).getTime());
-        const days: { [key: string]: DailyLog } = {};
-
-        sorted.forEach(ts => {
-            const dateStr = formatDate(ts.clock_in);
-            if (!days[dateStr]) {
-                days[dateStr] = {
-                    date: dateStr,
-                    morningIn: null,
-                    morningOut: null,
-                    afternoonIn: null,
-                    afternoonOut: null,
-                    totalSeconds: 0,
-                    status: 'completed'
-                };
-            }
-
-            const dailySessions = sorted
-                .filter(s => formatDate(s.clock_in) === dateStr);
-
-            const sessionIndex = dailySessions.findIndex(s => s.id === ts.id);
-
-            if (sessionIndex === 0) {
-                days[dateStr].morningIn = ts.clock_in;
-                days[dateStr].morningOut = ts.clock_out;
-            } else if (sessionIndex === 1) {
-                days[dateStr].afternoonIn = ts.clock_in;
-                days[dateStr].afternoonOut = ts.clock_out;
-            }
-
-            if (ts.clock_out) {
-                days[dateStr].totalSeconds += Math.floor((new Date(ts.clock_out).getTime() - new Date(ts.clock_in).getTime()) / 1000);
-            }
-            if (ts.status === 'working' || ts.status === 'break') {
-                days[dateStr].status = ts.status;
-            }
+    const formatDateDetailed = (dateStr: string) => {
+        return new Date(dateStr).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
         });
+    };
 
-        // Convert back to array and sort by date descending
-        return Object.values(days).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const getSessionDuration = (ts: Timesheet) => {
+        if (!ts.clock_out) return 0;
+        let diff = Math.floor((new Date(ts.clock_out).getTime() - new Date(ts.clock_in).getTime()) / 1000);
+        
+        // Subtract break duration if it exists
+        if (ts.break_start && ts.break_end) {
+            const breakTime = Math.floor((new Date(ts.break_end).getTime() - new Date(ts.break_start).getTime()) / 1000);
+            diff = Math.max(0, diff - breakTime);
+        }
+        return diff;
     };
 
     const formatDuration = (seconds: number) => {
+        if (seconds === 0) return '—';
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
+        if (h === 0) return `${m}m`;
         return `${h}h ${m}m`;
     };
 
-    const dailyLogs = groupSessionsByDay();
-
     // Summary Stats
-    const totalSecondsAll = timesheets.reduce((acc, ts) => {
-        if (!ts.clock_out) return acc;
-        return acc + Math.floor((new Date(ts.clock_out).getTime() - new Date(ts.clock_in).getTime()) / 1000);
-    }, 0);
+    const totalSecondsAll = timesheets.reduce((acc, ts) => acc + getSessionDuration(ts), 0);
 
     const activeDays = new Set(timesheets.map(ts => new Date(ts.clock_in).toLocaleDateString())).size;
     const avgHoursPerDay = activeDays > 0 ? (totalSecondsAll / 3600 / activeDays).toFixed(1) : '0';
@@ -119,7 +83,7 @@ const TimesheetView: React.FC = () => {
             <div className="timesheet-header">
                 <div className="header-text">
                     <h2>Timesheet History</h2>
-                    <p className="header-subtitle">Daily log of your work sessions</p>
+                    <p className="header-subtitle">Chronological log of all work sessions</p>
                 </div>
                 <button className="refresh-btn" onClick={loadTimesheets} disabled={loading}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
@@ -158,8 +122,8 @@ const TimesheetView: React.FC = () => {
 
             <div className="timesheet-card">
                 {loading ? (
-                    <TableSkeleton rows={8} cols={7} />
-                ) : dailyLogs.length === 0 ? (
+                    <TableSkeleton rows={8} cols={5} />
+                ) : timesheets.length === 0 ? (
                     <div className="timesheet-empty">
                         <span className="timesheet-empty-icon">
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
@@ -168,39 +132,44 @@ const TimesheetView: React.FC = () => {
                     </div>
                 ) : (
                     <div className="timesheet-table-container">
-                        <table className="timesheet-table">
+                        <table className="timesheet-table flat-list">
                             <thead>
                                 <tr>
-                                    <th rowSpan={2}>Date</th>
-                                    <th colSpan={2} className="shift-header">Morning Shift</th>
-                                    <th colSpan={2} className="shift-header">Afternoon Shift</th>
-                                    <th rowSpan={2}>Daily Total</th>
-                                    <th rowSpan={2}>Status</th>
-                                </tr>
-                                <tr className="sub-header">
-                                    <th>In</th>
-                                    <th>Out</th>
-                                    <th>In</th>
-                                    <th>Out</th>
+                                    <th>Date</th>
+                                    <th>Clock In</th>
+                                    <th>Clock Out</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {dailyLogs.map((log) => (
-                                    <tr key={log.date}>
-                                        <td className="date-cell">{log.date}</td>
-                                        <td className="time-cell">{formatTime(log.morningIn)}</td>
-                                        <td className="time-cell">{formatTime(log.morningOut)}</td>
-                                        <td className="time-cell">{formatTime(log.afternoonIn)}</td>
-                                        <td className="time-cell">{formatTime(log.afternoonOut)}</td>
-                                        <td className="duration-cell">{formatDuration(log.totalSeconds)}</td>
-                                        <td className="status-cell">
-                                            <span className={`status-pill ${log.status}`}>
-                                                <span className="status-dot" />
-                                                {log.status === 'working' ? 'Working' : log.status === 'break' ? 'On Break' : 'Completed'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {timesheets.map((ts, idx) => {
+                                    const currentDate = formatDate(ts.clock_in);
+                                    const prevDate = idx > 0 ? formatDate(timesheets[idx - 1].clock_in) : null;
+                                    const showDate = currentDate !== prevDate;
+
+                                    return (
+                                        <tr key={ts.id} className={showDate ? 'new-day-row' : ''}>
+                                            <td className="date-cell">
+                                                {showDate && (
+                                                    <div className="date-group-header">
+                                                        <span className="date-main">{currentDate}</span>
+                                                        <span className="date-detail">{formatDateDetailed(ts.clock_in)}</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="time-cell">{formatTime(ts.clock_in)}</td>
+                                            <td className="time-cell">{formatTime(ts.clock_out)}</td>
+                                            <td className="duration-cell">{formatDuration(getSessionDuration(ts))}</td>
+                                            <td className="status-cell">
+                                                <span className={`status-pill ${ts.status}`}>
+                                                    <span className="status-dot" />
+                                                    {ts.status === 'working' ? 'Active' : ts.status === 'break' ? 'On Break' : 'Completed'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

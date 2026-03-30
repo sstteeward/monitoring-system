@@ -56,6 +56,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
     return (
         <div
             onClick={handleBackdropClick}
+            className="upm-overlay"
             style={{
                 position: 'fixed', inset: 0, zIndex: 2000,
                 background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
@@ -65,7 +66,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
             }}
         >
             <div 
-                className="custom-scrollbar"
+                className="custom-scrollbar upm-card"
                 style={{
                     background: 'var(--bg-card)',
                     border: '1px solid var(--border)',
@@ -82,7 +83,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                 {/* Close Button - Floated top right */}
                 <button
                     type="button"
-                    className="close-modal-btn"
+                    className="close-modal-btn upm-close-btn"
                     onClick={(e) => {
                         e.stopPropagation();
                         onClose();
@@ -134,10 +135,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                         <p style={{ color: 'var(--text-muted)' }}>The requested user profile could not be loaded.</p>
                     </div>
                 ) : (
-                    <div style={{ padding: '3rem' }}>
+                    <div style={{ padding: '3rem' }} className="upm-inner-pad">
                         {/* Hero Section */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '3.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '3rem' }}>
-                            <div style={{
+                        <div className="upm-hero" style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '3.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '3rem' }}>
+                            <div className="upm-hero-avatar" style={{
                                 width: 120, height: 120, borderRadius: '32px',
                                 background: profile.avatar_url
                                     ? `url(${profile.avatar_url}) center/cover no-repeat`
@@ -151,8 +152,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                                 {profile.avatar_url ? '' : initials}
                             </div>
                             <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-                                    <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800, color: 'var(--text-bright)', letterSpacing: '-0.02em' }}>
+                                <div className="upm-hero-title-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                                    <h1 className="upm-hero-name" style={{ margin: 0, fontSize: '2rem', fontWeight: 800, color: 'var(--text-bright)', letterSpacing: '-0.02em' }}>
                                         {displayName}
                                     </h1>
                                     <span style={{
@@ -176,7 +177,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                         </div>
 
                         {/* Content Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
+                        <div className="upm-content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
                             {/* Column 1: Identity & Academic */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                                 <section>
@@ -287,6 +288,64 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                 .custom-scrollbar {
                     scrollbar-width: thin;
                     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+                }
+
+                /* ── UserProfileModal Mobile Responsive ── */
+                @media (max-width: 640px) {
+                    .upm-overlay {
+                        padding: 0 !important;
+                        align-items: flex-end !important;
+                    }
+                    .upm-card {
+                        border-radius: 20px 20px 0 0 !important;
+                        max-height: 92vh !important;
+                        max-width: 100% !important;
+                    }
+                    .upm-inner-pad {
+                        padding: 1.5rem 1rem !important;
+                    }
+                    .upm-hero {
+                        flex-direction: column !important;
+                        gap: 1rem !important;
+                        align-items: flex-start !important;
+                        margin-bottom: 2rem !important;
+                        padding-bottom: 1.5rem !important;
+                    }
+                    .upm-hero-avatar {
+                        width: 80px !important;
+                        height: 80px !important;
+                        border-radius: 20px !important;
+                        font-size: 1.8rem !important;
+                    }
+                    .upm-hero-name {
+                        font-size: 1.4rem !important;
+                    }
+                    .upm-hero-title-row {
+                        flex-wrap: wrap !important;
+                        gap: 0.5rem !important;
+                    }
+                    .upm-content-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 1.5rem !important;
+                    }
+                    .upm-close-btn {
+                        top: 1rem !important;
+                        right: 1rem !important;
+                        width: 36px !important;
+                        height: 36px !important;
+                    }
+                }
+
+                @media (max-width: 900px) and (min-width: 641px) {
+                    .upm-overlay {
+                        padding: 1rem !important;
+                    }
+                    .upm-inner-pad {
+                        padding: 2rem 1.5rem !important;
+                    }
+                    .upm-hero-name {
+                        font-size: 1.6rem !important;
+                    }
                 }
             `}</style>
         </div>

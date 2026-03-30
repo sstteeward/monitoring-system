@@ -724,11 +724,47 @@ html[data-theme="light"] {
   }
 
   .admin-stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .admin-welcome-banner {
-    padding: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  .admin-welcome-name {
+    font-size: 1.3rem;
+  }
+
+  .admin-topbar {
+    padding: 0 0.75rem;
+  }
+
+  .admin-topbar-user-info {
+    display: none;
+  }
+
+  .admin-topbar-divider {
+    display: none;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 0.65rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .admin-stat-card {
+    padding: 1rem;
+  }
+
+  .admin-stat-value {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .admin-stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 

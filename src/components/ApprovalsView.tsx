@@ -3,38 +3,62 @@ import { coordinatorService } from '../services/coordinatorService';
 import { supabase } from '../lib/supabaseClient';
 import { TableSkeleton } from './Skeletons';
 import UserClickableName from './UserClickableName';
+import { departmentRequestService, type DepartmentChangeRequest } from '../services/departmentRequestService';
 import './CoordinatorDashboard.css';
 
 interface ApprovalsViewProps {
-    initialTab?: 'documents' | 'journals' | 'dtr';
+    initialTab?: 'documents' | 'journals' | 'dtr' | 'dept_changes';
 }
 
 const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' }) => {
-    const [activeTab, setActiveTab] = useState<'documents' | 'journals' | 'dtr'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'documents' | 'journals' | 'dtr' | 'dept_changes'>(initialTab);
     const [documents, setDocuments] = useState<any[]>([]);
     const [journals, setJournals] = useState<any[]>([]);
     const [timesheets, setTimesheets] = useState<any[]>([]);
+    const [deptRequests, setDeptRequests] = useState<DepartmentChangeRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [previewType, setPreviewType] = useState<string | null>(null);
     const [previewFileName, setPreviewFileName] = useState<string | null>(null);
-    const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
-    const [previewLoading, setPreviewLoading] = useState<string | null>(null);
     const [previewJournal, setPreviewJournal] = useState<any | null>(null);
+    const [departmentId, setDepartmentId] = useState<string | undefined>(undefined);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+    // Remarks Modal State
+    const [showRemarksModal, setShowRemarksModal] = useState(false);
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+    const [remarks, setRemarks] = useState('');
+    const [pendingAction, setPendingAction] = useState<'approved' | 'rejected' | null>(null);
 
     useEffect(() => {
+        const fetchDept = async () => {
+            try {
+                const dept = await coordinatorService.getMyDepartment();
+                if (dept) setDepartmentId(dept.id);
+            } catch (err) {
+                console.error("Error fetching department:", err);
+            } finally {
+                setIsInitialLoad(false);
+            }
+        };
+        fetchDept();
+    }, []);
+
+    useEffect(() => {
+        if (isInitialLoad) return;
         if (activeTab === 'documents') loadPendingDocuments();
         else if (activeTab === 'journals') loadPendingJournals();
         else if (activeTab === 'dtr') loadPendingTimesheets();
-    }, [activeTab]);
+        else if (activeTab === 'dept_changes') loadPendingDepartmentRequests();
+    }, [activeTab, departmentId, isInitialLoad]);
 
     const loadPendingDocuments = async () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await coordinatorService.getPendingDocuments();
+            const data = await coordinatorService.getPendingDocuments(departmentId);
             setDocuments(data || []);
         } catch (err: any) {
             console.error("Failed to load documents:", err);
@@ -48,7 +72,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
         setLoading(true);
         setError(null);
         try {
-            const data = await coordinatorService.getPendingJournals();
+            const data = await coordinatorService.getPendingJournals(departmentId);
             setJournals(data || []);
         } catch (err: any) {
             console.error("Failed to load journals:", err);
@@ -62,10 +86,24 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
         setLoading(true);
         setError(null);
         try {
-            const data = await coordinatorService.getPendingTimesheets();
+            const data = await coordinatorService.getPendingTimesheets(departmentId);
             setTimesheets(data || []);
         } catch (err: any) {
             console.error("Failed to load timesheets:", err);
+            setError(err?.message || JSON.stringify(err));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadPendingDepartmentRequests = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await departmentRequestService.getPendingRequests(departmentId);
+            setDeptRequests(data || []);
+        } catch (err: any) {
+            console.error("Failed to load dept requests:", err);
             setError(err?.message || JSON.stringify(err));
         } finally {
             setLoading(false);
@@ -84,6 +122,9 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
             } else if (activeTab === 'dtr') {
                 await coordinatorService.updateTimesheetStatus(id, status);
                 setTimesheets(prev => prev.filter(d => d.id !== id));
+            } else if (activeTab === 'dept_changes') {
+                await departmentRequestService.actionRequest(id, status, remarks);
+                setDeptRequests(prev => prev.filter(d => d.id !== id));
             }
         } catch (err) {
             console.error(`Failed to mark item as ${status}:`, err);
@@ -93,27 +134,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
         }
     };
 
-    const handleDownload = async (filePath: string, fileName: string) => {
-        try {
-            const { data, error } = await supabase.storage.from('documents').download(filePath);
-            if (error) throw error;
-
-            const url = window.URL.createObjectURL(data);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Error downloading file:', error);
-            alert('Could not download file.');
-        }
-    };
-
     const handlePreview = async (filePath: string, fileName: string) => {
-        setPreviewLoading(filePath);
         try {
             const { data, error } = await supabase.storage.from('documents').createSignedUrl(filePath, 3600);
             if (error) throw error;
@@ -125,31 +146,24 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
 
             setPreviewUrl(data.signedUrl);
             setPreviewFileName(fileName);
-            setPreviewFilePath(filePath);
             setPreviewType(mimeType);
-            console.log('Preview URL set:', data.signedUrl);
         } catch (error) {
             console.error('Error previewing file:', error);
             alert('Could not preview file.');
-        } finally {
-            setPreviewLoading(null);
         }
     };
 
     const closePreview = () => {
         setPreviewUrl(null);
         setPreviewFileName(null);
-        setPreviewFilePath(null);
         setPreviewType(null);
         setPreviewJournal(null);
     };
 
-    // Removal of old simple loading state return
     if (error) return (
         <div className="view-container">
             <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '1.5rem 2rem', color: '#f87171' }}>
-                <strong>Supabase Error:</strong> {error}
-                <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>This is usually an RLS policy issue. Run the coordinator RLS SQL in Supabase and refresh.</p>
+                <strong>Error:</strong> {error}
             </div>
         </div>
     );
@@ -163,8 +177,8 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem' }}>
-                {(['documents', 'journals', 'dtr'] as const).map(tab => (
+            <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
+                {(['documents', 'journals', 'dtr', 'dept_changes'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -179,9 +193,10 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                             cursor: 'pointer',
                             textTransform: 'capitalize',
                             transition: 'all 0.2s',
+                            whiteSpace: 'nowrap'
                         }}
                     >
-                        {tab === 'dtr' ? 'DTR (Timesheets)' : tab === 'journals' ? 'Approvals' : tab}
+                        {tab === 'dtr' ? 'DTR (Timesheets)' : tab === 'journals' ? 'Daily Summary' : tab === 'dept_changes' ? 'Dept Changes' : tab}
                     </button>
                 ))}
             </div>
@@ -208,7 +223,6 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                         onClick={() => handlePreview(doc.file_path, doc.file_name)}
                                         style={{ cursor: 'pointer', transition: 'background 0.2s' }}
                                         className="hover-row"
-                                        title="Click to preview document"
                                     >
                                         <td style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
                                             <UserClickableName 
@@ -216,82 +230,19 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                                 userName={`${doc.profiles?.first_name} ${doc.profiles?.last_name}`} 
                                             />
                                         </td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="var(--primary)" />
-                                                    <polyline points="14 2 14 8 20 8" stroke="var(--primary)" />
-                                                </svg>
-                                                {doc.title}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', background: 'transparent', border: '1px solid var(--border)' }}
-                                                onClick={(e) => { e.stopPropagation(); handlePreview(doc.file_path, doc.file_name); }}
-                                                title="Preview File"
-                                                disabled={previewLoading === doc.file_path}
-                                            >
-                                                {previewLoading === doc.file_path ? (
-                                                    <span className="preview-spinner" style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(16, 185, 129, 0.3)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'cd-spin 0.7s linear infinite', marginRight: '4px' }}></span>
-                                                ) : (
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
-                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="var(--primary)" />
-                                                        <circle cx="12" cy="12" r="3" stroke="var(--primary)" />
-                                                    </svg>
-                                                )}
-                                                {doc.file_name}
-                                            </button>
-                                        </td>
+                                        <td>{doc.title}</td>
+                                        <td>{doc.file_name}</td>
                                         <td>{new Date(doc.created_at).toLocaleDateString()}</td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button
-                                                    className="btn btn-approve"
-                                                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }}
-                                                    onClick={(e) => { e.stopPropagation(); handleAction(doc.id, 'approved'); }}
-                                                    disabled={actionLoading === doc.id}
-                                                >
-                                                    {actionLoading === doc.id ? '...' : (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                                                            Approve
-                                                        </div>
-                                                    )}
-                                                </button>
-                                                <button
-                                                    className="btn btn-reject"
-                                                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }}
-                                                    onClick={(e) => { e.stopPropagation(); handleAction(doc.id, 'rejected'); }}
-                                                    disabled={actionLoading === doc.id}
-                                                >
-                                                    {actionLoading === doc.id ? '...' : (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                                                            Reject
-                                                        </div>
-                                                    )}
-                                                </button>
+                                                <button className="btn btn-approve" onClick={(e) => { e.stopPropagation(); handleAction(doc.id, 'approved'); }} disabled={actionLoading === doc.id}>Approve</button>
+                                                <button className="btn btn-reject" onClick={(e) => { e.stopPropagation(); handleAction(doc.id, 'rejected'); }} disabled={actionLoading === doc.id}>Reject</button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
-                                <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
-                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#10b981" />
-                                                <polyline points="22 4 12 14.01 9 11.01" stroke="#10b981" />
-                                            </svg>
-                                            <div>
-                                                <p style={{ fontWeight: '500', color: 'var(--text-primary)' }}>All Caught Up!</p>
-                                                <p style={{ fontSize: '0.9rem' }}>There are no pending documents to review right now.</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '3rem' }}>All caught up!</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -306,7 +257,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                 <th>Student</th>
                                 <th>Date</th>
                                 <th>Tasks/Learnings</th>
-                                <th style={{ width: '200px' }}>Actions</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -314,61 +265,25 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                 <TableSkeleton rows={5} cols={4} />
                             ) : journals.length > 0 ? (
                                 journals.map(j => (
-                                    <tr
-                                        key={j.id}
-                                        className="hover-row"
-                                        onClick={() => setPreviewJournal(j)}
-                                        style={{ cursor: 'pointer', transition: 'background 0.2s' }}
-                                        title="Click to view full journal entry"
-                                    >
-                                        <td style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
+                                    <tr key={j.id} className="hover-row" onClick={() => setPreviewJournal(j)}>
+                                        <td>
                                             <UserClickableName 
                                                 userId={j.user_id} 
                                                 userName={`${j.profiles?.first_name} ${j.profiles?.last_name}`} 
                                             />
                                         </td>
-                                        <td style={{ whiteSpace: 'nowrap' }}>{new Date(j.entry_date).toLocaleDateString()}</td>
-                                        <td>
-                                            <div style={{ fontSize: '0.85rem', marginBottom: '0.25rem' }}><strong>Tasks:</strong> <span style={{ color: 'var(--text-muted)' }}>{j.tasks}</span></div>
-                                            <div style={{ fontSize: '0.85rem' }}><strong>Learnings:</strong> <span style={{ color: 'var(--text-muted)' }}>{j.learnings}</span></div>
-                                            {j.photo_urls && j.photo_urls.length > 0 && (
-                                                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                                                    {j.photo_urls.map((url: string, i: number) => (
-                                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontSize: '0.8rem', textDecoration: 'none' }}>
-                                                            [Photo {i + 1}]
-                                                        </a>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </td>
+                                        <td>{new Date(j.entry_date).toLocaleDateString()}</td>
+                                        <td>{j.tasks?.substring(0, 50)}...</td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button className="btn btn-approve" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }} onClick={(e) => { e.stopPropagation(); handleAction(j.id, 'approved'); }} disabled={actionLoading === j.id}>
-                                                    {actionLoading === j.id ? '...' : (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>Approve</div>
-                                                    )}
-                                                </button>
-                                                <button className="btn btn-reject" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }} onClick={(e) => { e.stopPropagation(); handleAction(j.id, 'rejected'); }} disabled={actionLoading === j.id}>
-                                                    {actionLoading === j.id ? '...' : (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Reject</div>
-                                                    )}
-                                                </button>
+                                                <button className="btn btn-approve" onClick={(e) => { e.stopPropagation(); handleAction(j.id, 'approved'); }} disabled={actionLoading === j.id}>Approve</button>
+                                                <button className="btn btn-reject" onClick={(e) => { e.stopPropagation(); handleAction(j.id, 'rejected'); }} disabled={actionLoading === j.id}>Reject</button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
-                                <tr>
-                                    <td colSpan={4} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-                                            <div>
-                                                <p style={{ fontWeight: '500', color: 'var(--text-primary)' }}>All Caught Up!</p>
-                                                <p style={{ fontSize: '0.9rem' }}>There are no pending journals to review right now.</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <tr><td colSpan={4} style={{ textAlign: 'center', padding: '3rem' }}>All caught up!</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -383,168 +298,137 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                                 <th>Student</th>
                                 <th>Clock In</th>
                                 <th>Clock Out</th>
-                                <th>Time Worked</th>
-                                <th style={{ width: '200px' }}>Actions</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <TableSkeleton rows={5} cols={5} />
+                                <TableSkeleton rows={5} cols={4} />
                             ) : timesheets.length > 0 ? (
-                                timesheets.map(t => {
-                                    const tsStart = new Date(t.clock_in);
-                                    const tsEnd = t.clock_out ? new Date(t.clock_out) : null;
-                                    let hrsHrsStr = '-';
-                                    if (tsStart && tsEnd) {
-                                        const hrs = (tsEnd.getTime() - tsStart.getTime()) / (1000 * 3600);
-                                        hrsHrsStr = hrs > 0 ? hrs.toFixed(1) + ' hrs' : '-';
-                                    }
-
-                                    return (
-                                        <tr key={t.id} className="hover-row">
-                                            <td style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
-                                                <UserClickableName 
-                                                    userId={t.user_id} 
-                                                    userName={`${t.profiles?.first_name} ${t.profiles?.last_name}`} 
-                                                />
-                                            </td>
-                                            <td style={{ whiteSpace: 'nowrap' }}>{tsStart.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</td>
-                                            <td style={{ whiteSpace: 'nowrap' }}>{tsEnd ? tsEnd.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</td>
-                                            <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{hrsHrsStr}</td>
-                                            <td>
-                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <button className="btn btn-approve" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }} onClick={(e) => { e.stopPropagation(); handleAction(t.id, 'approved'); }} disabled={actionLoading === t.id}>
-                                                        {actionLoading === t.id ? '...' : (
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>Approve</div>
-                                                        )}
-                                                    </button>
-                                                    <button className="btn btn-reject" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }} onClick={(e) => { e.stopPropagation(); handleAction(t.id, 'rejected'); }} disabled={actionLoading === t.id}>
-                                                        {actionLoading === t.id ? '...' : (
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Reject</div>
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            ) : (
-                                <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-                                            <div>
-                                                <p style={{ fontWeight: '500', color: 'var(--text-primary)' }}>All Caught Up!</p>
-                                                <p style={{ fontSize: '0.9rem' }}>There are no pending timesheets to review right now.</p>
+                                timesheets.map(t => (
+                                    <tr key={t.id} className="hover-row">
+                                        <td>
+                                            <UserClickableName 
+                                                userId={t.user_id} 
+                                                userName={`${t.profiles?.first_name} ${t.profiles?.last_name}`} 
+                                            />
+                                        </td>
+                                        <td>{new Date(t.clock_in).toLocaleString()}</td>
+                                        <td>{t.clock_out ? new Date(t.clock_out).toLocaleString() : 'N/A'}</td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button className="btn btn-approve" onClick={(e) => { e.stopPropagation(); handleAction(t.id, 'approved'); }} disabled={actionLoading === t.id}>Approve</button>
+                                                <button className="btn btn-reject" onClick={(e) => { e.stopPropagation(); handleAction(t.id, 'rejected'); }} disabled={actionLoading === t.id}>Reject</button>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr><td colSpan={4} style={{ textAlign: 'center', padding: '3rem' }}>All caught up!</td></tr>
                             )}
                         </tbody>
                     </table>
                 </div>
             )}
 
-            {/* Document Preview Modal */}
+            {activeTab === 'dept_changes' && (
+                <div className="table-container">
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Transfer Flow</th>
+                                <th>Request Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                <TableSkeleton rows={3} cols={4} />
+                            ) : deptRequests.length > 0 ? (
+                                deptRequests.map(req => (
+                                    <tr key={req.id} className="hover-row">
+                                        <td>
+                                            <UserClickableName 
+                                                userId={req.user_id} 
+                                                userName={`${req.profiles?.first_name} ${req.profiles?.last_name}`} 
+                                            />
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>{req.current_dept?.name}</span>
+                                                <span>→</span>
+                                                <span style={{ color: '#10b981', fontWeight: 600 }}>{req.requested_dept?.name}</span>
+                                            </div>
+                                        </td>
+                                        <td>{new Date(req.created_at).toLocaleDateString()}</td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button className="btn btn-approve" onClick={() => { setSelectedRequestId(req.id); setPendingAction('approved'); setShowRemarksModal(true); setRemarks(''); }}>Approve</button>
+                                                <button className="btn btn-reject" onClick={() => { setSelectedRequestId(req.id); setPendingAction('rejected'); setShowRemarksModal(true); setRemarks(''); }}>Reject</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr><td colSpan={4} style={{ textAlign: 'center', padding: '3rem' }}>No pending transfers.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Modals */}
             {previewUrl && (
                 <div className="preview-modal-overlay" onClick={closePreview}>
                     <div className="preview-modal-content" onClick={e => e.stopPropagation()}>
                         <div className="preview-modal-header">
                             <h3 className="preview-modal-title">{previewFileName}</h3>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={() => previewFilePath && previewFileName && handleDownload(previewFilePath, previewFileName)}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                                </button>
-                                <button className="btn btn-secondary" style={{ padding: '0.4rem', color: '#ef4444' }} onClick={closePreview}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                                </button>
-                            </div>
+                            <button className="btn btn-secondary" onClick={closePreview}>Close</button>
                         </div>
                         <div className="preview-modal-body">
-                            {previewType?.startsWith('image/') ? (
-                                <img src={previewUrl} alt={previewFileName || 'Preview'} className="preview-image" />
-                            ) : previewType === 'application/pdf' ? (
-                                <iframe src={`${previewUrl}#toolbar=0`} className="preview-pdf" title="PDF Preview" />
-                            ) : (
-                                <div className="preview-unsupported">
-                                    <p>Preview not available for this file type.</p>
-                                    <button className="btn btn-primary" onClick={() => previewFilePath && previewFileName && handleDownload(previewFilePath, previewFileName)}>Download to View</button>
-                                </div>
-                            )}
+                            {previewType?.startsWith('image/') ? <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%' }} /> : <iframe src={previewUrl} style={{ width: '100%', height: '500px' }} />}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Journal Preview Modal */}
             {previewJournal && (
                 <div className="preview-modal-overlay" onClick={closePreview}>
-                    <div className="preview-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', height: 'auto', maxHeight: '90vh' }}>
+                    <div className="preview-modal-content" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
                         <div className="preview-modal-header">
-                            <h3 className="preview-modal-title">
-                                Journal Entry - {previewJournal.profiles?.first_name} {previewJournal.profiles?.last_name}
-                            </h3>
-                            <button className="btn btn-secondary" style={{ padding: '0.4rem', color: '#ef4444' }} onClick={closePreview}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                            </button>
+                            <h3>Journal Detail</h3>
+                            <button className="btn btn-secondary" onClick={closePreview}>Close</button>
                         </div>
-                        <div className="preview-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', display: 'block' }}>
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Date</div>
-                                <div style={{ color: 'var(--text-primary)', fontSize: '1.05rem' }}>{new Date(previewJournal.entry_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                            </div>
-
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Tasks Completed</div>
-                                <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                                    {previewJournal.tasks}
-                                </div>
-                            </div>
-
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Learnings</div>
-                                <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                                    {previewJournal.learnings}
-                                </div>
-                            </div>
-
-                            {previewJournal.photo_urls && previewJournal.photo_urls.length > 0 && (
-                                <div>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Attached Photos</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.75rem' }}>
-                                        {previewJournal.photo_urls.map((url: string, i: number) => (
-                                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', aspectRatio: '1/1' }}>
-                                                <img src={url} alt={`Journal attach ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            </a>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                        <div className="preview-modal-body" style={{ padding: '1.5rem' }}>
+                            <p><strong>Tasks:</strong> {previewJournal.tasks}</p>
+                            <p><strong>Learnings:</strong> {previewJournal.learnings}</p>
                         </div>
-                        <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '1rem', justifyContent: 'flex-end', background: 'var(--bg-card)' }}>
-                            <button
-                                className="btn btn-secondary"
-                                style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
-                                onClick={() => {
-                                    handleAction(previewJournal.id, 'rejected');
-                                    closePreview();
-                                }}
-                                disabled={actionLoading === previewJournal.id}
-                            >
-                                Reject Summary
-                            </button>
-                            <button
-                                className="btn btn-primary"
-                                style={{ background: '#10b981', borderColor: '#10b981', color: 'white' }}
-                                onClick={() => {
-                                    handleAction(previewJournal.id, 'approved');
-                                    closePreview();
-                                }}
-                                disabled={actionLoading === previewJournal.id}
-                            >
-                                Approve Summary
-                            </button>
+                        <div className="preview-modal-footer" style={{ padding: '1rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button className="btn btn-reject" onClick={() => { handleAction(previewJournal.id, 'rejected'); closePreview(); }}>Reject</button>
+                            <button className="btn btn-approve" onClick={() => { handleAction(previewJournal.id, 'approved'); closePreview(); }}>Approve</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showRemarksModal && (
+                <div className="preview-modal-overlay" style={{ zIndex: 1100 }}>
+                    <div className="preview-modal-content" style={{ maxWidth: '400px' }}>
+                        <div className="preview-modal-header">
+                            <h3>{pendingAction === 'approved' ? 'Approve' : 'Reject'} Request</h3>
+                        </div>
+                        <div className="preview-modal-body" style={{ padding: '1.5rem' }}>
+                            <textarea
+                                value={remarks}
+                                onChange={e => setRemarks(e.target.value)}
+                                placeholder="Add remarks..."
+                                style={{ width: '100%', minHeight: '100px', padding: '0.75rem', borderRadius: '8px' }}
+                            />
+                        </div>
+                        <div style={{ padding: '1.25rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button className="btn btn-secondary" onClick={() => setShowRemarksModal(false)}>Cancel</button>
+                            <button className={`btn ${pendingAction === 'approved' ? 'btn-approve' : 'btn-reject'}`} onClick={() => { if (selectedRequestId && pendingAction) handleAction(selectedRequestId, pendingAction); setShowRemarksModal(false); }}>Confirm</button>
                         </div>
                     </div>
                 </div>

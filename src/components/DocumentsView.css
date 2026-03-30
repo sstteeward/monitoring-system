@@ -241,8 +241,57 @@
     stroke: #ff4d4d !important;
 }
 
+@media (max-width: 768px) {
+    .upload-area {
+        padding: 1.5rem;
+    }
+
+    .upload-area p {
+        font-size: 0.88rem;
+    }
+
+    .doc-meta {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .view-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}
+
 @media (max-width: 640px) {
     .documents-grid {
         grid-template-columns: 1fr;
+    }
+
+    .doc-card {
+        padding: 1rem;
+    }
+
+    .doc-header {
+        gap: 0.75rem;
+    }
+
+    .doc-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    .doc-title {
+        font-size: 0.92rem;
+    }
+
+    .doc-actions {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .action-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.78rem;
     }
 }

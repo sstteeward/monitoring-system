@@ -38,7 +38,7 @@ const AdminDashboard: React.FC = () => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentView, setCurrentView] = useState<View>('overview');
-    const [stats, setStats] = useState({ studentCount: 0, coordinatorCount: 0, companyCount: 0, departmentCount: 0, totalLogs: 0 });
+    const [stats, setStats] = useState({ studentCount: 0, coordinatorCount: 0, companyCount: 0, departmentCount: 0, totalLogs: 0, pendingApprovalsCount: 0 });
     const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
@@ -69,21 +69,11 @@ const AdminDashboard: React.FC = () => {
 
     useEffect(() => {
         loadAdminData();
-        const interval = setInterval(loadNewFeedbackCount, 30000); // Check every 30s
+        const interval = setInterval(loadAdminData, 30000); // Check every 30s
         return () => clearInterval(interval);
     }, []);
 
-    const loadNewFeedbackCount = async () => {
-        try {
-            const count = await adminService.getNewFeedbackCount();
-            setNewFeedbackCount(count);
-        } catch (err) {
-            console.error('Error loading feedback count:', err);
-        }
-    };
-
     const loadAdminData = async () => {
-        setLoading(true);
         try {
             const [currentProfile, systemStats, profiles, feedbackCount] = await Promise.all([
                 profileService.getCurrentProfile(),
@@ -92,7 +82,7 @@ const AdminDashboard: React.FC = () => {
                 adminService.getNewFeedbackCount(),
             ]);
             setProfile(currentProfile);
-            setStats(systemStats);
+            setStats(systemStats as any);
             setAllProfiles(profiles);
             setNewFeedbackCount(feedbackCount);
         } catch (err) {
@@ -106,13 +96,11 @@ const AdminDashboard: React.FC = () => {
         setUpdatingUserId(userId);
         try {
             await adminService.updateUserRole(userId, newRole);
-            // Update local state
             setAllProfiles(allProfiles.map(p =>
                 p.auth_user_id === userId ? { ...p, account_type: newRole } : p
             ));
-            // Update stats
             const newStats = await adminService.getSystemStats();
-            setStats(newStats);
+            setStats(newStats as any);
         } catch {
             alert('Failed to update user role');
         } finally {
@@ -137,10 +125,8 @@ const AdminDashboard: React.FC = () => {
     return (
         <>
             <div className={`admin-dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
-                {/* Mobile overlay */}
                 <div className="admin-mobile-overlay" onClick={() => setIsMobileMenuOpen(false)} />
 
-                {/* --- SIDEBAR --- */}
                 <aside className={`admin-sidebar sidebar-mode-${sidebarMode} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
                     <div className="admin-sidebar-header">
                         <div className="admin-logo-icon">
@@ -151,8 +137,6 @@ const AdminDashboard: React.FC = () => {
                             <div className="admin-logo-sub">Asian College Dumaguete</div>
                         </div>
                     </div>
-
-
 
                     <nav className="admin-nav">
                         <div className={`admin-nav-item ${currentView === 'overview' ? 'active' : ''}`} onClick={() => navigateTo('overview')}>
@@ -171,6 +155,9 @@ const AdminDashboard: React.FC = () => {
                         <div className={`admin-nav-item ${currentView === 'approvals' ? 'active' : ''}`} onClick={() => navigateTo('approvals')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="16 13 8 13"></polyline><polyline points="16 17 8 17"></polyline><polyline points="10 9 9 9 8 9"></polyline></svg></span>
                             <span className="nav-text">Approvals</span>
+                            {stats.pendingApprovalsCount > 0 && (
+                                <span className="nav-badge" style={{ background: '#ef4444' }}>{stats.pendingApprovalsCount}</span>
+                            )}
                         </div>
                         <div className={`admin-nav-item ${currentView === 'students' ? 'active' : ''}`} onClick={() => navigateTo('students')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
@@ -236,7 +223,6 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </aside>
 
-                {/* --- MAIN --- */}
                 <main className="admin-main">
                     <header className="admin-topbar">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -264,9 +250,9 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <div className="admin-topbar-right">
                             <div className="admin-topbar-actions">
-                                <button className="admin-topbar-icon-btn" onClick={() => { }} title="Notifications">
+                                <button className="admin-topbar-icon-btn" onClick={() => navigateTo('approvals')} title="Notifications">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-                                    {/* Notifications dot placeholder */}
+                                    {stats.pendingApprovalsCount > 0 && <span className="topbar-notification-dot" style={{ background: '#ef4444' }} />}
                                 </button>
                                 <button className="admin-topbar-icon-btn" onClick={() => navigateTo('settings')} title="Settings">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
@@ -291,7 +277,6 @@ const AdminDashboard: React.FC = () => {
                     <div className="admin-page-content">
                         {currentView === 'overview' && (
                             <div className="fade-in">
-                                {/* Welcome Banner */}
                                 <div className="admin-welcome-banner">
                                     <div className="admin-welcome-bg" />
                                     <div className="admin-welcome-content">
@@ -303,11 +288,20 @@ const AdminDashboard: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-                                    <div className="admin-stat-card">
+                                    <div className="admin-stat-card" onClick={() => navigateTo('students')} style={{ cursor: 'pointer' }}>
                                         <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>{Icon.users}</div>
                                         <div>
                                             <div className="admin-stat-value">{stats.studentCount}</div>
                                             <div className="admin-stat-label">Total Students</div>
+                                        </div>
+                                    </div>
+                                    <div className="admin-stat-card" onClick={() => navigateTo('approvals')} style={{ cursor: 'pointer' }}>
+                                        <div className="admin-stat-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="16 13 8 13"></polyline><polyline points="16 17 8 17"></polyline><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                        </div>
+                                        <div>
+                                            <div className="admin-stat-value">{stats.pendingApprovalsCount}</div>
+                                            <div className="admin-stat-label">Pending Approvals</div>
                                         </div>
                                     </div>
                                     <div className="admin-stat-card">
@@ -331,15 +325,6 @@ const AdminDashboard: React.FC = () => {
                                         <div>
                                             <div className="admin-stat-value">{stats.departmentCount}</div>
                                             <div className="admin-stat-label">Departments</div>
-                                        </div>
-                                    </div>
-                                    <div className="admin-stat-card">
-                                        <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.2)' }}>
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                                        </div>
-                                        <div>
-                                            <div className="admin-stat-value">{stats.totalLogs}</div>
-                                            <div className="admin-stat-label">Audit Logs</div>
                                         </div>
                                     </div>
                                 </div>
@@ -470,7 +455,7 @@ const AdminDashboard: React.FC = () => {
 
                         {currentView === 'feedback' && (
                             <div className="fade-in">
-                                <AdminFeedbackView onFeedbackAction={loadNewFeedbackCount} />
+                                <AdminFeedbackView onFeedbackAction={loadAdminData} />
                             </div>
                         )}
 

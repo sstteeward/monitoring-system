@@ -21,6 +21,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [viewProfileId, setViewProfileId] = useState<string | null>(null);
+    const [departmentName, setDepartmentName] = useState<string | null>(null);
 
     useEffect(() => { loadStudents(); }, []);
 
@@ -28,7 +29,17 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
         setLoading(true);
         setError(null);
         try {
-            const data = await coordinatorService.getAllStudents();
+            // If not admin, get the coordinator's department to filter students
+            let deptId: string | undefined = undefined;
+            if (!isAdmin) {
+                const dept = await coordinatorService.getMyDepartment();
+                if (dept) {
+                    deptId = dept.id;
+                    setDepartmentName(dept.name);
+                }
+            }
+
+            const data = await coordinatorService.getAllStudents(deptId);
             setStudents(data);
         } catch (err: any) {
             console.error('Failed to load students:', err);
@@ -95,7 +106,10 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
             <div className="view-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h2 className="view-title">Enrolled Students</h2>
-                    <p className="view-subtitle">{students.length} student{students.length !== 1 ? 's' : ''} in the SIL program</p>
+                    <p className="view-subtitle">
+                        {students.length} student{students.length !== 1 ? 's' : ''} 
+                        {departmentName ? ` in ${departmentName}` : ' in the SIL program'}
+                    </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
                     <div style={{ position: 'relative', width: 'min(320px, 100%)' }}>

@@ -24,6 +24,7 @@ const StudentDashboard: React.FC = () => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [session, setSession] = useState<Timesheet | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isActionLoading, setIsActionLoading] = useState(false);
     const [elapsed, setElapsed] = useState<string>('00:00:00');
     const [elapsedSecs, setElapsedSecs] = useState(0);
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
@@ -168,38 +169,38 @@ const StudentDashboard: React.FC = () => {
 
     const handleClockIn = async () => {
         try {
-            setLoading(true);
+            setIsActionLoading(true);
             const newSession = await timeTrackingService.clockIn();
             setSession(newSession);
             await loadTodaySessions();
         }
         catch (e) { alert('Error clocking in: ' + (e as Error).message); }
-        finally { setLoading(false); }
+        finally { setIsActionLoading(false); }
     };
 
     const handleClockOut = async () => {
         if (!session) return;
         try {
-            setLoading(true);
+            setIsActionLoading(true);
             await timeTrackingService.clockOut(session.id);
             setSession(null);
             await loadTodaySessions();
         }
         catch (e) { alert('Error clocking out: ' + (e as Error).message); }
-        finally { setLoading(false); }
+        finally { setIsActionLoading(false); }
     };
 
     const handleBreak = async () => {
         if (!session) return;
         try {
-            setLoading(true);
+            setIsActionLoading(true);
             const updated = session.status === 'working'
                 ? await timeTrackingService.startBreak(session.id)
                 : await timeTrackingService.endBreak(session.id);
             setSession(updated);
             await loadTodaySessions();
         } catch (e) { alert('Error: ' + (e as Error).message); }
-        finally { setLoading(false); }
+        finally { setIsActionLoading(false); }
     };
 
     const navigateTo = (view: View) => {
@@ -284,8 +285,10 @@ const StudentDashboard: React.FC = () => {
     if (loading) {
         return (
             <div className="dashboard-container" style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
-                <div className="sidebar-logo-icon fade-in" style={{ width: 64, height: 64, borderRadius: '16px' }}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                <div className="loading-spinner-container">
+                    <div className="loading-pulse-logo">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                    </div>
                 </div>
             </div>
         );
@@ -502,6 +505,12 @@ const StudentDashboard: React.FC = () => {
                             <button className="topbar-icon-btn" onClick={() => navigateTo('settings')} title="Settings">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
                             </button>
+                            <div className={`status-pill pill-${statusKey}`}>
+                                <span className="pill-dot" />
+                                <span className="pill-text">
+                                    {statusKey === 'working' ? 'Working' : statusKey === 'break' ? 'On Break' : 'Clocked Out'}
+                                </span>
+                            </div>
                             <div className="topbar-divider" />
                             <button className="topbar-user-btn" onClick={() => navigateTo('profile')}>
                                 <div className="topbar-user-info">
@@ -596,38 +605,60 @@ const StudentDashboard: React.FC = () => {
                                         {!session ? (
                                             <>
                                                 <button
-                                                    className={`btn btn-shift ${completedSessions.length === 0 ? 'suggested' : ''}`}
+                                                    className={`btn btn-shift ${completedSessions.length === 0 ? 'suggested' : ''} ${isActionLoading ? 'loading' : ''}`}
                                                     onClick={handleClockIn}
-                                                    disabled={loading}
+                                                    disabled={isActionLoading}
                                                     title="Clock in for morning shift"
                                                 >
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                                                    Time In (Morning)
+                                                    {isActionLoading ? (
+                                                        <span className="btn-loading-text">Clocking In...</span>
+                                                    ) : (
+                                                        <>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                                                            Time In (Morning)
+                                                        </>
+                                                    )}
                                                 </button>
                                                 <button
-                                                    className={`btn btn-shift ${completedSessions.length === 1 ? 'suggested' : ''}`}
+                                                    className={`btn btn-shift ${completedSessions.length === 1 ? 'suggested' : ''} ${isActionLoading ? 'loading' : ''}`}
                                                     onClick={handleClockIn}
-                                                    disabled={loading}
+                                                    disabled={isActionLoading}
                                                     title="Clock in for afternoon shift"
                                                 >
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                                                    Time In (Afternoon)
+                                                    {isActionLoading ? (
+                                                        <span className="btn-loading-text">Clocking In...</span>
+                                                    ) : (
+                                                        <>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                                                            Time In (Afternoon)
+                                                        </>
+                                                    )}
                                                 </button>
                                             </>
                                         ) : (
                                             <>
                                                 <button
-                                                    className={`btn btn-secondary ${session.status === 'break' ? 'active' : ''}`}
+                                                    className={`btn btn-secondary ${session.status === 'break' ? 'active' : ''} ${isActionLoading ? 'loading' : ''}`}
                                                     onClick={handleBreak}
-                                                    disabled={loading}
+                                                    disabled={isActionLoading}
                                                 >
-                                                    {session.status === 'break'
-                                                        ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg> Resume</>
-                                                        : <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg> Break</>}
+                                                    {isActionLoading ? (
+                                                        <span className="btn-loading-text">Processing...</span>
+                                                    ) : (
+                                                        session.status === 'break'
+                                                            ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg> Resume</>
+                                                            : <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg> Break</>
+                                                    )}
                                                 </button>
-                                                <button className="btn btn-danger" onClick={handleClockOut} disabled={loading}>
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
-                                                    {clockOutLabel}
+                                                <button className={`btn btn-danger ${isActionLoading ? 'loading' : ''}`} onClick={handleClockOut} disabled={isActionLoading}>
+                                                    {isActionLoading ? (
+                                                        <span className="btn-loading-text">Clocking Out...</span>
+                                                    ) : (
+                                                        <>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
+                                                            {clockOutLabel}
+                                                        </>
+                                                    )}
                                                 </button>
                                             </>
                                         )}

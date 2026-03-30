@@ -40,7 +40,7 @@ const JournalView: React.FC = () => {
                 setFeedback(DEFAULT_FEEDBACK[0]); // Initially set the first generic feedback if there are journals
             }
         } catch (err) {
-            console.error('Error loading all journals:', err);
+            console.error('Error loading history:', err);
         } finally {
             setLoadingJournals(false);
         }
@@ -157,7 +157,7 @@ const JournalView: React.FC = () => {
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const newFiles = Array.from(e.target.files);
-            const validFiles = newFiles.filter(file => {
+            const validFiles = newFiles.filter((file: File) => {
                 if (!file.type.startsWith('image/')) {
                     setMessage({ type: 'error', text: 'Please select valid image files.' });
                     return false;
@@ -170,18 +170,18 @@ const JournalView: React.FC = () => {
             });
 
             if (validFiles.length > 0) {
-                setPhotos(prev => [...prev, ...validFiles]);
+                setPhotos((prev: File[]) => [...prev, ...validFiles]);
             }
         }
         e.target.value = '';
     };
 
     const removeExistingPhoto = (index: number) => {
-        setExistingPhotoUrls(prev => prev.filter((_, i) => i !== index));
+        setExistingPhotoUrls((prev: string[]) => prev.filter((_: string, i: number) => i !== index));
     };
 
     const removeNewPhoto = (index: number) => {
-        setPhotos(prev => prev.filter((_, i) => i !== index));
+        setPhotos((prev: File[]) => prev.filter((_: File, i: number) => i !== index));
     };
 
     const renderCalendar = () => {
@@ -200,7 +200,7 @@ const JournalView: React.FC = () => {
 
         for (let i = 1; i <= daysInMonth; i++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const hasEntry = allJournals.some(j => j.entry_date === dateStr);
+            const hasEntry = allJournals.some((j: DailyJournal) => j.entry_date === dateStr);
             const isActive = date === dateStr;
             dates.push({ d: i, m: false, a: isActive, hasEntry, dateStr });
         }
@@ -217,8 +217,8 @@ const JournalView: React.FC = () => {
 
         return (
             <div className="calendar-grid">
-                {days.map(d => <div key={d} className="cal-day-name">{d}</div>)}
-                {dates.map((item, idx) => (
+                {days.map((d: string) => <div key={d} className="cal-day-name">{d}</div>)}
+                {dates.map((item: any, idx: number) => (
                     <div 
                         key={idx} 
                         className={`cal-date ${item.m ? 'muted' : ''} ${item.a ? 'active' : ''}`}
@@ -252,6 +252,12 @@ const JournalView: React.FC = () => {
     };
 
 
+    const getJournalTimeDisplay = (journal: DailyJournal) => {
+        const createTime = new Date(journal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `Submitted at ${createTime}`;
+    };
+
+
     return (
         <div className="journal-container">
             {/* Header */}
@@ -266,7 +272,6 @@ const JournalView: React.FC = () => {
                         Filter
                     </button>
                     <button className="btn-new-entry" onClick={handleNewEntry}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         New Entry
                     </button>
                 </div>
@@ -288,7 +293,7 @@ const JournalView: React.FC = () => {
                         ) : allJournals.length === 0 ? (
                             <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No entries found.</div>
                         ) : (
-                            allJournals.map((j) => {
+                            allJournals.map((j: DailyJournal) => {
                                 const d = new Date(j.entry_date);
                                 const month = d.toLocaleDateString('en-US', { month: 'short' });
                                 const day = d.getDate();
@@ -305,7 +310,7 @@ const JournalView: React.FC = () => {
                                                     <h4 className="card-title">{getCardTitle(j)}</h4>
                                                     <span className="card-time">
                                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                                        09:00 AM - 05:30 PM
+                                                        {getJournalTimeDisplay(j)}
                                                     </span>
                                                 </div>
                                                 <div className="card-actions">
@@ -358,32 +363,6 @@ const JournalView: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Insights Card */}
-                    <div className="widget-card">
-                        <h4 className="widget-title" style={{ marginBottom: '1.5rem' }}>
-                            <svg fill="none" stroke="#22c55e" strokeWidth="2" width="20" height="20" viewBox="0 0 24 24"><path d="M3 3v18h18" /><path d="M19 9l-5 5-4-4-3 3" /></svg>
-                            Journal Insights
-                        </h4>
-                        <div className="insight-stat">
-                            <div className="stat-icon time">
-                                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-                            </div>
-                            <div className="stat-content">
-                                <span className="stat-label">Total Hours</span>
-                                <span className="stat-value">184.5 <span className="stat-sub">/ 480</span></span>
-                            </div>
-                        </div>
-                        <div className="insight-stat">
-                            <div className="stat-icon verify">
-                                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-                            </div>
-                            <div className="stat-content">
-                                <span className="stat-label">Accepted Entries</span>
-                                <span className="stat-value">21 <span className="stat-sub">verified</span></span>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Feedback Card */}
                     <div className="widget-card feedback-card">
                         <div className="feedback-title">
@@ -402,10 +381,7 @@ const JournalView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Floating Action Button */}
-            <button className="fab-new-entry" onClick={handleNewEntry}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            </button>
+
 
 
             {/* Editor Modal Overlay */}
@@ -463,7 +439,7 @@ const JournalView: React.FC = () => {
                                     
                                     {(existingPhotoUrls.length > 0 || photos.length > 0) && (
                                         <div className="photos-preview" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                                            {existingPhotoUrls.map((url, index) => (
+                                            {existingPhotoUrls.map((url: string, index: number) => (
                                                 <div key={`existing-${index}`} style={{ position: 'relative' }}>
                                                     <img 
                                                         src={url} 
@@ -477,7 +453,7 @@ const JournalView: React.FC = () => {
                                                     >×</button>
                                                 </div>
                                             ))}
-                                            {photos.map((file, index) => (
+                                            {photos.map((file: File, index: number) => (
                                                 <div key={`new-${index}`} style={{ position: 'relative' }}>
                                                     <img 
                                                         src={URL.createObjectURL(file)} 

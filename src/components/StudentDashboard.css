@@ -494,6 +494,21 @@
     margin: 0 0.5rem;
 }
 
+@media (max-width: 480px) {
+    .topbar-divider {
+        display: none;
+    }
+
+    .topbar-user-info {
+        display: none;
+    }
+
+    .topbar-user-name,
+    .topbar-user-role {
+        display: none;
+    }
+}
+
 .topbar-user-btn {
     display: flex;
     align-items: center;
@@ -1709,3 +1724,367 @@ html[data-theme="light"] .btn-danger:hover:not(:disabled) {
         text-align: center;
     }
 }
+
+/* ══════════════════════════════════════════
+   ADDITIONAL GLOBAL RESPONSIVE UTILITIES
+   ══════════════════════════════════════════ */
+
+/* Search / filter bars */
+@media (max-width: 768px) {
+    .search-bar-wrap,
+    .filter-bar,
+    .search-filter-row {
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        width: 100%;
+    }
+
+    .search-bar-wrap input,
+    .filter-bar input,
+    .search-filter-row input {
+        width: 100%;
+    }
+
+    /* Cards with flex header that have title + button */
+    .card-header-row,
+    .section-header-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+}
+
+/* ── Modal Overlays (global) ── */
+@media (max-width: 640px) {
+    /* Modals slide up from bottom on small screens */
+    .modal-content,
+    .modal-box,
+    .dialog-content {
+        border-radius: 16px 16px 0 0;
+        max-height: 90vh;
+        width: 100% !important;
+        margin: 0 !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+
+    /* Topbar on very small screens */
+    .topbar {
+        padding: 0.6rem 0.75rem;
+    }
+
+    .topbar-badge {
+        display: none;
+    }
+}
+
+/* ── Tables: horizontal scroll on all screen sizes ── */
+.table-container,
+.data-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ── Coordinator/Admin topbar on mobile ── */
+@media (max-width: 640px) {
+    .admin-topbar {
+        padding: 0 1rem;
+    }
+
+    .admin-topbar-user-info {
+        display: none;
+    }
+
+    .admin-topbar-divider {
+        display: none;
+    }
+
+    .admin-welcome-name {
+        font-size: 1.2rem;
+    }
+
+    .admin-welcome-banner {
+        padding: 1.25rem;
+    }
+}
+
+/* ── CompaniesView, StudentsView, ApprovalsView tables ── */
+@media (max-width: 640px) {
+    .view-title {
+        font-size: 1.3rem !important;
+    }
+
+    .view-subtitle {
+        font-size: 0.82rem !important;
+    }
+
+    /* Approval/document filter rows */
+    .filter-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .filter-row select,
+    .filter-row input {
+        width: 100%;
+    }
+}
+
+/* ── Group Students Modal ── */
+@media (max-width: 600px) {
+    .group-modal-content,
+    .modal-container {
+        width: 95vw !important;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+}
+
+/* ── Performance View ── */
+@media (max-width: 640px) {
+    .performance-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .performance-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .kpi-card {
+        padding: 1rem;
+    }
+
+    .kpi-value {
+        font-size: 1.4rem;
+    }
+}
+
+/* ── DocumentsView responsive ── */
+@media (max-width: 768px) {
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-actions .btn {
+        width: 100% !important;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        justify-content: center;
+    }
+}
+
+/* ── ProfileView responsive ── */
+@media (max-width: 768px) {
+    .profile-top-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-name-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-academic-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-avatar-card {
+        flex-direction: row;
+        text-align: left;
+        gap: 1rem;
+    }
+}
+
+/* ── Coordinator overview layout ── */
+@media (max-width: 768px) {
+    .cd-overview-layout {
+        flex-direction: column;
+        min-height: auto;
+    }
+
+    .cd-overview-side-col {
+        width: 100%;
+    }
+
+    .cd-welcome-name {
+        font-size: 1.3rem;
+    }
+
+    .cd-welcome-banner {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .cd-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 400px) {
+    .cd-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── UserProfileModal responsive ── */
+@media (max-width: 600px) {
+    .user-profile-modal,
+    .profile-modal-inner {
+        width: 95vw !important;
+        max-height: 90vh;
+    }
+}
+
+/* ── WelcomeCelebration ── */
+@media (max-width: 480px) {
+    .celebration-modal {
+        width: 90vw;
+        padding: 1.5rem 1rem;
+    }
+}
+
+/* ══════════════════════════════════════════
+   LOADING STATES & ANIMATIONS
+   ══════════════════════════════════════════ */
+.loading-spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.loading-pulse-logo {
+    width: 64px;
+    height: 64px;
+    background: var(--secondary);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: pulse-glow 2s infinite ease-in-out;
+}
+
+@keyframes pulse-glow {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.btn.loading {
+    position: relative;
+    cursor: wait !important;
+    opacity: 0.8 !important;
+}
+
+.btn-loading-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-loading-text::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Status Pill (Topbar) ── */
+.status-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+/* Working State */
+.pill-working {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.pill-working .pill-dot {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    animation: pulse-dot 2s infinite;
+}
+
+/* Break State */
+.pill-break {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.pill-break .pill-dot {
+    background: #f59e0b;
+}
+
+/* Inactive State */
+.pill-inactive {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border-color: var(--border);
+}
+
+.pill-inactive .pill-dot {
+    background: var(--text-muted);
+}
+
+@keyframes pulse-dot {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+/* Responsive topbar */
+@media (max-width: 768px) {
+    .status-pill {
+        padding: 0.3rem 0.5rem;
+    }
+    .pill-text {
+        display: none; /* Only show dot on mobile if space is tight */
+    }
+}
+
+@media (min-width: 769px) {
+    .pill-text {
+        display: inline;
+    }
+}
+

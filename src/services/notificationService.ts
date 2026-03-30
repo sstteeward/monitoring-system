@@ -116,5 +116,23 @@ export const notificationService = {
             if (error) throw error;
             return { action: 'added' };
         }
+    },
+
+    async createNotification(userId: string, title: string, message: string, type: 'info' | 'warning' | 'success' | 'danger' = 'info') {
+        const { error } = await supabase
+            .from('user_notifications')
+            .insert([{
+                user_id: userId,
+                title,
+                message,
+                type,
+                is_read: false
+            }]);
+
+        if (error) {
+            console.error("Error creating notification:", error);
+            throw error;
+        }
+        return true;
     }
 };

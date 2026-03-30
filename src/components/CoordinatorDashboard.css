@@ -790,3 +790,39 @@ html[data-theme="light"] .btn-reject:hover {
 .hover-row:hover {
     background: var(--bg-elevated);
 }
+
+/* ═══════════════════════════════════════════════════
+   NOTIFICATION BADGE & DOTS
+═══════════════════════════════════════════════════ */
+.notification-badge {
+    background: #ef4444;
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    margin-left: auto;
+    padding: 0 5px;
+    box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+    animation: badgePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes badgePop {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.topbar-notification-dot {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border: 2px solid var(--bg-card);
+    border-radius: 50%;
+}

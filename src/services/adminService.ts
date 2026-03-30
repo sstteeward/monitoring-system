@@ -178,13 +178,19 @@ export const adminService = {
             { count: coordinatorCount },
             { count: companyCount },
             { count: departmentCount },
-            { count: totalLogs }
+            { count: totalLogs },
+            { count: pendingDocs },
+            { count: pendingJournals },
+            { count: pendingDeptRequests }
         ] = await Promise.all([
             supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('account_type', 'student'),
             supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('account_type', 'coordinator'),
             supabase.from('companies').select('*', { count: 'exact', head: true }),
             supabase.from('departments').select('*', { count: 'exact', head: true }),
-            supabase.from('audit_logs').select('*', { count: 'exact', head: true })
+            supabase.from('audit_logs').select('*', { count: 'exact', head: true }),
+            supabase.from('student_documents').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+            supabase.from('daily_journals').select('*', { count: 'exact', head: true }).eq('approval_status', 'pending'),
+            supabase.from('department_change_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
         ]);
 
         return {
@@ -192,7 +198,8 @@ export const adminService = {
             coordinatorCount: coordinatorCount || 0,
             companyCount: companyCount || 0,
             departmentCount: departmentCount || 0,
-            totalLogs: totalLogs || 0
+            totalLogs: totalLogs || 0,
+            pendingApprovalsCount: (pendingDocs || 0) + (pendingJournals || 0) + (pendingDeptRequests || 0)
         };
     },
 

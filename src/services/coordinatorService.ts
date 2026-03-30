@@ -60,11 +60,17 @@ export const coordinatorService = {
     /**
      * Fetch all students (profiles where account_type = 'student')
      */
-    async getAllStudents() {
-        const { data, error } = await supabase
+    async getAllStudents(departmentId?: string) {
+        let query = supabase
             .from('profiles')
             .select('*')
-            .eq('account_type', 'student')
+            .eq('account_type', 'student');
+        
+        if (departmentId) {
+            query = query.eq('department_id', departmentId);
+        }
+
+        const { data, error } = await query
             .order('last_name', { ascending: true });
 
         if (error) {
@@ -102,7 +108,7 @@ export const coordinatorService = {
     /**
      * Fetch all pending documents across all students, with profile info merged in
      */
-    async getPendingDocuments() {
+    async getPendingDocuments(departmentId?: string) {
         // Step 1: fetch pending documents
         const { data: docs, error: docsError } = await supabase
             .from('student_documents')
@@ -121,7 +127,7 @@ export const coordinatorService = {
         const userIds = [...new Set(docs.map((d: any) => d.user_id))];
         const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
-            .select('auth_user_id, first_name, last_name, email')
+            .select('auth_user_id, first_name, last_name, email, department_id')
             .in('auth_user_id', userIds);
 
         if (profilesError) {
@@ -129,14 +135,21 @@ export const coordinatorService = {
             throw profilesError;
         }
 
+        let filteredProfiles = profiles ?? [];
+        if (departmentId) {
+            filteredProfiles = filteredProfiles.filter(p => p.department_id === departmentId);
+        }
+
         // Step 3: merge — attach profile info onto each document
         const profileMap: Record<string, any> = {};
-        (profiles ?? []).forEach((p: any) => { profileMap[p.auth_user_id] = p; });
+        filteredProfiles.forEach((p: any) => { profileMap[p.auth_user_id] = p; });
 
-        return docs.map((doc: any) => ({
-            ...doc,
-            profiles: profileMap[doc.user_id] ?? null,
-        }));
+        return docs
+            .filter((d: any) => profileMap[d.user_id]) // Only keep docs for students in the filteredProfiles
+            .map((j: any) => ({
+                ...j,
+                profiles: profileMap[j.user_id] ?? null,
+            }));
     },
 
     /**
@@ -162,7 +175,7 @@ export const coordinatorService = {
     /**
      * Fetch all pending journals across all students
      */
-    async getPendingJournals() {
+    async getPendingJournals(departmentId?: string) {
         // Step 1: fetch pending journals
         const { data: journals, error: journalsError } = await supabase
             .from('daily_journals')
@@ -181,7 +194,7 @@ export const coordinatorService = {
         const userIds = [...new Set(journals.map((d: any) => d.user_id))];
         const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
-            .select('auth_user_id, first_name, last_name, email')
+            .select('auth_user_id, first_name, last_name, email, department_id')
             .in('auth_user_id', userIds);
 
         if (profilesError) {
@@ -189,14 +202,21 @@ export const coordinatorService = {
             throw profilesError;
         }
 
+        let filteredProfiles = profiles ?? [];
+        if (departmentId) {
+            filteredProfiles = filteredProfiles.filter(p => p.department_id === departmentId);
+        }
+
         // Step 3: merge — attach profile info onto each journal
         const profileMap: Record<string, any> = {};
-        (profiles ?? []).forEach((p: any) => { profileMap[p.auth_user_id] = p; });
+        filteredProfiles.forEach((p: any) => { profileMap[p.auth_user_id] = p; });
 
-        return journals.map((j: any) => ({
-            ...j,
-            profiles: profileMap[j.user_id] ?? null,
-        }));
+        return journals
+            .filter((j: any) => profileMap[j.user_id])
+            .map((j: any) => ({
+                ...j,
+                profiles: profileMap[j.user_id] ?? null,
+            }));
     },
 
     /**
@@ -222,7 +242,7 @@ export const coordinatorService = {
     /**
      * Fetch all pending timesheets across all students
      */
-    async getPendingTimesheets() {
+    async getPendingTimesheets(departmentId?: string) {
         const { data: timesheets, error: timesheetsError } = await supabase
             .from('timesheets')
             .select('*')
@@ -240,7 +260,7 @@ export const coordinatorService = {
         const userIds = [...new Set(timesheets.map((d: any) => d.user_id))];
         const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
-            .select('auth_user_id, first_name, last_name, email')
+            .select('auth_user_id, first_name, last_name, email, department_id')
             .in('auth_user_id', userIds);
 
         if (profilesError) {
@@ -248,13 +268,20 @@ export const coordinatorService = {
             throw profilesError;
         }
 
-        const profileMap: Record<string, any> = {};
-        (profiles ?? []).forEach((p: any) => { profileMap[p.auth_user_id] = p; });
+        let filteredProfiles = profiles ?? [];
+        if (departmentId) {
+            filteredProfiles = filteredProfiles.filter(p => p.department_id === departmentId);
+        }
 
-        return timesheets.map((ts: any) => ({
-            ...ts,
-            profiles: profileMap[ts.user_id] ?? null,
-        }));
+        const profileMap: Record<string, any> = {};
+        filteredProfiles.forEach((p: any) => { profileMap[p.auth_user_id] = p; });
+
+        return timesheets
+            .filter((ts: any) => profileMap[ts.user_id])
+            .map((ts: any) => ({
+                ...ts,
+                profiles: profileMap[ts.user_id] ?? null,
+            }));
     },
 
     /**
@@ -694,17 +721,80 @@ export const coordinatorService = {
     /**
      * Fetch comprehensive stats for the coordinator dashboard
      */
-    async getOverviewStats() {
-        const [students, docs, journalsRes, timesheetsRes] = await Promise.all([
-            this.getAllStudents(),
-            this.getPendingDocuments(),
-            supabase.from('daily_journals')
-                .select('id, user_id, entry_date, created_at, tasks')
-                .order('created_at', { ascending: false })
-                .limit(5),
-            supabase.from('timesheets')
-                .select('user_id, clock_in, clock_out, status')
+    async getOverviewStats(departmentId?: string) {
+        // Query for students filtered by department if provided
+        let studentsQuery = supabase
+            .from('profiles')
+            .select('*')
+            .eq('account_type', 'student');
+        
+        if (departmentId) {
+            studentsQuery = studentsQuery.eq('department_id', departmentId);
+        }
+
+        // Query for timesheets filtered by department students if provided
+        let timesheetsQuery = supabase
+            .from('timesheets')
+            .select('user_id, clock_in, clock_out, status');
+        
+        // Query for journals filtered by department students if provided
+        let recentJournalsQuery = supabase.from('daily_journals')
+            .select('id, user_id, entry_date, created_at, tasks')
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+        // Fetch pending documents
+        const { data: pendingDocs } = await supabase
+            .from('student_documents')
+            .select('id, user_id')
+            .eq('status', 'pending');
+
+        // Fetch pending journals
+        const { data: pendingJournals } = await supabase
+            .from('daily_journals')
+            .select('id, user_id')
+            .eq('approval_status', 'pending');
+
+        // Fetch pending timesheets
+        const { data: pendingTimesheets } = await supabase
+            .from('timesheets')
+            .select('id, user_id')
+            .eq('status', 'completed')
+            .eq('approval_status', 'pending');
+
+        // Fetch pending department change requests
+        const { data: pendingDeptRequests } = await supabase
+            .from('department_change_requests')
+            .select('id, user_id')
+            .eq('status', 'pending');
+
+        const [studentsRes, timesheetsRes, journalsRes] = await Promise.all([
+            studentsQuery.order('last_name', { ascending: true }),
+            timesheetsQuery,
+            recentJournalsQuery
         ]);
+
+        const students = (studentsRes.data || []) as Profile[];
+        const studentIds = students.map(s => s.auth_user_id);
+        const studentIdSet = new Set(studentIds);
+
+        // Filter pending docs by these students if departmentId is provided
+        const filteredPendingDocsCount = (pendingDocs || [])
+            .filter(d => !departmentId || studentIdSet.has(d.user_id)).length;
+
+        // Filter pending journals by these students if departmentId is provided
+        const filteredPendingJournalsCount = (pendingJournals || [])
+            .filter(j => !departmentId || studentIdSet.has(j.user_id)).length;
+
+        // Filter pending timesheets by these students if departmentId is provided
+        const filteredPendingTimesheetsCount = (pendingTimesheets || [])
+            .filter(t => !departmentId || studentIdSet.has(t.user_id)).length;
+
+        // Filter pending dept change requests by these students if departmentId is provided
+        const filteredPendingDeptRequestsCount = (pendingDeptRequests || [])
+            .filter(req => !departmentId || studentIdSet.has(req.user_id)).length;
+
+        const totalPendingApprovals = filteredPendingDocsCount + filteredPendingJournalsCount + filteredPendingTimesheetsCount + filteredPendingDeptRequestsCount;
 
         const assignedStudents = students.filter(s => s.company_id != null);
         const atRiskStudents = students.filter(s => (s.absences || 0) >= 3);
@@ -719,6 +809,9 @@ export const coordinatorService = {
 
         if (timesheetsRes.data) {
             timesheetsRes.data.forEach((ts: any) => {
+                // Only count if student is in the current (filtered) list
+                if (departmentId && !studentIdSet.has(ts.user_id)) return;
+
                 if (ts.status === 'completed' && ts.clock_out) {
                     const start = new Date(ts.clock_in).getTime();
                     const end = new Date(ts.clock_out).getTime();
@@ -759,7 +852,9 @@ export const coordinatorService = {
         });
 
         const studentMap = new Map(students.map(s => [s.auth_user_id, s]));
-        const recentActivity = (journalsRes.data || []).map(j => {
+        const recentActivity = (journalsRes.data || [])
+            .filter(j => !departmentId || studentIdSet.has(j.user_id))
+            .map(j => {
             const student = studentMap.get(j.user_id);
             return {
                 ...j,
@@ -773,8 +868,12 @@ export const coordinatorService = {
             completed: completedCount,
             inProgress: inProgressCount,
             atRisk: atRiskStudents.length,
-            pendingApprovals: docs.length,
-            pendingTimeLogs: 0,
+            pendingApprovals: (filteredPendingDocsCount || 0) + (filteredPendingJournalsCount || 0), // Journals + Docs
+            pendingJournals: filteredPendingJournalsCount,
+            pendingTimesheets: filteredPendingTimesheetsCount,
+            pendingDeptRequests: filteredPendingDeptRequestsCount,
+            totalPendingCount: totalPendingApprovals, // for the sidebar badge
+            pendingTimeLogs: filteredPendingTimesheetsCount,
             recentActivity,
             thisWeekActivityCount: weeklyActivityCount,
             progressData: progressData.sort((a, b) => b.hours - a.hours)
