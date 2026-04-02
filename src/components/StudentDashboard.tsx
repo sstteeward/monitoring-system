@@ -15,9 +15,10 @@ import WelcomeCelebration from './WelcomeCelebration';
 import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
 import GroupStudentsModal from './GroupStudentsModal';
+import { DTRCard } from './DTRCard';
 import './StudentDashboard.css';
 
-type View = 'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'announcement';
+type View = 'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'announcement' | 'dtr';
 
 const StudentDashboard: React.FC = () => {
     const [user, setUser] = useState<any>(null);
@@ -70,6 +71,7 @@ const StudentDashboard: React.FC = () => {
             announcement: 'Announcements',
             profile: 'My Profile',
             settings: 'Settings',
+            dtr: 'Daily Time Record',
         };
         document.title = `${titles[currentView] ?? 'Dashboard'} | SIL Monitoring`;
     }, [currentView]);
@@ -278,6 +280,15 @@ const StudentDashboard: React.FC = () => {
             case 'journal': return <JournalView />;
             case 'announcement': return <AnnouncementsView />;
             case 'documents': return <DocumentsView />;
+            case 'dtr': return (
+                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                    <DTRCard 
+                        employeeName={displayName}
+                        department={profile?.department || profile?.course || ''}
+                        position="STUDENT"
+                    />
+                </div>
+            );
             default: return null;
         }
     };
@@ -384,6 +395,14 @@ const StudentDashboard: React.FC = () => {
                         >
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg></span>
                             <span className="nav-text">Documents</span>
+                        </div>
+                        <div
+                            className={`sidebar-nav-item ${currentView === 'dtr' ? 'active' : ''}`}
+                            title="Daily Time Record"
+                            onClick={() => navigateTo('dtr')}
+                        >
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                            <span className="nav-text">Daily Time Record</span>
                         </div>
                     </nav>
 
@@ -587,6 +606,9 @@ const StudentDashboard: React.FC = () => {
                                 <div className="greeting-banner-actions">
                                     <button className="greeting-banner-btn" onClick={() => navigateTo('timesheets')}>
                                         View Timesheets
+                                    </button>
+                                    <button className="greeting-banner-btn" onClick={() => navigateTo('dtr')}>
+                                        Daily Time Record
                                     </button>
                                     <button className="greeting-banner-btn" onClick={() => { navigateTo('announcement'); markAnnouncementsSeen(); }}>
                                         Announcements
