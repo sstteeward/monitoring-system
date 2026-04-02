@@ -17,6 +17,7 @@ export interface DTRCardProps {
   employeeName?: string;
   department?: string;
   position?: string;
+  month?: string;
   records?: DTRRecord[];
 }
 
@@ -24,6 +25,7 @@ export function DTRCard({
   employeeName = '',
   department = '',
   position = '',
+  month = '',
   records = [],
 }: DTRCardProps) {
   const componentRef = useRef<HTMLDivElement>(null);
@@ -51,7 +53,7 @@ export function DTRCard({
 
   const [header, setHeader] = useState({
     no: '',
-    payEnding: '',
+    payEnding: month,
     name: employeeName,
     position: position,
     dept: department,
