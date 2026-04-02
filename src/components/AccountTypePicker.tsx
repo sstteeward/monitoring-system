@@ -45,10 +45,10 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                             <circle cx="12" cy="7" r="4"/>
                         </svg>
                     </div>
-                    <h1 style={{ color: 'var(--text-bright)', fontSize: '1.6rem', fontWeight: 800, margin: '0 0 0.5rem' }}>
+                    <h1 style={{ color: 'var(--text-bright)', fontSize: 'clamp(1.4rem, 6vw, 1.8rem)', lineHeight: 1.2, fontWeight: 800, margin: '0 0 0.5rem', wordWrap: 'break-word' }}>
                         What's your role?
                     </h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0 }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.85rem, 4vw, 0.95rem)', margin: 0, wordWrap: 'break-word' }}>
                         Choose the account type that best describes you.
                     </p>
                 </div>

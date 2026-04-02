@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { TableSkeleton, CardGridSkeleton } from './Skeletons';
+import { DTRCard } from './DTRCard';
 import './TimesheetView.css';
 
 const TimesheetView: React.FC = () => {
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showDTR, setShowDTR] = useState(false);
 
     useEffect(() => {
         loadTimesheets();
@@ -85,10 +87,18 @@ const TimesheetView: React.FC = () => {
                     <h2>Timesheet History</h2>
                     <p className="header-subtitle">Chronological log of all work sessions</p>
                 </div>
-                <button className="refresh-btn" onClick={loadTimesheets} disabled={loading}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-                    Refresh
-                </button>
+                <div style={{display: 'flex', gap: '10px'}}>
+                    <button className="refresh-btn" onClick={() => setShowDTR(true)} style={{backgroundColor: 'var(--primary-color)', color: 'white', border: 'none'}}>
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        DTR
+                    </button>
+                    <button className="refresh-btn" onClick={loadTimesheets} disabled={loading}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                        Refresh
+                    </button>
+                </div>
             </div>
 
             {loading ? (
@@ -175,6 +185,23 @@ const TimesheetView: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {showDTR && (
+                <div className="modal-overlay" onClick={() => setShowDTR(false)} style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999,
+                    display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px',
+                    overflowY: 'auto'
+                }}>
+                    <div style={{position: 'relative', maxHeight: '100vh'}} onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setShowDTR(false)} style={{
+                            position: 'absolute', top: '25px', right: '30px', zIndex: 10,
+                            background: 'none', border: 'none', cursor: 'pointer', fontSize: '24px', fontWeight: 'bold'
+                        }}>&times;</button>
+                        <DTRCard />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

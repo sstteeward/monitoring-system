@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import UserClickableName from './UserClickableName';
-import './AnnouncementsView.css'; 
+import './AnnouncementsView.css';
 
 interface GroupStudentsModalProps {
     isOpen: boolean;
@@ -12,15 +12,15 @@ interface GroupStudentsModalProps {
     currentUserId?: string;
 }
 
-const GroupStudentsModal: React.FC<GroupStudentsModalProps> = ({ 
-    isOpen, onClose, title, filterType, filterValue, currentUserId 
+const GroupStudentsModal: React.FC<GroupStudentsModalProps> = ({
+    isOpen, onClose, title, filterType, filterValue, currentUserId
 }) => {
     const [peers, setPeers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!isOpen) return;
-        
+        [[]]
         const loadPeers = async () => {
             setLoading(true);
             try {
@@ -31,9 +31,9 @@ const GroupStudentsModal: React.FC<GroupStudentsModalProps> = ({
                     .eq(fetchColumn, filterValue)
                     .eq('account_type', 'student')
                     .order('first_name', { ascending: true });
-                
+
                 if (error) throw error;
-                
+
                 setPeers(data || []);
             } catch (err) {
                 console.error('Error fetching peers:', err);
@@ -58,7 +58,7 @@ const GroupStudentsModal: React.FC<GroupStudentsModalProps> = ({
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
-                
+
                 <div className="reactions-list custom-scrollbar" style={{ maxHeight: '55vh', overflowY: 'auto' }}>
                     {loading ? (
                         <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
@@ -68,7 +68,7 @@ const GroupStudentsModal: React.FC<GroupStudentsModalProps> = ({
                         peers.map(peer => (
                             <div key={peer.id} className="reaction-user-item" style={{ padding: '0.85rem', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border-light)' }}>
                                 <div className="user-info" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
-                                    <div className="user-avatar" style={{ 
+                                    <div className="user-avatar" style={{
                                         width: 38, height: 38, borderRadius: '50%',
                                         backgroundImage: peer.avatar_url ? `url(${peer.avatar_url})` : 'none',
                                         backgroundColor: peer.avatar_url ? 'transparent' : 'rgba(59,130,246,0.15)',

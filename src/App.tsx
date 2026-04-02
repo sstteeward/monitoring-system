@@ -10,6 +10,7 @@ import AccountTypePicker from "./components/AccountTypePicker";
 import UpdatePasswordView from "./components/UpdatePasswordView";
 import { supabase } from "./lib/supabaseClient";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { DTRCard } from "./components/DTRCard";
 
 function AppContent() {
   const [session, setSession] = useState<any>(null);
@@ -116,6 +117,11 @@ function AppContent() {
     return (
       <Routes>
         <Route path="/" element={<AuthSignup />} />
+        <Route path="/test-dtr" element={
+            <div style={{ display: 'flex', justifyContent: 'center', backgroundColor: '#f0f2f5', minHeight: '100vh', padding: '20px' }}>
+                <DTRCard employeeName="John Doe" department="Engineering" position="Developer" month="April 2026" />
+            </div>
+        } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );

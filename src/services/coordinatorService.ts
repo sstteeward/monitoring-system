@@ -703,9 +703,15 @@ export const coordinatorService = {
      * Assign or unassign a student to/from a department
      */
     async assignStudentToDepartment(studentId: string, departmentId: string | null) {
+        let deptName = null;
+        if (departmentId) {
+            const { data } = await supabase.from('departments').select('name').eq('id', departmentId).single();
+            if (data) deptName = data.name;
+        }
+
         const { error } = await supabase
             .from('profiles')
-            .update({ department_id: departmentId })
+            .update({ department_id: departmentId, department: deptName })
             .eq('id', studentId);
 
         if (error) {

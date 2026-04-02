@@ -204,10 +204,10 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                                             )}
                                         </td>
                                         <td>
-                                            {student.department_info?.name ? (
+                                            {(student.department_info?.name || student.department) ? (
                                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600 }}>
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-                                                    {student.department_info.name}
+                                                    {student.department_info?.name || student.department}
                                                 </span>
                                             ) : (
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>Unassigned</span>

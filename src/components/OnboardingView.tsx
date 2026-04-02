@@ -104,6 +104,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         setError(null);
         try {
             const authId = (await supabase.auth.getUser()).data.user?.id;
+            const selectedDept = departments.find(d => d.name === department.trim());
             const { error: err } = await supabase
                 .from('profiles')
                 .update({
@@ -116,6 +117,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                     section: section.trim() || null,
                     course: course.trim() || null,
                     department: department.trim() || null,
+                    department_id: selectedDept ? selectedDept.id : null,
                     ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
                     required_ojt_hours: requiredHours,
                 })
@@ -158,10 +160,10 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                         </svg>
                     </div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-bright)', margin: 0 }}>
+                    <h1 style={{ fontSize: 'clamp(1.2rem, 6vw, 1.6rem)', lineHeight: 1.2, fontWeight: 800, color: 'var(--text-bright)', margin: 0, wordWrap: 'break-word' }}>
                         Welcome to SIL Monitoring
                     </h1>
-                    <p style={{ color: 'var(--text-muted)', marginTop: '0.4rem', fontSize: '0.9rem' }}>
+                    <p style={{ color: 'var(--text-muted)', marginTop: '0.4rem', fontSize: 'clamp(0.8rem, 4vw, 0.9rem)', wordWrap: 'break-word' }}>
                         {step === 1 ? "Let's confirm your name before we get started." : "Where are you doing your internship?"}
                     </p>
                 </div>
@@ -198,7 +200,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                     {step === 1 && (
                         <form onSubmit={handleNext}>
                             <div style={{ marginBottom: '1.25rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
                                     <div>
                                         <label style={labelSt}>First Name *</label>
                                         <input style={inputSt} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Juan" required />
@@ -209,7 +211,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
                                     <div>
                                         <label style={labelSt}>Birthday *</label>
                                         <input style={inputSt} type="date" value={birthday} onChange={e => setBirthday(e.target.value)} required />
@@ -225,7 +227,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     <input style={inputSt} value={address} onChange={e => setAddress(e.target.value)} placeholder="123 Main St, Brgy, City, Province" required />
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
                                     <div>
                                         <label style={labelSt}>Course *</label>
                                         <CustomSelect
@@ -249,7 +251,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
                                     <div>
                                         <label style={labelSt}>Year Level *</label>
                                         <CustomSelect
