@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import './DTRCard.css';
 import html2canvas from 'html2canvas';
 
@@ -13,87 +13,132 @@ export interface DTRRecord {
   total: string;
 }
 
+export interface DTRCardData {
+  id: string;
+  isFlipped: boolean;
+  header: {
+    no: string;
+    payEnding: string;
+    name: string;
+    position: string;
+    dept: string;
+    age: string;
+  };
+  payroll: {
+    regRate: string;
+    amount1: string;
+    overRate: string;
+    amount2: string;
+    totalEarnings: string;
+    fines: string;
+    withholdingTax: string;
+    sss: string;
+    totalDeductions: string;
+    netPay: string;
+  };
+  frontRecords: DTRRecord[];
+  backRecords: DTRRecord[];
+}
+
 export interface DTRCardProps {
   employeeName?: string;
   department?: string;
   position?: string;
   month?: string;
-  records?: DTRRecord[];
+  requiredHours?: number;
 }
 
-export function DTRCard({
-  employeeName = '',
-  department = '',
-  position = '',
-  month = '',
-  records = [],
+export function DTRCard({ 
+  employeeName = "STUDENT NAME", 
+  department = "DEPARTMENT", 
+  position = "STUDENT", 
+  requiredHours = 0
 }: DTRCardProps) {
-  const componentRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
-  const [internalRecords, setInternalRecords] = useState<DTRRecord[]>(() => {
-    const defaultRecords: DTRRecord[] = [];
-    for (let i = 1; i <= 31; i++) {
-      const existing = records.find((r) => r.day === i);
-      defaultRecords.push(
-        existing || {
-          day: i,
-          morningIn: '',
-          morningOut: '',
-          afternoonIn: '',
-          afternoonOut: '',
-          overtimeIn: '',
-          overtimeOut: '',
-          total: '',
-        }
-      );
-    }
-    return defaultRecords;
+  const createNewCard = (id: string): DTRCardData => ({
+    id,
+    isFlipped: false,
+    header: {
+      no: '',
+      payEnding: '',
+      name: employeeName,
+      position: position,
+      dept: department,
+      age: '',
+    },
+    payroll: {
+      regRate: '', amount1: '',
+      overRate: '', amount2: '',
+      totalEarnings: '',
+      fines: '',
+      withholdingTax: '',
+      sss: '',
+      totalDeductions: '',
+      netPay: '',
+    },
+    frontRecords: Array.from({ length: 31 }, (_, i) => ({
+      day: i + 1, morningIn: '', morningOut: '', afternoonIn: '', afternoonOut: '', overtimeIn: '', overtimeOut: '', total: ''
+    })),
+    backRecords: Array.from({ length: 31 }, (_, i) => ({
+      day: i + 1, morningIn: '', morningOut: '', afternoonIn: '', afternoonOut: '', overtimeIn: '', overtimeOut: '', total: ''
+    })),
   });
 
-  const [header, setHeader] = useState({
-    no: '',
-    payEnding: month,
-    name: employeeName,
-    position: position,
-    dept: department,
-    age: '',
-  });
+  const [cards, setCards] = useState<DTRCardData[]>([]);
 
-  const [payroll, setPayroll] = useState({
-    regRate: '', regAmount: '',
-    overRate: '', overAmount: '',
-    totalEarnings: '',
-    lessDeductions: '',
-    netPay: '',
-    absences: '',
-    fines: '',
-    withholdingTax: '',
-    sss: '',
-    total: '',
-  });
+  useEffect(() => {
+    if (cards.length > 0) return;
 
-  const handleRecord = (day: number, field: keyof DTRRecord, val: string) => {
-    setInternalRecords(prev =>
-      prev.map(r => r.day === day ? { ...r, [field]: val } : r)
+    const estimatedCards = requiredHours > 0 ? Math.ceil(requiredHours / 160) : 1;
+    const initialCards = Array.from({ length: Math.max(1, estimatedCards) }, () => 
+      createNewCard(crypto.randomUUID())
     );
+    setCards(initialCards);
+  }, [requiredHours, employeeName, department, position]);
+
+  const handleAddCard = () => {
+    setCards(prev => [...prev, createNewCard(crypto.randomUUID())]);
+  };
+
+  const handleFlip = (cardId: string) => {
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, isFlipped: !c.isFlipped } : c));
+  };
+
+  const updateHeader = (cardId: string, field: keyof DTRCardData['header'], val: string) => {
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, header: { ...c.header, [field]: val } } : c));
+  };
+
+  const updatePayroll = (cardId: string, field: keyof DTRCardData['payroll'], val: string) => {
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, payroll: { ...c.payroll, [field]: val } } : c));
+  };
+
+  const updateRecord = (cardId: string, side: 'front' | 'back', day: number, field: keyof DTRRecord, val: string) => {
+    setCards(prev => prev.map(c => {
+      if (c.id !== cardId) return c;
+      const recordsField = side === 'front' ? 'frontRecords' : 'backRecords';
+      return {
+        ...c,
+        [recordsField]: c[recordsField].map(r => r.day === day ? { ...r, [field]: val } : r)
+      };
+    }));
   };
 
   const handleDownloadImage = () => {
-    const element = componentRef.current;
+    const element = containerRef.current;
     if (!element) return;
     setIsPrinting(true);
     setTimeout(() => {
       html2canvas(element, {
-        scale: 3,
+        scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#f0f2f5'
       }).then(canvas => {
         const today = new Date();
-        const dateStr = today.toISOString().split('T')[0]; // e.g. 2026-04-02
-        const filename = `DTR_${(header.name || 'as of').replace(/\s+/g, '_')}_${dateStr}.webp`;
-        
+        const dateStr = today.toISOString().split('T')[0];
+        const filename = `DTR_Cards_${dateStr}.webp`;
         const link = document.createElement('a');
         link.download = filename;
         link.href = canvas.toDataURL('image/webp', 0.95);
@@ -103,190 +148,71 @@ export function DTRCard({
     }, 100);
   };
 
+  const estimatedCount = requiredHours > 0 ? Math.ceil(requiredHours / 160) : 1;
+
   return (
-    <div className="dtr-container">
-      <div ref={componentRef} className={`dtr-card ${isPrinting ? 'printing' : ''}`}>
-
-        {/* ===== HEADER ===== */}
-        <div className="tc-header">
-          {/* Row 1: No. and Pay Ending split 50/50 */}
-          <div className="tc-header-row">
-            <div style={{ flex: '0 0 50%', display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
-              <span className="tc-lbl">No.</span>
-              <input className="tc-line" value={header.no} onChange={e => setHeader({ ...header, no: e.target.value })} />
-            </div>
-            <div style={{ flex: '1', display: 'flex', alignItems: 'flex-end', gap: '4px', paddingLeft: '8px' }}>
-              <span className="tc-lbl">Pay Ending</span>
-              <input className="tc-line" value={header.payEnding} onChange={e => setHeader({ ...header, payEnding: e.target.value })} />
-            </div>
-          </div>
-
-          {/* Row 2: Name and Position (Name gets more space) */}
-          <div className="tc-header-row">
-            <div style={{ flex: '0 0 65%', display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
-              <span className="tc-lbl">Name</span>
-              <input className="tc-line" value={header.name} onChange={e => setHeader({ ...header, name: e.target.value })} />
-            </div>
-            <div style={{ flex: '1', display: 'flex', alignItems: 'flex-end', gap: '4px', paddingLeft: '12px' }}>
-              <span className="tc-lbl">Position</span>
-              <input className="tc-line" value={header.position} onChange={e => setHeader({ ...header, position: e.target.value })} />
-            </div>
-          </div>
-
-          {/* Row 3: Dept. and Age (Dept gets much more space) */}
-          <div className="tc-header-row">
-            <div style={{ flex: '0 0 80%', display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
-              <span className="tc-lbl">Dept.</span>
-              <input className="tc-line" value={header.dept} onChange={e => setHeader({ ...header, dept: e.target.value })} />
-            </div>
-            <div style={{ flex: '1', display: 'flex', alignItems: 'flex-end', gap: '4px', paddingLeft: '12px' }}>
-              <span className="tc-lbl">Age</span>
-              <input className="tc-line" value={header.age} onChange={e => setHeader({ ...header, age: e.target.value })} />
-            </div>
-          </div>
-        </div>
-
-        {/* ===== MIDDLE: PAYROLL + DEDUCTIONS ===== */}
-        <div className="tc-middle">
-
-          {/* Left: Hours / Rate / Amount */}
-          <div className="tc-left-table">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: '45%' }}>Hours</th>
-                  <th>Rate</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="label-cell">Reg.</td>
-                  <td><input value={payroll.regRate} onChange={e => setPayroll({ ...payroll, regRate: e.target.value })} /></td>
-                  <td><input value={payroll.regAmount} onChange={e => setPayroll({ ...payroll, regAmount: e.target.value })} /></td>
-                </tr>
-                <tr>
-                  <td className="label-cell">Over.</td>
-                  <td><input value={payroll.overRate} onChange={e => setPayroll({ ...payroll, overRate: e.target.value })} /></td>
-                  <td><input value={payroll.overAmount} onChange={e => setPayroll({ ...payroll, overAmount: e.target.value })} /></td>
-                </tr>
-                <tr>
-                  <td className="label-cell" colSpan={2}>Total Earnings</td>
-                  <td><input value={payroll.totalEarnings} onChange={e => setPayroll({ ...payroll, totalEarnings: e.target.value })} /></td>
-                </tr>
-                <tr>
-                  <td className="label-cell" colSpan={2}>Less Deductions</td>
-                  <td><input value={payroll.lessDeductions} onChange={e => setPayroll({ ...payroll, lessDeductions: e.target.value })} /></td>
-                </tr>
-                <tr>
-                  <td className="label-cell net-pay" colSpan={2}>NET PAY</td>
-                  <td><input value={payroll.netPay} onChange={e => setPayroll({ ...payroll, netPay: e.target.value })} /></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Center: DEDUCTIONS vertical text */}
-          <div className="tc-deductions-label">
-            {"DEDUCTIONS".split('').map((char, i) => <span key={i}>{char}</span>)}
-          </div>
-
-          {/* Right: Absences breakdown */}
-          <div className="tc-right-table">
-            <table>
-              <thead>
-                <tr>
-                  <th colSpan={2}>ABSENCES</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Fines</td>
-                  <td><input value={payroll.fines} onChange={e => setPayroll({ ...payroll, fines: e.target.value })} /></td>
-                </tr>
-                <tr>
-                  <td>Withholding Tax</td>
-                  <td><input value={payroll.withholdingTax} onChange={e => setPayroll({ ...payroll, withholdingTax: e.target.value })} /></td>
-                </tr>
-                <tr>
-                  <td>S.S.S.</td>
-                  <td><input value={payroll.sss} onChange={e => setPayroll({ ...payroll, sss: e.target.value })} /></td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={2}>TOTAL</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-        </div>
-
-        {/* ===== ATTENDANCE GRID ===== */}
-        <div className="tc-grid-section">
-          <table className="tc-grid">
-            <colgroup>
-              <col style={{ width: '7%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '15%' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th rowSpan={2}>Days</th>
-                <th colSpan={2}>MORNING</th>
-                <th colSpan={2}>AFTERNOON</th>
-                <th colSpan={2}>OVERTIME</th>
-                <th rowSpan={2} style={{ fontSize: '8px' }}>Daily Total</th>
-              </tr>
-              <tr>
-                <th>IN</th>
-                <th>OUT</th>
-                <th>IN</th>
-                <th>OUT</th>
-                <th>IN</th>
-                <th>OUT</th>
-              </tr>
-            </thead>
-            <tbody>
-              {internalRecords.map((rec) => (
-                <tr key={rec.day}>
-                  <td className="day-num">{rec.day}</td>
-                  <td><input className="tc-grid-input" value={rec.morningIn} onChange={e => handleRecord(rec.day, 'morningIn', e.target.value)} /></td>
-                  <td><input className="tc-grid-input" value={rec.morningOut} onChange={e => handleRecord(rec.day, 'morningOut', e.target.value)} /></td>
-                  <td><input className="tc-grid-input" value={rec.afternoonIn} onChange={e => handleRecord(rec.day, 'afternoonIn', e.target.value)} /></td>
-                  <td><input className="tc-grid-input" value={rec.afternoonOut} onChange={e => handleRecord(rec.day, 'afternoonOut', e.target.value)} /></td>
-                  <td><input className="tc-grid-input" value={rec.overtimeIn} onChange={e => handleRecord(rec.day, 'overtimeIn', e.target.value)} /></td>
-                  <td><input className="tc-grid-input" value={rec.overtimeOut} onChange={e => handleRecord(rec.day, 'overtimeOut', e.target.value)} /></td>
-                  <td><input className="tc-grid-input" value={rec.total} onChange={e => handleRecord(rec.day, 'total', e.target.value)} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* ===== CERTIFICATION ===== */}
-        <div className="tc-cert">
-          <span className="tc-cert-text">
-            I hereby certify that the above records are true and correct.
-          </span>
-          <div className="tc-sig-line">Employee's Signature</div>
-        </div>
-
+    <div className={`dtr-container ${isPrinting ? 'printing' : ''}`} ref={containerRef}>
+      <div className="ojt-info-banner">
+        <span className="banner-goal">OJT Goal: <strong>{requiredHours} Hours</strong></span>
+        <span className="banner-divider">|</span>
+        <span className="banner-estimate">Estimated DTR cards needed: <strong>{estimatedCount}</strong></span>
       </div>
 
-      {/* ===== BUTTONS ===== */}
+      {cards.map((card, index) => (
+        <div key={card.id} className={`dtr-card-wrapper`}>
+          <div className="tc-card-header-actions">
+            <div className="tc-card-badge">
+              <span className="badge-label">DTR CARD</span>
+              <span className="badge-value">{index + 1}</span>
+            </div>
+            {!isPrinting && (
+              <button className="dtr-btn-flip-tab" onClick={() => handleFlip(card.id)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                Flip to {card.isFlipped ? 'Front' : 'Back'}
+              </button>
+            )}
+          </div>
+          <div className={`dtr-card-container ${card.isFlipped ? 'flipped' : ''}`}>
+            <div className="dtr-card-inner">
+              {/* FRONT SIDE */}
+              <div className="dtr-card-front">
+                <DTRFace 
+                  data={card} 
+                  side="front" 
+                  onHeaderChange={(f, v) => updateHeader(card.id, f, v)}
+                  onPayrollChange={(f, v) => updatePayroll(card.id, f, v)}
+                  onRecordChange={(d, f, v) => updateRecord(card.id, 'front', d, f, v)}
+                />
+              </div>
+
+              {/* BACK SIDE */}
+              <div className="dtr-card-back">
+                <DTRFace 
+                  data={card} 
+                  side="back" 
+                  onHeaderChange={(f, v) => updateHeader(card.id, f, v)}
+                  onPayrollChange={(f, v) => updatePayroll(card.id, f, v)}
+                  onRecordChange={(d, f, v) => updateRecord(card.id, 'back', d, f, v)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {/* ===== ACTIONS ===== */}
       <div className="dtr-actions">
+        <button className="dtr-btn dtr-btn-secondary" onClick={handleAddCard}>
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add New DTR
+        </button>
         <button className="dtr-btn dtr-btn-primary" onClick={handleDownloadImage}>
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          Download Image
+          Download All
         </button>
         <button className="dtr-btn dtr-btn-secondary" onClick={() => window.print()}>
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,5 +222,165 @@ export function DTRCard({
         </button>
       </div>
     </div>
+  );
+}
+
+interface FaceProps {
+  data: DTRCardData;
+  side: 'front' | 'back';
+  onHeaderChange: (field: keyof DTRCardData['header'], val: string) => void;
+  onPayrollChange: (field: keyof DTRCardData['payroll'], val: string) => void;
+  onRecordChange: (day: number, field: keyof DTRRecord, val: string) => void;
+}
+
+function DTRFace({ data, side, onHeaderChange, onPayrollChange, onRecordChange }: FaceProps) {
+  const records = side === 'front' ? data.frontRecords : data.backRecords;
+
+  return (
+    <>
+      <div className="tc-header">
+        <div style={{ position: 'absolute', top: 8, right: 10, fontSize: '8px', fontWeight: 'bold', color: '#9b7d44', opacity: 0.6 }}>
+          {side.toUpperCase()} SIDE
+        </div>
+        <div className="tc-header-row">
+          <div style={{ flex: '0 0 50%', display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
+            <span className="tc-lbl">No.</span>
+            <input className="tc-line" value={data.header.no} onChange={e => onHeaderChange('no', e.target.value)} />
+          </div>
+          <div style={{ flex: '1', display: 'flex', alignItems: 'flex-end', gap: '4px', paddingLeft: '8px' }}>
+            <span className="tc-lbl">Pay Ending</span>
+            <input className="tc-line" value={data.header.payEnding} onChange={e => onHeaderChange('payEnding', e.target.value)} />
+          </div>
+        </div>
+
+        <div className="tc-header-row">
+          <div style={{ flex: '0 0 65%', display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
+            <span className="tc-lbl">Name</span>
+            <input className="tc-line" value={data.header.name} onChange={e => onHeaderChange('name', e.target.value)} />
+          </div>
+          <div style={{ flex: '1', display: 'flex', alignItems: 'flex-end', gap: '4px', paddingLeft: '12px' }}>
+            <span className="tc-lbl">Position</span>
+            <input className="tc-line" value={data.header.position} onChange={e => onHeaderChange('position', e.target.value)} />
+          </div>
+        </div>
+
+        <div className="tc-header-row">
+          <div style={{ flex: '0 0 80%', display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
+            <span className="tc-lbl">Dept.</span>
+            <input className="tc-line" value={data.header.dept} onChange={e => onHeaderChange('dept', e.target.value)} />
+          </div>
+          <div style={{ flex: '1', display: 'flex', alignItems: 'flex-end', gap: '4px', paddingLeft: '12px' }}>
+            <span className="tc-lbl">Age</span>
+            <input className="tc-line" value={data.header.age} onChange={e => onHeaderChange('age', e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <div className="tc-middle">
+        <div className="tc-left-table">
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: '45%' }}>Hours</th>
+                <th>Rate</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="label-cell">Reg.</td>
+                <td><input value={data.payroll.regRate} onChange={e => onPayrollChange('regRate', e.target.value)} /></td>
+                <td><input value={data.payroll.amount1} onChange={e => onPayrollChange('amount1', e.target.value)} /></td>
+              </tr>
+              <tr>
+                <td className="label-cell">Over.</td>
+                <td><input value={data.payroll.overRate} onChange={e => onPayrollChange('overRate', e.target.value)} /></td>
+                <td><input value={data.payroll.amount2} onChange={e => onPayrollChange('amount2', e.target.value)} /></td>
+              </tr>
+              <tr>
+                <td className="label-cell" colSpan={2}>Total Earnings</td>
+                <td><input value={data.payroll.totalEarnings} onChange={e => onPayrollChange('totalEarnings', e.target.value)} /></td>
+              </tr>
+              <tr>
+                <td className="label-cell" colSpan={2}>Total Deductions</td>
+                <td><input value={data.payroll.totalDeductions} onChange={e => onPayrollChange('totalDeductions', e.target.value)} /></td>
+              </tr>
+              <tr>
+                <td className="label-cell net-pay" colSpan={2}>NET PAY</td>
+                <td><input value={data.payroll.netPay} onChange={e => onPayrollChange('netPay', e.target.value)} /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="tc-deductions-label">
+          {"DEDUCTIONS".split('').map((char, i) => <span key={i}>{char}</span>)}
+        </div>
+
+        <div className="tc-right-table">
+          <table>
+            <thead>
+              <tr><th colSpan={2}>ABSENCES</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Fines</td>
+                <td><input value={data.payroll.fines} onChange={e => onPayrollChange('fines', e.target.value)} /></td>
+              </tr>
+              <tr>
+                <td>Withholding Tax</td>
+                <td><input value={data.payroll.withholdingTax} onChange={e => onPayrollChange('withholdingTax', e.target.value)} /></td>
+              </tr>
+              <tr>
+                <td>S.S.S.</td>
+                <td><input value={data.payroll.sss} onChange={e => onPayrollChange('sss', e.target.value)} /></td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr><td colSpan={2}>TOTAL</td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div className="tc-grid-section">
+        <table className="tc-grid">
+          <colgroup>
+            <col style={{ width: '7%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '15%' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th rowSpan={2}>Days</th>
+              <th colSpan={2}>MORNING</th>
+              <th colSpan={2}>AFTERNOON</th>
+              <th colSpan={2}>OVERTIME</th>
+              <th rowSpan={2} style={{ fontSize: '8px' }}>Daily Total</th>
+            </tr>
+            <tr>
+              <th>IN</th><th>OUT</th><th>IN</th><th>OUT</th><th>IN</th><th>OUT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((rec) => (
+              <tr key={rec.day}>
+                <td className="day-num">{rec.day}</td>
+                <td><input className="tc-grid-input" value={rec.morningIn} onChange={e => onRecordChange(rec.day, 'morningIn', e.target.value)} /></td>
+                <td><input className="tc-grid-input" value={rec.morningOut} onChange={e => onRecordChange(rec.day, 'morningOut', e.target.value)} /></td>
+                <td><input className="tc-grid-input" value={rec.afternoonIn} onChange={e => onRecordChange(rec.day, 'afternoonIn', e.target.value)} /></td>
+                <td><input className="tc-grid-input" value={rec.afternoonOut} onChange={e => onRecordChange(rec.day, 'afternoonOut', e.target.value)} /></td>
+                <td><input className="tc-grid-input" value={rec.overtimeIn} onChange={e => onRecordChange(rec.day, 'overtimeIn', e.target.value)} /></td>
+                <td><input className="tc-grid-input" value={rec.overtimeOut} onChange={e => onRecordChange(rec.day, 'overtimeOut', e.target.value)} /></td>
+                <td><input className="tc-grid-input" value={rec.total} onChange={e => onRecordChange(rec.day, 'total', e.target.value)} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="tc-cert">
+        <span className="tc-cert-text">I hereby certify that the above records are true and correct.</span>
+        <div className="tc-sig-line">Employee's Signature</div>
+      </div>
+    </>
   );
 }

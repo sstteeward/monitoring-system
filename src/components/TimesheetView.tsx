@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { TableSkeleton, CardGridSkeleton } from './Skeletons';
 import { DTRCard } from './DTRCard';
+import { profileService } from '../services/profileService';
 import './TimesheetView.css';
 
 const TimesheetView: React.FC = () => {
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [loading, setLoading] = useState(true);
     const [showDTR, setShowDTR] = useState(false);
+    const [requiredHours, setRequiredHours] = useState<number>(0);
 
     useEffect(() => {
         loadTimesheets();
@@ -16,10 +18,16 @@ const TimesheetView: React.FC = () => {
     const loadTimesheets = async () => {
         try {
             setLoading(true);
-            const data = await timeTrackingService.getTimesheets();
+            const [data, profile] = await Promise.all([
+                timeTrackingService.getTimesheets(),
+                profileService.getCurrentProfile()
+            ]);
             setTimesheets(data);
+            if (profile?.required_ojt_hours) {
+                setRequiredHours(profile.required_ojt_hours);
+            }
         } catch (error) {
-            console.error('Failed to load timesheets:', error);
+            console.error('Failed to load data:', error);
         } finally {
             setLoading(false);
         }
@@ -198,7 +206,7 @@ const TimesheetView: React.FC = () => {
                             position: 'absolute', top: '25px', right: '30px', zIndex: 10,
                             background: 'none', border: 'none', cursor: 'pointer', fontSize: '24px', fontWeight: 'bold'
                         }}>&times;</button>
-                        <DTRCard />
+                        <DTRCard requiredHours={requiredHours} />
                     </div>
                 </div>
             )}
