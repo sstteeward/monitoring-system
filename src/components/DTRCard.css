@@ -6,8 +6,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 80px 20px;
-  gap: 80px;
+  padding: 40px 20px 120px 20px;
+  gap: 24px;
   background: radial-gradient(circle at 50% 0%, rgba(46, 48, 71, 1), rgba(15, 17, 26, 1));
   min-height: 100vh;
 }
@@ -449,15 +449,15 @@
   transform: translateX(-50%);
   display: flex;
   gap: 15px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 17, 26, 0.85);
   padding: 12px 24px;
   border-radius: 24px;
   box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.3),
-    0 4px 6px rgba(0, 0, 0, 0.2);
+    0 10px 30px rgba(0, 0, 0, 0.4),
+    0 4px 6px rgba(0, 0, 0, 0.3);
   z-index: 100;
-  backdrop-filter: blur(25px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(15px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -567,48 +567,7 @@
   }
 }
 
-/* ---- ACTION BUTTON BAR (sticky footer) ---- */
-.dtr-actions {
-  margin-top: 30px;
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-  justify-content: center;
-  position: sticky;
-  bottom: 20px;
-  background: rgba(255,255,255,0.95);
-  padding: 12px 24px;
-  border-radius: 40px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-  backdrop-filter: blur(12px);
-  z-index: 1000;
-  border: 1px solid rgba(0,0,0,0.05);
-}
 
-.dtr-btn {
-  padding: 8px 18px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.2s;
-}
-
-.dtr-btn-primary {
-  background: #2563eb;
-  color: #fff;
-}
-.dtr-btn-primary:hover { background: #1d4ed8; }
-
-.dtr-btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
-}
-.dtr-btn-secondary:hover { background: #d1d5db; }
 
 @media print {
   .dtr-actions { display: none; }

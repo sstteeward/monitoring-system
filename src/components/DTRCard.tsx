@@ -91,12 +91,16 @@ export function DTRCard({
   useEffect(() => {
     if (cards.length > 0) return;
 
+    setCards([createNewCard(crypto.randomUUID())]);
+  }, [employeeName, department, position]);
+
+  const handleGenerateRequired = () => {
     const estimatedCards = requiredHours > 0 ? Math.ceil(requiredHours / 160) : 1;
     const initialCards = Array.from({ length: Math.max(1, estimatedCards) }, () => 
       createNewCard(crypto.randomUUID())
     );
     setCards(initialCards);
-  }, [requiredHours, employeeName, department, position]);
+  };
 
   const handleAddCard = () => {
     setCards(prev => [...prev, createNewCard(crypto.randomUUID())]);
@@ -152,6 +156,8 @@ export function DTRCard({
 
   return (
     <div className={`dtr-container ${isPrinting ? 'printing' : ''}`} ref={containerRef}>
+      <h1 style={{ color: '#fff', fontSize: '32px', fontWeight: 'bold', margin: '0' }}>Daily Time Record</h1>
+      
       <div className="ojt-info-banner">
         <span className="banner-goal">OJT Goal: <strong>{requiredHours} Hours</strong></span>
         <span className="banner-divider">|</span>
@@ -202,6 +208,14 @@ export function DTRCard({
 
       {/* ===== ACTIONS ===== */}
       <div className="dtr-actions">
+        {requiredHours > 0 && (
+          <button className="dtr-btn dtr-btn-primary" onClick={handleGenerateRequired} style={{ background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' }}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            Generate {estimatedCount} Required DTRs
+          </button>
+        )}
         <button className="dtr-btn dtr-btn-secondary" onClick={handleAddCard}>
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
