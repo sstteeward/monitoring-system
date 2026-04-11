@@ -10,6 +10,9 @@
   gap: 24px;
   background: radial-gradient(circle at 50% 0%, rgba(46, 48, 71, 1), rgba(15, 17, 26, 1));
   min-height: 100vh;
+  min-width: 100%;
+  width: max-content;
+  box-sizing: border-box;
 }
 
 .dtr-card-container {
@@ -69,8 +72,20 @@
   z-index: 1;
 }
 
+.dtr-cards-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 40px;
+  width: max-content;
+  padding: 20px 40px;
+  box-sizing: border-box;
+}
+
 .dtr-card-wrapper {
-  width: 100%;
+  width: auto;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;

@@ -198,10 +198,10 @@ const TimesheetView: React.FC = () => {
                 <div className="modal-overlay" onClick={() => setShowDTR(false)} style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
                     backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999,
-                    display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '0',
-                    overflowY: 'auto'
+                    display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', padding: '0',
+                    overflow: 'auto'
                 }}>
-                    <div style={{position: 'relative', width: '100%'}} onClick={e => e.stopPropagation()}>
+                    <div style={{position: 'relative', minWidth: '100%', width: 'fit-content'}} onClick={e => e.stopPropagation()}>
                         <button onClick={() => setShowDTR(false)} style={{
                             position: 'absolute', top: '25px', right: '30px', zIndex: 10,
                             background: 'none', border: 'none', cursor: 'pointer', fontSize: '24px', fontWeight: 'bold'

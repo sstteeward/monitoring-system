@@ -164,47 +164,49 @@ export function DTRCard({
         <span className="banner-estimate">Estimated DTR cards needed: <strong>{estimatedCount}</strong></span>
       </div>
 
-      {cards.map((card, index) => (
-        <div key={card.id} className={`dtr-card-wrapper`}>
-          <div className="tc-card-header-actions">
-            <div className="tc-card-badge">
-              <span className="badge-label">DTR CARD</span>
-              <span className="badge-value">{index + 1}</span>
-            </div>
-            {!isPrinting && (
-              <button className="dtr-btn-flip-tab" onClick={() => handleFlip(card.id)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                Flip to {card.isFlipped ? 'Front' : 'Back'}
-              </button>
-            )}
-          </div>
-          <div className={`dtr-card-container ${card.isFlipped ? 'flipped' : ''}`}>
-            <div className="dtr-card-inner">
-              {/* FRONT SIDE */}
-              <div className="dtr-card-front">
-                <DTRFace 
-                  data={card} 
-                  side="front" 
-                  onHeaderChange={(f, v) => updateHeader(card.id, f, v)}
-                  onPayrollChange={(f, v) => updatePayroll(card.id, f, v)}
-                  onRecordChange={(d, f, v) => updateRecord(card.id, 'front', d, f, v)}
-                />
+      <div className="dtr-cards-grid">
+        {cards.map((card, index) => (
+          <div key={card.id} className={`dtr-card-wrapper`}>
+            <div className="tc-card-header-actions">
+              <div className="tc-card-badge">
+                <span className="badge-label">DTR CARD</span>
+                <span className="badge-value">{index + 1}</span>
               </div>
+              {!isPrinting && (
+                <button className="dtr-btn-flip-tab" onClick={() => handleFlip(card.id)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Flip to {card.isFlipped ? 'Front' : 'Back'}
+                </button>
+              )}
+            </div>
+            <div className={`dtr-card-container ${card.isFlipped ? 'flipped' : ''}`}>
+              <div className="dtr-card-inner">
+                {/* FRONT SIDE */}
+                <div className="dtr-card-front">
+                  <DTRFace 
+                    data={card} 
+                    side="front" 
+                    onHeaderChange={(f, v) => updateHeader(card.id, f, v)}
+                    onPayrollChange={(f, v) => updatePayroll(card.id, f, v)}
+                    onRecordChange={(d, f, v) => updateRecord(card.id, 'front', d, f, v)}
+                  />
+                </div>
 
-              {/* BACK SIDE */}
-              <div className="dtr-card-back">
-                <DTRFace 
-                  data={card} 
-                  side="back" 
-                  onHeaderChange={(f, v) => updateHeader(card.id, f, v)}
-                  onPayrollChange={(f, v) => updatePayroll(card.id, f, v)}
-                  onRecordChange={(d, f, v) => updateRecord(card.id, 'back', d, f, v)}
-                />
+                {/* BACK SIDE */}
+                <div className="dtr-card-back">
+                  <DTRFace 
+                    data={card} 
+                    side="back" 
+                    onHeaderChange={(f, v) => updateHeader(card.id, f, v)}
+                    onPayrollChange={(f, v) => updatePayroll(card.id, f, v)}
+                    onRecordChange={(d, f, v) => updateRecord(card.id, 'back', d, f, v)}
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {/* ===== ACTIONS ===== */}
       <div className="dtr-actions">
