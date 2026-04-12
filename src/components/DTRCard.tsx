@@ -156,7 +156,9 @@ export function DTRCard({
 
   return (
     <div className={`dtr-container ${isPrinting ? 'printing' : ''}`} ref={containerRef}>
-      <h1 style={{ color: '#fff', fontSize: '32px', fontWeight: 'bold', margin: '0' }}>Daily Time Record</h1>
+      <div className="dtr-header-section">
+        <h1 className="dtr-main-heading">Daily Time Record</h1>
+      </div>
       
       <div className="ojt-info-banner">
         <span className="banner-goal">OJT Goal: <strong>{requiredHours} Hours</strong></span>
@@ -164,7 +166,7 @@ export function DTRCard({
         <span className="banner-estimate">Estimated DTR cards needed: <strong>{estimatedCount}</strong></span>
       </div>
 
-      <div className="dtr-cards-grid">
+      <div className={`dtr-cards-grid ${cards.length === 1 ? 'single-card' : ''}`}>
         {cards.map((card, index) => (
           <div key={card.id} className={`dtr-card-wrapper`}>
             <div className="tc-card-header-actions">

@@ -281,11 +281,12 @@ const StudentDashboard: React.FC = () => {
             case 'announcement': return <AnnouncementsView />;
             case 'documents': return <DocumentsView />;
             case 'dtr': return (
-                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <div className="dtr-view-wrapper">
                     <DTRCard 
                         employeeName={displayName}
                         department={profile?.department || profile?.course || ''}
                         position="STUDENT"
+                        requiredHours={profile?.required_ojt_hours || 0}
                     />
                 </div>
             );
