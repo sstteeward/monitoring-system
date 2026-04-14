@@ -39,7 +39,6 @@ const PerformanceView: React.FC = () => {
 
     // External Data / Target state from Profile
     const SIL_REQUIRED_HOURS = profile?.required_ojt_hours ?? 500;
-    const CURRENT_GRADE = profile?.grade ?? "—";
     const ABSENCES = profile?.absences ?? 0;
 
     // Calculate dynamic stats
@@ -151,17 +150,6 @@ const PerformanceView: React.FC = () => {
                             <div className="kpi-label">Remaining Required</div>
                             <div className="kpi-value">{remainingHours} <span className="kpi-unit">hrs</span></div>
                             <div className="kpi-subtext">~{remainingDays} working days left</div>
-                        </div>
-                    </div>
-
-                    <div className="kpi-card kpi-success">
-                        <div className="kpi-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-                        </div>
-                        <div className="kpi-content">
-                            <div className="kpi-label">Current Grade</div>
-                            <div className="kpi-value">{CURRENT_GRADE}</div>
-                            <div className="kpi-subtext">Academic standing</div>
                         </div>
                     </div>
 

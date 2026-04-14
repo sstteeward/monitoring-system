@@ -61,6 +61,11 @@ const StudentDashboard: React.FC = () => {
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, []);
 
+    // Reload profile when navigating between views to pick up approved transfers
+    useEffect(() => {
+        loadProfile();
+    }, [currentView]);
+
     useEffect(() => {
         const titles: Record<string, string> = {
             dashboard: 'Time Tracking',

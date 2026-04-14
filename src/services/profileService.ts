@@ -8,7 +8,6 @@ export interface Profile {
     last_name: string | null;
     account_type: 'student' | 'coordinator' | 'admin';
     required_ojt_hours: number;
-    grade: string | null;
     absences: number;
     company_id: string | null;
     company?: { name: string } | null;

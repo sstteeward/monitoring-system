@@ -59,9 +59,9 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
             case 'assigned':
                 return !!student.company_id;
             case 'completed':
-                return student.grade === 'completed'; // Assuming this maps to completion, or maybe there's a different way
+                return !student.company_id;
             case 'in-progress':
-                return !!student.company_id && student.grade !== 'completed';
+                return !!student.company_id;
             case 'at-risk':
                 return (student.absences ?? 0) >= 3;
             default:

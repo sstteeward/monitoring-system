@@ -7,7 +7,6 @@ import UserClickableName from './UserClickableName';
 
 const defaultPermissions = {
     can_approve_journals: true,
-    can_edit_grades: true,
     can_export_reports: true,
     can_delete_students: false
 };
@@ -335,7 +334,7 @@ const AdminRoleManagementView: React.FC = () => {
                     <div>
                         <h4 style={{ fontSize: '0.9rem', color: 'var(--admin-text-primary)', marginBottom: '1rem' }}>Granular Permissions</h4>
 
-                        {(['can_approve_journals', 'can_edit_grades', 'can_export_reports', 'can_delete_students'] as const).map(key => {
+                        {(['can_approve_journals', 'can_export_reports', 'can_delete_students'] as const).map(key => {
                             const perms = selectedUser.permissions || defaultPermissions;
                             const isGranted = !!perms[key];
                             const label = key.replace(/_/g, ' ').replace('can ', 'Can ');

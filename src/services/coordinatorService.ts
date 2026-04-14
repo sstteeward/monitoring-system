@@ -481,23 +481,6 @@ export const coordinatorService = {
         return data as Company;
     },
 
-    /**
-     * Update a student's grade
-     */
-    async updateStudentGrade(studentId: string, grade: string) {
-        const hasPermission = await checkPermission('can_edit_grades');
-        if (!hasPermission) throw new Error("You do not have permission to edit grades.");
-
-        const { error } = await supabase
-            .from('profiles')
-            .update({ grade })
-            .eq('id', studentId);
-
-        if (error) {
-            console.error("Error updating grade:", error);
-            throw error;
-        }
-
         return true;
     },
 

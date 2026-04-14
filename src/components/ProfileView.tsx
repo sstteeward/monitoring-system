@@ -27,7 +27,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
 
     // Student-specific fields
     const [requiredHours, setRequiredHours] = useState(500);
-    const [grade, setGrade] = useState('');
     const [absences, setAbsences] = useState(0);
 
     // Company
@@ -77,7 +76,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                 setEmail(data.email ?? '');
                 setAvatarUrl(data.avatar_url ?? null);
                 setRequiredHours(data.required_ojt_hours ?? 500);
-                setGrade(data.grade ?? '');
                 setAbsences(data.absences ?? 0);
                 setCompanyId(data.company_id ?? '');
             }
@@ -118,7 +116,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                 first_name: firstName,
                 last_name: lastName,
                 required_ojt_hours: requiredHours,
-                grade,
                 absences,
                 company_id: companyId || null,
                 avatar_url: currentAvatarUrl,
@@ -141,7 +138,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
     const handleRequestDeptChange = async () => {
         if (!requestDeptId) return;
         // Resolve current department ID: use department_id if available, otherwise match by name
-        const currentDeptId = profile?.department_id 
+        const currentDeptId = profile?.department_id
             || departments.find(d => d.name.toLowerCase() === profile?.department?.toLowerCase())?.id;
         if (!currentDeptId) {
             setError('Could not determine your current department. Please contact an administrator.');
@@ -248,9 +245,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                             <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-bright)' }}>Department</h3>
                             {activeRequest?.status === 'pending' && (
-                                <span style={{ 
-                                    background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', 
-                                    color: '#f59e0b', padding: '0.2rem 0.5rem', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase' 
+                                <span style={{
+                                    background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)',
+                                    color: '#f59e0b', padding: '0.2rem 0.5rem', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase'
                                 }}>
                                     Pending
                                 </span>
@@ -258,10 +255,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                         </div>
 
                         <div style={{ marginBottom: '1.25rem' }}>
-                            <div style={{ 
-                                padding: '1rem', 
-                                background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.05))', 
-                                border: '1px solid rgba(16,185,129,0.2)', 
+                            <div style={{
+                                padding: '1rem',
+                                background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.05))',
+                                border: '1px solid rgba(16,185,129,0.2)',
                                 borderRadius: 14,
                                 position: 'relative',
                                 display: 'flex',
@@ -269,13 +266,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                                 gap: '0.5rem'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <div style={{ 
-                                        width: 28, height: 28, borderRadius: 8, 
-                                        background: 'linear-gradient(135deg, #10b981, #059669)', 
+                                    <div style={{
+                                        width: 28, height: 28, borderRadius: 8,
+                                        background: 'linear-gradient(135deg, #10b981, #059669)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
                                         boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
                                     }}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
                                     </div>
                                     <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-bright)' }}>
                                         {departments.find(d => d.id === profile?.department_id)?.name || profile?.department || 'Unassigned'}
@@ -288,8 +285,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                         </div>
 
                         {activeRequest?.status === 'pending' ? (
-                            <div style={{ 
-                                padding: '1rem', background: 'rgba(255,255,255,0.02)', 
+                            <div style={{
+                                padding: '1rem', background: 'rgba(255,255,255,0.02)',
                                 border: '1px solid var(--border)', borderRadius: 14,
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', color: '#f59e0b', fontSize: '0.78rem', fontWeight: 600 }}>
@@ -298,15 +295,15 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                                     <span style={{ textDecoration: 'line-through', opacity: 0.4 }}>{activeRequest.current_dept?.name}</span>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
                                     <span style={{ color: '#10b981', fontWeight: 700 }}>{activeRequest.requested_dept?.name}</span>
                                 </div>
                             </div>
                         ) : (
-                            <button 
-                                className="btn btn-secondary" 
-                                style={{ 
-                                    width: '100%', justifyContent: 'center', 
+                            <button
+                                className="btn btn-secondary"
+                                style={{
+                                    width: '100%', justifyContent: 'center',
                                     background: 'var(--bg-elevated)', border: '1px solid var(--border)',
                                     padding: '0.65rem', fontSize: '0.82rem', fontWeight: 600,
                                     borderRadius: 12, transition: 'all 0.2s'
@@ -409,10 +406,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                                     <input style={inputStyle} type="number" min={0} value={requiredHours} onChange={e => setRequiredHours(Number(e.target.value))} />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Grade</label>
-                                    <input style={inputStyle} value={grade} onChange={e => setGrade(e.target.value)} placeholder="e.g. 1.25" />
-                                </div>
-                                <div>
                                     <label style={labelStyle}>Total Absences</label>
                                     <input style={inputStyle} type="number" min={0} value={absences} onChange={e => setAbsences(Number(e.target.value))} />
                                 </div>
@@ -420,7 +413,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                         </div>
 
                         {/* Feedback */}
-        {success && (
+                        {success && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 10, padding: '0.65rem 1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
                                 Profile updated successfully.
@@ -433,9 +426,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                             </div>
                         )}
 
-                        <button 
-                            type="submit" 
-                            className="btn btn-primary" 
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
                             style={{ width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             disabled={saving}
                         >
@@ -464,14 +457,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                         </p>
                         <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
                             <label style={labelStyle}>New Department</label>
-                            <div 
+                            <div
                                 style={{ ...inputStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem' }}
                                 onClick={() => setShowDeptDropdownModal(!showDeptDropdownModal)}
                             >
                                 <span style={{ color: requestDeptId ? 'var(--text-bright)' : 'var(--text-dim)', fontSize: '0.85rem' }}>
                                     {departments.find(d => d.id === requestDeptId)?.name || 'Select a department...'}
                                 </span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6, transform: showDeptDropdownModal ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6, transform: showDeptDropdownModal ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
                             </div>
                             {showDeptDropdownModal && (
                                 <div style={{
@@ -553,7 +546,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
 
             {/* Danger Zone */}
             <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 16, padding: '1.5rem 2rem' }}>
-                <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#f87171' }}>Danger Zone</h3>
+                <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#f87171' }}>Sign Out?</h3>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Signing out will end your current session. You'll need to log in again to access the dashboard.</p>
                 <button
                     className="btn btn-secondary"

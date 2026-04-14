@@ -219,7 +219,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                             {field('Provider', (profile.company as any)?.name ?? (profile.company_id ? '...' : 'Not Assigned'))}
                                             {field('Requirements', profile.required_ojt_hours ? `${profile.required_ojt_hours} Hours` : 'Not Set')}
-                                            {field('Grade', profile.grade || 'Pending')}
                                         </div>
                                     </section>
 

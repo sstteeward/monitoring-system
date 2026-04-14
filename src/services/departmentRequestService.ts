@@ -182,21 +182,31 @@ export const departmentRequestService = {
 
         // If approved, update the student's profile with the new department
         if (status === 'approved') {
-            // Fetch the new department name
-            const { data: dept } = await supabase
+            // Fetch the new department name — must succeed for a valid update
+            const { data: dept, error: deptError } = await supabase
                 .from('departments')
                 .select('name')
                 .eq('id', request.requested_department_id)
                 .single();
 
-            // Update profile: both department_id and the text department field
-            await supabase
+            if (deptError || !dept?.name) {
+                console.error('Failed to fetch department name for approval:', deptError);
+                throw new Error('Could not resolve department name. Profile was not updated.');
+            }
+
+            // Update profile: BOTH department_id and the text department field must stay in sync
+            const { error: profileError } = await supabase
                 .from('profiles')
                 .update({
                     department_id: request.requested_department_id,
-                    department: dept?.name ?? null
+                    department: dept.name
                 })
                 .eq('auth_user_id', request.user_id);
+
+            if (profileError) {
+                console.error('Failed to update profile department:', profileError);
+                throw new Error('Failed to update student profile with new department.');
+            }
         }
 
         // Notify the student about the decision
