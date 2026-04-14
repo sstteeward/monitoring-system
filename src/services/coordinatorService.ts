@@ -481,9 +481,6 @@ export const coordinatorService = {
         return data as Company;
     },
 
-        return true;
-    },
-
     /**
      * Delete a student
      */
