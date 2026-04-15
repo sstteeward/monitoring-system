@@ -42,7 +42,6 @@ export default function LandingPage() {
 
   return (
     <div className="landing-container">
-      {/* Background elements */}
       <div className="landing-bg-glow"></div>
 
       <div className="landing-content">
@@ -50,38 +49,38 @@ export default function LandingPage() {
           <h1 className="landing-title">
             <span className="asian">Asian</span> <span className="college">College</span>
           </h1>
-          <h2 className="landing-subtitle">SIL Monitoring System</h2>
+          <h2 className="landing-subtitle">SIL <span>Monitoring</span> System</h2>
         </div>
 
         <div className="portal-cards-wrapper">
           <div className="portal-card student" onClick={() => handlePortalSelect('student')} role="button" tabIndex={0}>
-            <div className="portal-icon">
+            <div className="portal-card-icon-wrap">
               <StudentIcon />
             </div>
-            <h3>Student Portal</h3>
+            <h3>Student Portal <span className="arrow">→</span></h3>
             <p>Access your dashboard, manage DTR, and view records.</p>
           </div>
 
           <div className="portal-card coordinator" onClick={() => handlePortalSelect('coordinator')} role="button" tabIndex={0}>
-            <div className="portal-icon">
+            <div className="portal-card-icon-wrap">
               <CoordinatorIcon />
             </div>
-            <h3>Coordinator Portal</h3>
+            <h3>Coordinator Portal <span className="arrow">→</span></h3>
             <p>Manage student applications, verify records, and approvals.</p>
           </div>
 
           <div className="portal-card admin" onClick={() => handlePortalSelect('admin')} role="button" tabIndex={0}>
-            <div className="portal-icon">
+            <div className="portal-card-icon-wrap">
               <AdminIcon />
             </div>
-            <h3>Admin Portal</h3>
+            <h3>Admin Portal <span className="arrow">→</span></h3>
             <p>System configuration, user management, and oversight.</p>
           </div>
         </div>
       </div>
 
       <div className="landing-footer">
-        © {new Date().getFullYear()} Asian College. All rights reserved.
+        © {new Date().getFullYear()} Asian College. System Developed by sstteward.
       </div>
     </div>
   );
