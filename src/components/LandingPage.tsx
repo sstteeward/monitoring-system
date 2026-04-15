@@ -42,8 +42,6 @@ export default function LandingPage() {
 
   return (
     <div className="landing-container">
-      <div className="landing-bg-glow"></div>
-
       <div className="landing-content">
         <div className="landing-logo-container">
           <h1 className="landing-title">
