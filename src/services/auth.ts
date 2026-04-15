@@ -59,7 +59,7 @@ export async function signUp({ email, password, firstName, middleName, lastName,
   return signUpData;
 }
 
-export async function signIn({ email, password }: { email: string; password: string; }) {
+export async function signIn({ email, password, role }: { email: string; password: string; role?: string }) {
   const supabase = await getClient();
 
   // 1. Check if user is locked or deactivated BEFORE signing in
@@ -79,6 +79,15 @@ export async function signIn({ email, password }: { email: string; password: str
     if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
       const unlockTime = new Date(profile.locked_until).toLocaleTimeString();
       throw new Error(`ACCOUNT_LOCKED: Too many failed attempts. Try again after ${unlockTime}.`);
+    }
+    if (role === 'coordinator' && profile.account_type !== 'coordinator') {
+      throw new Error("Access Denied: You cannot log in via the Coordinator Portal. Please use the Student portal.");
+    }
+    if (role === 'student' && profile.account_type !== 'student') {
+      throw new Error("Access Denied: You cannot log in via the Student Portal. Please use the Coordinator portal.");
+    }
+    if (role === 'admin' && profile.account_type !== 'admin') {
+      throw new Error("Access Denied: You cannot log in via the Admin Portal.");
     }
   }
 

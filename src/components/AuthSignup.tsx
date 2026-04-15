@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
 import { signUp, signIn, resetPasswordForEmail } from "../services/auth";
@@ -21,6 +22,10 @@ const EyeOffIcon = () => (
 );
 
 export default function AuthSignup() {
+    const location = useLocation();
+    const roleState = (location.state as any)?.role;
+    const displayRole = roleState ? roleState.charAt(0).toUpperCase() + roleState.slice(1) : "";
+
     const [mode, setMode] = useState<"signup" | "login" | "forgot">("login");
 
     // Signup state
@@ -212,8 +217,37 @@ export default function AuthSignup() {
         if (!validateLogin()) return;
         setIsSubmitting(true);
         setErrors({});
+
         try {
-            await signIn({ email: loginEmail, password });
+            const supabase = await import('../lib/supabaseClient');
+
+            if (roleState) {
+                console.log('Checking roleState:', roleState, 'email:', loginEmail.toLowerCase());
+                const { data: existingProfile, error: profileError } = await supabase.supabase
+                    .from('profiles')
+                    .select('account_type')
+                    .eq('email', loginEmail.toLowerCase())
+                    .single();
+
+                console.log('Profile result:', existingProfile, 'error:', profileError);
+
+                if (existingProfile) {
+                    console.log('Found profile with account_type:', existingProfile.account_type);
+                    if (roleState === 'coordinator' && existingProfile.account_type !== 'coordinator') {
+                        throw new Error("Access Denied: You cannot log in via the Coordinator Portal. Please use the Student portal.");
+                    }
+                    if (roleState === 'student' && existingProfile.account_type !== 'student') {
+                        throw new Error("Access Denied: You cannot log in via the Student Portal. Please use the Coordinator portal.");
+                    }
+                    if (roleState === 'admin' && existingProfile.account_type !== 'admin') {
+                        throw new Error("Access Denied: You cannot log in via the Admin Portal.");
+                    }
+                } else {
+                    console.log('No profile found or error:', profileError);
+                }
+            }
+
+            await signIn({ email: loginEmail, password, role: roleState });
             window.location.href = '/';
         } catch (err: any) {
             let errorMsg = err.message || String(err);
@@ -271,7 +305,7 @@ export default function AuthSignup() {
                     {mode === "signup" ? (
                         <div className="auth-form-wrapper">
                             <div className="card-header" style={{ marginBottom: '1.25rem' }}>
-                                <h1>Create Your Account</h1>
+                                <h1>{displayRole ? `Create Account as ${displayRole}` : "Create Your Account"}</h1>
                                 <p className="subtitle">Sign up using your <strong>.edu.ph</strong> email.</p>
                             </div>
 
@@ -425,7 +459,7 @@ export default function AuthSignup() {
                     ) : mode === "login" ? (
                         <div className="auth-form-wrapper">
                             <div className="card-header" style={{ marginBottom: '1.25rem' }}>
-                                <h2>Login</h2>
+                                <h2>{displayRole ? `Login as ${displayRole}` : "Login"}</h2>
                                 <p className="subtitle">SIL Monitoring System — sign in using your <strong>.edu.ph</strong> email.</p>
                             </div>
 
@@ -497,7 +531,7 @@ export default function AuthSignup() {
                     ) : (
                         <div className="auth-form-wrapper">
                             <div className="card-header" style={{ marginBottom: '1.25rem' }}>
-                                <h2>Reset Password</h2>
+                                <h2>{displayRole ? `Reset ${displayRole} Password` : "Reset Password"}</h2>
                                 <p className="subtitle">Enter your <strong>.edu.ph</strong> email to receive a password reset link.</p>
                             </div>
 

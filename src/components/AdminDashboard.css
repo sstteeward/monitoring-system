@@ -7,12 +7,12 @@
 /* Theme-specific admin variables */
 html,
 html[data-theme="dark"] {
-  --admin-bg: #0d0e1a;
-  --admin-card-bg: rgba(19, 20, 31, 0.8);
-  --admin-border: rgba(255, 255, 255, 0.07);
-  --admin-text-primary: #f8fafc;
-  --admin-text-secondary: #94a3b8;
-  --admin-sidebar-bg: #13141f;
+  --admin-bg: #0a0a0a;
+  --admin-card-bg: rgba(20, 20, 20, 0.8);
+  --admin-border: rgba(255, 255, 255, 0.04);
+  --admin-text-primary: #e5e5e5;
+  --admin-text-secondary: #737373;
+  --admin-sidebar-bg: #0a0a0a;
 }
 
 html[data-theme="light"] {
