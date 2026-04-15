@@ -102,7 +102,7 @@ export async function signIn({ email, password }: { email: string; password: str
 export async function resetPasswordForEmail(email: string) {
   const supabase = await getClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/`,
+    redirectTo: `${window.location.origin}/change-password`,
   });
   if (error) throw error;
 }

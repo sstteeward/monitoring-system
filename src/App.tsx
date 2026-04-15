@@ -119,7 +119,12 @@ function AppContent() {
   }
 
   if (isRecovery) {
-    return <UpdatePasswordView onComplete={() => setIsRecovery(false)} />;
+    return (
+      <Routes>
+        <Route path="/change-password" element={<UpdatePasswordView onComplete={() => setIsRecovery(false)} />} />
+        <Route path="*" element={<Navigate to="/change-password" replace />} />
+      </Routes>
+    );
   }
 
   if (!session) {
