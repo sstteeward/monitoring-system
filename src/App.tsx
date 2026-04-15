@@ -17,7 +17,16 @@ function AppContent() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [needsTypePick, setNeedsTypePick] = useState(false);
-  const [isRecovery, setIsRecovery] = useState(false);
+  const [isRecovery, _setIsRecovery] = useState(false);
+
+  const setIsRecovery = (val: boolean) => {
+    _setIsRecovery(val);
+    if (val) {
+      sessionStorage.setItem('is_recovery', 'true');
+    } else {
+      sessionStorage.removeItem('is_recovery');
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -29,7 +38,7 @@ function AppContent() {
         setLoading(false);
       }
 
-      if (window.location.hash.includes('type=recovery')) {
+      if (window.location.hash.includes('type=recovery') || sessionStorage.getItem('is_recovery') === 'true') {
         setIsRecovery(true);
       }
     });
