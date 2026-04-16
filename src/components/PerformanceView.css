@@ -27,19 +27,10 @@
 }
 
 .kpi-card {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
     padding: 1.5rem;
     display: flex;
     align-items: flex-start;
     gap: 1rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s ease;
-}
-
-.kpi-card:hover {
-    transform: translateY(-2px);
 }
 
 .kpi-icon {
@@ -146,11 +137,7 @@
 }
 
 .performance-card {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     min-height: 300px;
 }
 

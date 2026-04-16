@@ -80,7 +80,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
         }
     };
 
-    const card: React.CSSProperties = { background: 'var(--admin-card-bg)', border: '1px solid var(--admin-border)', borderRadius: 16, padding: '1.75rem 2rem', marginBottom: '1.25rem' };
+    const card: React.CSSProperties = { padding: '1.75rem 2rem', marginBottom: '1.25rem' };
     const sectionTitle: React.CSSProperties = { margin: '0 0 0.35rem', fontSize: '1rem', fontWeight: 700, color: 'var(--admin-text-primary)' };
     const sectionSub: React.CSSProperties = { fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '1.25rem' };
     const inputStyle: React.CSSProperties = { width: '100%', padding: '0.65rem 0.9rem', background: 'var(--admin-bg)', border: '1px solid var(--admin-border)', borderRadius: 10, color: 'var(--admin-text-primary)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: '0.75rem' };
@@ -92,7 +92,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
 
             {/* LEFT COLUMN: System Configuration */}
             <div>
-                <div style={card}>
+                <div className="glass-card" style={card}>
                     <h3 style={sectionTitle}>System Configuration</h3>
                     <p style={sectionSub}>Manage global rules and parameters for the monitoring system. Changes take effect immediately.</p>
 
@@ -154,7 +154,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
 
             {/* RIGHT COLUMN: Appearance & Security */}
             <div>
-                <div style={card}>
+                <div className="glass-card" style={card}>
                     <h3 style={sectionTitle}>Appearance</h3>
                     <p style={sectionSub}>Dashboard theme.</p>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -185,7 +185,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
                     </div>
                 </div>
 
-                <div style={card}>
+                <div className="glass-card" style={card}>
                     <h3 style={sectionTitle}>Security</h3>
                     <p style={sectionSub}>Update super admin password.</p>
                     {pwSuccess && (
@@ -208,7 +208,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
                     )}
                 </div>
 
-                <div style={card}>
+                <div className="glass-card" style={card}>
                     <h3 style={sectionTitle}>Admin Info</h3>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.4rem 0', borderBottom: '1px solid var(--admin-border)' }}>
                         <span style={{ color: 'var(--admin-text-secondary)' }}>Admin</span>

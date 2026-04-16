@@ -156,7 +156,7 @@ const DocumentsView: React.FC = () => {
                         {documents.map((doc) => (
                             <div
                                 key={doc.id}
-                                className="document-item-card"
+                                className="document-item-card glass-card"
                                 onClick={() => handlePreview(doc.file_path, doc.file_name)}
                                 style={{ cursor: 'pointer', position: 'relative' }}
                                 title="Click to preview"
@@ -200,7 +200,7 @@ const DocumentsView: React.FC = () => {
             </div>
 
             {showUploadForm && (
-                <div className="upload-card">
+                <div className="upload-card glass-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h3 className="section-title" style={{ margin: 0 }}>Upload New Document</h3>
                         <button className="btn btn-secondary" onClick={() => setShowUploadForm(false)} style={{ padding: '0.4rem' }}>
@@ -243,7 +243,7 @@ const DocumentsView: React.FC = () => {
             {/* Preview Modal */}
             {previewUrl && (
                 <div className="preview-modal-overlay" onClick={closePreview}>
-                    <div className="preview-modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="preview-modal-content glass-card" onClick={e => e.stopPropagation()}>
                         <div className="preview-modal-header">
                             <h3 className="preview-modal-title">{previewFileName}</h3>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -278,8 +278,8 @@ const DocumentsView: React.FC = () => {
                     background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                    <div style={{
-                        background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.3)',
+                    <div className="glass-card" style={{
+                        border: '1px solid rgba(239,68,68,0.3)',
                         borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
                         boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                         animation: 'fadeIn 0.2s ease',
@@ -307,7 +307,7 @@ const DocumentsView: React.FC = () => {
                             <button
                                 onClick={() => setDocumentToDelete(null)}
                                 style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
-                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-card)'}
+                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                                 onMouseOut={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                             >
                                 Cancel

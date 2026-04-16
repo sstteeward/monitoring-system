@@ -160,7 +160,7 @@ const AdminRoleManagementView: React.FC = () => {
 
     if (loading) return (
         <div className="fade-in">
-            <div className="admin-table-card">
+            <div className="admin-table-card glass-card">
                 <div className="admin-table-header">
                     <div className="admin-table-title">Role & Permission Management</div>
                     <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.875rem' }}>Manage coordinator accounts and granular access.</div>
@@ -175,7 +175,7 @@ const AdminRoleManagementView: React.FC = () => {
 
             {/* LEFT COLUMN: Coordinator List */}
             <div style={{ minWidth: 0 }}>
-                <div className="admin-table-card">
+                <div className="admin-table-card glass-card">
                     <div className="admin-table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                         <div>
                             <div className="admin-table-title">Role & Permission Management</div>
@@ -225,7 +225,7 @@ const AdminRoleManagementView: React.FC = () => {
                             {promoResults.length > 0 && (
                                 <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto', padding: '0.25rem' }}>
                                     {promoResults.map(p => (
-                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 1rem', background: 'var(--bg-card)', borderRadius: 8, border: '1px solid var(--admin-border)' }}>
+                                        <div key={p.id} className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 1rem', borderRadius: 8, border: '1px solid var(--admin-border)' }}>
                                             <div>
                                                 <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--admin-text-primary)' }}>{p.first_name} {p.last_name}</div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)' }}>{p.email} • {p.account_type}</div>
@@ -296,7 +296,7 @@ const AdminRoleManagementView: React.FC = () => {
 
             {/* RIGHT COLUMN: Permission Editor */}
             {selectedUser && (
-                <div className="admin-table-card" style={{ position: 'sticky', top: '1.5rem', padding: '1.5rem' }}>
+                <div className="admin-table-card glass-card" style={{ position: 'sticky', top: '1.5rem', padding: '1.5rem' }}>
                     <div className="admin-table-header" style={{ padding: '0 0 1rem 0', borderBottom: '1px solid var(--admin-border)', marginBottom: '1.5rem', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
                         <div className="admin-table-title" style={{ fontSize: '1.1rem', color: 'var(--admin-text-primary)', marginBottom: 0 }}>
                             {selectedUser.first_name} {selectedUser.last_name}

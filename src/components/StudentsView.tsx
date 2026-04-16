@@ -130,7 +130,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
             </div>
 
             {/* Filter Tabs */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
                 {(['all', 'assigned', 'in-progress', 'completed', 'at-risk'] as const).map(tab => (
                     <button
                         key={tab}
@@ -153,7 +153,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                 ))}
             </div>
 
-            <div className="table-container">
+            <div className="table-container glass-card">
                 <table className="data-table">
                     <thead>
                         <tr>

@@ -177,7 +177,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
+            <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem' }}>
                 {(['documents', 'journals', 'dtr', 'dept_changes'] as const).map(tab => (
                     <button
                         key={tab}
@@ -202,7 +202,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
             </div>
 
             {activeTab === 'documents' && (
-                <div className="table-container">
+                <div className="table-container glass-card">
                     <table className="data-table">
                         <thead>
                             <tr>
@@ -250,7 +250,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
             )}
 
             {activeTab === 'journals' && (
-                <div className="table-container">
+                <div className="table-container glass-card">
                     <table className="data-table">
                         <thead>
                             <tr>
@@ -291,7 +291,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
             )}
 
             {activeTab === 'dtr' && (
-                <div className="table-container">
+                <div className="table-container glass-card">
                     <table className="data-table">
                         <thead>
                             <tr>
@@ -332,7 +332,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
             )}
 
             {activeTab === 'dept_changes' && (
-                <div className="table-container">
+                <div className="table-container glass-card">
                     <table className="data-table">
                         <thead>
                             <tr>
@@ -381,7 +381,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
             {/* Modals */}
             {previewUrl && (
                 <div className="preview-modal-overlay" onClick={closePreview}>
-                    <div className="preview-modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="preview-modal-content glass-card" onClick={e => e.stopPropagation()}>
                         <div className="preview-modal-header">
                             <h3 className="preview-modal-title">{previewFileName}</h3>
                             <button className="btn btn-secondary" onClick={closePreview}>Close</button>
@@ -395,7 +395,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
 
             {previewJournal && (
                 <div className="preview-modal-overlay" onClick={closePreview}>
-                    <div className="preview-modal-content" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
+                    <div className="preview-modal-content glass-card" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
                         <div className="preview-modal-header">
                             <h3>Journal Detail</h3>
                             <button className="btn btn-secondary" onClick={closePreview}>Close</button>
@@ -414,7 +414,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
 
             {showRemarksModal && (
                 <div className="preview-modal-overlay" style={{ zIndex: 1100 }}>
-                    <div className="preview-modal-content" style={{ maxWidth: '400px' }}>
+                    <div className="preview-modal-content glass-card" style={{ maxWidth: '400px' }}>
                         <div className="preview-modal-header">
                             <h3>{pendingAction === 'approved' ? 'Approve' : 'Reject'} Request</h3>
                         </div>

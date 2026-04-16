@@ -115,22 +115,22 @@ const TimesheetView: React.FC = () => {
                 </div>
             ) : timesheets.length > 0 && (
                 <div className="timesheet-stats-row">
-                    <div className="ts-stat-card">
+                    <div className="ts-stat-card glass-card">
                         <span className="ts-stat-label">Total Time</span>
                         <span className="ts-stat-value">{totalHours}h</span>
                         <span className="ts-stat-sub">Lifetime worked</span>
                     </div>
-                    <div className="ts-stat-card">
+                    <div className="ts-stat-card glass-card">
                         <span className="ts-stat-label">Active Days</span>
                         <span className="ts-stat-value">{activeDays}</span>
                         <span className="ts-stat-sub">Logging sessions</span>
                     </div>
-                    <div className="ts-stat-card">
+                    <div className="ts-stat-card glass-card">
                         <span className="ts-stat-label">Avg/Day</span>
                         <span className="ts-stat-value">{avgHoursPerDay}h</span>
                         <span className="ts-stat-sub">Daily average</span>
                     </div>
-                    <div className="ts-stat-card">
+                    <div className="ts-stat-card glass-card">
                         <span className="ts-stat-label">Sessions</span>
                         <span className="ts-stat-value">{timesheets.length}</span>
                         <span className="ts-stat-sub">Total records</span>
@@ -138,7 +138,7 @@ const TimesheetView: React.FC = () => {
                 </div>
             )}
 
-            <div className="timesheet-card">
+            <div className="timesheet-card glass-card">
                 {loading ? (
                     <TableSkeleton rows={8} cols={5} />
                 ) : timesheets.length === 0 ? (
@@ -197,15 +197,35 @@ const TimesheetView: React.FC = () => {
             {showDTR && (
                 <div className="modal-overlay" onClick={() => setShowDTR(false)} style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999,
-                    display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', padding: '0',
-                    overflow: 'auto'
+                    backgroundColor: 'rgba(0,0,0,0.4)', 
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    zIndex: 9999,
+                    display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '0',
+                    overflow: 'auto',
+                    animation: 'fadeIn 0.3s ease-out'
                 }}>
                     <div style={{position: 'relative', minWidth: '100%', width: 'fit-content'}} onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setShowDTR(false)} style={{
-                            position: 'absolute', top: '25px', right: '30px', zIndex: 10,
-                            background: 'none', border: 'none', cursor: 'pointer', fontSize: '24px', fontWeight: 'bold'
-                        }}>&times;</button>
+                        <button className="glass-card" onClick={() => setShowDTR(false)} style={{
+                            position: 'fixed', top: '25px', right: '40px', zIndex: 10000,
+                            width: '44px', height: '44px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', 
+                            borderRadius: '12px', cursor: 'pointer', fontSize: '28px', color: 'var(--text-primary)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                            transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--primary)';
+                            e.currentTarget.style.color = 'var(--primary)';
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border-strong)';
+                            e.currentTarget.style.color = 'var(--text-primary)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                        >&times;</button>
                         <DTRCard requiredHours={requiredHours} />
                     </div>
                 </div>

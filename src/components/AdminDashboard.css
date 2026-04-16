@@ -17,7 +17,7 @@ html[data-theme="dark"] {
 
 html[data-theme="light"] {
   --admin-bg: var(--bg-page);
-  --admin-card-bg: var(--bg-card);
+  --admin-card-bg: var(--glass-bg);
   --admin-border: var(--border);
   --admin-text-primary: var(--text-primary);
   --admin-text-secondary: var(--text-secondary);
@@ -243,7 +243,6 @@ html[data-theme="light"] {
   left: 0.5rem;
   width: 200px;
   margin-bottom: 0.5rem;
-  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
@@ -519,20 +518,10 @@ html[data-theme="light"] {
 }
 
 .admin-stat-card {
-  background: var(--admin-card-bg);
-  border: 1px solid var(--admin-border);
   padding: 1.5rem;
-  border-radius: 16px;
   display: flex;
   align-items: center;
   gap: 1rem;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.admin-stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .admin-stat-icon-wrap {
@@ -560,11 +549,7 @@ html[data-theme="light"] {
 
 /* Profiles Table */
 .admin-table-card {
-  background: var(--admin-card-bg);
-  border: 1px solid var(--admin-border);
-  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
 .admin-table-header {

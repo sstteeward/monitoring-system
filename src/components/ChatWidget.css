@@ -70,7 +70,6 @@
     width: 380px;
     height: 550px;
     max-height: calc(100vh - 120px);
-    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 16px;
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -222,7 +221,7 @@
     height: 10px;
     background: #10b981;
     border-radius: 50%;
-    border: 2px solid var(--bg-card);
+    border: 2px solid var(--bg-elevated);
 }
 
 .online-indicator.offline {
@@ -390,7 +389,6 @@
     border-top: 1px solid var(--border);
     display: flex;
     gap: 0.5rem;
-    background: var(--bg-card);
 }
 
 .chat-input {

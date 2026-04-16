@@ -281,14 +281,14 @@ const AdminDashboard: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-                                    <div className="admin-stat-card" onClick={() => navigateTo('students')} style={{ cursor: 'pointer' }}>
+                                    <div className="admin-stat-card glass-card" onClick={() => navigateTo('students')} style={{ cursor: 'pointer' }}>
                                         <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>{Icon.users}</div>
                                         <div>
                                             <div className="admin-stat-value">{stats.studentCount}</div>
                                             <div className="admin-stat-label">Total Students</div>
                                         </div>
                                     </div>
-                                    <div className="admin-stat-card" onClick={() => navigateTo('approvals')} style={{ cursor: 'pointer' }}>
+                                    <div className="admin-stat-card glass-card" onClick={() => navigateTo('approvals')} style={{ cursor: 'pointer' }}>
                                         <div className="admin-stat-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="16 13 8 13"></polyline><polyline points="16 17 8 17"></polyline><polyline points="10 9 9 9 8 9"></polyline></svg>
                                         </div>
@@ -297,21 +297,21 @@ const AdminDashboard: React.FC = () => {
                                             <div className="admin-stat-label">Pending Approvals</div>
                                         </div>
                                     </div>
-                                    <div className="admin-stat-card">
+                                    <div className="admin-stat-card glass-card">
                                         <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#0d9488', border: '1px solid rgba(13, 148, 136, 0.2)' }}>{Icon.users}</div>
                                         <div>
                                             <div className="admin-stat-value">{stats.coordinatorCount}</div>
                                             <div className="admin-stat-label">Coordinators</div>
                                         </div>
                                     </div>
-                                    <div className="admin-stat-card">
+                                    <div className="admin-stat-card glass-card">
                                         <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: 'var(--primary)', border: '1px solid var(--nav-active-bg)' }}>{Icon.building}</div>
                                         <div>
                                             <div className="admin-stat-value">{stats.companyCount}</div>
                                             <div className="admin-stat-label">Partner Companies</div>
                                         </div>
                                     </div>
-                                    <div className="admin-stat-card">
+                                    <div className="admin-stat-card glass-card">
                                         <div className="admin-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg>
                                         </div>
@@ -323,7 +323,7 @@ const AdminDashboard: React.FC = () => {
                                 </div>
 
 
-                                <div className="admin-table-card">
+                                <div className="admin-table-card glass-card">
                                     <div className="admin-table-header">
                                         <div className="admin-table-title">Recent User Registrations</div>
                                         <button className="role-select" onClick={() => navigateTo('users')}>View All</button>
@@ -365,7 +365,7 @@ const AdminDashboard: React.FC = () => {
 
                         {currentView === 'users' && (
                             <div className="fade-in">
-                                <div className="admin-table-card">
+                                <div className="admin-table-card glass-card">
                                     <div className="admin-table-header">
                                         <div className="admin-table-title">All Users</div>
                                         <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.875rem' }}>Total: {allProfiles.length} users</div>
@@ -515,8 +515,8 @@ const AdminDashboard: React.FC = () => {
                         background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                        <div style={{
-                            background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.3)',
+                        <div className="glass-card" style={{
+                            border: '1px solid rgba(239,68,68,0.3)',
                             borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
                             boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                             animation: 'fadeIn 0.2s ease',
@@ -538,7 +538,7 @@ const AdminDashboard: React.FC = () => {
                                     onClick={() => setDeleteTarget(null)}
                                     disabled={deletingUser}
                                     style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
-                                    onMouseOver={e => e.currentTarget.style.background = 'var(--bg-card)'}
+                                    onMouseOver={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                                     onMouseOut={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                                 >
                                     Cancel

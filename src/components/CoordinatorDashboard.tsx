@@ -477,7 +477,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, totalPen
                     {quickStats.map(stat => (
                         <div
                             key={stat.label}
-                            className="cd-stat-card"
+                            className="cd-stat-card glass-card"
                             onClick={stat.action}
                             style={{ '--glow': stat.glow } as React.CSSProperties}
                         >
@@ -495,7 +495,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, totalPen
                 </div>
 
                 {/* Progress Chart */}
-                <div className="cd-card cd-progress-chart cd-overview-dynamic-card">
+                <div className="cd-card glass-card cd-progress-chart cd-overview-dynamic-card">
                     <div className="cd-card-header">
                         <span className="cd-card-title">Student Progress</span>
                     </div>
@@ -503,7 +503,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, totalPen
                         {stats?.progressData && stats.progressData.length > 0 ? stats.progressData.map((p: any) => (
                             <div key={p.id} className="cd-progress-item" style={{ padding: '0 1.5rem', paddingBottom: '1.5rem', cursor: 'pointer', borderRadius: 8, transition: 'background 0.15s' }}
                                 onClick={() => setViewProfileId(p.id)}
-                                onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-card)')}
+                                onMouseOver={e => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)')}
                                 onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '1rem' }}>
@@ -534,7 +534,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, totalPen
 
             <div className="cd-overview-side-col">
                 {/* Weekly Activity Summary */}
-                <div className="cd-card">
+                <div className="cd-card glass-card">
                     <div className="cd-card-body" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
                         <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(16,185,129,0.15)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
@@ -548,7 +548,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, totalPen
                 </div>
 
                 {/* Recent Submissions */}
-                <div className="cd-card cd-overview-dynamic-card" style={{ marginTop: '1rem' }}>
+                <div className="cd-card glass-card cd-overview-dynamic-card" style={{ marginTop: '1rem' }}>
                     <div className="cd-card-header">
                         <span className="cd-card-title">Recent Submissions</span>
                         <button className="cd-card-action" onClick={() => navigateTo('approvals')} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.85rem' }}>View All</button>
@@ -576,7 +576,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, totalPen
                 </div>
 
                 {/* Quick Actions */}
-                <div className="cd-card" style={{ marginTop: '1rem' }}>
+                <div className="cd-card glass-card" style={{ marginTop: '1rem' }}>
                     <div className="cd-card-header">
                         <span className="cd-card-title">Quick Actions</span>
                     </div>

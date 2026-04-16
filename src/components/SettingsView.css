@@ -28,7 +28,6 @@
 }
 
 .settings-card {
-    background-color: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 1.5rem 2rem;

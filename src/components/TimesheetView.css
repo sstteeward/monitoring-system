@@ -32,7 +32,6 @@
     gap: 0.6rem;
     padding: 0.6rem 1.25rem;
     border-radius: 10px;
-    background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text-dim);
     font-size: 0.85rem;
@@ -55,19 +54,10 @@
 }
 
 .ts-stat-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
     padding: 1.25rem;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    transition: transform 0.2s ease;
-}
-
-.ts-stat-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--primary-glow);
 }
 
 .ts-stat-label {
@@ -92,13 +82,7 @@
 
 /* ── Table Styling ── */
 .timesheet-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
     padding: 0;
-    overflow: hidden;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
 .timesheet-table-container {

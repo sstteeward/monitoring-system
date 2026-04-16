@@ -289,37 +289,11 @@ html[data-theme="light"] .btn-reject:hover {
 }
 
 .cd-stat-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
     padding: 1.25rem 1.5rem;
     display: flex;
     align-items: center;
     gap: 1rem;
     cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.cd-stat-card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--glow, transparent);
-    opacity: 0;
-    transition: opacity 0.2s;
-    border-radius: inherit;
-}
-
-.cd-stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    border-color: var(--primary);
-}
-
-.cd-stat-card:hover::after {
-    opacity: 1;
 }
 
 .cd-stat-icon-wrap {
@@ -389,13 +363,8 @@ html[data-theme="light"] .btn-reject:hover {
    GENERIC CARD
 ═══════════════════════════════════════════════════ */
 .cd-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .cd-card-header {
@@ -607,11 +576,9 @@ html[data-theme="light"] .btn-reject:hover {
    DATA TABLE — used in Students/Approvals
 ═══════════════════════════════════════════════════ */
 .table-container {
-    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 14px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
 }
 
 .data-table {
@@ -823,6 +790,6 @@ html[data-theme="light"] .btn-reject:hover {
     width: 8px;
     height: 8px;
     background: #ef4444;
-    border: 2px solid var(--bg-card);
+    border: 2px solid var(--bg-elevated);
     border-radius: 50%;
 }

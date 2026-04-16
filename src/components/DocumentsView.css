@@ -6,9 +6,6 @@
 }
 
 .upload-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
@@ -98,20 +95,10 @@
 }
 
 .document-item-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
     padding: 1rem;
     display: flex;
     align-items: center;
     gap: 1rem;
-    transition: all 0.2s;
-}
-
-.document-item-card:hover {
-    border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .document-icon {

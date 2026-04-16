@@ -193,24 +193,21 @@
 
 input {
     padding: 0.65rem 0.8rem;
-    /* Reduced padding from 0.75rem */
     border-radius: 8px;
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.03);
-    /* Slightly darker background */
-    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.3);
+    color: #ffffff;
     font-size: 0.85rem;
-    /* Reduced from 0.9rem */
     font-family: inherit;
     outline: none;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     width: 100%;
 }
 
 input:focus {
-    border-color: var(--primary);
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 3px var(--primary-glow);
+    border-color: rgba(16, 185, 129, 0.6);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
 .password-input-wrapper {

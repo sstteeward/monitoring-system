@@ -299,7 +299,7 @@ const JournalView: React.FC = () => {
                                 const day = d.getDate();
 
                                 return (
-                                    <div key={j.id} className="journal-card" onClick={() => handleEditEntry(j)}>
+                                    <div key={j.id} className="journal-card glass-card" onClick={() => handleEditEntry(j)}>
                                         <div className="card-date-box">
                                             <span className="date-month">{month}</span>
                                             <span className="date-day">{day}</span>
@@ -338,7 +338,7 @@ const JournalView: React.FC = () => {
                 {/* Right Column - Widgets */}
                 <div className="journal-widgets">
                     {/* Calendar Card */}
-                    <div className="widget-card">
+                    <div className="widget-card glass-card">
                         <div className="widget-title-area">
                             <h4 className="widget-title">
                                 Journal Calendar 
@@ -364,7 +364,7 @@ const JournalView: React.FC = () => {
                     </div>
 
                     {/* Feedback Card */}
-                    <div className="widget-card feedback-card">
+                    <div className="widget-card glass-card feedback-card">
                         <div className="feedback-title">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                             Latest Feedback

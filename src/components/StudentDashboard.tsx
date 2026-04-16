@@ -617,7 +617,7 @@ const StudentDashboard: React.FC = () => {
 
                             <div className="timer-hero">
                                 {/* Big timer */}
-                                <div className="timer-main-card">
+                                <div className="timer-main-card glass-card">
                                     <div className="timer-label">Elapsed Time</div>
                                     <div className={`timer-clock ${elapsed === 'On Break' ? 'on-break' : ''}`}>
                                         {elapsed}
@@ -687,7 +687,7 @@ const StudentDashboard: React.FC = () => {
                                 </div>
 
                                 {/* Side info */}
-                                <div className="timer-side-card">
+                                <div className="timer-side-card glass-card">
                                     <div className="side-card-title">Session Info</div>
                                     <div className="info-row">
                                         <div className="info-item">
@@ -722,25 +722,25 @@ const StudentDashboard: React.FC = () => {
 
                             {/* ── Stats ── */}
                             <div className="stats-row">
-                                <div className="stat-card">
+                                <div className="stat-card glass-card">
                                     <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
                                     <span className="stat-label">Hours Today</span>
                                     <span className="stat-value">{hoursWorkedStr}</span>
                                     <span className="stat-sub">of 8h target</span>
                                 </div>
-                                <div className="stat-card">
+                                <div className="stat-card glass-card">
                                     <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg></span>
                                     <span className="stat-label">Progress</span>
                                     <span className="stat-value">{progressPct}%</span>
                                     <span className="stat-sub">daily goal</span>
                                 </div>
-                                <div className="stat-card">
+                                <div className="stat-card glass-card">
                                     <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
                                     <span className="stat-label">Clock In</span>
                                     <span className="stat-value" style={{ fontSize: '1.2rem', paddingTop: '0.3rem' }}>{clockInTime}</span>
                                     <span className="stat-sub">today's start</span>
                                 </div>
-                                <div className="stat-card">
+                                <div className="stat-card glass-card">
                                     <span className="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg></span>
                                     <span className="stat-label">Status</span>
                                     <span className="stat-value" style={{ fontSize: '1rem', paddingTop: '0.4rem' }}>
@@ -751,7 +751,7 @@ const StudentDashboard: React.FC = () => {
                             </div>
 
                             {/* ── Activity ── */}
-                            <div className="activity-card">
+                            <div className="activity-card glass-card">
                                 <div className="activity-header">
                                     <span className="activity-title">Today's Activity</span>
                                 </div>

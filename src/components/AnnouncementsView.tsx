@@ -149,7 +149,7 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
 
             {/* Selected Announcement Detail View */}
             {selectedAnnouncement ? (
-                <div className="announcement-detail fade-in" style={{ backgroundColor: 'var(--bg-card)', padding: '2rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <div className="announcement-detail glass-card fade-in" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
                     <button
                         onClick={() => setSelectedAnnouncement(null)}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '1.5rem', fontSize: '0.9rem', padding: 0 }}
@@ -221,7 +221,7 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                 <>
                     {/* Create form */}
                     {isCoordinator && showForm && (
-                        <div style={{ backgroundColor: 'var(--bg-elevated)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
+                        <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                             <h3 style={{ marginBottom: '1rem', color: 'var(--text-bright)' }}>Create Announcement</h3>
                             <form onSubmit={handleCreateAnnouncement}>
                                 <div style={{ marginBottom: '1rem' }}>
@@ -254,27 +254,8 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                                         return (
                                             <div
                                                 key={item.id}
-                                                className="announcement-card clickable"
+                                                className="announcement-card clickable glass-card"
                                                 onClick={() => setSelectedAnnouncement(item)}
-                                                style={{
-                                                    background: 'var(--bg-card)',
-                                                    border: '1px solid var(--border)',
-                                                    borderRadius: '12px',
-                                                    padding: '1.5rem',
-                                                    marginBottom: '1rem',
-                                                    cursor: 'pointer',
-                                                    transition: 'transform 0.2s, box-shadow 0.2s'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                                                    e.currentTarget.style.borderColor = 'var(--border-hover)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'translateY(0)';
-                                                    e.currentTarget.style.boxShadow = 'none';
-                                                    e.currentTarget.style.borderColor = 'var(--border)';
-                                                }}
                                             >
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-bright)' }}>{item.title}</h3>
@@ -291,7 +272,7 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                             ) : (
                                 notifications.length > 0 ? (
                                     notifications.map(item => (
-                                        <div key={item.id} className={`notification-card ${item.type} ${item.is_read ? 'read' : ''}`}>
+                                        <div key={item.id} className={`notification-card glass-card ${item.type} ${item.is_read ? 'read' : ''}`}>
                                             <div className="notification-icon">
                                                 {item.type === 'danger' && '⚠️'}
                                                 {item.type === 'warning' && '🔔'}

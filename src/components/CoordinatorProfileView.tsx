@@ -100,7 +100,7 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
         textTransform: 'uppercase',
     };
 
-    const cardStyle: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px' };
+    const cardStyle: React.CSSProperties = { borderRadius: '16px' };
 
     return (
         <div className="view-container fade-in">
@@ -113,7 +113,7 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
 
             <div className="profile-top-grid">
                 {/* Left — Avatar card */}
-                <div className="profile-avatar-card" style={{ ...cardStyle, padding: '2rem 1.5rem' }}>
+                <div className="profile-avatar-card glass-card" style={{ ...cardStyle, padding: '2rem 1.5rem' }}>
                     {/* Big avatar */}
                     <div
                         style={{
@@ -166,7 +166,7 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
                 </div>
 
                 {/* Right — Edit form */}
-                <div style={{ ...cardStyle, padding: '1.75rem 2rem' }}>
+                <div className="glass-card" style={{ ...cardStyle, padding: '1.75rem 2rem' }}>
                     <h3 style={{ margin: '0 0 1.5rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)' }}>Personal Information</h3>
                     <form onSubmit={handleSave}>
                         <div className="profile-name-grid">
@@ -247,7 +247,7 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
             </div>
 
             {/* Danger zone */}
-            <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '16px', padding: '1.5rem 2rem' }}>
+            <div className="glass-card" style={{ border: '1px solid rgba(239,68,68,0.2)', padding: '1.5rem 2rem', borderRadius: 16 }}>
                 <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#f87171' }}>Danger Zone</h3>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Signing out will end your current session. You'll need to log in again to access the coordinator dashboard.</p>
                 <button
@@ -266,8 +266,8 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
                     background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                    <div style={{
-                        background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.3)',
+                    <div className="glass-card" style={{
+                        border: '1px solid rgba(239,68,68,0.3)',
                         borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
                         boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                         animation: 'fadeIn 0.2s ease',
@@ -287,7 +287,7 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
                             <button
                                 onClick={() => setShowLogoutConfirm(false)}
                                 style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
-                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-card)'}
+                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                                 onMouseOut={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                             >
                                 Cancel

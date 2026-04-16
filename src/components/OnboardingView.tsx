@@ -181,9 +181,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 </div>
 
                 {/* Card */}
-                <div style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
+                <div className="glass-card" style={{
                     borderRadius: 20,
                     padding: '2rem',
                     boxShadow: '0 8px 40px rgba(0,0,0,0.25)',

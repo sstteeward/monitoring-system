@@ -198,8 +198,8 @@ const CompaniesView: React.FC = () => {
                         background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                        <div style={{
-                            background: 'var(--admin-card-bg)', border: '1px solid rgba(239,68,68,0.3)',
+                        <div className="glass-card" style={{
+                            border: '1px solid rgba(239,68,68,0.3)',
                             borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
                             boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                             animation: 'fadeIn 0.2s ease',
@@ -304,7 +304,7 @@ const CompaniesView: React.FC = () => {
                 </div>
 
                 {/* Students table */}
-                <div style={{ background: 'var(--admin-bg)', borderRadius: '12px', border: '1px solid var(--admin-border)', overflow: 'hidden' }}>
+                <div className="glass-card" style={{ borderRadius: '12px', overflow: 'hidden' }}>
                     <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--admin-border)', fontWeight: 600, color: 'var(--admin-text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
                         Interns at {selectedCompany.name}
@@ -378,7 +378,7 @@ const CompaniesView: React.FC = () => {
 
             {/* Add Company Form */}
             {showAddForm && (
-                <div style={{ background: 'var(--admin-card-bg)', border: '1px solid var(--admin-border)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+                <div className="glass-card" style={{ borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
                     <h3 style={{ marginBottom: '1.25rem', color: 'var(--admin-text-primary)', fontSize: '1rem', fontWeight: 600 }}>New Company Details</h3>
                     <form onSubmit={handleAddCompany}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
@@ -434,8 +434,7 @@ const CompaniesView: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                         {pendingRequests.map(req => (
-                            <div key={req.id} style={{
-                                background: 'var(--admin-card-bg)', border: '1px solid var(--admin-border)',
+                            <div key={req.id} className="glass-card" style={{
                                 borderRadius: 10, padding: '0.85rem 1rem',
                                 display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap',
                             }}>
@@ -501,10 +500,9 @@ const CompaniesView: React.FC = () => {
                                     <div
                                         key={company.id}
                                         onClick={() => handleCompanyClick(company)}
+                                        className={`glass-card ${company.is_handled ? 'handled' : ''}`}
                                         style={{ 
-                                            background: company.is_handled 
-                                                ? 'rgba(16,185,129,0.05)' 
-                                                : 'var(--bg-card)',
+                                            background: company.is_handled ? 'rgba(16,185,129,0.05)' : undefined,
                                             border: `1px solid ${company.is_handled ? 'var(--primary)' : 'var(--admin-border)'}`, 
                                             borderRadius: '14px', 
                                             padding: '1.5rem', 

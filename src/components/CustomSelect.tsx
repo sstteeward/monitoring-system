@@ -67,13 +67,12 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
     const panel = open && dropRect ? ReactDOM.createPortal(
         <div
             ref={panelRef}
+            className="glass-card"
             style={{
                 position: 'fixed',
                 top: dropRect.bottom + 6,
                 left: dropRect.left,
                 width: dropRect.width,
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
                 borderRadius: 12,
                 zIndex: 99999,
                 boxShadow: '0 12px 40px rgba(0,0,0,0.3)',

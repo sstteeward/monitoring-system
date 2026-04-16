@@ -66,10 +66,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
             }}
         >
             <div 
-                className="custom-scrollbar upm-card"
+                className="custom-scrollbar upm-card glass-card"
                 style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
                     borderRadius: 28,
                     width: '100%',
                     maxWidth: 800,

@@ -59,11 +59,12 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                     {/* Student */}
                     <button
                         onClick={() => setSelected('student')}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '1.25rem',
-                            padding: '1.25rem 1.5rem', borderRadius: 16, cursor: 'pointer',
-                            border: `2px solid ${selected === 'student' ? '#10b981' : 'var(--border)'}`,
-                            background: selected === 'student' ? 'rgba(16,185,129,0.12)' : 'var(--bg-card)',
+                            className="glass-card"
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '1.25rem',
+                                padding: '1.25rem 1.5rem', borderRadius: 16, cursor: 'pointer',
+                                border: `2px solid ${selected === 'student' ? '#10b981' : 'var(--border)'}`,
+                                background: selected === 'student' ? 'rgba(16,185,129,0.12)' : undefined,
                             boxShadow: selected === 'student' ? '0 4px 20px rgba(16,185,129,0.15)' : 'none',
                             textAlign: 'left', transition: 'all 0.2s', fontFamily: 'inherit',
                         }}
@@ -106,11 +107,12 @@ const AccountTypePicker: React.FC<Props> = ({ onPick }) => {
                     {/* Coordinator */}
                     <button
                         onClick={() => setSelected('coordinator')}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '1.25rem',
-                            padding: '1.25rem 1.5rem', borderRadius: 16, cursor: 'pointer',
-                            border: `2px solid ${selected === 'coordinator' ? '#10b981' : 'var(--border)'}`,
-                            background: selected === 'coordinator' ? 'rgba(16,185,129,0.12)' : 'var(--bg-card)',
+                            className="glass-card"
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '1.25rem',
+                                padding: '1.25rem 1.5rem', borderRadius: 16, cursor: 'pointer',
+                                border: `2px solid ${selected === 'coordinator' ? '#10b981' : 'var(--border)'}`,
+                                background: selected === 'coordinator' ? 'rgba(16,185,129,0.12)' : undefined,
                             boxShadow: selected === 'coordinator' ? '0 4px 20px rgba(16,185,129,0.15)' : 'none',
                             textAlign: 'left', transition: 'all 0.2s', fontFamily: 'inherit',
                         }}

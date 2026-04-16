@@ -13,7 +13,7 @@ export const CardGridSkeleton: React.FC<{ cards?: number, height?: number }> = (
 );
 
 export const TableSkeleton: React.FC<{ rows?: number, cols?: number }> = ({ rows = 5, cols = 5 }) => (
-    <div style={{ background: 'var(--bg-card)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+    <div className="glass-card" style={{ borderRadius: '12px', overflow: 'hidden' }}>
         <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', gap: '1rem' }}>
             {Array.from({ length: cols }).map((_, i) => (
                 <div key={i} className="skeleton skeleton-text" style={{ flex: 1, margin: 0 }} />

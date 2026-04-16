@@ -44,7 +44,7 @@ const CoordinatorSettingsView: React.FC = () => {
         }
     };
 
-    const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '1.75rem 2rem', marginBottom: '1.25rem' };
+    const card: React.CSSProperties = { padding: '1.75rem 2rem', marginBottom: '1.25rem' };
     const sectionTitle: React.CSSProperties = { margin: '0 0 0.35rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)' };
     const sectionSub: React.CSSProperties = { fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.25rem' };
     const row: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--border)', marginTop: '1rem' };
@@ -66,7 +66,7 @@ const CoordinatorSettingsView: React.FC = () => {
             </div>
 
             {/* ── Appearance ── */}
-            <div style={card}>
+            <div className="glass-card" style={card}>
                 <h3 style={sectionTitle}>Appearance</h3>
                 <p style={sectionSub}>Choose your preferred dashboard theme.</p>
                 <div style={{ display: 'flex', gap: '1rem' }}>
@@ -115,7 +115,7 @@ const CoordinatorSettingsView: React.FC = () => {
             </div>
 
             {/* ── Notifications ── */}
-            <div style={card}>
+            <div className="glass-card" style={card}>
                 <h3 style={sectionTitle}>Notifications</h3>
                 <p style={sectionSub}>Control how you receive updates.</p>
 
@@ -143,7 +143,7 @@ const CoordinatorSettingsView: React.FC = () => {
             </div>
 
             {/* ── Security ── */}
-            <div style={card}>
+            <div className="glass-card" style={card}>
                 <h3 style={sectionTitle}>Security</h3>
                 <p style={sectionSub}>Manage your login credentials.</p>
 
@@ -170,7 +170,7 @@ const CoordinatorSettingsView: React.FC = () => {
             </div>
 
             {/* ── About ── */}
-            <div style={card}>
+            <div className="glass-card" style={card}>
                 <h3 style={sectionTitle}>About</h3>
                 <p style={sectionSub}>Application information.</p>
                 {[

@@ -368,12 +368,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                                                     </button>
 
                                                     {showMenu && (
-                                                        <div className="chat-message-dropdown" style={{
+                                                        <div className="chat-message-dropdown glass-card" style={{
                                                             position: 'absolute',
                                                             [isMine ? 'right' : 'left']: '100%',
                                                             top: 0,
-                                                            background: 'var(--bg-card)',
-                                                            border: '1px solid var(--border)',
                                                             borderRadius: '8px',
                                                             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                                                             padding: '4px',
@@ -428,8 +426,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
 
                             {/* FORWARD OVERLAY */}
                             {forwardMessage && (
-                                <div className="chat-forward-overlay" style={{
-                                    position: 'absolute', inset: 0, background: 'var(--bg-card)', zIndex: 100, display: 'flex', flexDirection: 'column'
+                                <div className="chat-forward-overlay glass-card" style={{
+                                    position: 'absolute', inset: 0, zIndex: 100, display: 'flex', flexDirection: 'column'
                                 }}>
                                     <div className="chat-header" style={{ borderBottom: '1px solid var(--border)' }}>
                                         <div className="chat-header-title">Forward Message</div>
@@ -610,12 +608,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                                                 </button>
 
                                                 {showConvMenu && (
-                                                    <div className="chat-message-dropdown" style={{
+                                                    <div className="chat-message-dropdown glass-card" style={{
                                                         position: 'absolute',
                                                         right: '100%',
                                                         top: 0,
-                                                        background: 'var(--bg-card)',
-                                                        border: '1px solid var(--border)',
                                                         borderRadius: '8px',
                                                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                                                         padding: '4px',

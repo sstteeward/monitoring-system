@@ -127,7 +127,7 @@ const PerformanceView: React.FC = () => {
                 </div>
             ) : (
                 <div className="performance-kpi-grid">
-                    <div className="kpi-card kpi-primary">
+                    <div className="kpi-card glass-card kpi-primary">
                         <div className="kpi-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                         </div>
@@ -142,7 +142,7 @@ const PerformanceView: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="kpi-card kpi-warning">
+                    <div className="kpi-card glass-card kpi-warning">
                         <div className="kpi-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                         </div>
@@ -153,7 +153,7 @@ const PerformanceView: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="kpi-card kpi-danger">
+                    <div className="kpi-card glass-card kpi-danger">
                         <div className="kpi-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
                         </div>
@@ -173,7 +173,7 @@ const PerformanceView: React.FC = () => {
                     <p className="section-subtitle">Aggregated log of your daily attendance and completed work hours.</p>
                 </div>
 
-                <div className="performance-card">
+                <div className="performance-card glass-card">
                     {loading ? (
                         <TableSkeleton rows={5} cols={5} />
                     ) : dtrList.length === 0 ? (

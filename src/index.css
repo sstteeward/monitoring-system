@@ -18,8 +18,8 @@ html,
 html[data-theme="dark"] {
   --bg-page: #050505;
   --bg-sidebar: #050505;
-  --bg-card: #0d0d0d;
-  --bg-elevated: #141414;
+  --bg-card: linear-gradient(145deg, #0d0d0d, #0a0a0a);
+  --bg-elevated: linear-gradient(145deg, #141414, #0f0f0f);
   --bg-hero: linear-gradient(180deg, rgba(16, 185, 129, 0.03) 0%, rgba(5, 5, 5, 0.95) 100%);
 
   --text-primary: #ffffff;
@@ -114,18 +114,19 @@ h1 {
 
 button {
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background: linear-gradient(145deg, #1a1a1a, #141414);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: all 0.3s ease;
 }
 
 button:hover {
-  border-color: #646cff;
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
 }
 
 button:focus {
@@ -146,17 +147,33 @@ button:focus-visible {
   font-size: 0.95rem;
   font-weight: 700;
   background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: var(--text-inverse);
+  color: #ffffff;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 15px var(--primary-glow);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
   font-family: var(--font-inter);
+  position: relative;
+  overflow: hidden;
+}
+
+.primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.primary:hover::before {
+  left: 100%;
 }
 
 .primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px var(--primary-glow);
-  opacity: 0.9;
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
 }
 
 .primary:disabled {
@@ -253,15 +270,12 @@ html[data-theme="light"] .skeleton::after {
 }
 
 .preview-modal-content {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
   border-radius: 18px;
   width: 100%;
   max-width: 900px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
   animation: modal-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.15);
 }
 
@@ -339,4 +353,63 @@ html[data-theme="light"] .skeleton::after {
   .preview-pdf {
     height: 60vh;
   }
+}
+
+/* ═══════════════════════════════════════════════════ 
+   GLOBAL GLASS CARD
+   ═══════════════════════════════════════════════════ */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.glass-card:hover::before {
+  opacity: 1;
+}
+
+.glass-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+html[data-theme="light"] .glass-card::after {
+  background: radial-gradient(circle, rgba(0,0,0,0.02) 0%, transparent 50%);
+}
+
+.glass-card:hover::after {
+  opacity: 1;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15), 0 0 20px var(--primary-glow);
+  border-color: var(--primary-glow);
 }

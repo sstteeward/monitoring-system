@@ -162,7 +162,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
 
     if (loading) return (
         <div className="view-container">
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '2rem' }}>
+            <div className="glass-card" style={{ padding: '2rem' }}>
                 <FormSkeleton />
             </div>
         </div>
@@ -175,7 +175,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
 
     const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' };
     const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '0.65rem 0.9rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' };
-    const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '1.75rem 2rem', marginBottom: '1.25rem' };
+    const card: React.CSSProperties = { padding: '1.75rem 2rem', marginBottom: '1.25rem' };
 
     return (
         <div className="view-container fade-in">
@@ -191,7 +191,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                 {/* Left Side — Sidebar Column */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     {/* Avatar card */}
-                    <div className="profile-avatar-card" style={{ ...card, marginBottom: 0 }}>
+                    <div className="profile-avatar-card glass-card" style={{ ...card, marginBottom: 0 }}>
                         <div
                             style={{
                                 width: 90, height: 90, borderRadius: '50%',
@@ -241,7 +241,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                     </div>
 
                     {/* Department Management — Integrated Sidebar Card */}
-                    <div style={{ ...card, marginBottom: 0, overflow: 'hidden', position: 'relative' }}>
+                    <div className="glass-card" style={{ ...card, marginBottom: 0, overflow: 'hidden', position: 'relative' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                             <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-bright)' }}>Department</h3>
                             {activeRequest?.status === 'pending' && (
@@ -319,7 +319,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                 </div>
 
                 {/* Right — Edit form */}
-                <div style={{ ...card, marginBottom: 0 }}>
+                <div className="glass-card" style={{ ...card, marginBottom: 0 }}>
                     <h3 style={{ margin: '0 0 1.5rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)' }}>Personal Information</h3>
                     <form onSubmit={handleSave}>
                         <div className="profile-name-grid">
@@ -445,8 +445,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                     background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                    <div style={{
-                        background: 'var(--bg-card)', border: '1px solid var(--border)',
+                    <div className="glass-card" style={{
                         borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 460,
                         boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                         animation: 'fadeIn 0.2s ease',
@@ -478,7 +477,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                                     <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, background: '#16181d', zIndex: 10 }}>
                                         <input
                                             autoFocus
-                                            style={{ ...inputStyle, height: '32px', fontSize: '0.8rem', background: 'var(--bg-card)', marginBottom: 0 }}
+                                            style={{ ...inputStyle, height: '32px', fontSize: '0.8rem', background: 'var(--bg-elevated)', marginBottom: 0 }}
                                             placeholder="Search departments..."
                                             value={deptSearch}
                                             onChange={e => setDeptSearch(e.target.value)}
@@ -545,7 +544,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
             )}
 
             {/* Danger Zone */}
-            <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 16, padding: '1.5rem 2rem' }}>
+            <div className="glass-card" style={{ border: '1px solid rgba(239,68,68,0.2)', padding: '1.5rem 2rem' }}>
                 <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#f87171' }}>Sign Out?</h3>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Signing out will end your current session. You'll need to log in again to access the dashboard.</p>
                 <button
@@ -569,8 +568,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                     background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                    <div style={{
-                        background: 'var(--bg-card)', border: '1px solid rgba(239,68,68,0.3)',
+                    <div className="glass-card" style={{
+                        border: '1px solid rgba(239,68,68,0.3)',
                         borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
                         boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                         animation: 'fadeIn 0.2s ease',
@@ -590,7 +589,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                             <button
                                 onClick={() => setShowLogoutConfirm(false)}
                                 style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
-                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-card)'}
+                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                                 onMouseOut={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                             >
                                 Cancel
