@@ -30,7 +30,7 @@
     background: 
         radial-gradient(ellipse at 0% 0%, rgba(16, 185, 129, 0.03) 0%, transparent 50%),
         radial-gradient(ellipse at 100% 100%, rgba(16, 185, 129, 0.02) 0%, transparent 50%),
-        #050505;
+        var(--bg-app);
     width: 100%;
 }
 

@@ -7,7 +7,7 @@
 /* Theme-specific admin variables */
 html,
 html[data-theme="dark"] {
-  --admin-bg: #0a0a0a;
+  --admin-bg: var(--bg-app);
   --admin-card-bg: rgba(20, 20, 20, 0.8);
   --admin-border: rgba(255, 255, 255, 0.04);
   --admin-text-primary: #e5e5e5;
@@ -16,7 +16,7 @@ html[data-theme="dark"] {
 }
 
 html[data-theme="light"] {
-  --admin-bg: var(--bg-page);
+  --admin-bg: var(--bg-app);
   --admin-card-bg: var(--glass-bg);
   --admin-border: var(--border);
   --admin-text-primary: var(--text-primary);

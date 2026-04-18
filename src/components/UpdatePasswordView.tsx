@@ -52,8 +52,10 @@ export default function UpdatePasswordView({ onComplete }: { onComplete: () => v
             if (updateError) throw updateError;
             
             setMessage("Password updated successfully!");
-            setTimeout(() => {
+            setTimeout(async () => {
+                await supabase.auth.signOut();
                 onComplete();
+                window.location.href = '/login';
             }, 2000);
         } catch (err: any) {
             setError(err.message || String(err));

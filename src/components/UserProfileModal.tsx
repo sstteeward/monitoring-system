@@ -328,14 +328,20 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                 .upm-card {
                     width: min(1000px, 95vw) !important;
                     min-width: min(680px, 95vw) !important;
-                    height: auto !important;
+                    height: fit-content !important;
                     max-height: 90vh !important;
                     overflow-y: auto !important;
                     overflow-x: hidden !important;
                     transform: none !important;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+                }
+                .upm-card::before,
+                .upm-card::after {
+                    display: none !important;
                 }
                 .upm-card:hover {
                     transform: none !important;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
                 }
 
                 .upm-content-grid {

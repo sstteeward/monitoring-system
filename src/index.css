@@ -17,6 +17,7 @@
 html,
 html[data-theme="dark"] {
   --bg-page: #050505;
+  --bg-app: radial-gradient(ellipse at 50% 0%, rgba(30, 30, 30, 1) 0%, rgba(5, 5, 5, 1) 100%), #050505;
   --bg-sidebar: #050505;
   --bg-card: linear-gradient(145deg, #0d0d0d, #0a0a0a);
   --bg-elevated: linear-gradient(145deg, #141414, #0f0f0f);
@@ -52,6 +53,7 @@ html[data-theme="dark"] {
 /* Light Theme */
 html[data-theme="light"] {
   --bg-page: #f8fafc;
+  --bg-app: #f8fafc;
   --bg-sidebar: #ffffff;
   --bg-card: #ffffff;
   --bg-elevated: #f1f5f9;
@@ -101,9 +103,7 @@ body {
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  background: 
-    radial-gradient(ellipse at 50% 0%, rgba(30, 30, 30, 1) 0%, rgba(5, 5, 5, 1) 100%),
-    #050505;
+  background: var(--bg-app);
 }
 
 
@@ -390,18 +390,18 @@ html[data-theme="light"] .skeleton::after {
 .glass-card::after {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 50%);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
   opacity: 0;
   transition: opacity 0.4s;
   pointer-events: none;
 }
 
 html[data-theme="light"] .glass-card::after {
-  background: radial-gradient(circle, rgba(0,0,0,0.02) 0%, transparent 50%);
+  background: radial-gradient(circle, rgba(0,0,0,0.02) 0%, transparent 60%);
 }
 
 .glass-card:hover::after {

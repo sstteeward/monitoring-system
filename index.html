@@ -9,9 +9,23 @@
   <script>
     // Apply theme before React mounts to prevent flash of wrong theme
     (function () {
-      var saved = localStorage.getItem('cd-theme');
-      // Default to dark if nothing saved
-      document.documentElement.setAttribute('data-theme', saved === 'light' ? 'light' : 'dark');
+      try {
+        var theme = 'dark';
+        var authKeys = Object.keys(localStorage).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+        if (authKeys.length > 0) {
+          var authData = JSON.parse(localStorage.getItem(authKeys[0]));
+          var userId = authData && authData.user ? authData.user.id : null;
+          if (userId) {
+            var userTheme = localStorage.getItem('cd-theme-' + userId);
+            if (userTheme === 'light' || userTheme === 'dark') {
+              theme = userTheme;
+            }
+          }
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
     })();
   </script>
 </head>
