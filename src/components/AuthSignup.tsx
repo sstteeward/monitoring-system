@@ -520,9 +520,11 @@ export default function AuthSignup() {
 
                                 <div className="auth-footer">
                                     <p className="foot muted">Secure .edu.ph portal • Trusted by Asian College Dumaguete.</p>
-                                    <button type="button" className="muted switch-btn" onClick={() => { setMode("signup"); setErrors({}); setInfoMessage(null); }}>
-                                        Create an account
-                                    </button>
+                                    {roleState !== 'admin' && (
+                                        <button type="button" className="muted switch-btn" onClick={() => { setMode("signup"); setErrors({}); setInfoMessage(null); }}>
+                                            Create an account
+                                        </button>
+                                    )}
                                 </div>
                             </form>
                         </div>
