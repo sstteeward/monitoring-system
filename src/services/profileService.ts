@@ -10,7 +10,7 @@ export interface Profile {
     required_ojt_hours: number;
     absences: number;
     company_id: string | null;
-    company?: { name: string } | null;
+    company?: { name: string; latitude?: number | null; longitude?: number | null; geofence_radius?: number | null } | null;
     department_info?: { name: string } | null;
     avatar_url: string | null;
     created_at: string;
@@ -38,7 +38,7 @@ export const profileService = {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('*, company:companies(name)')
+            .select('*, company:companies(name, latitude, longitude, geofence_radius)')
             .eq('auth_user_id', user.id)
             .single();
 

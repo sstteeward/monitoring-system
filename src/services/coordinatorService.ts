@@ -21,6 +21,9 @@ export interface Company {
     contact_email: string | null;
     industry: string | null;
     department_id: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    geofence_radius: number | null;
     department_name?: string; // virtual, from join
     created_at: string;
     updated_at: string;
@@ -475,6 +478,25 @@ export const coordinatorService = {
 
         if (error) {
             console.error("Error creating company:", error);
+            throw error;
+        }
+
+        return data as Company;
+    },
+
+    /**
+     * Update an existing company
+     */
+    async updateCompany(companyId: string, updates: Partial<Company>) {
+        const { data, error } = await supabase
+            .from('companies')
+            .update(updates)
+            .eq('id', companyId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Error updating company:", error);
             throw error;
         }
 

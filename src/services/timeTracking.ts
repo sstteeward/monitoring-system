@@ -9,6 +9,11 @@ export interface Timesheet {
     break_start: string | null;
     break_end: string | null;
     status: 'working' | 'break' | 'completed';
+    clock_in_latitude?: number | null;
+    clock_in_longitude?: number | null;
+    clock_out_latitude?: number | null;
+    clock_out_longitude?: number | null;
+    requires_approval?: boolean;
 }
 
 export const timeTrackingService = {
@@ -53,19 +58,20 @@ export const timeTrackingService = {
         return null;
     },
 
-    async clockIn() {
+    async clockIn(lat?: number, lng?: number, requiresApproval: boolean = false) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
 
         const { data, error } = await supabase
             .from('timesheets')
-            .insert([
-                {
-                    user_id: user.id,
-                    clock_in: new Date().toISOString(),
-                    status: 'working'
-                }
-            ])
+            .insert([{
+                user_id: user.id,
+                status: 'working',
+                clock_in: new Date().toISOString(),
+                clock_in_latitude: lat,
+                clock_in_longitude: lng,
+                requires_approval: requiresApproval
+            }])
             .select()
             .single();
 
@@ -73,12 +79,14 @@ export const timeTrackingService = {
         return data as Timesheet;
     },
 
-    async clockOut(id: string) {
+    async clockOut(id: string, latitude?: number, longitude?: number) {
         const { data, error } = await supabase
             .from('timesheets')
             .update({
                 clock_out: new Date().toISOString(),
-                status: 'completed'
+                status: 'completed',
+                clock_out_latitude: latitude,
+                clock_out_longitude: longitude
             })
             .eq('id', id)
             .select()

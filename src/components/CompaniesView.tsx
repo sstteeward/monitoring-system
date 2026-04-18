@@ -21,6 +21,21 @@ const CompaniesView: React.FC = () => {
     const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+    // Edit company form state
+    const [isEditingCompany, setIsEditingCompany] = useState(false);
+    const [updateSubmitting, setUpdateSubmitting] = useState(false);
+    const [editCompanyForm, setEditCompanyForm] = useState({
+        name: '',
+        address: '',
+        contact_person: '',
+        contact_email: '',
+        industry: '',
+        department_id: '',
+        latitude: '',
+        longitude: '',
+        geofence_radius: '100',
+    });
+
     // New company form state
     const [newCompany, setNewCompany] = useState({
         name: '',
@@ -29,6 +44,9 @@ const CompaniesView: React.FC = () => {
         contact_email: '',
         industry: '',
         department_id: '',
+        latitude: '',
+        longitude: '',
+        geofence_radius: '100', // Default 100 meters
     });
     const [formSubmitting, setFormSubmitting] = useState(false);
 
@@ -119,6 +137,18 @@ const CompaniesView: React.FC = () => {
     const handleCompanyClick = async (company: Company) => {
         setSelectedCompany(company);
         setMode('detail');
+        setIsEditingCompany(false);
+        setEditCompanyForm({
+            name: company.name || '',
+            address: company.address || '',
+            contact_person: company.contact_person || '',
+            contact_email: company.contact_email || '',
+            industry: company.industry || '',
+            department_id: company.department_id || '',
+            latitude: company.latitude?.toString() || '',
+            longitude: company.longitude?.toString() || '',
+            geofence_radius: company.geofence_radius?.toString() || '100',
+        });
         setDetailLoading(true);
         try {
             const students = await coordinatorService.getStudentsByCompany(company.id);
@@ -148,16 +178,47 @@ const CompaniesView: React.FC = () => {
                 contact_email: newCompany.contact_email || null,
                 industry: newCompany.industry || null,
                 department_id: newCompany.department_id || null,
+                latitude: newCompany.latitude ? parseFloat(newCompany.latitude) : null,
+                longitude: newCompany.longitude ? parseFloat(newCompany.longitude) : null,
+                geofence_radius: newCompany.geofence_radius ? parseInt(newCompany.geofence_radius) : null,
             });
             // Reload companies to getjoined data (department name, handled status)
             await loadCompanies();
-            setNewCompany({ name: '', address: '', contact_person: '', contact_email: '', industry: '', department_id: '' });
+            setNewCompany({ name: '', address: '', contact_person: '', contact_email: '', industry: '', department_id: '', latitude: '', longitude: '', geofence_radius: '100' });
             setShowAddForm(false);
         } catch (err) {
             console.error('Failed to create company:', err);
             alert('Error: Could not add company.');
         } finally {
             setFormSubmitting(false);
+        }
+    };
+
+    const handleUpdateCompany = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedCompany || !editCompanyForm.name.trim()) return;
+        setUpdateSubmitting(true);
+        try {
+            const updated = await coordinatorService.updateCompany(selectedCompany.id, {
+                name: editCompanyForm.name,
+                address: editCompanyForm.address || null,
+                contact_person: editCompanyForm.contact_person || null,
+                contact_email: editCompanyForm.contact_email || null,
+                industry: editCompanyForm.industry || null,
+                department_id: editCompanyForm.department_id || null,
+                latitude: editCompanyForm.latitude ? parseFloat(editCompanyForm.latitude) : null,
+                longitude: editCompanyForm.longitude ? parseFloat(editCompanyForm.longitude) : null,
+                geofence_radius: editCompanyForm.geofence_radius ? parseInt(editCompanyForm.geofence_radius) : null,
+            });
+            const updatedDeptName = departments.find(d => d.id === updated.department_id)?.name || 'Uncategorized';
+            setSelectedCompany({ ...selectedCompany, ...updated, department_name: updatedDeptName });
+            setCompanies(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated, department_name: updatedDeptName } : c));
+            setIsEditingCompany(false);
+        } catch (err) {
+            console.error('Failed to update company:', err);
+            alert('Error: Could not update company.');
+        } finally {
+            setUpdateSubmitting(false);
         }
     };
 
@@ -263,45 +324,132 @@ const CompaniesView: React.FC = () => {
                             )}
                         </div>
                     </div>
-                    {/* Remove button — only in detail view */}
-                    <button
-                        onClick={handleDeleteCompany}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: 10, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Inter, sans-serif', transition: 'background 0.15s, border-color 0.15s' }}
-                        onMouseOver={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.18)'; e.currentTarget.style.borderColor = '#ef4444'; }}
-                        onMouseOut={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'; }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                            <path d="M10 11v6" /><path d="M14 11v6" />
-                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                        </svg>
-                        Remove Company
-                    </button>
-                </div>
-
-                {/* Company meta */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                    {selectedCompany.address && (
-                        <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>📍 Address</div>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{selectedCompany.address}</div>
-                        </div>
-                    )}
-                    {selectedCompany.contact_person && (
-                        <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>👤 Contact</div>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{selectedCompany.contact_person}</div>
-                            {selectedCompany.contact_email && (
-                                <div style={{ fontSize: '0.8rem', color: 'var(--admin-text-secondary)' }}>{selectedCompany.contact_email}</div>
-                            )}
-                        </div>
-                    )}
-                    <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>🎓 Total Interns</div>
-                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#10b981' }}>{companyStudents.length}</div>
+                    {/* Actions button group in detail view */}
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button
+                            onClick={() => setIsEditingCompany(!isEditingCompany)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: 10, border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text-primary)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Inter, sans-serif', transition: 'background 0.15s' }}
+                            onMouseOver={e => e.currentTarget.style.background = 'var(--admin-card-bg)'}
+                            onMouseOut={e => e.currentTarget.style.background = 'var(--admin-bg)'}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                            {isEditingCompany ? 'Cancel Edit' : 'Edit Company'}
+                        </button>
+                        <button
+                            onClick={handleDeleteCompany}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: 10, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Inter, sans-serif', transition: 'background 0.15s, border-color 0.15s' }}
+                            onMouseOver={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.18)'; e.currentTarget.style.borderColor = '#ef4444'; }}
+                            onMouseOut={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'; }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                <path d="M10 11v6" /><path d="M14 11v6" />
+                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            </svg>
+                            Remove Company
+                        </button>
                     </div>
                 </div>
+
+                {/* Company meta or edit form */}
+                {isEditingCompany ? (
+                    <div className="glass-card" style={{ borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+                        <h3 style={{ marginBottom: '1.25rem', color: 'var(--admin-text-primary)', fontSize: '1rem', fontWeight: 600 }}>Edit Company Profile</h3>
+                        <form onSubmit={handleUpdateCompany}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Company Name *</label>
+                                    <input style={inputStyle} value={editCompanyForm.name} onChange={e => setEditCompanyForm(p => ({ ...p, name: e.target.value }))} required />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Industry</label>
+                                    <input style={inputStyle} value={editCompanyForm.industry} onChange={e => setEditCompanyForm(p => ({ ...p, industry: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Address</label>
+                                    <input style={inputStyle} value={editCompanyForm.address} onChange={e => setEditCompanyForm(p => ({ ...p, address: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Contact Person</label>
+                                    <input style={inputStyle} value={editCompanyForm.contact_person} onChange={e => setEditCompanyForm(p => ({ ...p, contact_person: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Contact Email</label>
+                                    <input type="email" style={inputStyle} value={editCompanyForm.contact_email} onChange={e => setEditCompanyForm(p => ({ ...p, contact_email: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Department Category</label>
+                                    <select 
+                                        style={inputStyle} 
+                                        value={editCompanyForm.department_id} 
+                                        onChange={e => setEditCompanyForm(p => ({ ...p, department_id: e.target.value }))}
+                                    >
+                                        <option value="">Uncategorized</option>
+                                        {departments.map(d => (
+                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', color: 'var(--admin-text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>Geofencing (Optional)</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Latitude</label>
+                                    <input type="number" step="any" style={inputStyle} value={editCompanyForm.latitude} onChange={e => setEditCompanyForm(p => ({ ...p, latitude: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Longitude</label>
+                                    <input type="number" step="any" style={inputStyle} value={editCompanyForm.longitude} onChange={e => setEditCompanyForm(p => ({ ...p, longitude: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Geofence Radius (meters)</label>
+                                    <input type="number" style={inputStyle} value={editCompanyForm.geofence_radius} onChange={e => setEditCompanyForm(p => ({ ...p, geofence_radius: e.target.value }))} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                                <button type="button" onClick={() => setIsEditingCompany(false)} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--admin-border)', color: 'var(--admin-text-primary)', cursor: 'pointer', borderRadius: 8}}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn btn-primary" disabled={updateSubmitting}>
+                                    {updateSubmitting ? 'Saving…' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                        {selectedCompany.address && (
+                            <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>📍 Address</div>
+                                <div style={{ fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{selectedCompany.address}</div>
+                            </div>
+                        )}
+                        {selectedCompany.contact_person && (
+                            <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>👤 Contact</div>
+                                <div style={{ fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{selectedCompany.contact_person}</div>
+                                {selectedCompany.contact_email && (
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--admin-text-secondary)' }}>{selectedCompany.contact_email}</div>
+                                )}
+                            </div>
+                        )}
+                        {(selectedCompany.latitude || selectedCompany.longitude) && (
+                            <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>🌍 Coordinates</div>
+                                <div style={{ fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{selectedCompany.latitude}, {selectedCompany.longitude}</div>
+                            </div>
+                        )}
+                        <div style={{ background: 'var(--admin-bg)', borderRadius: '10px', padding: '1rem', border: '1px solid var(--admin-border)' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '0.3rem' }}>🎓 Total Interns</div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#10b981' }}>{companyStudents.length}</div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Students table */}
                 <div className="glass-card" style={{ borderRadius: '12px', overflow: 'hidden' }}>
@@ -414,6 +562,22 @@ const CompaniesView: React.FC = () => {
                                         <option key={d.id} value={d.id}>{d.name}</option>
                                     ))}
                                 </select>
+                            </div>
+                        </div>
+                        
+                        <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', color: 'var(--admin-text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>Geofencing (Optional)</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Latitude</label>
+                                <input type="number" step="any" style={inputStyle} value={newCompany.latitude} onChange={e => setNewCompany(p => ({ ...p, latitude: e.target.value }))} placeholder="e.g. 9.3068" />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Longitude</label>
+                                <input type="number" step="any" style={inputStyle} value={newCompany.longitude} onChange={e => setNewCompany(p => ({ ...p, longitude: e.target.value }))} placeholder="e.g. 123.3054" />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Geofence Radius (meters)</label>
+                                <input type="number" style={inputStyle} value={newCompany.geofence_radius} onChange={e => setNewCompany(p => ({ ...p, geofence_radius: e.target.value }))} placeholder="e.g. 100" />
                             </div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
