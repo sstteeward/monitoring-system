@@ -151,9 +151,6 @@ export default function AuthSignup() {
         setSendingOtp(true);
         setErrors(prev => ({ ...prev, otp: '' }));
         try {
-            // Set the flag BEFORE verifyOtp, because verifyOtp triggers onAuthStateChange immediately
-            sessionStorage.setItem('just_signed_up', 'true');
-
             // Step 1: Verify OTP — this logs the user in with a magic-link session
             const { error: verifyError } = await supabase.auth.verifyOtp({
                 email: signupEmail.trim(),
@@ -161,7 +158,6 @@ export default function AuthSignup() {
                 type: 'email',
             });
             if (verifyError) {
-                sessionStorage.removeItem('just_signed_up');
                 throw verifyError;
             }
 
@@ -176,7 +172,10 @@ export default function AuthSignup() {
             });
             if (updateError) throw updateError;
 
-            // Step 3: Upsert just the name info — account_type will be set by AccountTypePicker
+            // Step 3: Upsert the full profile info based on the chosen portal
+            const targetAccountType = roleState === 'coordinator' ? 'coordinator' : roleState === 'admin' ? 'admin' : (signupEmail.trim().toLowerCase() === "admin@asiancollege.edu.ph" ? "admin" : "student");
+            const targetIsActive = targetAccountType === 'coordinator' ? false : true;
+
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 await supabase.from('profiles').upsert(
@@ -186,12 +185,14 @@ export default function AuthSignup() {
                         first_name: firstName.trim(),
                         middle_name: middleName.trim() || null,
                         last_name: lastName.trim(),
+                        account_type: targetAccountType,
+                        is_active: targetIsActive
                     },
                     { onConflict: 'auth_user_id', ignoreDuplicates: false }
                 );
             }
 
-            // Session is now live — App.tsx will detect the flag and show AccountTypePicker
+            // Session is now live
             setInfoMessage("✅ Account created! Redirecting...");
             setEmailVerified(true);
             window.location.href = '/';
@@ -209,13 +210,16 @@ export default function AuthSignup() {
         if (!validateSignup()) return;
         setIsSubmitting(true);
         setErrors({});
+
+        const targetAccountType = roleState === 'coordinator' ? 'coordinator' : roleState === 'admin' ? 'admin' : (signupEmail.trim().toLowerCase() === "admin@asiancollege.edu.ph" ? "admin" : "student");
+
         signUp({
             email: signupEmail,
             password: signupPassword,
             firstName,
             middleName,
             lastName,
-            accountType: signupEmail.trim().toLowerCase() === "admin@asiancollege.edu.ph" ? "admin" : "student"
+            accountType: targetAccountType
         }).then(() => {
             setInfoMessage("✅ Account created! Check your email for a confirmation link before logging in.");
         }).catch(err => {

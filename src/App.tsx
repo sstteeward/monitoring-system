@@ -6,7 +6,7 @@ import StudentDashboard from "./components/StudentDashboard";
 import CoordinatorDashboard from "./components/CoordinatorDashboard";
 import AdminDashboard from "./components/AdminDashboard";
 import PendingApprovalView from "./components/PendingApprovalView";
-import AccountTypePicker from "./components/AccountTypePicker";
+
 import UpdatePasswordView from "./components/UpdatePasswordView";
 import { supabase } from "./lib/supabaseClient";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -17,7 +17,6 @@ function AppContent() {
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [needsTypePick, setNeedsTypePick] = useState(false);
   const [isRecovery, _setIsRecovery] = useState(false);
 
   const setIsRecovery = (val: boolean) => {
@@ -33,7 +32,6 @@ function AppContent() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
-        checkNeedsTypePick();
         fetchProfile(session.user.id);
       } else {
         setLoading(false);
@@ -53,11 +51,9 @@ function AppContent() {
       
       setSession(session);
       if (session) {
-        checkNeedsTypePick();
         fetchProfile(session.user.id);
       } else {
         setProfile(null);
-        setNeedsTypePick(false);
         setLoading(false);
       }
     });
@@ -67,12 +63,7 @@ function AppContent() {
     };
   }, []);
 
-  const checkNeedsTypePick = () => {
-    // Check if this is a fresh signup via the sessionStorage flag
-    if (sessionStorage.getItem('just_signed_up') === 'true') {
-      setNeedsTypePick(true);
-    }
-  };
+
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -84,10 +75,6 @@ function AppContent() {
 
       if (!error && data) {
         setProfile(data);
-        // Only skip the type picker if account type was explicitly set AND the flag is not present
-        if (data.account_type !== 'student' && sessionStorage.getItem('just_signed_up') !== 'true') {
-          setNeedsTypePick(false);
-        }
       }
     } catch (e) {
       console.error("Error fetching profile for routing", e);
@@ -96,24 +83,7 @@ function AppContent() {
     }
   };
 
-  const handleTypePicked = async (type: 'student' | 'coordinator') => {
-    if (!session?.user?.id) return;
-    const isCoordinator = type === 'coordinator';
-    await supabase
-      .from('profiles')
-      .update({ account_type: type, is_active: isCoordinator ? false : true })
-      .eq('auth_user_id', session.user.id);
 
-    // Clear the flag — user has picked their type
-    sessionStorage.removeItem('just_signed_up');
-    setNeedsTypePick(false);
-
-    if (isCoordinator) {
-      await supabase.auth.signOut();
-    } else {
-      await fetchProfile(session.user.id);
-    }
-  };
 
   const navigate = useNavigate();
 
@@ -148,14 +118,7 @@ function AppContent() {
     );
   }
 
-  if (needsTypePick) {
-    return (
-      <Routes>
-        <Route path="/" element={<AccountTypePicker onPick={handleTypePicked} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    );
-  }
+
 
   if (profile?.account_type === 'coordinator' && profile?.is_active === false) {
     return (
