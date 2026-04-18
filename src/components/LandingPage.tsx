@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
-import leftPhoto from '../assets/dumaguete (1).jpg'; // Optional, could be used for hero structure if needed
 
 // Inline SVG Icons
 const StudentIcon = () => (
@@ -35,9 +34,8 @@ export default function LandingPage() {
   }, []);
 
   const handlePortalSelect = (role: string) => {
-    // Navigating to the unified login page
-    // Optional: We can pass state to pre-select a specific view if AuthSignup is modified later
-    navigate('/login', { state: { role } });
+    // Navigating to the unified login page with search params for persistence
+    navigate(`/login?portal=${role}`);
   };
 
   return (

@@ -62,48 +62,66 @@ export async function signUp({ email, password, firstName, middleName, lastName,
 export async function signIn({ email, password, role }: { email: string; password: string; role?: string }) {
   const supabase = await getClient();
 
-  // 1. Check if user is locked or deactivated BEFORE signing in
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_active, locked_until, account_type')
-    .eq('email', email.toLowerCase())
-    .single();
-
-  if (profile) {
-    if (profile.is_active === false) {
-      if (profile.account_type === 'coordinator') {
-        throw new Error("ACCOUNT_PENDING: Your coordinator account is pending approval from an administrator.");
-      }
-      throw new Error("ACCOUNT_DEACTIVATED: Your account has been deactivated by an admin.");
-    }
-    if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
-      const unlockTime = new Date(profile.locked_until).toLocaleTimeString();
-      throw new Error(`ACCOUNT_LOCKED: Too many failed attempts. Try again after ${unlockTime}.`);
-    }
-    if (role === 'coordinator' && profile.account_type !== 'coordinator') {
-      throw new Error("Access Denied: You cannot log in via the Coordinator Portal. Please use the Student portal.");
-    }
-    if (role === 'student' && profile.account_type !== 'student') {
-      throw new Error("Access Denied: You cannot log in via the Student Portal. Please use the Coordinator portal.");
-    }
-    if (role === 'admin' && profile.account_type !== 'admin') {
-      throw new Error("Access Denied: You cannot log in via the Admin Portal.");
-    }
-  }
-
-  // 2. Attempt login
+  // 1. Attempt login first (bypassing RLS until authenticated)
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    // 3. If login fails, increment failed attempts (via RPC, bypassing RLS)
     if (error.message.includes('Invalid login credentials')) {
       await supabase.rpc('increment_failed_login', { user_email: email.toLowerCase() });
     }
     throw error;
   }
 
-  // 4. On success, reset failed attempts
-  await supabase.rpc('reset_failed_login', { user_email: email.toLowerCase() });
+  // 2. Fetch the profile NOW that we are authenticated (RLS will allow this)
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('is_active, locked_until, account_type')
+    .eq('auth_user_id', data.user.id)
+    .single();
+
+  if (profileError || !profile) {
+    // This shouldn't happen for valid users, but if it does, sign out
+    await supabase.auth.signOut();
+    throw new Error("Account profile not found. Please contact support.");
+  }
+
+  // 3. Perform security and role checks
+  try {
+    if (profile.is_active === false) {
+      if (profile.account_type === 'coordinator') {
+        throw new Error("ACCOUNT_PENDING: Your coordinator account is pending approval from an administrator.");
+      }
+      throw new Error("ACCOUNT_DEACTIVATED: Your account has been deactivated by an admin.");
+    }
+
+    if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
+      const unlockTime = new Date(profile.locked_until).toLocaleTimeString();
+      throw new Error(`ACCOUNT_LOCKED: Too many failed attempts. Try again after ${unlockTime}.`);
+    }
+
+    if (role === 'coordinator' && profile.account_type !== 'coordinator') {
+      throw new Error(`Access Denied: You are trying to log in with a ${profile.account_type} account on the Coordinator Portal. Please use the Student Portal.`);
+    }
+
+    if (role === 'student' && profile.account_type !== 'student') {
+      throw new Error(`Access Denied: You are trying to log in with a ${profile.account_type} account on the Student Portal. Please use the Coordinator Portal.`);
+    }
+
+    if (role === 'admin' && profile.account_type !== 'admin') {
+      throw new Error(`Access Denied: This account does not have Admin privileges.`);
+    }
+
+    // 4. On absolute success, reset failed attempts
+    await supabase.rpc('reset_failed_login', { user_email: email.toLowerCase() });
+  } catch (checkError: any) {
+    // If any check fails, save the error to survive the sign-out re-render/redirect
+    const errorMsg = checkError.message || String(checkError);
+    sessionStorage.setItem('portal_login_error', errorMsg);
+    
+    // Sign the user out immediately before returning
+    await supabase.auth.signOut();
+    throw checkError;
+  }
 
   return data;
 }

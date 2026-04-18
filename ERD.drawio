@@ -1,0 +1,519 @@
+<mxfile host="app.diagrams.net" modified="2026-04-18T00:45:00.000Z" agent="draw.io" version="24.0.0" type="device">
+  <diagram id="erd" name="ERD - OJT Monitoring System">
+    <mxGraphModel dx="1600" dy="500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1820" pageHeight="430" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ══════════ TITLE ══════════ -->
+        <mxCell id="title" value="ENTITY RELATIONSHIP DIAGRAM — OJT Monitoring System" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="510" y="2" width="700" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 0 — DEPARTMENTS                                  -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="dept" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="40" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="dept_t" value="departments" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="dept">
+          <mxGeometry width="140" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="dept_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dept">
+          <mxGeometry y="22" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dept_f2" value="    name" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dept">
+          <mxGeometry y="38" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dept_f3" value="    description" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dept">
+          <mxGeometry y="54" width="140" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 0 — COURSES                                      -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="crs" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="125" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="crs_t" value="courses" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="crs">
+          <mxGeometry width="140" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="crs_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="crs">
+          <mxGeometry y="22" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="crs_f2" value="    name" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="crs">
+          <mxGeometry y="38" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="crs_f3" value="    description" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="crs">
+          <mxGeometry y="54" width="140" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 0 — ★ PROFILES (Central Entity) ★                -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="prof" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="740" y="30" width="170" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="prof_t" value="profiles" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="prof">
+          <mxGeometry width="170" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="prof_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="prof">
+          <mxGeometry y="22" width="170" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="prof_f2" value="    auth_user_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="prof">
+          <mxGeometry y="38" width="170" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="prof_f3" value="    email" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="prof">
+          <mxGeometry y="54" width="170" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="prof_f4" value="    first_name" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="prof">
+          <mxGeometry y="70" width="170" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="prof_f5" value="    last_name" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="prof">
+          <mxGeometry y="86" width="170" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="prof_f6" value="    account_type" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="prof">
+          <mxGeometry y="102" width="170" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="prof_f7" value="FK  company_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="prof">
+          <mxGeometry y="118" width="170" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="prof_f8" value="FK  department_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="prof">
+          <mxGeometry y="134" width="170" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 0 — COMPANIES                                    -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="comp" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1457" y="35" width="158" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_t" value="companies" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="comp">
+          <mxGeometry width="158" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="comp">
+          <mxGeometry y="22" width="158" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_f2" value="    name" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="comp">
+          <mxGeometry y="38" width="158" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_f3" value="    address" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="comp">
+          <mxGeometry y="54" width="158" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_f4" value="    contact_person" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="comp">
+          <mxGeometry y="70" width="158" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_f5" value="FK  department_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="comp">
+          <mxGeometry y="86" width="158" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 0 — ANNOUNCEMENTS                                -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="ann" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1640" y="35" width="145" height="86" as="geometry" />
+        </mxCell>
+        <mxCell id="ann_t" value="announcements" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="ann">
+          <mxGeometry width="145" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="ann_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ann">
+          <mxGeometry y="22" width="145" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ann_f2" value="    title" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ann">
+          <mxGeometry y="38" width="145" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ann_f3" value="    content" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ann">
+          <mxGeometry y="54" width="145" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ann_f4" value="    author" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ann">
+          <mxGeometry y="70" width="145" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 0 — SYSTEM_SETTINGS                              -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="sset" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1640" y="135" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="sset_t" value="system_settings" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="sset">
+          <mxGeometry width="140" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="sset_f1" value="PK  key" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="sset">
+          <mxGeometry y="22" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="sset_f2" value="    value" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="sset">
+          <mxGeometry y="38" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="sset_f3" value="    description" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="sset">
+          <mxGeometry y="54" width="140" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — DEPARTMENT_CHANGE_REQUESTS                   -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="dcr" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="30" y="275" width="175" height="118" as="geometry" />
+        </mxCell>
+        <mxCell id="dcr_t" value="department_change_requests" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=8;" vertex="1" parent="dcr">
+          <mxGeometry width="175" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="dcr_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dcr">
+          <mxGeometry y="22" width="175" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dcr_f2" value="FK  user_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dcr">
+          <mxGeometry y="38" width="175" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dcr_f3" value="FK  current_dept_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dcr">
+          <mxGeometry y="54" width="175" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dcr_f4" value="FK  requested_dept_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dcr">
+          <mxGeometry y="70" width="175" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dcr_f5" value="    status" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dcr">
+          <mxGeometry y="86" width="175" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dcr_f6" value="FK  actioned_by" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dcr">
+          <mxGeometry y="102" width="175" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — USER_NOTIFICATIONS                           -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="notif" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="215" y="275" width="150" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="notif_t" value="user_notifications" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="notif">
+          <mxGeometry width="150" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="notif_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="notif">
+          <mxGeometry y="22" width="150" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="notif_f2" value="FK  user_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="notif">
+          <mxGeometry y="38" width="150" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="notif_f3" value="    title" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="notif">
+          <mxGeometry y="54" width="150" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="notif_f4" value="    type" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="notif">
+          <mxGeometry y="70" width="150" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="notif_f5" value="    is_read" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="notif">
+          <mxGeometry y="86" width="150" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — TIMESHEETS                                   -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="ts" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="375" y="275" width="148" height="118" as="geometry" />
+        </mxCell>
+        <mxCell id="ts_t" value="timesheets" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="ts">
+          <mxGeometry width="148" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="ts_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ts">
+          <mxGeometry y="22" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ts_f2" value="FK  user_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ts">
+          <mxGeometry y="38" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ts_f3" value="    clock_in" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ts">
+          <mxGeometry y="54" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ts_f4" value="    clock_out" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ts">
+          <mxGeometry y="70" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ts_f5" value="    status" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ts">
+          <mxGeometry y="86" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ts_f6" value="    approval_status" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ts">
+          <mxGeometry y="102" width="148" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — DAILY_JOURNALS                               -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="dj" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="533" y="275" width="148" height="118" as="geometry" />
+        </mxCell>
+        <mxCell id="dj_t" value="daily_journals" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="dj">
+          <mxGeometry width="148" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="dj_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dj">
+          <mxGeometry y="22" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dj_f2" value="FK  user_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dj">
+          <mxGeometry y="38" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dj_f3" value="    entry_date" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dj">
+          <mxGeometry y="54" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dj_f4" value="    tasks" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dj">
+          <mxGeometry y="70" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dj_f5" value="    learnings" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dj">
+          <mxGeometry y="86" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dj_f6" value="    approval_status" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="dj">
+          <mxGeometry y="102" width="148" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — MESSAGES                                     -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="msg" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="691" y="275" width="140" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="msg_t" value="messages" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="msg">
+          <mxGeometry width="140" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="msg_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="msg">
+          <mxGeometry y="22" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="msg_f2" value="FK  sender_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="msg">
+          <mxGeometry y="38" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="msg_f3" value="FK  receiver_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="msg">
+          <mxGeometry y="54" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="msg_f4" value="    content" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="msg">
+          <mxGeometry y="70" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="msg_f5" value="    read_at" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="msg">
+          <mxGeometry y="86" width="140" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — FEEDBACK                                     -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="fb" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="841" y="275" width="130" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="fb_t" value="feedback" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="fb">
+          <mxGeometry width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="fb_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="fb">
+          <mxGeometry y="22" width="130" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="fb_f2" value="FK  user_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="fb">
+          <mxGeometry y="38" width="130" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="fb_f3" value="    type" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="fb">
+          <mxGeometry y="54" width="130" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="fb_f4" value="    content" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="fb">
+          <mxGeometry y="70" width="130" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="fb_f5" value="    status" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="fb">
+          <mxGeometry y="86" width="130" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — STUDENT_DOCUMENTS                            -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="sd" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="981" y="275" width="150" height="118" as="geometry" />
+        </mxCell>
+        <mxCell id="sd_t" value="student_documents" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="sd">
+          <mxGeometry width="150" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="sd_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="sd">
+          <mxGeometry y="22" width="150" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="sd_f2" value="FK  user_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="sd">
+          <mxGeometry y="38" width="150" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="sd_f3" value="    title" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="sd">
+          <mxGeometry y="54" width="150" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="sd_f4" value="    file_path" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="sd">
+          <mxGeometry y="70" width="150" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="sd_f5" value="    file_type" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="sd">
+          <mxGeometry y="86" width="150" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="sd_f6" value="    status" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="sd">
+          <mxGeometry y="102" width="150" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — AUDIT_LOGS                                   -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="al" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1141" y="275" width="138" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="al_t" value="audit_logs" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="al">
+          <mxGeometry width="138" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="al_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="al">
+          <mxGeometry y="22" width="138" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="al_f2" value="FK  user_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="al">
+          <mxGeometry y="38" width="138" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="al_f3" value="    action" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="al">
+          <mxGeometry y="54" width="138" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="al_f4" value="    table_name" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="al">
+          <mxGeometry y="70" width="138" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="al_f5" value="    details" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="al">
+          <mxGeometry y="86" width="138" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — COMPANY_REQUESTS                             -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="cr" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1289" y="275" width="148" height="86" as="geometry" />
+        </mxCell>
+        <mxCell id="cr_t" value="company_requests" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=9;" vertex="1" parent="cr">
+          <mxGeometry width="148" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="cr_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="cr">
+          <mxGeometry y="22" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="cr_f2" value="    name" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="cr">
+          <mxGeometry y="38" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="cr_f3" value="FK  requested_by" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="cr">
+          <mxGeometry y="54" width="148" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="cr_f4" value="    status" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="cr">
+          <mxGeometry y="70" width="148" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — COORDINATOR_HANDLED_COMPANIES                -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="chc" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1447" y="275" width="178" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="chc_t" value="coordinator_handled_companies" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=8;" vertex="1" parent="chc">
+          <mxGeometry width="178" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="chc_f1" value="PK,FK coordinator_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="chc">
+          <mxGeometry y="22" width="178" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="chc_f2" value="PK,FK company_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="chc">
+          <mxGeometry y="38" width="178" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!--  ROW 1 — ANNOUNCEMENT_REACTIONS                       -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="ar" value="" style="swimlane;childLayout=stackLayout;startSize=0;fillColor=#FFFFFF;strokeColor=#000000;collapsible=0;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1635" y="275" width="155" height="86" as="geometry" />
+        </mxCell>
+        <mxCell id="ar_t" value="announcement_reactions" style="text;fillColor=#404040;fontColor=#FFFFFF;fontStyle=1;align=center;verticalAlign=middle;overflow=hidden;points=[];portConstraint=eastwest;fontSize=8;" vertex="1" parent="ar">
+          <mxGeometry width="155" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="ar_f1" value="PK  id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ar">
+          <mxGeometry y="22" width="155" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ar_f2" value="FK  announcement_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ar">
+          <mxGeometry y="38" width="155" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ar_f3" value="FK  user_id" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ar">
+          <mxGeometry y="54" width="155" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ar_f4" value="    reaction_type" style="text;strokeColor=#808080;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontFamily=Courier New;" vertex="1" parent="ar">
+          <mxGeometry y="70" width="155" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- EDGES: profiles (1) ──→ Row 1 entities (M)                -->
+        <!-- Fan-out from bottom — exit L→R matches target L→R = clean -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+
+        <!-- profiles → dept_change_requests -->
+        <mxCell id="r1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.05;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="dcr" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → user_notifications -->
+        <mxCell id="r2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.14;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="notif" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → timesheets -->
+        <mxCell id="r3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.23;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="ts" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → daily_journals -->
+        <mxCell id="r4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.32;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="dj" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → messages -->
+        <mxCell id="r5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.42;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="msg" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → feedback -->
+        <mxCell id="r6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.52;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="fb" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → student_documents -->
+        <mxCell id="r7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.62;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="sd" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → audit_logs -->
+        <mxCell id="r8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.72;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="al" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → company_requests -->
+        <mxCell id="r9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.81;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="cr" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → coordinator_handled_companies -->
+        <mxCell id="r10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.88;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="chc" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles → announcement_reactions -->
+        <mxCell id="r11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.95;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="prof" target="ar" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- EDGES: profiles FK → Row 0 targets (many-to-one)      -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <!-- profiles.department_id → departments.id -->
+        <mxCell id="r12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;startSize=10;endArrow=ERone;endFill=0;endSize=8;strokeColor=#000000;exitX=0;exitY=0.89;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="prof" target="dept" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- profiles.company_id → companies.id -->
+        <mxCell id="r13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;startSize=10;endArrow=ERone;endFill=0;endSize=8;strokeColor=#000000;exitX=1;exitY=0.79;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="prof" target="comp" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- EDGES: Secondary (Row 0 → Row 1) — side entry routing -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <!-- departments → dept_change_requests (enters LEFT) -->
+        <mxCell id="r14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" source="dept" target="dcr" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- companies → coordinator_handled (enters RIGHT) -->
+        <mxCell id="r15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="comp" target="chc" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- announcements → announcement_reactions (enters RIGHT) -->
+        <mxCell id="r16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERone;startFill=0;startSize=8;endArrow=ERmany;endFill=0;endSize=10;strokeColor=#000000;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ann" target="ar" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

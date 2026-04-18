@@ -1,0 +1,136 @@
+<mxfile host="app.diagrams.net" modified="2026-04-17T15:25:00.000Z" agent="draw.io" version="24.0.0" type="device">
+  <diagram id="coord-seq" name="Coordinator Sequence Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="SEQUENCE DIAGRAM — Coordinator (OJT Monitoring System)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1;fontFamily=Helvetica;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- PARTICIPANTS (Top) -->
+        <mxCell id="p1" value="Coordinator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="60" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="Web Application" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="60" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="Auth Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="60" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="Database" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="750" y="60" width="150" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- LIFELINES -->
+        <mxCell id="l1" style="endArrow=none;dashed=1;html=1;dashPattern=3 3;strokeWidth=1;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry as="geometry"><mxPoint x="135" y="100" as="sourcePoint" /><mxPoint x="135" y="600" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="l2" style="endArrow=none;dashed=1;html=1;dashPattern=3 3;strokeWidth=1;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry as="geometry"><mxPoint x="365" y="100" as="sourcePoint" /><mxPoint x="365" y="600" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="l3" style="endArrow=none;dashed=1;html=1;dashPattern=3 3;strokeWidth=1;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry as="geometry"><mxPoint x="595" y="100" as="sourcePoint" /><mxPoint x="595" y="600" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="l4" style="endArrow=none;dashed=1;html=1;dashPattern=3 3;strokeWidth=1;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry as="geometry"><mxPoint x="825" y="100" as="sourcePoint" /><mxPoint x="825" y="600" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- SECTION LABELS -->
+        <mxCell id="fl1" value="Authentication" style="text;html=1;fontSize=9;fontStyle=3;fontColor=#888888;align=left;verticalAlign=bottom;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="200" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="fl2" value="Approve Submissions" style="text;html=1;fontSize=9;fontStyle=3;fontColor=#888888;align=left;verticalAlign=bottom;" vertex="1" parent="1">
+          <mxGeometry x="80" y="325" width="200" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- SEPARATOR -->
+        <mxCell id="sep1" style="endArrow=none;dashed=1;html=1;dashPattern=6 3;strokeWidth=1;strokeColor=#BBBBBB;" edge="1" parent="1">
+          <mxGeometry as="geometry"><mxPoint x="70" y="320" as="sourcePoint" /><mxPoint x="900" y="320" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- ACTIVATION BOXES -->
+        <mxCell id="wa1" value="" style="fillColor=#E8E8E8;strokeColor=#808080;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="359" y="148" width="12" height="154" as="geometry" />
+        </mxCell>
+        <mxCell id="wa2" value="" style="fillColor=#E8E8E8;strokeColor=#808080;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="359" y="343" width="12" height="214" as="geometry" />
+        </mxCell>
+        <mxCell id="au1" value="" style="fillColor=#E8E8E8;strokeColor=#808080;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="589" y="178" width="12" height="94" as="geometry" />
+        </mxCell>
+        <mxCell id="db1" value="" style="fillColor=#E8E8E8;strokeColor=#808080;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="819" y="208" width="12" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="db2" value="" style="fillColor=#E8E8E8;strokeColor=#808080;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="819" y="373" width="12" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="db3" value="" style="fillColor=#E8E8E8;strokeColor=#808080;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="819" y="493" width="12" height="34" as="geometry" />
+        </mxCell>
+
+        <!-- AUTHENTICATION (1–6) -->
+        <mxCell id="m1" value="1: Enter Credentials" style="endArrow=block;endFill=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="135" y="150" as="sourcePoint" /><mxPoint x="359" y="150" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2: signInWithPassword()" style="endArrow=block;endFill=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="371" y="180" as="sourcePoint" /><mxPoint x="589" y="180" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="3: Validate Credentials" style="endArrow=block;endFill=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="601" y="210" as="sourcePoint" /><mxPoint x="819" y="210" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="4: User Data" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="819" y="240" as="sourcePoint" /><mxPoint x="601" y="240" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="5: Session Token" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="589" y="270" as="sourcePoint" /><mxPoint x="371" y="270" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="6: Display Coordinator Dashboard" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="359" y="300" as="sourcePoint" /><mxPoint x="135" y="300" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- APPROVE SUBMISSIONS (7–14) -->
+        <mxCell id="m7" value="7: View Pending Approvals" style="endArrow=block;endFill=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="135" y="345" as="sourcePoint" /><mxPoint x="359" y="345" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="8: Fetch Pending Submissions" style="endArrow=block;endFill=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="371" y="375" as="sourcePoint" /><mxPoint x="819" y="375" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m9" value="9: Submission List" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="819" y="405" as="sourcePoint" /><mxPoint x="371" y="405" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m10" value="10: Display Submissions" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="359" y="435" as="sourcePoint" /><mxPoint x="135" y="435" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m11" value="11: Approve / Reject Item" style="endArrow=block;endFill=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="135" y="465" as="sourcePoint" /><mxPoint x="359" y="465" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m12" value="12: Update Approval Status" style="endArrow=block;endFill=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="371" y="495" as="sourcePoint" /><mxPoint x="819" y="495" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m13" value="13: Status Updated" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="819" y="525" as="sourcePoint" /><mxPoint x="371" y="525" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m14" value="14: Show Confirmation" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=9;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="359" y="555" as="sourcePoint" /><mxPoint x="135" y="555" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- PARTICIPANTS (Bottom) -->
+        <mxCell id="pb1" value="Coordinator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="600" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pb2" value="Web Application" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="600" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pb3" value="Auth Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="600" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pb4" value="Database" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="750" y="600" width="150" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

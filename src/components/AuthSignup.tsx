@@ -182,6 +182,7 @@ export default function AuthSignup() {
 
             // Session is now live — App.tsx will detect the flag and show AccountTypePicker
             setInfoMessage("✅ Account created! Redirecting...");
+            setEmailVerified(true);
             window.location.href = '/';
         } catch (err: any) {
             setErrors(prev => ({ ...prev, otp: err.message || "Invalid or expired code. Try again." }));
@@ -219,35 +220,7 @@ export default function AuthSignup() {
         setErrors({});
 
         try {
-            const supabase = await import('../lib/supabaseClient');
-
-            if (roleState) {
-                console.log('Checking roleState:', roleState, 'email:', loginEmail.toLowerCase());
-                const { data: existingProfile, error: profileError } = await supabase.supabase
-                    .from('profiles')
-                    .select('account_type')
-                    .eq('email', loginEmail.toLowerCase())
-                    .single();
-
-                console.log('Profile result:', existingProfile, 'error:', profileError);
-
-                if (existingProfile) {
-                    console.log('Found profile with account_type:', existingProfile.account_type);
-                    if (roleState === 'coordinator' && existingProfile.account_type !== 'coordinator') {
-                        throw new Error("Access Denied: You cannot log in via the Coordinator Portal. Please use the Student portal.");
-                    }
-                    if (roleState === 'student' && existingProfile.account_type !== 'student') {
-                        throw new Error("Access Denied: You cannot log in via the Student Portal. Please use the Coordinator portal.");
-                    }
-                    if (roleState === 'admin' && existingProfile.account_type !== 'admin') {
-                        throw new Error("Access Denied: You cannot log in via the Admin Portal.");
-                    }
-                } else {
-                    console.log('No profile found or error:', profileError);
-                }
-            }
-
-            await signIn({ email: loginEmail, password, role: roleState });
+            await signIn({ email: loginEmail, password, role: roleState as "student" | "coordinator" | "admin" | undefined });
             window.location.href = '/';
         } catch (err: any) {
             let errorMsg = err.message || String(err);

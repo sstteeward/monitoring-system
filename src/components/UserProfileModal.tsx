@@ -47,9 +47,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
     };
 
     const field = (label: string, value: React.ReactNode) => (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0.55rem 0', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0, marginRight: '1rem' }}>{label}</span>
-            <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 500, textAlign: 'right' }}>{value ?? '—'}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0.5rem 0', borderBottom: '1px solid var(--border)', gap: '1rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0, marginTop: '0.15rem' }}>{label}</span>
+            <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 500, textAlign: 'right', overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0, flex: 1 }}>{value ?? '—'}</span>
         </div>
     );
 
@@ -58,9 +58,19 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
             onClick={handleBackdropClick}
             className="upm-overlay"
             style={{
-                position: 'fixed', inset: 0, zIndex: 2000,
-                background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100%',
+                height: '100%',
+                zIndex: 2000,
+                background: 'rgba(0,0,0,0.7)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 padding: '2rem',
                 animation: 'fadeIn 0.2s ease',
             }}
@@ -68,14 +78,21 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
             <div 
                 className="custom-scrollbar upm-card glass-card"
                 style={{
-                    borderRadius: 28,
-                    width: '100%',
-                    maxWidth: 800,
-                    maxHeight: '85vh',
+                    borderRadius: '28px',
+                    width: 'min(1000px, 95vw)',
+                    height: 'fit-content',
+                    maxHeight: 'min(90vh, 800px)',
                     overflowY: 'auto',
-                    boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
-                    animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    overflowX: 'hidden',
+                    background: 'rgba(18, 18, 18, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    animation: 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                    boxSizing: 'border-box',
                     position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column'
                 }}
             >
                 {/* Close Button - Floated top right */}
@@ -133,9 +150,18 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                         <p style={{ color: 'var(--text-muted)' }}>The requested user profile could not be loaded.</p>
                     </div>
                 ) : (
-                    <div style={{ padding: '3rem' }} className="upm-inner-pad">
+                    <div style={{ padding: '1.75rem 1.5rem' }} className="upm-inner-pad">
                         {/* Hero Section */}
-                        <div className="upm-hero" style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '3.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '3rem' }}>
+                        <div className="upm-hero" style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '1.5rem', 
+                            marginBottom: '1.5rem', 
+                            paddingRight: '3.5rem', 
+                            flexWrap: 'wrap',
+                            borderBottom: '1px solid var(--border)',
+                            paddingBottom: '1.5rem'
+                        }}>
                             <div className="upm-hero-avatar" style={{
                                 width: 120, height: 120, borderRadius: '32px',
                                 background: profile.avatar_url
@@ -149,9 +175,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                             }}>
                                 {profile.avatar_url ? '' : initials}
                             </div>
-                            <div style={{ flex: 1 }}>
-                                <div className="upm-hero-title-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-                                    <h1 className="upm-hero-name" style={{ margin: 0, fontSize: '2rem', fontWeight: 800, color: 'var(--text-bright)', letterSpacing: '-0.02em' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div className="upm-hero-title-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                                    <h1 className="upm-hero-name" style={{ margin: 0, fontSize: '2rem', fontWeight: 800, color: 'var(--text-bright)', letterSpacing: '-0.02em', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                                         {displayName}
                                     </h1>
                                     <span style={{
@@ -168,19 +194,23 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                                         {profile.account_type}
                                     </span>
                                 </div>
-                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '1rem' }}>
+                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '1rem', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                                     {profile.email}
                                 </p>
                             </div>
                         </div>
 
                         {/* Content Grid */}
-                        <div className="upm-content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
+                        <div className="upm-content-grid" style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', 
+                            gap: '1.5rem' 
+                        }}>
                             {/* Column 1: Identity & Academic */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <section>
-                                    <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <span style={{ width: 24, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
+                                        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ width: 20, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
                                         Identity
                                     </h3>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -192,8 +222,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
 
                                 {profile.account_type === 'student' && (
                                     <section>
-                                        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={{ width: 24, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
+                                        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ width: 20, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
                                             Academic
                                         </h3>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -208,10 +238,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
 
                             {/* Column 2: Internship & Performance */}
                             {profile.account_type === 'student' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                     <section>
-                                        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={{ width: 24, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
+                                        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ width: 20, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
                                             Internship
                                         </h3>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -221,26 +251,26 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                                     </section>
 
                                     <section>
-                                        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={{ width: 24, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
+                                        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ width: 20, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
                                             Attendance
                                         </h3>
                                         <div style={{ 
                                             background: 'rgba(255,158,11,0.03)', 
                                             border: '1px solid rgba(255,158,11,0.1)', 
-                                            borderRadius: '20px', 
-                                            padding: '1.5rem',
+                                            borderRadius: '16px', 
+                                            padding: '1.25rem',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'space-between'
                                         }}>
                                             <div>
-                                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>TOTAL ABSENCES</div>
-                                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: (profile.absences || 0) > 3 ? '#ef4444' : '#f59e0b' }}>
+                                                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.15rem' }}>TOTAL ABSENCES</div>
+                                                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: (profile.absences || 0) > 3 ? '#ef4444' : '#f59e0b' }}>
                                                     {profile.absences || 0}
                                                 </div>
                                             </div>
-                                            <div style={{ opacity: 0.4, fontSize: '2rem' }}>🕒</div>
+                                            <div style={{ opacity: 0.4, fontSize: '1.5rem' }}>🕒</div>
                                         </div>
                                     </section>
                                 </div>
@@ -287,26 +317,80 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
                 }
 
-                /* ── UserProfileModal Mobile Responsive ── */
+                .upm-overlay {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+
+                /* ── Desktop & Base Layout ── */
+                .upm-card {
+                    width: min(1000px, 95vw) !important;
+                    height: auto !important;
+                    max-height: min(90vh, 800px) !important;
+                }
+
+                .upm-content-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr !important;
+                    gap: 1.5rem !important;
+                }
+
+                /* ── Smaller Screens (Tablet/Narrow Desktop) ── */
+                @media (max-width: 1100px) {
+                    .upm-overlay {
+                        padding: 1rem !important;
+                    }
+                    .upm-inner-pad {
+                        padding: 1.5rem !important;
+                    }
+                }
+
+                @media (max-width: 900px) {
+                    .upm-hero-name {
+                        font-size: 1.6rem !important;
+                    }
+                    .upm-content-grid {
+                        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+                        gap: 2rem !important;
+                    }
+                }
+
+                /* ── Mobile View ── */
+                @media (max-width: 800px) {
+                    .upm-card {
+                        width: 95% !important;
+                        min-width: unset !important;
+                    }
+                    .upm-content-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 2rem !important;
+                    }
+                }
+
                 @media (max-width: 640px) {
                     .upm-overlay {
                         padding: 0 !important;
                         align-items: flex-end !important;
+                        justify-content: center !important;
                     }
                     .upm-card {
                         border-radius: 20px 20px 0 0 !important;
-                        max-height: 92vh !important;
+                        max-height: 95vh !important;
+                        width: 100% !important;
                         max-width: 100% !important;
+                        min-width: unset !important;
                     }
                     .upm-inner-pad {
-                        padding: 1.5rem 1rem !important;
+                        padding: 1.5rem !important;
                     }
                     .upm-hero {
                         flex-direction: column !important;
-                        gap: 1rem !important;
+                        gap: 1.5rem !important;
                         align-items: flex-start !important;
                         margin-bottom: 2rem !important;
                         padding-bottom: 1.5rem !important;
+                        padding-right: 0 !important;
                     }
                     .upm-hero-avatar {
                         width: 80px !important;
@@ -315,33 +399,20 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                         font-size: 1.8rem !important;
                     }
                     .upm-hero-name {
-                        font-size: 1.4rem !important;
+                        font-size: 1.5rem !important;
                     }
                     .upm-hero-title-row {
-                        flex-wrap: wrap !important;
-                        gap: 0.5rem !important;
+                        gap: 0.75rem !important;
                     }
                     .upm-content-grid {
                         grid-template-columns: 1fr !important;
-                        gap: 1.5rem !important;
+                        gap: 2rem !important;
                     }
                     .upm-close-btn {
                         top: 1rem !important;
                         right: 1rem !important;
                         width: 36px !important;
                         height: 36px !important;
-                    }
-                }
-
-                @media (max-width: 900px) and (min-width: 641px) {
-                    .upm-overlay {
-                        padding: 1rem !important;
-                    }
-                    .upm-inner-pad {
-                        padding: 2rem 1.5rem !important;
-                    }
-                    .upm-hero-name {
-                        font-size: 1.6rem !important;
                     }
                 }
             `}</style>

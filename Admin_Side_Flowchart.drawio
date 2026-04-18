@@ -1,0 +1,211 @@
+<mxfile host="app.diagrams.net" modified="2026-04-17T07:15:00.000Z" agent="draw.io" version="24.0.0" type="device">
+  <diagram id="admin-flowchart" name="Admin Side Flowchart">
+    <mxGraphModel dx="1400" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="2200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="PROGRAM FLOWCHART — ADMIN SIDE&#xa;OJT Monitoring System" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1;fontFamily=Helvetica;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- START -->
+        <mxCell id="start" value="START" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Open Website -->
+        <mxCell id="open" value="Open Website&#xa;(Landing Page)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="160" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="start" target="open" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Select Admin Portal -->
+        <mxCell id="portal" value="Select Admin Portal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="250" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="open" target="portal" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Enter Credentials -->
+        <mxCell id="login" value="Enter Email&#xa;and Password" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=10;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="330" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="portal" target="login" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Credentials Valid? -->
+        <mxCell id="credOk" value="Valid?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="420" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="login" target="credOk" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- No — loop back -->
+        <mxCell id="e4no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="credOk" target="login" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="450" />
+              <mxPoint x="600" y="355" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4nol" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#000000;fontSize=9;" vertex="1" connectable="0" parent="e4no">
+          <mxGeometry x="-0.5" relative="1" as="geometry"><mxPoint x="10" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Yes — Dashboard -->
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="credOk" target="dashboard" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5l" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#000000;fontSize=9;" vertex="1" connectable="0" parent="e5">
+          <mxGeometry x="-0.3" relative="1" as="geometry"><mxPoint x="-15" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- ===== ADMIN DASHBOARD ===== -->
+        <mxCell id="dashboard" value="Admin Dashboard&#xa;(Overview)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="530" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Select Module -->
+        <mxCell id="selectMod" value="Select&#xa;Module" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="630" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="dashboard" target="selectMod" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== MODULE 1: User Management ===== -->
+        <mxCell id="m1" value="User Management&#xa;(View, Delete, Change Roles)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="770" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="em1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="selectMod" target="m1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="115" y="670" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== MODULE 2: Companies ===== -->
+        <mxCell id="m2" value="Companies&#xa;(Add, Edit, Delete)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="770" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="em2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="selectMod" target="m2" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="290" y="670" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== MODULE 3: Departments & Courses ===== -->
+        <mxCell id="m3" value="Departments &amp;&#xa;Courses" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="770" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="em3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="selectMod" target="m3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== MODULE 4: Approvals ===== -->
+        <mxCell id="m4" value="Approvals&#xa;(Docs, Journals, DTR)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="770" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="em4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="selectMod" target="m4" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="660" y="670" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== MODULE 5: System Management ===== -->
+        <mxCell id="m5" value="System Management&#xa;(Audit, Backup, Health)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="760" y="770" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="em5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="selectMod" target="m5" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="840" y="670" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== ALL MODULES → Database ===== -->
+        <mxCell id="db" value="Process Data&#xa;(Supabase Database)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="415" y="880" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edb1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="m1" target="db" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="115" y="850" /><mxPoint x="480" y="850" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edb2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="m2" target="db" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="290" y="850" /><mxPoint x="480" y="850" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edb3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="m3" target="db" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edb4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="m4" target="db" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="660" y="850" /><mxPoint x="480" y="850" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edb5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="m5" target="db" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="840" y="850" /><mxPoint x="480" y="850" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Display Result -->
+        <mxCell id="display" value="Display Result to Admin" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=10;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="385" y="990" width="190" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edisp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="db" target="display" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Continue? -->
+        <mxCell id="cont" value="Continue?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="1080" width="100" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="econt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="display" target="cont" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Yes — back to Select Module -->
+        <mxCell id="econtY" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="cont" target="selectMod" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="1115" />
+              <mxPoint x="350" y="670" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="econtYl" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#000000;fontSize=10;" vertex="1" connectable="0" parent="econtY">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint x="-15" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- No — Sign Out -->
+        <mxCell id="signout" value="Sign Out" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="410" y="1200" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="econtN" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="cont" target="signout" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="econtNl" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#000000;fontSize=10;" vertex="1" connectable="0" parent="econtN">
+          <mxGeometry x="-0.3" relative="1" as="geometry"><mxPoint x="-15" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- END -->
+        <mxCell id="end" value="END" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="1290" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="eend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#000000;" edge="1" source="signout" target="end" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
