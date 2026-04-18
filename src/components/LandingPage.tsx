@@ -76,7 +76,7 @@ export default function LandingPage() {
       </div>
 
       <div className="landing-footer">
-        © {new Date().getFullYear()} Asian College. System Developed by sstteward.
+        © {new Date().getFullYear()} Asian College-Dumaguete. System Developed by sstteward's team.
       </div>
     </div>
   );

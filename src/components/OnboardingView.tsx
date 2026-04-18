@@ -185,6 +185,8 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                     borderRadius: 20,
                     padding: '2rem',
                     boxShadow: '0 8px 40px rgba(0,0,0,0.25)',
+                    position: 'relative',
+                    zIndex: 60,
                 }}>
                     {error && (
                         <div style={{
@@ -416,7 +418,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 
             {/* Click outside to close dropdown */}
             {showDropdown && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setShowDropdown(false)} />
+                <div style={{ position: 'fixed', inset: 0, zIndex: 50 }} onClick={() => setShowDropdown(false)} />
             )}
         </div>
     );

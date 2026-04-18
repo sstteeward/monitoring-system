@@ -23,7 +23,9 @@ const EyeOffIcon = () => (
 
 export default function AuthSignup() {
     const location = useLocation();
-    const roleState = (location.state as any)?.role;
+    // Read the portal role from URL search params (e.g. /login?portal=coordinator)
+    const searchParams = new URLSearchParams(location.search);
+    const roleState = searchParams.get('portal') || undefined;
     const displayRole = roleState ? roleState.charAt(0).toUpperCase() + roleState.slice(1) : "";
 
     const [mode, setMode] = useState<"signup" | "login" | "forgot">("login");
@@ -56,6 +58,15 @@ export default function AuthSignup() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+    // Recover portal access-denied errors that were saved before sign-out redirect
+    useEffect(() => {
+        const savedError = sessionStorage.getItem('portal_login_error');
+        if (savedError) {
+            sessionStorage.removeItem('portal_login_error');
+            setErrors(prev => ({ ...prev, general: savedError }));
+        }
+    }, []);
 
     const [_mfaLoading, _setMfaLoading] = useState(false);
 
@@ -233,6 +244,16 @@ export default function AuthSignup() {
             } else if (errorMsg.includes('credentials')) {
                 errorMsg = "Invalid email or password.";
             }
+
+            // If signOut was called inside signIn (access denied, deactivated, locked),
+            // the auth state change disrupts React Router and navigates away.
+            // Force a hard redirect back to the same login portal with the error in sessionStorage.
+            if (sessionStorage.getItem('portal_login_error')) {
+                sessionStorage.setItem('portal_login_error', errorMsg);
+                window.location.href = `/login${roleState ? `?portal=${roleState}` : ''}`;
+                return;
+            }
+
             setErrors(prev => ({ ...prev, general: errorMsg }));
             setIsSubmitting(false);
         }

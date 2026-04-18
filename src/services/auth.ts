@@ -99,16 +99,8 @@ export async function signIn({ email, password, role }: { email: string; passwor
       throw new Error(`ACCOUNT_LOCKED: Too many failed attempts. Try again after ${unlockTime}.`);
     }
 
-    if (role === 'coordinator' && profile.account_type !== 'coordinator') {
-      throw new Error(`Access Denied: You are trying to log in with a ${profile.account_type} account on the Coordinator Portal. Please use the Student Portal.`);
-    }
-
-    if (role === 'student' && profile.account_type !== 'student') {
-      throw new Error(`Access Denied: You are trying to log in with a ${profile.account_type} account on the Student Portal. Please use the Coordinator Portal.`);
-    }
-
-    if (role === 'admin' && profile.account_type !== 'admin') {
-      throw new Error(`Access Denied: This account does not have Admin privileges.`);
+    if (role && profile.account_type !== role) {
+      throw new Error('Access Denied: Your account is not authorized for this portal.');
     }
 
     // 4. On absolute success, reset failed attempts
