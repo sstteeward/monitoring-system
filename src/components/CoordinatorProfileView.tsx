@@ -248,7 +248,7 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
 
             {/* Danger zone */}
             <div className="glass-card" style={{ border: '1px solid rgba(239,68,68,0.2)', padding: '1.5rem 2rem', borderRadius: 16 }}>
-                <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#f87171' }}>Danger Zone</h3>
+                <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#f87171' }}>Sign Out?</h3>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Signing out will end your current session. You'll need to log in again to access the coordinator dashboard.</p>
                 <button
                     className="btn btn-secondary"

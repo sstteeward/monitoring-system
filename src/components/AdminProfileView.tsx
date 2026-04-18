@@ -248,7 +248,7 @@ const AdminProfileView: React.FC<AdminProfileViewProps> = ({ initialProfile, onP
 
             {/* Danger zone */}
             <div style={{ background: 'var(--admin-card-bg)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '16px', padding: '1.5rem 2rem' }}>
-                <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#f87171' }}>Danger Zone</h3>
+                <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#f87171' }}>Sign Out?</h3>
                 <p style={{ fontSize: '0.82rem', color: '#94a3b8', marginBottom: '1rem' }}>Signing out will end your current session. You'll need to log in again to access the admin dashboard.</p>
                 <button
                     style={{

@@ -80,8 +80,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                 style={{
                     borderRadius: '28px',
                     width: 'min(1000px, 95vw)',
-                    height: 'fit-content',
-                    maxHeight: 'min(90vh, 800px)',
+                    minWidth: 'min(680px, 95vw)',
+                    maxHeight: '90vh',
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     background: 'rgba(18, 18, 18, 0.95)',
@@ -92,7 +92,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                     boxSizing: 'border-box',
                     position: 'relative',
                     display: 'flex',
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    transform: 'none',
                 }}
             >
                 {/* Close Button - Floated top right */}
@@ -326,8 +327,15 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                 /* ── Desktop & Base Layout ── */
                 .upm-card {
                     width: min(1000px, 95vw) !important;
+                    min-width: min(680px, 95vw) !important;
                     height: auto !important;
-                    max-height: min(90vh, 800px) !important;
+                    max-height: 90vh !important;
+                    overflow-y: auto !important;
+                    overflow-x: hidden !important;
+                    transform: none !important;
+                }
+                .upm-card:hover {
+                    transform: none !important;
                 }
 
                 .upm-content-grid {
