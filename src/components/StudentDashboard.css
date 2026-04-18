@@ -604,10 +604,12 @@
     margin: 0 auto;
 }
 
-.dtr-view-wrapper .dtr-actions {
-    /* Re-center the floating bar relative to the content area, not the viewport */
-    position: fixed;
-    left: calc(50% + 36px);  /* offset by half the sidebar width (72px/2) */
+@media (min-width: 769px) {
+    .dtr-view-wrapper .dtr-actions {
+        /* Re-center the floating bar relative to the content area, not the viewport */
+        position: fixed;
+        left: calc(50% + 36px);  /* offset by half the sidebar width (72px/2) */
+    }
 }
 
 

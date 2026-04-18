@@ -88,7 +88,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
     if (loading) return <div style={{ padding: '2rem', color: '#94a3b8' }}>Loading settings...</div>;
 
     return (
-        <div className="fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+        <div className="fade-in admin-settings-grid">
 
             {/* LEFT COLUMN: System Configuration */}
             <div>
@@ -99,7 +99,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
                     {/* OJT Hours */}
                     <div style={{ padding: '1rem', background: 'var(--bg-elevated)', border: '1px solid var(--admin-border)', borderRadius: 12, marginBottom: '1rem' }}>
                         <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>OJT Requirements</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="admin-settings-inner-grid">
                             <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--admin-text-secondary)' }}>
                                 Total Required Hours
                                 <input style={{ ...inputStyle, marginTop: '0.4rem' }} type="number" value={ojtHours.required} onChange={e => setOjtHours({ ...ojtHours, required: parseInt(e.target.value) || 0 })} />
@@ -117,7 +117,7 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
                         <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>Journal Submissions</h4>
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '0.5rem' }}>
                             Submission Deadline (Days after DTR)
-                            <input style={{ ...inputStyle, marginTop: '0.4rem', width: '200px', display: 'block' }} type="number" value={journalRules.deadline_days} onChange={e => setJournalRules({ ...journalRules, deadline_days: parseInt(e.target.value) || 0 })} />
+                            <input style={{ ...inputStyle, marginTop: '0.4rem', maxWidth: '200px', display: 'block' }} type="number" value={journalRules.deadline_days} onChange={e => setJournalRules({ ...journalRules, deadline_days: parseInt(e.target.value) || 0 })} />
                         </label>
                         <button className="primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={() => handleSaveSetting('journal_submission', journalRules)} disabled={savingSettings}>Save Deadlines</button>
                     </div>

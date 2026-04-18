@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 20px 140px 20px;
+  padding: 40px 20px 160px 20px;
   gap: 24px;
   background: var(--bg-page);
   min-height: 100vh;
@@ -631,6 +631,7 @@
   align-items: center;
   gap: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
 
 .dtr-btn-primary {
@@ -656,9 +657,108 @@
   transform: translateY(-2px);
 }
 
-@media (max-width: 500px) {
+/* ---- MOBILE: DTR page chrome (NOT the card/paper) ---- */
+@media (max-width: 768px) {
+  .dtr-container {
+    padding: 24px 10px 20px 10px;
+    gap: 16px;
+  }
+
+  .dtr-main-heading {
+    font-size: 26px;
+    letter-spacing: 1px;
+  }
+
+  .dtr-cards-grid {
+    padding: 10px 0;
+    gap: 40px;
+  }
+
   .tc-card-header-actions {
-    width: calc(100vw - 32px);
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+    margin-bottom: 16px;
+    width: 100%;
+  }
+
+  .tc-card-badge {
+    justify-content: center;
+  }
+
+  .dtr-btn-flip-tab {
+    justify-content: center;
+    padding: 10px 16px;
+  }
+
+  .dtr-actions {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    width: 100%;
+    max-width: 400px;
+    margin: 20px auto 0;
+    transform: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 12px;
+    gap: 8px;
+    border-radius: 18px;
+    box-sizing: border-box;
+  }
+
+  .dtr-actions:hover {
+    transform: none;
+  }
+
+  .dtr-btn {
+    padding: 10px 12px;
+    font-size: 12px;
+    gap: 6px;
+    border-radius: 12px;
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dtr-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 500px) {
+  .dtr-container {
+    padding: 16px 6px 12px 6px;
+    gap: 12px;
+  }
+
+  .dtr-main-heading {
+    font-size: 22px;
+  }
+
+  .tc-card-header-actions {
+    width: calc(100vw - 12px);
+  }
+
+  .dtr-actions {
+    position: relative;
+    bottom: auto;
+    width: 100%;
+    max-width: 340px;
+    margin: 16px auto 0;
+    padding: 10px 8px;
+    gap: 6px;
+  }
+
+  .dtr-btn {
+    padding: 8px 6px;
+    font-size: 10px;
+    gap: 4px;
   }
 }
 

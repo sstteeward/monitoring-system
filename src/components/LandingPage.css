@@ -8,9 +8,9 @@
   color: #ffffff;
   font-family: var(--font-inter);
   align-items: center;
-  justify-content: center;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .landing-content {
@@ -20,8 +20,9 @@
   flex-direction: column;
   align-items: center;
   max-width: 1100px;
-  padding: 3rem 2rem;
+  padding: 4rem 2rem;
   width: 100%;
+  margin: auto 0;
 }
 
 .landing-logo-container {
@@ -185,12 +186,13 @@
 
 /* Footer */
 .landing-footer {
-  position: absolute;
-  bottom: 2rem;
   text-align: center;
   color: #525252;
   font-size: 0.85rem;
   z-index: 1;
+  padding-bottom: 2rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
   animation: fade-in 1s ease 1s backwards;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -219,8 +221,61 @@
 
 /* Mobile */
 @media (max-width: 768px) {
-  .landing-title { font-size: 2.8rem; }
-  .landing-subtitle { font-size: 1.1rem; }
-  .portal-cards-wrapper { flex-direction: column; align-items: center; gap: 1.5rem; margin-top: 3rem; }
-  .portal-card { width: 100%; max-width: 350px; }
+  .landing-content {
+    padding: 2rem 1.25rem;
+  }
+  .landing-title {
+    font-size: 2.5rem;
+  }
+  .landing-subtitle {
+    font-size: 1rem;
+    margin-top: 0.75rem;
+  }
+  .portal-cards-wrapper {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  .portal-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 1.5rem 1.25rem;
+    box-sizing: border-box;
+  }
+  .portal-card-icon-wrap {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 1rem;
+  }
+  .portal-card-icon-wrap svg {
+    width: 26px;
+    height: 26px;
+  }
+  .portal-card h3 {
+    font-size: 1.25rem;
+  }
+  .portal-card p {
+    font-size: 0.85rem;
+  }
+  .landing-footer {
+    font-size: 0.7rem;
+    padding-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .landing-content {
+    padding: 1.5rem 1rem;
+  }
+  .landing-title {
+    font-size: 2rem;
+  }
+  .landing-subtitle {
+    font-size: 0.9rem;
+  }
+  .portal-card {
+    padding: 1.25rem 1rem;
+  }
 }

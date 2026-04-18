@@ -207,11 +207,11 @@ const TimesheetView: React.FC = () => {
                 }}>
                     <div style={{position: 'relative', minWidth: '100%', width: 'fit-content'}} onClick={e => e.stopPropagation()}>
                         <button className="glass-card" onClick={() => setShowDTR(false)} style={{
-                            position: 'fixed', top: '25px', right: '40px', zIndex: 10000,
-                            width: '44px', height: '44px',
+                            position: 'fixed', top: '16px', right: '16px', zIndex: 10000,
+                            width: '40px', height: '40px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', 
-                            borderRadius: '12px', cursor: 'pointer', fontSize: '28px', color: 'var(--text-primary)',
+                            borderRadius: '12px', cursor: 'pointer', fontSize: '24px', color: 'var(--text-primary)',
                             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                             transition: 'all 0.3s ease'
                         }}

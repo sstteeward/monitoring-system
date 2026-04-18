@@ -753,6 +753,30 @@ html[data-theme="light"] {
   }
 }
 
+/* Admin Settings View */
+.admin-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.admin-settings-inner-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .admin-settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-settings-inner-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .clickable-row {
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
