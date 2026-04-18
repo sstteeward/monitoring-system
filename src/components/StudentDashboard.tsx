@@ -40,7 +40,6 @@ const StudentDashboard: React.FC = () => {
     const [groupModalState, setGroupModalState] = useState<{ isOpen: boolean, title: string, filterType: 'company' | 'department', filterValue: string }>({ isOpen: false, title: '', filterType: 'company', filterValue: '' });
     const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
     const [errorModalTitle, setErrorModalTitle] = useState<string>('Error');
-    const [geoPermission, setGeoPermission] = useState<PermissionState | 'unknown'>('unknown');
     const timerRef = useRef<number | null>(null);
 
     const routerNavigate = useNavigate();
@@ -61,12 +60,6 @@ const StudentDashboard: React.FC = () => {
             setLoading(false);
         });
 
-        if (navigator.permissions && navigator.permissions.query) {
-            navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-                setGeoPermission(result.state);
-                result.onchange = () => setGeoPermission(result.state);
-            }).catch(() => { /* not supported */ });
-        }
 
         checkAnnouncements();
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -254,20 +247,6 @@ const StudentDashboard: React.FC = () => {
         finally { setIsActionLoading(false); }
     };
 
-    const handleManualOverrideClockIn = async () => {
-        try {
-            setIsActionLoading(true);
-            // Bypass geofencing, passing requiresApproval = true
-            const newSession = await timeTrackingService.clockIn(undefined, undefined, true);
-            setSession(newSession);
-            await loadTodaySessions();
-        } catch (e) {
-            setErrorModalTitle('Manual Override Failed');
-            setErrorModalMsg((e as Error).message);
-        } finally {
-            setIsActionLoading(false);
-        }
-    };
 
     const handleClockOut = async () => {
         if (!session) return;
