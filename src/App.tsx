@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./App.css";
 import AuthSignup from "./components/AuthSignup";
 import StudentDashboard from "./components/StudentDashboard";
@@ -115,6 +115,8 @@ function AppContent() {
     }
   };
 
+  const navigate = useNavigate();
+
   if (loading) {
     return <div style={{ color: 'var(--text-muted)', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
   }
@@ -122,7 +124,10 @@ function AppContent() {
   if (isRecovery) {
     return (
       <Routes>
-        <Route path="/change-password" element={<UpdatePasswordView onComplete={() => setIsRecovery(false)} />} />
+        <Route path="/change-password" element={<UpdatePasswordView onComplete={() => {
+            setIsRecovery(false);
+            navigate('/login', { replace: true });
+        }} />} />
         <Route path="*" element={<Navigate to="/change-password" replace />} />
       </Routes>
     );

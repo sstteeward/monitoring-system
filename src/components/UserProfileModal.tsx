@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { profileService, type Profile } from '../services/profileService';
 
 interface UserProfileModalProps {
@@ -53,7 +54,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
         </div>
     );
 
-    return (
+    const modalContent = (
         <div
             onClick={handleBackdropClick}
             className="upm-overlay"
@@ -432,6 +433,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
             `}</style>
         </div>
     );
+    
+    return createPortal(modalContent, document.body);
 };
 
 export default UserProfileModal;
