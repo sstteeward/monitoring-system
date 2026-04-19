@@ -374,7 +374,7 @@ const StudentDashboard: React.FC = () => {
 
                 const spoofingState = detectSpoofExtension(position);
                 if (spoofingState) {
-                    const err = new Error(`Geolocation API spoofing detected. Please disable your extension and try again.`);
+                    const err = new Error(`Geolocation API spoofing detected. Please disable it and try again.`);
                     (err as any).antiCheatReason = 'Browser Extension Spoofing';
                     (err as any).antiCheatDetails = { flag: spoofingState };
                     throw err;
