@@ -14,6 +14,7 @@ export interface Timesheet {
     clock_out_latitude?: number | null;
     clock_out_longitude?: number | null;
     requires_approval?: boolean;
+    photo_url?: string | null;
 }
 
 export const timeTrackingService = {
@@ -58,7 +59,7 @@ export const timeTrackingService = {
         return null;
     },
 
-    async clockIn(lat?: number, lng?: number, requiresApproval: boolean = false) {
+    async clockIn(lat?: number, lng?: number, requiresApproval: boolean = false, photoUrl?: string | null) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
 
@@ -70,7 +71,8 @@ export const timeTrackingService = {
                 clock_in: new Date().toISOString(),
                 clock_in_latitude: lat,
                 clock_in_longitude: lng,
-                requires_approval: requiresApproval
+                requires_approval: requiresApproval,
+                photo_url: photoUrl
             }])
             .select()
             .single();

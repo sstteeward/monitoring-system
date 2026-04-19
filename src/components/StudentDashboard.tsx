@@ -21,6 +21,66 @@ import './StudentDashboard.css';
 
 type View = 'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'announcement' | 'dtr';
 
+// Anti-Cheat: Emulator & VM Detection Header
+const detectEmulator = () => {
+    try {
+        const isWebDriver = navigator.webdriver || false;
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        let isVirtualGPU = false;
+        if (gl) {
+            // @ts-ignore
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            if (debugInfo) {
+                // @ts-ignore
+                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)?.toLowerCase() || '';
+                isVirtualGPU = renderer.includes('swiftshader') ||
+                    renderer.includes('llvmpipe') ||
+                    renderer.includes('virtualbox') ||
+                    renderer.includes('vmware') ||
+                    renderer.includes('bluestacks');
+            }
+        }
+        return isWebDriver || isVirtualGPU;
+    } catch (e) {
+        return false;
+    }
+};
+// Anti-Cheat: Browser Extension & API Spoofing Detection
+const detectSpoofExtension = (position: any) => {
+    try {
+        if (!position) return 'No position object returned';
+
+        // 1. Prototype Chain Check
+        // Real geolocation objects have specific natives. Most basic JS spoofers construct plain Objects.
+        if (position && position.constructor && position.constructor.name !== 'GeolocationPosition') {
+            return 'Prototype Mismatch (Not GeolocationPosition)';
+        }
+        if (position && position.coords && position.coords.constructor && position.coords.constructor.name !== 'GeolocationCoordinates') {
+            return 'Prototype Mismatch (Not GeolocationCoordinates)';
+        }
+
+        // 2. Function Hijack Check
+        // Checks if the native browser function was replaced by a content script
+        const geoString = navigator.geolocation.getCurrentPosition.toString();
+        if (geoString.indexOf('[native code]') === -1) {
+            return 'API Hooking Detected (Non-native getCurrentPosition)';
+        }
+
+        // 3. Return signature anomaly
+        // The native getCurrentPosition STRICTLY returns undefined.
+        // Some poorly written spoof promises return Objects or Promises when invoked synchronously.
+        const testRet = navigator.geolocation.getCurrentPosition(() => { }, () => { }, { timeout: 1 });
+        if (testRet !== undefined) {
+            return 'API Intercepted (Invalid return signature)';
+        }
+
+        return null; // Passed checks
+    } catch (e) {
+        return 'Execution Sandboxed or Hooked';
+    }
+};
+
 const StudentDashboard: React.FC = () => {
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -40,6 +100,10 @@ const StudentDashboard: React.FC = () => {
     const [groupModalState, setGroupModalState] = useState<{ isOpen: boolean, title: string, filterType: 'company' | 'department', filterValue: string }>({ isOpen: false, title: '', filterType: 'company', filterValue: '' });
     const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
     const [errorModalTitle, setErrorModalTitle] = useState<string>('Error');
+    const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+    const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+    const [pendingLocation, setPendingLocation] = useState<{ lat: number, lng: number } | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
     const timerRef = useRef<number | null>(null);
 
     const routerNavigate = useNavigate();
@@ -178,31 +242,142 @@ const StudentDashboard: React.FC = () => {
         setElapsed(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
     };
 
-    const handleClockIn = async () => {
+    const logAntiCheat = async (reason: string, details: any = {}) => {
+        if (!user) return;
+        try {
+            await supabase.from('audit_logs').insert([{
+                user_id: user.id,
+                action: 'anti_cheat_flag',
+                table_name: 'timesheets',
+                details: { event: 'Clock-In Blocked', reason, ...details }
+            }]);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const openCameraParams = async () => {
+        setIsCameraModalOpen(true);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            setCameraStream(stream);
+            setTimeout(() => {
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            }, 100);
+        } catch (err) {
+            console.error("Camera error:", err);
+            setErrorModalTitle('Camera Required');
+            setErrorModalMsg('You must grant camera access to take a mandatory selfie for attendance verification. Please check your browser site settings.');
+            setIsCameraModalOpen(false);
+            setIsActionLoading(false);
+        }
+    };
+
+    const captureSelfieAndClockIn = async () => {
+        if (!videoRef.current || !pendingLocation) return;
+        setIsActionLoading(true);
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error("Could not capture image context");
+
+            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+            const blob = await new Promise<Blob>((resolve, reject) => {
+                canvas.toBlob((b) => {
+                    if (b) resolve(b);
+                    else reject(new Error("Blob failed"));
+                }, 'image/jpeg', 0.8);
+            });
+
+            const fileName = `${user.id}_${Date.now()}.jpg`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('attendance-photos')
+                .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+            if (uploadError) throw new Error("Failed to upload attendance photo.");
+
+            const { data: publicUrlData } = supabase.storage
+                .from('attendance-photos')
+                .getPublicUrl(uploadData.path);
+
+            const newSession = await timeTrackingService.clockIn(
+                pendingLocation.lat || undefined,
+                pendingLocation.lng || undefined,
+                false,
+                publicUrlData.publicUrl
+            );
+
+            setSession(newSession);
+            await loadTodaySessions();
+            closeCameraModal();
+        } catch (e: any) {
+            setErrorModalTitle('Clock In Error');
+            setErrorModalMsg(e.message);
+        }
+        setIsActionLoading(false);
+    };
+
+    const closeCameraModal = () => {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            setCameraStream(null);
+        }
+        setIsCameraModalOpen(false);
+    };
+
+    const initiateClockIn = async () => {
         try {
             setIsActionLoading(true);
 
-            // Geofencing Check
             if (profile?.company?.latitude && profile?.company?.longitude) {
                 const companyLat = profile.company.latitude;
                 const companyLng = profile.company.longitude;
                 const radius = profile.company.geofence_radius || 100; // default 100m
 
                 const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                    if (detectEmulator()) {
+                        const err = new Error("Emulator or Virtualized Environment detected. Standard operations require a real mobile device to verify attendance.");
+                        (err as any).antiCheatReason = 'Emulator Detected';
+                        return reject(err);
+                    }
                     navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0
+                        enableHighAccuracy: true, timeout: 10000, maximumAge: 0
                     });
-                }).catch((err: GeolocationPositionError) => {
-                    if (err.code === 1) { // PERMISSION_DENIED
+                }).catch((err: GeolocationPositionError | Error) => {
+                    if ((err as GeolocationPositionError).code === 1) { // PERMISSION_DENIED
                         throw new Error("You denied location access. Please go to your browser settings, clear permissions for this site, and try again.");
                     }
-                    throw new Error("Could not get your location. Please check browser permissions. " + err.message);
+                    throw err;
                 });
 
-                const userLat = position.coords.latitude;
-                const userLng = position.coords.longitude;
+                const spoofingState = detectSpoofExtension(position);
+                if (spoofingState) {
+                    const err = new Error("Geolocation API spoofing detected. Please disable it and try again.");
+                    (err as any).antiCheatReason = 'Browser Extension Spoofing';
+                    (err as any).antiCheatDetails = { flag: spoofingState };
+                    throw err;
+                }
+
+                const { latitude: userLat, longitude: userLng, altitude, speed, accuracy, heading } = position.coords;
+
+                const timeDiffStr = Math.abs(Date.now() - position.timestamp);
+                if (timeDiffStr > 300000) { // 5 minutes discrepancy
+                    const err = new Error(" Timing Anomaly detected. The GPS data is stale or spoofed. Please disable any spoofers or refresh your location setting.");
+                    (err as any).antiCheatReason = 'Timing Anomaly';
+                    (err as any).antiCheatDetails = { timeDiffStr };
+                    throw err;
+                }
+
+                if (altitude === 0 && speed === 0 && (accuracy === 0 || accuracy === 1) && heading === 0) {
+                    const err = new Error(" Suspicious GPS data detected. Please disable any Mock Location or Fake GPS apps, ensure you have a clear view of the sky, and try again.");
+                    (err as any).antiCheatReason = 'Fake GPS Signature';
+                    throw err;
+                }
 
                 const distance = calculateDistanceInMeters(
                     { latitude: userLat, longitude: userLng },
@@ -213,7 +388,6 @@ const StudentDashboard: React.FC = () => {
                     throw new Error(`You are too far from the company premises to clock in. (Distance: ${Math.round(distance)}m, Limit: ${radius}m)`);
                 }
 
-                // Teleportation Check (if there is a previous completed session today)
                 const lastSession = todaySessions.filter(s => s.clock_out && s.clock_out_latitude && s.clock_out_longitude).pop();
                 if (lastSession && lastSession.clock_out_latitude && lastSession.clock_out_longitude && lastSession.clock_out) {
                     const distFromLastOut = calculateDistanceInMeters(
@@ -221,30 +395,35 @@ const StudentDashboard: React.FC = () => {
                         { latitude: lastSession.clock_out_latitude, longitude: lastSession.clock_out_longitude }
                     );
                     const timeDiffSecs = (new Date().getTime() - new Date(lastSession.clock_out).getTime()) / 1000;
-                    const speed = timeDiffSecs > 0 ? distFromLastOut / timeDiffSecs : 0;
-                    
-                    // If traveling faster than ~108 km/h (30 m/s) and moved more than 2000m, flag as teleporting
-                    if (speed > 30 && distFromLastOut > 2000) {
-                        throw new Error(`Suspicious location change detected. You traveled ${Math.round(distFromLastOut)} meters in just ${Math.round(timeDiffSecs / 60)} minutes.`);
+                    const spd = timeDiffSecs > 0 ? distFromLastOut / timeDiffSecs : 0;
+
+                    if (spd > 30 && distFromLastOut > 2000) {
+                        const err = new Error(`Suspicious location change detected. You traveled ${Math.round(distFromLastOut)} meters in just ${Math.round(timeDiffSecs / 60)} minutes.`);
+                        (err as any).antiCheatReason = 'Teleportation / Speed Anomaly';
+                        (err as any).antiCheatDetails = { speed: spd, distFromLastOut, timeDiffSecs };
+                        throw err;
                     }
                 }
 
-                const newSession = await timeTrackingService.clockIn(userLat, userLng);
-                setSession(newSession);
+                setIsActionLoading(false);
+                setPendingLocation({ lat: userLat, lng: userLng });
+                openCameraParams();
+                return;
             } else {
-                // If company doesn't have geofencing configured, proceed without checking or throw according to rules.
-                // We'll proceed but without location data.
-                const newSession = await timeTrackingService.clockIn();
-                setSession(newSession);
+                setIsActionLoading(false);
+                setPendingLocation({ lat: 0, lng: 0 });
+                openCameraParams();
+                return;
             }
-
-            await loadTodaySessions();
         }
-        catch (e) {
+        catch (e: any) {
+            if (e.antiCheatReason) {
+                logAntiCheat(e.antiCheatReason, e.antiCheatDetails || {});
+            }
             setErrorModalTitle('Clock In Denied');
-            setErrorModalMsg((e as Error).message);
+            setErrorModalMsg(e.message);
+            setIsActionLoading(false);
         }
-        finally { setIsActionLoading(false); }
     };
 
 
@@ -734,7 +913,7 @@ const StudentDashboard: React.FC = () => {
                                                     <div style={{ display: 'flex', gap: '0.5rem', width: '100%', justifyContent: 'center' }}>
                                                         <button
                                                             className={`btn btn-shift ${completedSessions.length === 0 ? 'suggested' : ''} ${isActionLoading ? 'loading' : ''}`}
-                                                            onClick={handleClockIn}
+                                                            onClick={initiateClockIn}
                                                             disabled={isActionLoading}
                                                             title="Clock in for morning shift"
                                                         >
@@ -749,7 +928,7 @@ const StudentDashboard: React.FC = () => {
                                                         </button>
                                                         <button
                                                             className={`btn btn-shift ${completedSessions.length === 1 ? 'suggested' : ''} ${isActionLoading ? 'loading' : ''}`}
-                                                            onClick={handleClockIn}
+                                                            onClick={initiateClockIn}
                                                             disabled={isActionLoading}
                                                             title="Clock in for afternoon shift"
                                                         >
@@ -763,7 +942,7 @@ const StudentDashboard: React.FC = () => {
                                                             )}
                                                         </button>
                                                     </div>
-                                                    
+
                                                 </>
 
                                             ) : (
@@ -966,6 +1145,55 @@ const StudentDashboard: React.FC = () => {
                                     onMouseOut={e => e.currentTarget.style.opacity = '1'}
                                 >
                                     OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Camera Modal */}
+                {isCameraModalOpen && (
+                    <div style={{
+                        position: 'fixed', inset: 0, zIndex: 1000,
+                        background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <div className="glass-card" style={{
+                            padding: '1.5rem', width: '90%', maxWidth: 400,
+                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            borderRadius: '24px', position: 'relative'
+                        }}>
+                            <h3 style={{ margin: '0 0 1rem', color: 'var(--text-primary)', fontSize: '1.25rem' }}>Attendance Selfie</h3>
+                            <p style={{ margin: '0 0 1rem', color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>
+                                A live selfie is required to verify your identity.
+                            </p>
+
+                            <div style={{ width: '100%', borderRadius: 16, overflow: 'hidden', background: '#000', marginBottom: '1.5rem', aspectRatio: '3/4', position: 'relative' }}>
+                                <video
+                                    ref={videoRef}
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                                <button
+                                    className="btn btn-secondary"
+                                    style={{ flex: 1 }}
+                                    onClick={closeCameraModal}
+                                    disabled={isActionLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className={`btn ${isActionLoading ? 'loading' : ''}`}
+                                    style={{ flex: 1, background: 'linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))', color: '#fff', border: 'none' }}
+                                    onClick={captureSelfieAndClockIn}
+                                    disabled={isActionLoading}
+                                >
+                                    {isActionLoading ? 'Saving...' : 'Capture & Time In'}
                                 </button>
                             </div>
                         </div>
