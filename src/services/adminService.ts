@@ -419,6 +419,54 @@ export const adminService = {
         }
 
         return data as AuditLog[];
+    },
+
+    /**
+     * Fetch security alerts (Anti-cheat flags)
+     * Optional departmentId to filter for coordinator view
+     */
+    async getSecurityAlerts(departmentId?: string) {
+        // Step 1: Fetch anti-cheat audit logs
+        const { data: logs, error: logsError } = await supabase
+            .from('audit_logs')
+            .select('*')
+            .eq('action', 'anti_cheat_flag')
+            .order('created_at', { ascending: false })
+            .limit(200);
+
+        if (logsError) {
+            console.error("Error fetching security alerts:", logsError);
+            return [];
+        }
+
+        if (!logs || logs.length === 0) return [];
+
+        // Step 2: Get unique user IDs and fetch their profiles
+        const userIds = [...new Set(logs.map((l: any) => l.user_id))];
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('auth_user_id, first_name, last_name, email, department_id')
+            .in('auth_user_id', userIds);
+
+        if (profilesError) {
+            console.error("Error fetching profiles for security alerts:", profilesError);
+        }
+
+        // Step 3: Build a lookup map and merge
+        const profileMap: Record<string, any> = {};
+        (profiles ?? []).forEach((p: any) => { profileMap[p.auth_user_id] = p; });
+
+        let merged = logs.map((log: any) => ({
+            ...log,
+            profiles: profileMap[log.user_id] || null,
+        }));
+
+        // Step 4: Filter by department if provided (coordinator scoping)
+        if (departmentId) {
+            merged = merged.filter(log => log.profiles?.department_id === departmentId);
+        }
+
+        return merged;
     }
 };
 

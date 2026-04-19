@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { notificationService } from '../services/notificationService';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { profileService, type Profile } from '../services/profileService';
 import { calculateDistanceInMeters } from '../utils/geoUtils';
@@ -77,7 +78,8 @@ const detectSpoofExtension = (position: any) => {
 
         return null; // Passed checks
     } catch (e) {
-        return 'Execution Sandboxed or Hooked';
+        console.warn("Spoof extension detector encountered an error:", e);
+        return null; // Fail open to avoid blocking legitimate users on browser idiosyncrasies
     }
 };
 
@@ -243,16 +245,31 @@ const StudentDashboard: React.FC = () => {
     };
 
     const logAntiCheat = async (reason: string, details: any = {}) => {
-        if (!user) return;
+        if (!user) {
+            console.warn('[AntiCheat] No user session — skipping log');
+            return;
+        }
         try {
-            await supabase.from('audit_logs').insert([{
+            console.log('[AntiCheat] Logging flag:', reason, details);
+            const { error: insertError } = await supabase.from('audit_logs').insert([{
                 user_id: user.id,
                 action: 'anti_cheat_flag',
                 table_name: 'timesheets',
+                record_id: null,
                 details: { event: 'Clock-In Blocked', reason, ...details }
             }]);
+
+            if (insertError) {
+                console.error('[AntiCheat] Failed to insert audit log:', insertError);
+            } else {
+                console.log('[AntiCheat] Audit log inserted successfully');
+            }
+
+            if (profile) {
+                await notificationService.notifyAntiCheatFlag(profile, reason);
+            }
         } catch (err) {
-            console.error(err);
+            console.error('[AntiCheat] Exception:', err);
         }
     };
 
@@ -357,7 +374,7 @@ const StudentDashboard: React.FC = () => {
 
                 const spoofingState = detectSpoofExtension(position);
                 if (spoofingState) {
-                    const err = new Error("Geolocation API spoofing detected. Please disable it and try again.");
+                    const err = new Error(`Geolocation API spoofing detected. Please disable your extension and try again.`);
                     (err as any).antiCheatReason = 'Browser Extension Spoofing';
                     (err as any).antiCheatDetails = { flag: spoofingState };
                     throw err;
@@ -385,7 +402,10 @@ const StudentDashboard: React.FC = () => {
                 );
 
                 if (distance > radius) {
-                    throw new Error(`You are too far from the company premises to clock in. (Distance: ${Math.round(distance)}m, Limit: ${radius}m)`);
+                    const err = new Error(`You are too far from the company premises to clock in. (Distance: ${Math.round(distance)}m, Limit: ${radius}m)`);
+                    (err as any).antiCheatReason = 'Geofence Violation';
+                    (err as any).antiCheatDetails = { distance: Math.round(distance), radius, userLat, userLng };
+                    throw err;
                 }
 
                 const lastSession = todaySessions.filter(s => s.clock_out && s.clock_out_latitude && s.clock_out_longitude).pop();
@@ -460,7 +480,10 @@ const StudentDashboard: React.FC = () => {
                 );
 
                 if (distance > radius) {
-                    throw new Error(`You are too far from the company premises to clock out. (Distance: ${Math.round(distance)}m, Limit: ${radius}m)`);
+                    const err = new Error(`You are too far from the company premises to clock out. (Distance: ${Math.round(distance)}m, Limit: ${radius}m)`);
+                    (err as any).antiCheatReason = 'Geofence Violation (Clock-Out)';
+                    (err as any).antiCheatDetails = { distance: Math.round(distance), radius, userLat, userLng };
+                    throw err;
                 }
 
                 await timeTrackingService.clockOut(session.id, userLat, userLng);
@@ -471,9 +494,12 @@ const StudentDashboard: React.FC = () => {
             setSession(null);
             await loadTodaySessions();
         }
-        catch (e) {
+        catch (e: any) {
+            if (e.antiCheatReason) {
+                logAntiCheat(e.antiCheatReason, e.antiCheatDetails || {});
+            }
             setErrorModalTitle('Clock Out Error');
-            setErrorModalMsg((e as Error).message);
+            setErrorModalMsg(e.message);
         }
         finally { setIsActionLoading(false); }
     };

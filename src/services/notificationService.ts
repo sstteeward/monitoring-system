@@ -134,5 +134,34 @@ export const notificationService = {
             throw error;
         }
         return true;
+    },
+
+    async notifyAntiCheatFlag(studentProfile: any, reason: string) {
+        try {
+            const { data: admins } = await supabase.from('profiles').select('id, auth_user_id, account_type, department_id').eq('account_type', 'admin');
+            const { data: coordinators } = await supabase.from('profiles').select('id, auth_user_id, account_type, department_id').eq('account_type', 'coordinator').eq('department_id', studentProfile.department_id || '');
+
+            const targets = [...(admins || []), ...(coordinators || [])];
+            
+            // Deduplicate by auth_user_id
+            const uniqueTargets = Array.from(new Map(targets.map(item => [item.auth_user_id, item])).values());
+
+            const message = `Security Alert: ${studentProfile.first_name} ${studentProfile.last_name} was blocked from clocking in due to: ${reason}. Please review their recent activity.`;
+
+            // 2. Dispatch notifications
+            const inserts = uniqueTargets.map(target => ({
+                user_id: target.auth_user_id,
+                title: '🚨 Anti-Cheat Alert',
+                message,
+                type: 'danger',
+                is_read: false
+            }));
+
+            if (inserts.length > 0) {
+                await supabase.from('user_notifications').insert(inserts);
+            }
+        } catch (err) {
+            console.error("Failed to notify admins/coordinators of anti-cheat flag:", err);
+        }
     }
 };

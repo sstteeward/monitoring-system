@@ -10,6 +10,7 @@ import CompaniesView from './CompaniesView';
 import CoordinatorProfileView from './CoordinatorProfileView';
 import CoordinatorDepartmentView from './CoordinatorDepartmentView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
+import SecurityAlertsView from './SecurityAlertsView';
 import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
 import UserProfileModal from './UserProfileModal';
@@ -35,7 +36,7 @@ const Icon = {
     clock: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
 };
 
-type View = 'overview' | 'companies' | 'students' | 'approvals' | 'announcement' | 'departments' | 'profile' | 'settings';
+type View = 'overview' | 'companies' | 'students' | 'approvals' | 'announcement' | 'departments' | 'security' | 'profile' | 'settings';
 
 interface NavItem { id: View; label: string; icon: React.ReactNode; badge?: number; }
 
@@ -77,6 +78,7 @@ const CoordinatorDashboard: React.FC = () => {
             students: 'Students',
             approvals: 'Approvals',
             announcement: 'Announcements',
+            security: 'Security Alerts',
             profile: 'My Profile',
             settings: 'Settings',
         };
@@ -165,6 +167,12 @@ const CoordinatorDashboard: React.FC = () => {
                 { id: 'announcement', label: 'Announcements', icon: Icon.megaphone },
             ],
         },
+        {
+            label: 'Security',
+            items: [
+                { id: 'security', label: 'Security Alerts', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> },
+            ],
+        },
     ];
 
     const viewTitles: Record<View, string> = {
@@ -174,6 +182,7 @@ const CoordinatorDashboard: React.FC = () => {
         students: 'Student Management',
         approvals: 'Pending Approvals',
         announcement: 'Announcements',
+        security: 'Security Alerts',
         profile: 'My Profile',
         settings: 'Settings',
     };
@@ -344,6 +353,9 @@ const CoordinatorDashboard: React.FC = () => {
                     {currentView === 'students' && <StudentsView initialFilter={studentFilter} />}
                     {currentView === 'approvals' && <ApprovalsView initialTab={approvalsTab} key={approvalsTab} />}
                     {currentView === 'announcement' && <AnnouncementsView isCoordinator={true} />}
+                    {currentView === 'security' && (
+                        <SecurityAlertsView departmentId={coordinatorDepartment?.id} />
+                    )}
                     {currentView === 'profile' && (
                         <CoordinatorProfileView
                             initialProfile={profile}
