@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { notificationService } from '../services/notificationService';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { profileService, type Profile } from '../services/profileService';
-import { calculateDistanceInMeters } from '../utils/geoUtils';
+import { runFullAntiCheatSuite, quickGeofenceCheck, startContinuousMonitor } from '../services/geofenceService';
 import TimesheetView from './TimesheetView';
 import PerformanceView from './PerformanceView';
 import ProfileView from './ProfileView';
@@ -22,66 +22,8 @@ import './StudentDashboard.css';
 
 type View = 'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'announcement' | 'dtr';
 
-// Anti-Cheat: Emulator & VM Detection Header
-const detectEmulator = () => {
-    try {
-        const isWebDriver = navigator.webdriver || false;
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        let isVirtualGPU = false;
-        if (gl) {
-            // @ts-ignore
-            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-            if (debugInfo) {
-                // @ts-ignore
-                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)?.toLowerCase() || '';
-                isVirtualGPU = renderer.includes('swiftshader') ||
-                    renderer.includes('llvmpipe') ||
-                    renderer.includes('virtualbox') ||
-                    renderer.includes('vmware') ||
-                    renderer.includes('bluestacks');
-            }
-        }
-        return isWebDriver || isVirtualGPU;
-    } catch (e) {
-        return false;
-    }
-};
-// Anti-Cheat: Browser Extension & API Spoofing Detection
-const detectSpoofExtension = (position: any) => {
-    try {
-        if (!position) return 'No position object returned';
+// Anti-cheat detectors are now centralized in services/geofenceService.ts
 
-        // 1. Prototype Chain Check
-        // Real geolocation objects have specific natives. Most basic JS spoofers construct plain Objects.
-        if (position && position.constructor && position.constructor.name !== 'GeolocationPosition') {
-            return 'Prototype Mismatch (Not GeolocationPosition)';
-        }
-        if (position && position.coords && position.coords.constructor && position.coords.constructor.name !== 'GeolocationCoordinates') {
-            return 'Prototype Mismatch (Not GeolocationCoordinates)';
-        }
-
-        // 2. Function Hijack Check
-        // Checks if the native browser function was replaced by a content script
-        const geoString = navigator.geolocation.getCurrentPosition.toString();
-        if (geoString.indexOf('[native code]') === -1) {
-            return 'API Hooking Detected (Non-native getCurrentPosition)';
-        }
-
-        // 3. Return signature anomaly
-        // The native getCurrentPosition STRICTLY returns undefined.
-        // Some poorly written spoof promises return Objects or Promises when invoked synchronously.
-        const testRet = navigator.geolocation.getCurrentPosition(() => { }, () => { }, { timeout: 1 });
-        if (testRet !== undefined) {
-            return 'API Intercepted (Invalid return signature)';
-        }
-
-        return null; // Passed checks
-    } catch (e) {
-        console.warn("Spoof extension detector encountered an error:", e);
-        return null; // Fail open to avoid blocking legitimate users on browser idiosyncrasies
-    }
-};
 
 const StudentDashboard: React.FC = () => {
     const [user, setUser] = useState<any>(null);
@@ -102,10 +44,10 @@ const StudentDashboard: React.FC = () => {
     const [groupModalState, setGroupModalState] = useState<{ isOpen: boolean, title: string, filterType: 'company' | 'department', filterValue: string }>({ isOpen: false, title: '', filterType: 'company', filterValue: '' });
     const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
     const [errorModalTitle, setErrorModalTitle] = useState<string>('Error');
-    const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
-    const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-    const [pendingLocation, setPendingLocation] = useState<{ lat: number, lng: number } | null>(null);
-    const videoRef = useRef<HTMLVideoElement>(null);
+    const [driftWarning, setDriftWarning] = useState<string | null>(null);
+    const driftCountRef = useRef(0);
+    const driftIntervalRef = useRef<number | null>(null);
+
     const timerRef = useRef<number | null>(null);
 
     const routerNavigate = useNavigate();
@@ -256,7 +198,7 @@ const StudentDashboard: React.FC = () => {
                 action: 'anti_cheat_flag',
                 table_name: 'timesheets',
                 record_id: null,
-                details: { event: 'Clock-In Blocked', reason, ...details }
+                details: { event: `${details.action || 'Clock Action'} Blocked`, reason, ...details }
             }]);
 
             if (insertError) {
@@ -273,241 +215,210 @@ const StudentDashboard: React.FC = () => {
         }
     };
 
-    const openCameraParams = async () => {
-        setIsCameraModalOpen(true);
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-            setCameraStream(stream);
-            setTimeout(() => {
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
+    // ── Real-Time Session Monitor ─────────────────────────────────────────
+    // Uses watchPosition for instant detection of fake GPS, VPN, and geofence drift.
+    // No page refresh needed — detections happen passively in real time.
+    useEffect(() => {
+        setDriftWarning(null);
+        driftCountRef.current = 0;
+
+        if (session?.status === 'working' && profile?.company?.latitude && profile?.company?.longitude) {
+            const companyLat = profile.company.latitude;
+            const companyLng = profile.company.longitude;
+            const radius = profile.company.geofence_radius || 100;
+
+            const stopMonitor = startContinuousMonitor(companyLat, companyLng, radius, {
+                onOutOfBounds: (distance, lat, lng) => {
+                    driftCountRef.current += 1;
+                    setDriftWarning(
+                        `You are ${Math.round(distance)}m away from company premises (Limit: ${radius}m). Warning ${driftCountRef.current}/3.`
+                    );
+
+                    logAntiCheat('Session Drift Detected', {
+                        action: 'Drift-Monitor',
+                        distance: Math.round(distance),
+                        radius,
+                        consecutiveCount: driftCountRef.current,
+                        userLat: lat,
+                        userLng: lng
+                    });
+
+                    // Auto clock-out after 3 consecutive out-of-bounds detections
+                    if (driftCountRef.current >= 3 && session) {
+                        timeTrackingService.clockOut(session.id, lat, lng).then(() => {
+                            setSession(null);
+                            loadTodaySessions();
+                            setDriftWarning(null);
+                            setErrorModalTitle('Auto Clock-Out');
+                            setErrorModalMsg(
+                                'You were automatically clocked out because you left the company premises (3 consecutive geofence violations detected in real-time).'
+                            );
+                        }).catch(err => console.error('[Monitor] Auto clock-out failed:', err));
+                    }
+                },
+
+                onBackInBounds: () => {
+                    driftCountRef.current = 0;
+                    setDriftWarning(null);
+                },
+
+                onPositionJump: (jumpDistance, lat, lng) => {
+                    setDriftWarning(
+                        `⚡ Sudden GPS jump detected (${Math.round(jumpDistance)}m). This may indicate fake GPS was toggled.`
+                    );
+                    logAntiCheat('GPS Position Jump', {
+                        action: 'Continuous-Monitor',
+                        jumpDistance: Math.round(jumpDistance),
+                        userLat: lat,
+                        userLng: lng
+                    });
+                },
+
+                onSuspiciousJitter: (reason) => {
+                    logAntiCheat('Suspicious GPS Jitter', {
+                        action: 'Continuous-Monitor',
+                        reason
+                    });
+                },
+
+                onVpnDetected: (details) => {
+                    setDriftWarning(
+                        `🛡 VPN/Proxy detected: ${details.reason || 'IP location mismatch'}. Your IP geolocates ${details.distanceKm}km from your GPS position.`
+                    );
+                    logAntiCheat('VPN / Proxy Detected', {
+                        action: 'Continuous-Monitor',
+                        ipLat: details.ipLat,
+                        ipLng: details.ipLng,
+                        distanceKm: details.distanceKm,
+                        reason: details.reason
+                    });
                 }
-            }, 100);
-        } catch (err) {
-            console.error("Camera error:", err);
-            setErrorModalTitle('Camera Required');
-            setErrorModalMsg('You must grant camera access to take a mandatory selfie for attendance verification. Please check your browser site settings.');
-            setIsCameraModalOpen(false);
-            setIsActionLoading(false);
-        }
-    };
-
-    const captureSelfieAndClockIn = async () => {
-        if (!videoRef.current || !pendingLocation) return;
-        setIsActionLoading(true);
-        try {
-            const canvas = document.createElement('canvas');
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) throw new Error("Could not capture image context");
-
-            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-
-            const blob = await new Promise<Blob>((resolve, reject) => {
-                canvas.toBlob((b) => {
-                    if (b) resolve(b);
-                    else reject(new Error("Blob failed"));
-                }, 'image/jpeg', 0.8);
             });
 
-            const fileName = `${user.id}_${Date.now()}.jpg`;
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('attendance-photos')
-                .upload(fileName, blob, { contentType: 'image/jpeg' });
+            // Also run a periodic 5-minute fallback check (in case watchPosition stops)
+            driftIntervalRef.current = window.setInterval(async () => {
+                try {
+                    const result = await quickGeofenceCheck(companyLat, companyLng, radius);
+                    if (!result.inBounds && driftCountRef.current === 0) {
+                        driftCountRef.current = 1;
+                        setDriftWarning(
+                            `You are ${Math.round(result.distance)}m away from company premises (Limit: ${radius}m).`
+                        );
+                    }
+                } catch { /* fallback — non-critical */ }
+            }, 5 * 60 * 1000);
 
-            if (uploadError) throw new Error("Failed to upload attendance photo.");
-
-            const { data: publicUrlData } = supabase.storage
-                .from('attendance-photos')
-                .getPublicUrl(uploadData.path);
-
-            const newSession = await timeTrackingService.clockIn(
-                pendingLocation.lat || undefined,
-                pendingLocation.lng || undefined,
-                false,
-                publicUrlData.publicUrl
-            );
-
-            setSession(newSession);
-            await loadTodaySessions();
-            closeCameraModal();
-        } catch (e: any) {
-            setErrorModalTitle('Clock In Error');
-            setErrorModalMsg(e.message);
+            return () => {
+                stopMonitor();
+                if (driftIntervalRef.current) {
+                    clearInterval(driftIntervalRef.current);
+                    driftIntervalRef.current = null;
+                }
+            };
         }
-        setIsActionLoading(false);
-    };
 
-    const closeCameraModal = () => {
-        if (cameraStream) {
-            cameraStream.getTracks().forEach(track => track.stop());
-            setCameraStream(null);
-        }
-        setIsCameraModalOpen(false);
-    };
+        return () => {
+            if (driftIntervalRef.current) {
+                clearInterval(driftIntervalRef.current);
+                driftIntervalRef.current = null;
+            }
+        };
+    }, [session?.id, session?.status]);
 
+    // ── Clock In — Full Anti-Cheat Suite ─────────────────────────────────
     const initiateClockIn = async () => {
         try {
             setIsActionLoading(true);
 
-            if (profile?.company?.latitude && profile?.company?.longitude) {
-                const companyLat = profile.company.latitude;
-                const companyLng = profile.company.longitude;
-                const radius = profile.company.geofence_radius || 100; // default 100m
+            if (profile) {
+                const result = await runFullAntiCheatSuite(profile, 'Clock-In', todaySessions);
 
-                const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    if (detectEmulator()) {
-                        const err = new Error("Emulator or Virtualized Environment detected. Standard operations require a real mobile device to verify attendance.");
-                        (err as any).antiCheatReason = 'Emulator Detected';
-                        return reject(err);
-                    }
-                    navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: true, timeout: 10000, maximumAge: 0
+                if (!result.passed) {
+                    logAntiCheat(result.antiCheatReason || 'Unknown', {
+                        action: 'Clock-In',
+                        ...result.antiCheatDetails
                     });
-                }).catch((err: GeolocationPositionError | Error) => {
-                    if ((err as GeolocationPositionError).code === 1) { // PERMISSION_DENIED
-                        throw new Error("You denied location access. Please go to your browser settings, clear permissions for this site, and try again.");
-                    }
-                    throw err;
-                });
-
-                const spoofingState = detectSpoofExtension(position);
-                if (spoofingState) {
-                    const err = new Error(`Geolocation API spoofing detected. Please disable it and try again.`);
-                    (err as any).antiCheatReason = 'Browser Extension Spoofing';
-                    (err as any).antiCheatDetails = { flag: spoofingState };
-                    throw err;
+                    setErrorModalTitle('Clock In Denied');
+                    setErrorModalMsg(result.userMessage || 'Security check failed.');
+                    return;
                 }
 
-                const { latitude: userLat, longitude: userLng, altitude, speed, accuracy, heading } = position.coords;
-
-                const timeDiffStr = Math.abs(Date.now() - position.timestamp);
-                if (timeDiffStr > 300000) { // 5 minutes discrepancy
-                    const err = new Error(" Timing Anomaly detected. The GPS data is stale or spoofed. Please disable any spoofers or refresh your location setting.");
-                    (err as any).antiCheatReason = 'Timing Anomaly';
-                    (err as any).antiCheatDetails = { timeDiffStr };
-                    throw err;
-                }
-
-                if (altitude === 0 && speed === 0 && (accuracy === 0 || accuracy === 1) && heading === 0) {
-                    const err = new Error(" Suspicious GPS data detected. Please disable any Mock Location or Fake GPS apps, ensure you have a clear view of the sky, and try again.");
-                    (err as any).antiCheatReason = 'Fake GPS Signature';
-                    throw err;
-                }
-
-                const distance = calculateDistanceInMeters(
-                    { latitude: userLat, longitude: userLng },
-                    { latitude: companyLat, longitude: companyLng }
-                );
-
-                if (distance > radius) {
-                    const err = new Error(`You are too far from the company premises to clock in. (Distance: ${Math.round(distance)}m, Limit: ${radius}m)`);
-                    (err as any).antiCheatReason = 'Geofence Violation';
-                    (err as any).antiCheatDetails = { distance: Math.round(distance), radius, userLat, userLng };
-                    throw err;
-                }
-
-                const lastSession = todaySessions.filter(s => s.clock_out && s.clock_out_latitude && s.clock_out_longitude).pop();
-                if (lastSession && lastSession.clock_out_latitude && lastSession.clock_out_longitude && lastSession.clock_out) {
-                    const distFromLastOut = calculateDistanceInMeters(
-                        { latitude: userLat, longitude: userLng },
-                        { latitude: lastSession.clock_out_latitude, longitude: lastSession.clock_out_longitude }
-                    );
-                    const timeDiffSecs = (new Date().getTime() - new Date(lastSession.clock_out).getTime()) / 1000;
-                    const spd = timeDiffSecs > 0 ? distFromLastOut / timeDiffSecs : 0;
-
-                    if (spd > 30 && distFromLastOut > 2000) {
-                        const err = new Error(`Suspicious location change detected. You traveled ${Math.round(distFromLastOut)} meters in just ${Math.round(timeDiffSecs / 60)} minutes.`);
-                        (err as any).antiCheatReason = 'Teleportation / Speed Anomaly';
-                        (err as any).antiCheatDetails = { speed: spd, distFromLastOut, timeDiffSecs };
-                        throw err;
-                    }
-                }
-
-                setIsActionLoading(false);
-                setPendingLocation({ lat: userLat, lng: userLng });
-                openCameraParams();
-                return;
+                // Passed all checks — clock in with validated coordinates
+                const newSession = await timeTrackingService.clockIn(result.latitude, result.longitude);
+                setSession(newSession);
+                await loadTodaySessions();
             } else {
-                setIsActionLoading(false);
-                setPendingLocation({ lat: 0, lng: 0 });
-                openCameraParams();
-                return;
+                // No profile loaded — basic clock-in
+                const newSession = await timeTrackingService.clockIn();
+                setSession(newSession);
+                await loadTodaySessions();
             }
-        }
-        catch (e: any) {
-            if (e.antiCheatReason) {
-                logAntiCheat(e.antiCheatReason, e.antiCheatDetails || {});
-            }
-            setErrorModalTitle('Clock In Denied');
-            setErrorModalMsg(e.message);
+        } catch (e: any) {
+            setErrorModalTitle('Clock In Error');
+            setErrorModalMsg(e.message || 'An unexpected error occurred.');
+        } finally {
             setIsActionLoading(false);
         }
     };
 
-
+    // ── Clock Out — Full Anti-Cheat Suite ────────────────────────────────
     const handleClockOut = async () => {
         if (!session) return;
         try {
             setIsActionLoading(true);
 
-            // Geofencing Check for Clock Out
-            if (profile?.company?.latitude && profile?.company?.longitude) {
-                const companyLat = profile.company.latitude;
-                const companyLng = profile.company.longitude;
-                const radius = profile.company.geofence_radius || 100;
+            if (profile) {
+                const result = await runFullAntiCheatSuite(profile, 'Clock-Out');
 
-                const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0
+                if (!result.passed) {
+                    logAntiCheat(result.antiCheatReason || 'Unknown', {
+                        action: 'Clock-Out',
+                        ...result.antiCheatDetails
                     });
-                }).catch((err: GeolocationPositionError) => {
-                    if (err.code === 1) { // PERMISSION_DENIED
-                        throw new Error("You denied location access. Please go to your browser settings, clear permissions for this site, and try again.");
-                    }
-                    throw new Error("Could not get your location. Please check browser permissions. " + err.message);
-                });
-
-                const userLat = position.coords.latitude;
-                const userLng = position.coords.longitude;
-
-                const distance = calculateDistanceInMeters(
-                    { latitude: userLat, longitude: userLng },
-                    { latitude: companyLat, longitude: companyLng }
-                );
-
-                if (distance > radius) {
-                    const err = new Error(`You are too far from the company premises to clock out. (Distance: ${Math.round(distance)}m, Limit: ${radius}m)`);
-                    (err as any).antiCheatReason = 'Geofence Violation (Clock-Out)';
-                    (err as any).antiCheatDetails = { distance: Math.round(distance), radius, userLat, userLng };
-                    throw err;
+                    setErrorModalTitle('Clock Out Denied');
+                    setErrorModalMsg(result.userMessage || 'Security check failed.');
+                    return;
                 }
 
-                await timeTrackingService.clockOut(session.id, userLat, userLng);
+                await timeTrackingService.clockOut(session.id, result.latitude, result.longitude);
             } else {
                 await timeTrackingService.clockOut(session.id);
             }
 
             setSession(null);
+            setDriftWarning(null);
+            driftCountRef.current = 0;
             await loadTodaySessions();
-        }
-        catch (e: any) {
-            if (e.antiCheatReason) {
-                logAntiCheat(e.antiCheatReason, e.antiCheatDetails || {});
-            }
+        } catch (e: any) {
             setErrorModalTitle('Clock Out Error');
-            setErrorModalMsg(e.message);
+            setErrorModalMsg(e.message || 'An unexpected error occurred.');
+        } finally {
+            setIsActionLoading(false);
         }
-        finally { setIsActionLoading(false); }
     };
 
+    // ── Break — Geofence Validated ───────────────────────────────────────
     const handleBreak = async () => {
         if (!session) return;
         try {
             setIsActionLoading(true);
+
+            // Run full anti-cheat for break actions too
+            if (profile) {
+                const breakAction = session.status === 'working' ? 'Break-Start' : 'Break-End';
+                const result = await runFullAntiCheatSuite(profile, breakAction as any);
+
+                if (!result.passed) {
+                    logAntiCheat(result.antiCheatReason || 'Unknown', {
+                        action: breakAction,
+                        ...result.antiCheatDetails
+                    });
+                    setErrorModalTitle('Break Denied');
+                    setErrorModalMsg(result.userMessage || 'Security check failed.');
+                    return;
+                }
+            }
+
             const updated = session.status === 'working'
                 ? await timeTrackingService.startBreak(session.id)
                 : await timeTrackingService.endBreak(session.id);
@@ -516,8 +427,9 @@ const StudentDashboard: React.FC = () => {
         } catch (e) {
             setErrorModalTitle('Timer Error');
             setErrorModalMsg((e as Error).message);
+        } finally {
+            setIsActionLoading(false);
         }
-        finally { setIsActionLoading(false); }
     };
 
     const navigateTo = (view: View) => {
@@ -858,6 +770,41 @@ const StudentDashboard: React.FC = () => {
 
                     {/* Page content */}
                     <div className="page-content">
+                        {/* Geofence Drift Warning Banner */}
+                        {driftWarning && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.12))',
+                                border: '1px solid rgba(245, 158, 11, 0.4)',
+                                borderRadius: '12px',
+                                padding: '0.85rem 1.2rem',
+                                marginBottom: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.75rem',
+                                animation: 'fadeIn 0.3s ease'
+                            }}>
+                                <div style={{
+                                    width: 40, height: 40, borderRadius: '50%',
+                                    background: 'rgba(245, 158, 11, 0.15)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    flexShrink: 0
+                                }}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                        <line x1="12" y1="9" x2="12" y2="13" />
+                                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div style={{ fontWeight: 600, color: '#f59e0b', fontSize: '0.9rem' }}>
+                                        ⚠ Geofence Warning
+                                    </div>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '2px' }}>
+                                        {driftWarning}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {currentView === 'dashboard' ? (
                             <>
                                 {/* ── Greeting Banner ── */}
@@ -1177,54 +1124,7 @@ const StudentDashboard: React.FC = () => {
                     </div>
                 )}
 
-                {/* Camera Modal */}
-                {isCameraModalOpen && (
-                    <div style={{
-                        position: 'fixed', inset: 0, zIndex: 1000,
-                        background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        <div className="glass-card" style={{
-                            padding: '1.5rem', width: '90%', maxWidth: 400,
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            borderRadius: '24px', position: 'relative'
-                        }}>
-                            <h3 style={{ margin: '0 0 1rem', color: 'var(--text-primary)', fontSize: '1.25rem' }}>Attendance Selfie</h3>
-                            <p style={{ margin: '0 0 1rem', color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>
-                                A live selfie is required to verify your identity.
-                            </p>
 
-                            <div style={{ width: '100%', borderRadius: 16, overflow: 'hidden', background: '#000', marginBottom: '1.5rem', aspectRatio: '3/4', position: 'relative' }}>
-                                <video
-                                    ref={videoRef}
-                                    autoPlay
-                                    playsInline
-                                    muted
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
-                                <button
-                                    className="btn btn-secondary"
-                                    style={{ flex: 1 }}
-                                    onClick={closeCameraModal}
-                                    disabled={isActionLoading}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className={`btn ${isActionLoading ? 'loading' : ''}`}
-                                    style={{ flex: 1, background: 'linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))', color: '#fff', border: 'none' }}
-                                    onClick={captureSelfieAndClockIn}
-                                    disabled={isActionLoading}
-                                >
-                                    {isActionLoading ? 'Saving...' : 'Capture & Time In'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </>
     );
