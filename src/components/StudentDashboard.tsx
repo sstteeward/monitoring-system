@@ -5,6 +5,7 @@ import { notificationService } from '../services/notificationService';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { profileService, type Profile } from '../services/profileService';
 import { runFullAntiCheatSuite, quickGeofenceCheck, startContinuousMonitor } from '../services/geofenceService';
+import { dtrService } from '../services/dtrService';
 import TimesheetView from './TimesheetView';
 import PerformanceView from './PerformanceView';
 import ProfileView from './ProfileView';
@@ -347,11 +348,22 @@ const StudentDashboard: React.FC = () => {
                 const newSession = await timeTrackingService.clockIn(result.latitude, result.longitude);
                 setSession(newSession);
                 await loadTodaySessions();
+
+                // Write to DTR: first clock-in = morning, second = afternoon
+                const completedBefore = todaySessions.filter(s => s.status === 'completed').length;
+                const dtrField = completedBefore === 0 ? 'morning_in' : 'afternoon_in';
+                try { await dtrService.upsertDTRField(dtrField as any, new Date().toISOString()); }
+                catch (dtrErr) { console.warn('[DTR] Write failed (non-blocking):', dtrErr); }
             } else {
                 // No profile loaded — basic clock-in
                 const newSession = await timeTrackingService.clockIn();
                 setSession(newSession);
                 await loadTodaySessions();
+
+                const completedBefore = todaySessions.filter(s => s.status === 'completed').length;
+                const dtrField = completedBefore === 0 ? 'morning_in' : 'afternoon_in';
+                try { await dtrService.upsertDTRField(dtrField as any, new Date().toISOString()); }
+                catch (dtrErr) { console.warn('[DTR] Write failed (non-blocking):', dtrErr); }
             }
         } catch (e: any) {
             setErrorModalTitle('Clock In Error');
@@ -384,6 +396,12 @@ const StudentDashboard: React.FC = () => {
             } else {
                 await timeTrackingService.clockOut(session.id);
             }
+
+            // Write to DTR: first clock-out = morning, second = afternoon
+            const completedBefore = todaySessions.filter(s => s.status === 'completed').length;
+            const dtrField = completedBefore === 0 ? 'morning_out' : 'afternoon_out';
+            try { await dtrService.upsertDTRField(dtrField as any, new Date().toISOString()); }
+            catch (dtrErr) { console.warn('[DTR] Write failed (non-blocking):', dtrErr); }
 
             setSession(null);
             setDriftWarning(null);
@@ -514,6 +532,7 @@ const StudentDashboard: React.FC = () => {
                         department={profile?.department || profile?.course || ''}
                         position="STUDENT"
                         requiredHours={profile?.required_ojt_hours || 0}
+                        userId={user?.id}
                     />
                 </div>
             );

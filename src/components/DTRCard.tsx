@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import './DTRCard.css';
 import html2canvas from 'html2canvas';
+import { dtrService, type DTRRecordRow } from '../services/dtrService';
+import { supabase } from '../lib/supabaseClient';
 
 export interface DTRRecord {
   day: number;
@@ -11,6 +13,8 @@ export interface DTRRecord {
   overtimeIn: string;
   overtimeOut: string;
   total: string;
+  /** Whether this row has data auto-filled from Supabase */
+  autoFilled?: boolean;
 }
 
 export interface DTRCardData {
@@ -38,6 +42,10 @@ export interface DTRCardData {
   };
   frontRecords: DTRRecord[];
   backRecords: DTRRecord[];
+  /** Month (1-12) this card represents */
+  month?: number;
+  /** Year this card represents */
+  year?: number;
 }
 
 export interface DTRCardProps {
@@ -46,23 +54,38 @@ export interface DTRCardProps {
   position?: string;
   month?: string;
   requiredHours?: number;
+  /** If provided, the card will auto-fetch DTR data from Supabase */
+  userId?: string;
 }
 
 export function DTRCard({ 
   employeeName = "STUDENT NAME", 
   department = "DEPARTMENT", 
   position = "STUDENT", 
-  requiredHours = 0
+  requiredHours = 0,
+  userId
 }: DTRCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
-  const createNewCard = (id: string): DTRCardData => ({
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const createEmptyRecords = (): DTRRecord[] =>
+    Array.from({ length: 31 }, (_, i) => ({
+      day: i + 1, morningIn: '', morningOut: '', afternoonIn: '', afternoonOut: '',
+      overtimeIn: '', overtimeOut: '', total: '', autoFilled: false
+    }));
+
+  const createNewCard = (id: string, month?: number, year?: number): DTRCardData => ({
     id,
     isFlipped: false,
     header: {
       no: '',
-      payEnding: '',
+      payEnding: month && year
+        ? `${new Date(year, (month || 1) - 1).toLocaleString('default', { month: 'long' })} ${year}`
+        : '',
       name: employeeName,
       position: position,
       dept: department,
@@ -78,32 +101,149 @@ export function DTRCard({
       totalDeductions: '',
       netPay: '',
     },
-    frontRecords: Array.from({ length: 31 }, (_, i) => ({
-      day: i + 1, morningIn: '', morningOut: '', afternoonIn: '', afternoonOut: '', overtimeIn: '', overtimeOut: '', total: ''
-    })),
-    backRecords: Array.from({ length: 31 }, (_, i) => ({
-      day: i + 1, morningIn: '', morningOut: '', afternoonIn: '', afternoonOut: '', overtimeIn: '', overtimeOut: '', total: ''
-    })),
+    frontRecords: createEmptyRecords(),
+    backRecords: createEmptyRecords(),
+    month: month || currentMonth,
+    year: year || currentYear,
   });
 
   const [cards, setCards] = useState<DTRCardData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // ── Load DTR data from Supabase ────────────────────────────────────────
+  const applyDTRData = (card: DTRCardData, records: DTRRecordRow[]): DTRCardData => {
+    const updatedFront = [...card.frontRecords];
+    const updatedBack = [...card.backRecords];
+
+    records.forEach(rec => {
+      const dateObj = new Date(rec.record_date + 'T00:00:00');
+      const day = dateObj.getDate();
+
+      const row: DTRRecord = {
+        day,
+        morningIn: dtrService.formatTime(rec.morning_in),
+        morningOut: dtrService.formatTime(rec.morning_out),
+        afternoonIn: dtrService.formatTime(rec.afternoon_in),
+        afternoonOut: dtrService.formatTime(rec.afternoon_out),
+        overtimeIn: dtrService.formatTime(rec.overtime_in),
+        overtimeOut: dtrService.formatTime(rec.overtime_out),
+        total: dtrService.formatTotal(rec.daily_total),
+        autoFilled: true,
+      };
+
+      // Front side records (days 1-31)
+      const frontIdx = updatedFront.findIndex(r => r.day === day);
+      if (frontIdx !== -1) {
+        // Preserve manually-entered overtime if Supabase has no overtime data
+        const existing = updatedFront[frontIdx];
+        updatedFront[frontIdx] = {
+          ...row,
+          overtimeIn: rec.overtime_in ? row.overtimeIn : existing.overtimeIn,
+          overtimeOut: rec.overtime_out ? row.overtimeOut : existing.overtimeOut,
+        };
+      }
+    });
+
+    return { ...card, frontRecords: updatedFront, backRecords: updatedBack };
+  };
+
+  const loadDTRForCard = async (card: DTRCardData): Promise<DTRCardData> => {
+    if (!userId || !card.month || !card.year) return card;
+    const records = await dtrService.fetchMonthDTR(card.month, card.year);
+    return applyDTRData(card, records);
+  };
+
+  // ── Initialize cards ──────────────────────────────────────────────────
   useEffect(() => {
     if (cards.length > 0) return;
 
-    setCards([createNewCard(crypto.randomUUID())]);
-  }, [employeeName, department, position]);
+    const initCard = createNewCard(crypto.randomUUID(), currentMonth, currentYear);
+    
+    if (userId) {
+      setIsLoading(true);
+      loadDTRForCard(initCard).then(loaded => {
+        setCards([loaded]);
+        setIsLoading(false);
+      });
+    } else {
+      setCards([initCard]);
+    }
+  }, [employeeName, department, position, userId]);
+
+  // ── Real-time subscription ────────────────────────────────────────────
+  useEffect(() => {
+    if (!userId) return;
+
+    const unsubscribe = dtrService.subscribeToChanges(userId, (updatedRecord) => {
+      const dateObj = new Date(updatedRecord.record_date + 'T00:00:00');
+      const recordMonth = dateObj.getMonth() + 1;
+      const recordYear = dateObj.getFullYear();
+      const day = dateObj.getDate();
+
+      setCards(prev => prev.map(card => {
+        if (card.month !== recordMonth || card.year !== recordYear) return card;
+
+        const updatedFront = card.frontRecords.map(r => {
+          if (r.day !== day) return r;
+          return {
+            ...r,
+            morningIn: dtrService.formatTime(updatedRecord.morning_in),
+            morningOut: dtrService.formatTime(updatedRecord.morning_out),
+            afternoonIn: dtrService.formatTime(updatedRecord.afternoon_in),
+            afternoonOut: dtrService.formatTime(updatedRecord.afternoon_out),
+            overtimeIn: updatedRecord.overtime_in ? dtrService.formatTime(updatedRecord.overtime_in) : r.overtimeIn,
+            overtimeOut: updatedRecord.overtime_out ? dtrService.formatTime(updatedRecord.overtime_out) : r.overtimeOut,
+            total: dtrService.formatTotal(updatedRecord.daily_total),
+            autoFilled: true,
+          };
+        });
+
+        return { ...card, frontRecords: updatedFront };
+      }));
+    });
+
+    return unsubscribe;
+  }, [userId]);
 
   const handleGenerateRequired = () => {
     const estimatedCards = requiredHours > 0 ? Math.ceil(requiredHours / 160) : 1;
-    const initialCards = Array.from({ length: Math.max(1, estimatedCards) }, () => 
-      createNewCard(crypto.randomUUID())
-    );
-    setCards(initialCards);
+    const generatedCards: DTRCardData[] = [];
+    
+    for (let i = 0; i < Math.max(1, estimatedCards); i++) {
+      // Generate cards for consecutive months starting from current
+      let m = ((currentMonth - 1 + i) % 12) + 1;
+      let y = currentYear + Math.floor((currentMonth - 1 + i) / 12);
+      generatedCards.push(createNewCard(crypto.randomUUID(), m, y));
+    }
+
+    if (userId) {
+      setIsLoading(true);
+      Promise.all(generatedCards.map(c => loadDTRForCard(c))).then(loaded => {
+        setCards(loaded);
+        setIsLoading(false);
+      });
+    } else {
+      setCards(generatedCards);
+    }
   };
 
   const handleAddCard = () => {
-    setCards(prev => [...prev, createNewCard(crypto.randomUUID())]);
+    // Add card for next month after the last card
+    const lastCard = cards[cards.length - 1];
+    let nextMonth = lastCard ? ((lastCard.month || currentMonth) % 12) + 1 : currentMonth;
+    let nextYear = lastCard 
+      ? (lastCard.month === 12 ? (lastCard.year || currentYear) + 1 : (lastCard.year || currentYear))
+      : currentYear;
+
+    const newCard = createNewCard(crypto.randomUUID(), nextMonth, nextYear);
+    
+    if (userId) {
+      loadDTRForCard(newCard).then(loaded => {
+        setCards(prev => [...prev, loaded]);
+      });
+    } else {
+      setCards(prev => [...prev, newCard]);
+    }
   };
 
   const handleFlip = (cardId: string) => {
@@ -154,6 +294,11 @@ export function DTRCard({
 
   const estimatedCount = requiredHours > 0 ? Math.ceil(requiredHours / 160) : 1;
 
+  const getMonthLabel = (card: DTRCardData) => {
+    if (!card.month || !card.year) return '';
+    return `${new Date(card.year, card.month - 1).toLocaleString('default', { month: 'long' })} ${card.year}`;
+  };
+
   return (
     <div className={`dtr-container ${isPrinting ? 'printing' : ''}`} ref={containerRef}>
       <div className="dtr-header-section">
@@ -166,6 +311,19 @@ export function DTRCard({
         <span className="banner-estimate">Estimated DTR cards needed: <strong>{estimatedCount}</strong></span>
       </div>
 
+      {isLoading && (
+        <div style={{
+          textAlign: 'center', padding: '2rem', color: 'var(--text-muted)',
+          fontSize: '0.9rem', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: '0.5rem'
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          Loading DTR records from database...
+        </div>
+      )}
+
       <div className={`dtr-cards-grid ${cards.length === 1 ? 'single-card' : ''}`}>
         {cards.map((card, index) => (
           <div key={card.id} className={`dtr-card-wrapper`}>
@@ -173,6 +331,13 @@ export function DTRCard({
               <div className="tc-card-badge">
                 <span className="badge-label">DTR CARD</span>
                 <span className="badge-value">{index + 1}</span>
+                {card.month && card.year && (
+                  <span className="badge-month" style={{
+                    marginLeft: '8px', fontSize: '9px', opacity: 0.7, fontWeight: 500
+                  }}>
+                    {getMonthLabel(card)}
+                  </span>
+                )}
               </div>
               {!isPrinting && (
                 <button className="dtr-btn-flip-tab" onClick={() => handleFlip(card.id)}>
@@ -380,7 +545,7 @@ function DTRFace({ data, side, onHeaderChange, onPayrollChange, onRecordChange }
           </thead>
           <tbody>
             {records.map((rec) => (
-              <tr key={rec.day}>
+              <tr key={rec.day} className={rec.autoFilled ? 'dtr-auto-filled' : ''}>
                 <td className="day-num">{rec.day}</td>
                 <td><input className="tc-grid-input" value={rec.morningIn} onChange={e => onRecordChange(rec.day, 'morningIn', e.target.value)} /></td>
                 <td><input className="tc-grid-input" value={rec.morningOut} onChange={e => onRecordChange(rec.day, 'morningOut', e.target.value)} /></td>

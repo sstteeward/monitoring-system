@@ -469,6 +469,26 @@
   background: rgba(16, 185, 129, 0.05);
 }
 
+/* ---- AUTO-FILLED ROWS (from Supabase) ---- */
+.dtr-auto-filled td {
+  background: rgba(16, 185, 129, 0.06) !important;
+}
+
+.dtr-auto-filled .tc-grid-input {
+  color: #0d6844;
+  font-weight: 600;
+}
+
+.dtr-auto-filled td.day-num {
+  color: #0d6844;
+  font-weight: 700;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ---- CERTIFICATION SECTION ---- */
 .tc-cert {
   border-top: 1px solid var(--border-strong);
@@ -765,7 +785,40 @@
 
 
 @media print {
-  .dtr-actions { display: none; }
-  .dtr-container { padding: 0; }
-  .dtr-card { border: none; width: 100%; }
+  body * {
+    visibility: hidden;
+  }
+  
+  .dtr-cards-grid,
+  .dtr-cards-grid * {
+    visibility: visible;
+  }
+
+  .dtr-cards-grid {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    gap: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .dtr-card-container {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 20px;
+    width: 480px !important;
+  }
+
+  .tc-flip-btn,
+  .dtr-actions, 
+  .dtr-main-heading, 
+  .tc-card-header-actions,
+  .dtr-header-section { 
+    display: none !important; 
+  }
 }

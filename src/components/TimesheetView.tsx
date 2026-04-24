@@ -3,6 +3,7 @@ import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { TableSkeleton, CardGridSkeleton } from './Skeletons';
 import { DTRCard } from './DTRCard';
 import { profileService } from '../services/profileService';
+import { supabase } from '../lib/supabaseClient';
 import './TimesheetView.css';
 
 const TimesheetView: React.FC = () => {
@@ -10,9 +11,13 @@ const TimesheetView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showDTR, setShowDTR] = useState(false);
     const [requiredHours, setRequiredHours] = useState<number>(0);
+    const [userId, setUserId] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         loadTimesheets();
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) setUserId(user.id);
+        });
     }, []);
 
     const loadTimesheets = async () => {
@@ -226,7 +231,7 @@ const TimesheetView: React.FC = () => {
                             e.currentTarget.style.transform = 'scale(1)';
                         }}
                         >&times;</button>
-                        <DTRCard requiredHours={requiredHours} />
+                        <DTRCard requiredHours={requiredHours} userId={userId} />
                     </div>
                 </div>
             )}
