@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import './DTRCard.css';
 import html2canvas from 'html2canvas';
 import { dtrService, type DTRRecordRow } from '../services/dtrService';
-import { supabase } from '../lib/supabaseClient';
 
 export interface DTRRecord {
   day: number;
