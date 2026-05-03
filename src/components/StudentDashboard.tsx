@@ -265,6 +265,7 @@ const StudentDashboard: React.FC = () => {
                     });
 
                     // Auto clock-out after 3 consecutive out-of-bounds detections
+                    /*
                     if (driftCountRef.current >= 3 && session) {
                         timeTrackingService.clockOut(session.id, lat, lng).then(() => {
                             setSession(null);
@@ -276,6 +277,7 @@ const StudentDashboard: React.FC = () => {
                             );
                         }).catch(err => console.error('[Monitor] Auto clock-out failed:', err));
                     }
+                    */
                 },
 
                 onBackInBounds: () => {

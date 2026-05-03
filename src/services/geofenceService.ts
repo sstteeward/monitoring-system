@@ -223,16 +223,6 @@ export async function runFullAntiCheatSuite(
     // ── 5. GPS Accuracy Validation ──────────────────────────────────────
     if (isAccuracyTooLow(accuracy)) {
         flags.push('low_accuracy_warning');
-        return {
-            passed: false,
-            latitude: userLat,
-            longitude: userLng,
-            accuracy,
-            antiCheatReason: 'GPS Accuracy Too Low',
-            antiCheatDetails: { action, accuracy },
-            userMessage: `GPS signal too weak (accuracy: ${Math.round(accuracy)}m). Please move to an open area with a clear view of the sky and try again.`,
-            flags: ['gps_accuracy_too_low']
-        };
     }
 
     // ── 6. Fake GPS Signature ───────────────────────────────────────────
@@ -259,20 +249,7 @@ export async function runFullAntiCheatSuite(
     );
 
     if (distance > radius) {
-        const actionLabel = action === 'Clock-In' ? 'clock in' :
-            action === 'Clock-Out' ? 'clock out' :
-                action === 'Break-Start' ? 'start break' : 'end break';
-
-        return {
-            passed: false,
-            latitude: userLat,
-            longitude: userLng,
-            accuracy,
-            antiCheatReason: `Geofence Violation (${action})`,
-            antiCheatDetails: { action, distance: Math.round(distance), radius, userLat, userLng },
-            userMessage: `You are too far from the company premises to ${actionLabel}. (Distance: ${Math.round(distance)}m, Limit: ${radius}m)`,
-            flags: ['geofence_violation']
-        };
+        flags.push('geofence_violation');
     }
 
     // ── 9. Teleportation / Speed Anomaly (Clock-In only) ────────────────
