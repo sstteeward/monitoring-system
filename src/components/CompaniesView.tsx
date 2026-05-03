@@ -3,6 +3,7 @@ import { coordinatorService, type Company, type CompanyRequest } from '../servic
 import { CardGridSkeleton, TableSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import UserClickableName from './UserClickableName';
+import LocationPickerMap from './LocationPickerMap';
 import './CoordinatorDashboard.css';
 
 type CompanyViewMode = 'list' | 'detail';
@@ -397,6 +398,21 @@ const CompaniesView: React.FC = () => {
                             </div>
                             
                             <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', color: 'var(--admin-text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>Geofencing (Optional)</h4>
+                            
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <LocationPickerMap 
+                                    initialLat={editCompanyForm.latitude ? parseFloat(editCompanyForm.latitude) : null}
+                                    initialLng={editCompanyForm.longitude ? parseFloat(editCompanyForm.longitude) : null}
+                                    onLocationSelect={(lat, lng) => {
+                                        setEditCompanyForm(p => ({ 
+                                            ...p, 
+                                            latitude: lat.toFixed(6), 
+                                            longitude: lng.toFixed(6) 
+                                        }));
+                                    }}
+                                />
+                            </div>
+
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Latitude</label>
@@ -566,6 +582,21 @@ const CompaniesView: React.FC = () => {
                         </div>
                         
                         <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', color: 'var(--admin-text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>Geofencing (Optional)</h4>
+                        
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <LocationPickerMap 
+                                initialLat={newCompany.latitude ? parseFloat(newCompany.latitude) : null}
+                                initialLng={newCompany.longitude ? parseFloat(newCompany.longitude) : null}
+                                onLocationSelect={(lat, lng) => {
+                                    setNewCompany(p => ({ 
+                                        ...p, 
+                                        latitude: lat.toFixed(6), 
+                                        longitude: lng.toFixed(6) 
+                                    }));
+                                }}
+                            />
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', marginBottom: '0.35rem' }}>Latitude</label>

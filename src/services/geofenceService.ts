@@ -258,7 +258,16 @@ export async function runFullAntiCheatSuite(
     );
 
     if (distance > radius) {
-        flags.push('geofence_violation');
+        return {
+            passed: false,
+            latitude: userLat,
+            longitude: userLng,
+            accuracy,
+            antiCheatReason: 'Geofence Violation',
+            antiCheatDetails: { action, distance, radius },
+            userMessage: `You must be within the company premises to perform this action. You are ${Math.round(distance)}m away (Limit: ${radius}m).`,
+            flags: ['geofence_violation']
+        };
     }
 
     // ── 9. Teleportation / Speed Anomaly (Clock-In only) ────────────────
