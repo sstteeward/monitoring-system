@@ -178,6 +178,15 @@ export async function runFullAntiCheatSuite(
     try {
         position = await getAccuratePosition({ maxAccuracy: 150, timeout: 12000, retries: 1 });
     } catch (err: any) {
+        // If the user is trying to clock out or take a break, don't trap them if GPS fails indoors
+        if (action === 'Clock-Out' || action === 'Break-Start' || action === 'Break-End') {
+            flags.push('gps_acquisition_failed_bypassed');
+            return {
+                passed: true,
+                flags
+            };
+        }
+
         // getAccuratePosition already formats permission-denied errors nicely
         return {
             passed: false,
