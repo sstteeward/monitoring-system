@@ -100,7 +100,10 @@ export async function signIn({ email, password, role }: { email: string; passwor
     }
 
     if (role && profile.account_type !== role) {
-      throw new Error('Access Denied: Your account is not authorized for this portal.');
+      // Allow admins to log in via the coordinator portal
+      if (!(role === 'coordinator' && profile.account_type === 'admin')) {
+        throw new Error('Access Denied: Your account is not authorized for this portal.');
+      }
     }
 
     // 4. On absolute success, reset failed attempts

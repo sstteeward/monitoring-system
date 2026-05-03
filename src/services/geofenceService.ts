@@ -5,7 +5,7 @@
  * Used by clock-in, clock-out, and break actions equally.
  */
 
-import { calculateDistanceInMeters, getMultiSamplePosition } from '../utils/geoUtils';
+import { calculateDistanceInMeters, getAccuratePosition } from '../utils/geoUtils';
 import type { Profile } from './profileService';
 import type { Timesheet } from './timeTracking';
 
@@ -173,10 +173,10 @@ export async function runFullAntiCheatSuite(
         };
     }
 
-    // ── 2. Multi-Sample GPS Acquisition ─────────────────────────────────
-    let multiSample;
+    // ── 2. Fast GPS Acquisition (Single Sample) ─────────────────────────
+    let position: GeolocationPosition;
     try {
-        multiSample = await getMultiSamplePosition(50);
+        position = await getAccuratePosition({ maxAccuracy: 150, timeout: 12000, retries: 1 });
     } catch (err: any) {
         // getAccuratePosition already formats permission-denied errors nicely
         return {
@@ -188,7 +188,6 @@ export async function runFullAntiCheatSuite(
         };
     }
 
-    const position = multiSample.position;
     const { latitude: userLat, longitude: userLng, altitude, speed, accuracy, heading } = position.coords;
 
     // ── 3. Spoof Extension Detection ────────────────────────────────────
@@ -251,19 +250,7 @@ export async function runFullAntiCheatSuite(
     }
 
     // ── 7. Multi-Sample Consistency ─────────────────────────────────────
-    if (!multiSample.consistent) {
-        flags.push('sample_inconsistency');
-        return {
-            passed: false,
-            latitude: userLat,
-            longitude: userLng,
-            accuracy,
-            antiCheatReason: 'GPS Sample Inconsistency',
-            antiCheatDetails: { action, sampleDrift: Math.round(multiSample.sampleDrift) },
-            userMessage: `GPS readings are inconsistent (${Math.round(multiSample.sampleDrift)}m drift between samples). This may indicate location spoofing. Please disable any mock location apps and try again.`,
-            flags: ['gps_sample_inconsistency']
-        };
-    }
+    // Removed to improve clock-in speed.
 
     // ── 8. Geofence Distance Check ──────────────────────────────────────
     const distance = calculateDistanceInMeters(

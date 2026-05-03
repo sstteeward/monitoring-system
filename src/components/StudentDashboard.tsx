@@ -39,6 +39,8 @@ const StudentDashboard: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     const [hasNewAnnouncements, setHasNewAnnouncements] = useState(false);
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [showNotifications, setShowNotifications] = useState(false);
     const [needsOnboarding, setNeedsOnboarding] = useState(false);
     const [showWelcome, setShowWelcome] = useState(false);
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -64,15 +66,33 @@ const StudentDashboard: React.FC = () => {
         // Load everything required before dropping the loading screen
         Promise.all([
             loadSession(),
-            loadProfile()
+            loadProfile(),
+            loadNotifications()
         ]).finally(() => {
             setLoading(false);
         });
 
-
         checkAnnouncements();
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, []);
+
+    const loadNotifications = async () => {
+        try {
+            const notifs = await notificationService.getUserNotifications();
+            setNotifications(notifs);
+        } catch (err) {
+            console.error('Failed to load notifications:', err);
+        }
+    };
+
+    const markNotificationAsRead = async (id: string) => {
+        try {
+            await notificationService.markAsRead(id);
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+        } catch (err) {
+            console.error('Failed to mark notification as read:', err);
+        }
+    };
 
     // Reload profile when navigating between views to pick up approved transfers
     useEffect(() => {
@@ -265,7 +285,7 @@ const StudentDashboard: React.FC = () => {
 
                 onPositionJump: (jumpDistance, lat, lng) => {
                     setDriftWarning(
-                        `⚡ Sudden GPS jump detected (${Math.round(jumpDistance)}m). This may indicate fake GPS was toggled.`
+                        ` Sudden GPS jump detected (${Math.round(jumpDistance)}m). This may indicate fake GPS was toggled.`
                     );
                     logAntiCheat('GPS Position Jump', {
                         action: 'Continuous-Monitor',
@@ -284,7 +304,7 @@ const StudentDashboard: React.FC = () => {
 
                 onVpnDetected: (details) => {
                     setDriftWarning(
-                        `🛡 VPN/Proxy detected: ${details.reason || 'IP location mismatch'}. Your IP geolocates ${details.distanceKm}km from your GPS position.`
+                        ` VPN/Proxy detected: ${details.reason || 'IP location mismatch'}. Your IP geolocates ${details.distanceKm}km from your GPS position.`
                     );
                     logAntiCheat('VPN / Proxy Detected', {
                         action: 'Continuous-Monitor',
@@ -662,7 +682,7 @@ const StudentDashboard: React.FC = () => {
                                 style={{ position: 'relative' }}
                             >
                                 <span className="nav-icon" style={{ position: 'relative' }}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 11 18-5v12L3 14v-3z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>
                                     {hasNewAnnouncements && (
                                         <span style={{
                                             position: 'absolute', top: -3, right: -3,
@@ -770,6 +790,73 @@ const StudentDashboard: React.FC = () => {
                                         {statusKey === 'working' ? 'Working' : statusKey === 'break' ? 'On Break' : 'Clocked Out'}
                                     </span>
                                 </div>
+
+                                <div style={{ position: 'relative' }}>
+                                    <button 
+                                        className="topbar-user-btn" 
+                                        onClick={() => setShowNotifications(!showNotifications)}
+                                        style={{ padding: '0.5rem', background: 'var(--bg-elevated)', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                        {notifications.filter(n => !n.is_read).length > 0 && (
+                                            <span style={{ position: 'absolute', top: -2, right: -2, background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 700, width: 16, height: 16, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {notifications.filter(n => !n.is_read).length}
+                                            </span>
+                                        )}
+                                    </button>
+                                    
+                                    {showNotifications && (
+                                        <>
+                                            <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setShowNotifications(false)} />
+                                            <div style={{
+                                                position: 'absolute', top: 'calc(100% + 10px)', right: 0,
+                                                width: 320, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                                                borderRadius: 16, zIndex: 999, boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
+                                                overflow: 'hidden', animation: 'fadeIn 0.2s ease'
+                                            }}>
+                                                <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-bright)' }}>Notifications</h4>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>{notifications.filter(n => !n.is_read).length} new</span>
+                                                </div>
+                                                <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                                                    {notifications.length === 0 ? (
+                                                        <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                                            No notifications yet.
+                                                        </div>
+                                                    ) : (
+                                                        notifications.map(n => (
+                                                            <div 
+                                                                key={n.id} 
+                                                                onClick={() => { if (!n.is_read) markNotificationAsRead(n.id); }}
+                                                                style={{ 
+                                                                    padding: '1rem', borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                                                                    background: n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)',
+                                                                    borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--primary)',
+                                                                    transition: 'background 0.2s'
+                                                                }}
+                                                                onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                                                onMouseOut={e => e.currentTarget.style.background = n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)'}
+                                                            >
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                                                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: n.is_read ? 'var(--text-primary)' : 'var(--text-bright)' }}>
+                                                                        {n.title}
+                                                                    </div>
+                                                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                                                                        {new Date(n.created_at).toLocaleDateString()}
+                                                                    </div>
+                                                                </div>
+                                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                                                    {n.message}
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
                                 <div className="topbar-divider" />
                                 <button className="topbar-user-btn" onClick={() => navigateTo('profile')}>
                                     <div className="topbar-user-info">

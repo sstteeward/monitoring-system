@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import type { Profile } from './profileService';
 import type { Timesheet } from './timeTracking';
+import { notificationService } from './notificationService';
 
 // Define a type for Daily Journals since it might not be exported from journalService
 export interface DailyJournal {
@@ -886,5 +887,34 @@ export const coordinatorService = {
             thisWeekActivityCount: weeklyActivityCount,
             progressData: progressData.sort((a, b) => b.hours - a.hours)
         };
+    },
+
+    /**
+     * Update a student's grade
+     */
+    async updateStudentGrade(studentId: string, grade: string) {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ grade })
+            .eq('auth_user_id', studentId);
+
+        if (error) {
+            console.error('Error updating student grade:', error);
+            throw error;
+        }
+
+        // Notify the student
+        try {
+            await notificationService.createNotification(
+                studentId,
+                'Grade Updated',
+                `Your final grade has been updated to: ${grade}. View it in your Profile.`,
+                'success'
+            );
+        } catch (notifErr) {
+            console.error('Failed to notify student about grade update:', notifErr);
+        }
+
+        return true;
     }
 };

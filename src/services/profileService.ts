@@ -23,6 +23,7 @@ export interface Profile {
     section?: string | null;
     course?: string | null;
     department?: string | null;
+    grade?: string | null;
     // Enterprise fields
     department_id?: string | null;
     permissions?: any;

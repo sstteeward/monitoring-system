@@ -19,13 +19,6 @@ const CoordinatorIcon = () => (
   </svg>
 );
 
-const AdminIcon = () => (
-  <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    <path d="m9 12 2 2 4-4" />
-  </svg>
-);
-
 export default function LandingPage() {
   const navigate = useNavigate();
 
@@ -65,13 +58,6 @@ export default function LandingPage() {
             <p>Manage student applications, verify records, and approvals.</p>
           </div>
 
-          <div className="portal-card admin" onClick={() => handlePortalSelect('admin')} role="button" tabIndex={0}>
-            <div className="portal-card-icon-wrap">
-              <AdminIcon />
-            </div>
-            <h3>Admin Portal <span className="arrow">→</span></h3>
-            <p>System configuration, user management, and oversight.</p>
-          </div>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { profileService, type Profile } from '../services/profileService';
+import { DTRCard } from './DTRCard';
 
 interface UserProfileModalProps {
     profileId: string | null;
@@ -10,6 +11,7 @@ interface UserProfileModalProps {
 const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose }) => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(false);
+    const [showDTR, setShowDTR] = useState(false);
 
     useEffect(() => {
         if (!profileId) return;
@@ -253,10 +255,29 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                                     </section>
 
                                     <section>
-                                        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={{ width: 20, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
-                                            Attendance
-                                        </h3>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                                                <span style={{ width: 20, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
+                                                Attendance
+                                            </h3>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); setShowDTR(true); }}
+                                                style={{
+                                                    background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '8px', 
+                                                    padding: '0.4rem 0.8rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                                                    display: 'flex', alignItems: 'center', gap: '0.4rem'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
+                                                }}
+                                            >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                                                View DTR Card
+                                            </button>
+                                        </div>
                                         <div style={{ 
                                             background: 'rgba(255,158,11,0.03)', 
                                             border: '1px solid rgba(255,158,11,0.1)', 
@@ -281,6 +302,49 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                     </div>
                 )}
             </div>
+
+            {showDTR && profile && (
+                <div className="modal-overlay" onClick={(e) => { e.stopPropagation(); setShowDTR(false); }} style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+                    backgroundColor: 'rgba(0,0,0,0.6)', 
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    zIndex: 9999,
+                    display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '0',
+                    overflow: 'auto',
+                    animation: 'fadeIn 0.3s ease-out'
+                }}>
+                    <div style={{position: 'relative', minWidth: '100%', width: 'fit-content'}} onClick={e => e.stopPropagation()}>
+                        <button className="glass-card" onClick={(e) => { e.stopPropagation(); setShowDTR(false); }} style={{
+                            position: 'fixed', top: '16px', right: '16px', zIndex: 10000,
+                            width: '40px', height: '40px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', 
+                            borderRadius: '12px', cursor: 'pointer', fontSize: '24px', color: 'var(--text-primary)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                            transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--primary)';
+                            e.currentTarget.style.color = 'var(--primary)';
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border-strong)';
+                            e.currentTarget.style.color = 'var(--text-primary)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                        >&times;</button>
+                        <DTRCard 
+                            requiredHours={profile.required_ojt_hours || 0} 
+                            userId={profile.auth_user_id} 
+                            employeeName={`${profile.first_name} ${profile.last_name}`}
+                            department={profile.department || "N/A"}
+                            isCoordinatorView={true}
+                        />
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

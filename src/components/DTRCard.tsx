@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import './DTRCard.css';
 import html2canvas from 'html2canvas';
 import { dtrService, type DTRRecordRow } from '../services/dtrService';
+import { TableSkeleton } from './Skeletons';
 
 export interface DTRRecord {
   day: number;
@@ -55,6 +56,7 @@ export interface DTRCardProps {
   requiredHours?: number;
   /** If provided, the card will auto-fetch DTR data from Supabase */
   userId?: string;
+  isCoordinatorView?: boolean;
 }
 
 export function DTRCard({ 
@@ -62,7 +64,8 @@ export function DTRCard({
   department = "DEPARTMENT", 
   position = "STUDENT", 
   requiredHours = 0,
-  userId
+  userId,
+  isCoordinatorView = false
 }: DTRCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -82,9 +85,7 @@ export function DTRCard({
     isFlipped: false,
     header: {
       no: '',
-      payEnding: month && year
-        ? `${new Date(year, (month || 1) - 1).toLocaleString('default', { month: 'long' })} ${year}`
-        : '',
+      payEnding: '',
       name: employeeName,
       position: position,
       dept: department,
@@ -310,21 +311,13 @@ export function DTRCard({
         <span className="banner-estimate">Estimated DTR cards needed: <strong>{estimatedCount}</strong></span>
       </div>
 
-      {isLoading && (
-        <div style={{
-          textAlign: 'center', padding: '2rem', color: 'var(--text-muted)',
-          fontSize: '0.9rem', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', gap: '0.5rem'
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-          </svg>
-          Loading DTR records from database...
+      {isLoading ? (
+        <div style={{ padding: '2rem', width: '100%' }}>
+          <TableSkeleton rows={10} cols={6} />
         </div>
-      )}
-
-      <div className={`dtr-cards-grid ${cards.length === 1 ? 'single-card' : ''}`}>
-        {cards.map((card, index) => (
+      ) : (
+        <div className={`dtr-cards-grid ${cards.length === 1 ? 'single-card' : ''}`}>
+          {cards.map((card, index) => (
           <div key={card.id} className={`dtr-card-wrapper`}>
             <div className="tc-card-header-actions">
               <div className="tc-card-badge">
@@ -373,36 +366,39 @@ export function DTRCard({
           </div>
         ))}
       </div>
+      )}
 
       {/* ===== ACTIONS ===== */}
-      <div className="dtr-actions">
-        {requiredHours > 0 && (
-          <button className="dtr-btn dtr-btn-primary" onClick={handleGenerateRequired}>
+      {!isCoordinatorView && (
+        <div className="dtr-actions">
+          {requiredHours > 0 && (
+            <button className="dtr-btn dtr-btn-primary" onClick={handleGenerateRequired}>
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Generate {estimatedCount} Required DTRs
+            </button>
+          )}
+          <button className="dtr-btn dtr-btn-secondary" onClick={handleAddCard}>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Generate {estimatedCount} Required DTRs
+            Add New DTR
           </button>
-        )}
-        <button className="dtr-btn dtr-btn-secondary" onClick={handleAddCard}>
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add New DTR
-        </button>
-        <button className="dtr-btn dtr-btn-primary" onClick={handleDownloadImage}>
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Download All
-        </button>
-        <button className="dtr-btn dtr-btn-secondary" onClick={() => window.print()}>
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-          </svg>
-          Print
-        </button>
-      </div>
+          <button className="dtr-btn dtr-btn-primary" onClick={handleDownloadImage}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download All
+          </button>
+          <button className="dtr-btn dtr-btn-secondary" onClick={() => window.print()}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Print
+          </button>
+        </div>
+      )}
     </div>
   );
 }
