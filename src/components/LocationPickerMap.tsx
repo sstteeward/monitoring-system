@@ -70,7 +70,7 @@ const LocationPickerMap: React.FC<LocationPickerMapProps> = ({ initialLat, initi
     const [isSearching, setIsSearching] = useState(false);
     const [suggestions, setSuggestions] = useState<PhotonResult[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const searchTimeoutRef = useRef<NodeJS.Timeout>();
+    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>();
 
     useEffect(() => {
         if (initialLat && initialLng) {
@@ -92,18 +92,24 @@ const LocationPickerMap: React.FC<LocationPickerMapProps> = ({ initialLat, initi
             return;
         }
 
-        searchTimeoutRef.current = setTimeout(async () => {
-            try {
-                const res = await fetch(
-                    `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=8`
-                );
-                const data = await res.json();
-                setSuggestions(data.features || []);
-                setShowSuggestions((data.features || []).length > 0);
-            } catch (err) {
-                console.error('Search failed:', err);
-                setSuggestions([]);
-            }
+        setIsSearching(true);
+        searchTimeoutRef.current = setTimeout(() => {
+            const fetchData = async () => {
+                try {
+                    const res = await fetch(
+                        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=8`
+                    );
+                    const data = await res.json();
+                    setSuggestions(data.features || []);
+                    setShowSuggestions((data.features || []).length > 0);
+                } catch (err) {
+                    console.error('Search failed:', err);
+                    setSuggestions([]);
+                } finally {
+                    setIsSearching(false);
+                }
+            };
+            fetchData();
         }, 300);
     };
 
@@ -130,16 +136,6 @@ const LocationPickerMap: React.FC<LocationPickerMapProps> = ({ initialLat, initi
         e.preventDefault();
         if (!searchQuery.trim() || suggestions.length === 0) return;
         selectSuggestion(suggestions[0]);
-    };
-
-    const formatAddress = (result: PhotonResult): string => {
-        const { name, street, city, state, country } = result.properties;
-        const parts = [];
-        if (street) parts.push(street);
-        if (city) parts.push(city);
-        if (state) parts.push(state);
-        if (country) parts.push(country);
-        return parts.filter(Boolean).join(', ') || name || 'Location';
     };
 
     return (
