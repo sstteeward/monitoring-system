@@ -70,7 +70,7 @@ const LocationPickerMap: React.FC<LocationPickerMapProps> = ({ initialLat, initi
     const [isSearching, setIsSearching] = useState(false);
     const [suggestions, setSuggestions] = useState<PhotonResult[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>();
+    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     useEffect(() => {
         if (initialLat && initialLng) {
