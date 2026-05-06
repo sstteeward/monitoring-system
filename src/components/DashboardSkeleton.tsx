@@ -38,7 +38,7 @@ const DashboardSkeleton: React.FC = () => {
             </aside>
 
             {/* MAIN SKELETON */}
-            <div className="dashboard-main">
+            <div className="dashboard-main sidebar-expanded">
                 <div className="topbar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div className="skeleton skeleton-circle" style={{ width: 24, height: 24 }} />

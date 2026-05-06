@@ -1351,8 +1351,7 @@ html[data-theme="light"] .btn-danger:hover:not(:disabled) {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.1);
     z-index: 199;
 }
 
@@ -2104,4 +2103,4 @@ html[data-theme="light"] .btn-danger:hover:not(:disabled) {
         display: inline;
     }
 }
-
+

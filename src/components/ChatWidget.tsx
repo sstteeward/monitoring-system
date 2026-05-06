@@ -305,7 +305,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
     return (
         <div className="chat-widget-container">
             {isOpen && (
-                <div className="chat-window">
+                <>
+                    <div className="chat-overlay" onClick={() => setIsOpen(false)} />
+                    <div className="chat-window">
                     {activeThreadUser ? (
                         // ─── THREAD VIEW ───
                         <div className="chat-thread">
@@ -654,7 +656,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                             </div>
                         </>
                     )}
-                </div>
+                    </div>
+                </>
             )}
 
             <button className="chat-toggle-btn" onClick={() => setIsOpen(!isOpen)} title="Messages">

@@ -763,7 +763,7 @@ const StudentDashboard: React.FC = () => {
                 </aside>
 
                 {/* ══ MAIN ══ */}
-                <div className="dashboard-main">
+                <div className={`dashboard-main sidebar-${sidebarMode}`}>
                     {/* Topbar */}
                     <div className="topbar">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

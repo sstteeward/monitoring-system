@@ -25,6 +25,9 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
     const [pwSuccess, setPwSuccess] = useState(false);
     const [pwError, setPwError] = useState<string | null>(null);
 
+    const [showTerms, setShowTerms] = useState(false);
+    const [showPrivacy, setShowPrivacy] = useState(false);
+
     useEffect(() => {
         loadSettings();
     }, []);
@@ -218,8 +221,55 @@ const AdminSettingsView: React.FC<{ profile: any }> = ({ profile }) => {
                         <span style={{ color: 'var(--admin-text-secondary)' }}>Status</span>
                         <span style={{ color: '#10b981', fontWeight: 600 }}>Active</span>
                     </div>
+                    {/* Legal Section */}
+                    <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--admin-border)' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Legal</div>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button className="role-select" onClick={() => setShowTerms(true)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                                Terms & Conditions
+                            </button>
+                            <button className="role-select" onClick={() => setShowPrivacy(true)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                                Privacy Policy
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Legal Modals */}
+            {showTerms && (
+                <div className="modal-overlay fade-in" onClick={() => setShowTerms(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+                    <div className="modal-content glass-card" onClick={e => e.stopPropagation()} style={{ background: 'var(--admin-card-bg)', padding: '2rem', borderRadius: 16, maxWidth: 500, width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--admin-border)' }}>
+                        <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', color: 'var(--admin-text-primary)' }}>Terms & Conditions</h3>
+                        <div style={{ fontSize: '0.88rem', color: 'var(--admin-text-secondary)', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <p><strong>1. Acceptance of Terms</strong><br/>By accessing and using the SIL Monitoring System, you agree to be bound by these Terms and Conditions.</p>
+                            <p><strong>2. User Accounts</strong><br/>You are responsible for maintaining the confidentiality of your account credentials. You must immediately notify the administration of any unauthorized use of your account.</p>
+                            <p><strong>3. Use of Service</strong><br/>This system is strictly provided for tracking and managing Student Internship Learning (SIL) hours. Misuse, tampering, or falsification of attendance records is strictly prohibited and may result in disciplinary action.</p>
+                            <p><strong>4. Modifications</strong><br/>We reserve the right to modify these terms at any time. Continued use of the application following any changes indicates your acceptance of the new terms.</p>
+                        </div>
+                        <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+                            <button className="role-select" style={{ background: 'var(--admin-primary)', color: 'white' }} onClick={() => setShowTerms(false)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showPrivacy && (
+                <div className="modal-overlay fade-in" onClick={() => setShowPrivacy(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+                    <div className="modal-content glass-card" onClick={e => e.stopPropagation()} style={{ background: 'var(--admin-card-bg)', padding: '2rem', borderRadius: 16, maxWidth: 500, width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--admin-border)' }}>
+                        <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', color: 'var(--admin-text-primary)' }}>Privacy Policy</h3>
+                        <div style={{ fontSize: '0.88rem', color: 'var(--admin-text-secondary)', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <p><strong>1. Data Collection</strong><br/>We collect personal information (such as name and email) and location data (for geofenced clock-ins) strictly to facilitate the SIL program.</p>
+                            <p><strong>2. Data Usage</strong><br/>Your data is used solely for educational monitoring, grading, and administrative purposes within Asian College Dumaguete.</p>
+                            <p><strong>3. Data Protection</strong><br/>We implement robust security measures to protect your information against unauthorized access, alteration, or disclosure.</p>
+                            <p><strong>4. Third Parties</strong><br/>We do not share your personal data with third parties without your explicit consent, unless required by law.</p>
+                        </div>
+                        <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+                            <button className="role-select" style={{ background: 'var(--admin-primary)', color: 'white' }} onClick={() => setShowPrivacy(false)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

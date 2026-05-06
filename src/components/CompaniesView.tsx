@@ -403,6 +403,7 @@ const CompaniesView: React.FC = () => {
                                 <LocationPickerMap 
                                     initialLat={editCompanyForm.latitude ? parseFloat(editCompanyForm.latitude) : null}
                                     initialLng={editCompanyForm.longitude ? parseFloat(editCompanyForm.longitude) : null}
+                                    geofenceRadius={editCompanyForm.geofence_radius ? parseInt(editCompanyForm.geofence_radius) : 100}
                                     onLocationSelect={(lat, lng) => {
                                         setEditCompanyForm(p => ({ 
                                             ...p, 
@@ -587,6 +588,7 @@ const CompaniesView: React.FC = () => {
                             <LocationPickerMap 
                                 initialLat={newCompany.latitude ? parseFloat(newCompany.latitude) : null}
                                 initialLng={newCompany.longitude ? parseFloat(newCompany.longitude) : null}
+                                geofenceRadius={newCompany.geofence_radius ? parseInt(newCompany.geofence_radius) : 100}
                                 onLocationSelect={(lat, lng) => {
                                     setNewCompany(p => ({ 
                                         ...p, 
