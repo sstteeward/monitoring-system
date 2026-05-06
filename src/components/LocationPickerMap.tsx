@@ -80,6 +80,14 @@ const LocationPickerMap: React.FC<LocationPickerMapProps> = ({ initialLat, initi
         }
     }, [initialLat, initialLng]);
 
+    useEffect(() => {
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, []);
+
     // Photon geocoding API (free, no API key needed)
     const handleSearchChange = (query: string) => {
         setSearchQuery(query);
