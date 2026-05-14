@@ -21,6 +21,33 @@ const EyeOffIcon = () => (
     </svg>
 );
 
+const getPasswordStrength = (password: string) => {
+    let score = 0;
+    if (!password) return 0;
+    if (password.length >= 8) score += 1;
+    if (/[a-z]/.test(password)) score += 1;
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/\d/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    return Math.min(score, 4); // Max score is 4 for styling simplicity
+};
+
+const getStrengthLabel = (score: number) => {
+    if (score === 0) return '';
+    if (score <= 1) return 'Weak';
+    if (score === 2) return 'Fair';
+    if (score === 3) return 'Good';
+    return 'Strong';
+};
+
+const getStrengthColor = (score: number) => {
+    if (score === 0) return 'var(--border)';
+    if (score <= 1) return 'var(--error)';
+    if (score === 2) return 'var(--warning)';
+    if (score === 3) return '#3b82f6'; // Blue
+    return 'var(--success)';
+};
+
 export default function AuthSignup() {
     const location = useLocation();
     // Read the portal role from URL search params (e.g. /login?portal=coordinator)
@@ -58,6 +85,10 @@ export default function AuthSignup() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+    const passwordScore = getPasswordStrength(signupPassword);
+    const strengthLabel = getStrengthLabel(passwordScore);
+    const strengthColor = getStrengthColor(passwordScore);
 
     // Recover portal access-denied errors that were saved before sign-out redirect
     useEffect(() => {
@@ -117,7 +148,7 @@ export default function AuthSignup() {
             if (error) throw error;
             setOtpSent(true);
             setOtpValue("");
-            setInfoMessage("An 8-digit code was sent to your email. Enter it below.");
+            setInfoMessage("A 6-digit code was sent to your email. Enter it.");
             setOtpCooldown(60);
             const timer = setInterval(() => {
                 setOtpCooldown(prev => {
@@ -133,7 +164,7 @@ export default function AuthSignup() {
     };
 
     const handleVerifyOtp = async () => {
-        if (otpValue.length < 8) return;
+        if (otpValue.length < 6) return;
 
         // Validate that password fields are filled before verifying
         const e: Record<string, string> = {};
@@ -302,7 +333,7 @@ export default function AuthSignup() {
                 <div className="auth-card-right">
                     {mode === "signup" ? (
                         <div className="auth-form-wrapper">
-                            <div className="card-header" style={{ marginBottom: '1.25rem' }}>
+                            <div className="auth-card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h1>{displayRole ? `Create Account as ${displayRole}` : "Create Your Account"}</h1>
                                 <p className="subtitle">Sign up using your <strong>.edu.ph</strong> email.</p>
                             </div>
@@ -312,22 +343,25 @@ export default function AuthSignup() {
                                     <div className="form-row">
                                         <label>
                                             First Name *
-                                            <input value={firstName} onChange={e => setFirstName(e.target.value)} />
+                                            <input value={firstName} onChange={e => setFirstName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} />
                                             {errors.firstName && <span className="error">{errors.firstName}</span>}
                                         </label>
                                         <label>
                                             Middle Name
-                                            <input value={middleName} onChange={e => setMiddleName(e.target.value)} />
+                                            <input value={middleName} onChange={e => setMiddleName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} />
                                         </label>
                                         <label>
                                             Last Name *
-                                            <input value={lastName} onChange={e => setLastName(e.target.value)} />
+                                            <input value={lastName} onChange={e => setLastName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} />
                                             {errors.lastName && <span className="error">{errors.lastName}</span>}
                                         </label>
                                     </div>
 
                                     <label className="full-width">
-                                        Email Address *
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>Email Address *</span>
+                                            {emailVerified && <span style={{ color: 'var(--success)', fontSize: '0.75rem' }}>Verified ✓</span>}
+                                        </div>
                                         <div className="email-row">
                                             <input
                                                 type="email"
@@ -349,87 +383,103 @@ export default function AuthSignup() {
                                                 {emailVerified
                                                     ? "Verified ✓"
                                                     : sendingOtp
-                                                    ? "Sending..."
-                                                    : otpCooldown > 0
-                                                    ? `Resend (${otpCooldown}s)`
-                                                    : "Send code"}
+                                                        ? "Sending..."
+                                                        : otpCooldown > 0
+                                                            ? `Resend (${otpCooldown}s)`
+                                                            : "Send code"}
                                             </button>
                                         </div>
-                                        <div id="email-note" className="muted">Only emails ending with <code>.edu.ph</code> are accepted.</div>
+                                        <div id="email-note" className="muted" style={{ marginTop: '-0.3rem' }}>Only emails ending with <code>.edu.ph</code> are accepted.</div>
                                         {errors.signupEmail && <span className="error">{errors.signupEmail}</span>}
                                     </label>
 
-                                    <label className="full-width">
-                                        Password *
-                                        <div className="password-input-wrapper">
-                                            <input
-                                                type={showSignupPassword ? "text" : "password"}
-                                                value={signupPassword}
-                                                onChange={e => {
-                                                    setSignupPassword(e.target.value);
-                                                    setErrors(prev => ({ ...prev, signupPassword: "" }));
-                                                }}
-                                                placeholder="Create a password (min 8 characters)"
-                                            />
-                                            <button 
-                                                type="button" 
-                                                className="password-toggle-btn" 
-                                                onClick={() => setShowSignupPassword(!showSignupPassword)}
-                                                tabIndex={-1}
-                                            >
-                                                {showSignupPassword ? <EyeIcon /> : <EyeOffIcon />}
-                                            </button>
-                                        </div>
-                                        {errors.signupPassword && <span className="error">{errors.signupPassword}</span>}
-                                    </label>
+                                    <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                        <label>
+                                            Password *
+                                            <div className="password-input-wrapper">
+                                                <input
+                                                    type={showSignupPassword ? "text" : "password"}
+                                                    value={signupPassword}
+                                                    onChange={e => {
+                                                        setSignupPassword(e.target.value);
+                                                        setErrors(prev => ({ ...prev, signupPassword: "" }));
+                                                    }}
+                                                    placeholder="Min 8 chars"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="password-toggle-btn"
+                                                    onClick={() => setShowSignupPassword(!showSignupPassword)}
+                                                    tabIndex={-1}
+                                                >
+                                                    {showSignupPassword ? <EyeIcon /> : <EyeOffIcon />}
+                                                </button>
+                                            </div>
+                                            {signupPassword && (
+                                                <div style={{ marginTop: '0.4rem', marginBottom: '0.2rem' }}>
+                                                    <div style={{ display: 'flex', gap: '4px', height: '4px', marginBottom: '4px' }}>
+                                                        {[1, 2, 3, 4].map(idx => (
+                                                            <div
+                                                                key={idx}
+                                                                style={{
+                                                                    flex: 1,
+                                                                    borderRadius: '2px',
+                                                                    background: idx <= passwordScore ? strengthColor : 'var(--border)',
+                                                                    transition: 'background 0.3s ease'
+                                                                }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.7rem', color: strengthColor, fontWeight: 600, textAlign: 'right' }}>
+                                                        {strengthLabel}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {errors.signupPassword && <span className="error">{errors.signupPassword}</span>}
+                                        </label>
 
-                                    <label className="full-width">
-                                        Re-enter Password *
-                                        <div className="password-input-wrapper">
-                                            <input
-                                                type={showSignupConfirm ? "text" : "password"}
-                                                value={signupConfirm}
-                                                onChange={e => {
-                                                    setSignupConfirm(e.target.value);
-                                                    setErrors(prev => ({ ...prev, signupConfirm: "" }));
-                                                }}
-                                                placeholder="Re-enter your password"
-                                            />
-                                            <button 
-                                                type="button" 
-                                                className="password-toggle-btn" 
-                                                onClick={() => setShowSignupConfirm(!showSignupConfirm)}
-                                                tabIndex={-1}
-                                            >
-                                                {showSignupConfirm ? <EyeIcon /> : <EyeOffIcon />}
-                                            </button>
-                                        </div>
-                                        {errors.signupConfirm && <span className="error">{errors.signupConfirm}</span>}
-                                    </label>
+                                        <label>
+                                            Re-enter Password *
+                                            <div className="password-input-wrapper">
+                                                <input
+                                                    type={showSignupConfirm ? "text" : "password"}
+                                                    value={signupConfirm}
+                                                    onChange={e => {
+                                                        setSignupConfirm(e.target.value);
+                                                        setErrors(prev => ({ ...prev, signupConfirm: "" }));
+                                                    }}
+                                                    placeholder="Confirm password"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="password-toggle-btn"
+                                                    onClick={() => setShowSignupConfirm(!showSignupConfirm)}
+                                                    tabIndex={-1}
+                                                >
+                                                    {showSignupConfirm ? <EyeIcon /> : <EyeOffIcon />}
+                                                </button>
+                                            </div>
+                                            {errors.signupConfirm && <span className="error">{errors.signupConfirm}</span>}
+                                        </label>
+                                    </div>
 
                                     {otpSent && !emailVerified && (
-                                        <label className="full-width" style={{ marginTop: '0.75rem' }}>
+                                        <label className="full-width" style={{ marginTop: '0.2rem' }}>
                                             Verification Code *
                                             <input
                                                 type="text"
-                                                maxLength={8}
+                                                maxLength={6}
                                                 value={otpValue}
                                                 onChange={e => {
                                                     setOtpValue(e.target.value.replace(/\D/g, ''));
                                                     setErrors(prev => ({ ...prev, otp: '' }));
                                                 }}
-                                                placeholder="8-digit code"
+                                                placeholder="6-digit code"
                                                 style={{ letterSpacing: '0.25em', fontWeight: 600 }}
                                             />
                                             {errors.otp && <span className="error">{errors.otp}</span>}
                                         </label>
                                     )}
-
-                                    <div className="verification-line">
-                                        <div className={`verify-indicator ${emailVerified ? "ok" : "pending"}`}>
-                                            {emailVerified ? "Email verified ✓" : "Email not verified"}
-                                        </div>
-                                    </div>
 
                                     {errors.general && <div className="error">{errors.general}</div>}
                                     {infoMessage && <div className="info-msg">{infoMessage}</div>}
@@ -456,7 +506,7 @@ export default function AuthSignup() {
                         </div>
                     ) : mode === "login" ? (
                         <div className="auth-form-wrapper">
-                            <div className="card-header" style={{ marginBottom: '1.25rem' }}>
+                            <div className="auth-card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h2>{displayRole ? `Login as ${displayRole}` : "Login"}</h2>
                                 <p className="subtitle">SIL Monitoring System — sign in using your <strong>.edu.ph</strong> email.</p>
                             </div>
@@ -491,9 +541,9 @@ export default function AuthSignup() {
                                                 }}
                                                 placeholder="Enter your password"
                                             />
-                                            <button 
-                                                type="button" 
-                                                className="password-toggle-btn" 
+                                            <button
+                                                type="button"
+                                                className="password-toggle-btn"
                                                 onClick={() => setShowLoginPassword(!showLoginPassword)}
                                                 tabIndex={-1}
                                             >
@@ -530,7 +580,7 @@ export default function AuthSignup() {
                         </div>
                     ) : (
                         <div className="auth-form-wrapper">
-                            <div className="card-header" style={{ marginBottom: '1.25rem' }}>
+                            <div className="auth-card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h2>{displayRole ? `Reset ${displayRole} Password` : "Reset Password"}</h2>
                                 <p className="subtitle">Enter your <strong>.edu.ph</strong> email to receive a password reset link.</p>
                             </div>

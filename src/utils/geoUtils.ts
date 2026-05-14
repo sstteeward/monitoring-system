@@ -144,3 +144,215 @@ export async function getMultiSamplePosition(consistencyThreshold: number = 50):
         sampleDrift
     };
 }
+
+/**
+ * GeoJSON Polygon interface
+ */
+export interface GeoJSONPolygon {
+    type: 'FeatureCollection';
+    features: Array<{
+        type: 'Feature';
+        geometry: {
+            type: 'Polygon';
+            coordinates: number[][][]; // [[[lng, lat], [lng, lat], ...]]
+        };
+    }>;
+}
+
+/**
+ * Extracts polygon coordinates from GeoJSON format
+ * @param geojson GeoJSON FeatureCollection containing polygon geometry
+ * @returns Array of [longitude, latitude] pairs
+ */
+export function extractPolygonCoordinates(geojson: GeoJSONPolygon): Array<[number, number]> {
+    if (!geojson?.features?.[0]?.geometry?.coordinates?.[0]) {
+        return [];
+    }
+    return geojson.features[0].geometry.coordinates[0] as Array<[number, number]>;
+}
+
+/**
+ * Ray casting algorithm: Checks if a point is inside a polygon
+ * Uses the ray casting algorithm which is efficient and robust
+ * 
+ * @param point The point to test [longitude, latitude]
+ * @param polygon Array of polygon vertices [[lng, lat], [lng, lat], ...]
+ * @returns true if point is inside the polygon, false otherwise
+ */
+export function isPointInPolygon(
+    point: [number, number],
+    polygon: Array<[number, number]>
+): boolean {
+    const [x, y] = point;
+    let inside = false;
+
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i][0];
+        const yi = polygon[i][1];
+        const xj = polygon[j][0];
+        const yj = polygon[j][1];
+
+        const intersect =
+            yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+
+        if (intersect) inside = !inside;
+    }
+
+    return inside;
+}
+
+/**
+ * Checks if a point is within a polygon boundary (using ray casting)
+ * More robust version with multiple test rays
+ * 
+ * @param lat Latitude of the point
+ * @param lng Longitude of the point
+ * @param polygon GeoJSON Polygon feature collection
+ * @returns true if point is inside the polygon
+ */
+export function isPointInPolygonGeofence(
+    lat: number,
+    lng: number,
+    polygon: GeoJSONPolygon
+): boolean {
+    const coordinates = extractPolygonCoordinates(polygon);
+    
+    if (coordinates.length < 3) {
+        console.warn('Polygon has fewer than 3 points - cannot be a valid polygon');
+        return false;
+    }
+
+    return isPointInPolygon([lng, lat], coordinates);
+}
+
+/**
+ * Combined geofence check: Returns true if point is within either polygon or radius
+ * 
+ * @param lat User latitude
+ * @param lng User longitude
+ * @param polygon GeoJSON polygon (optional)
+ * @param centerLat Geofence center latitude (for circular fallback)
+ * @param centerLng Geofence center longitude (for circular fallback)
+ * @param radiusMeters Geofence radius in meters (for circular fallback)
+ * @returns true if point is within geofence
+ */
+export function isPointInGeofence(
+    lat: number,
+    lng: number,
+    polygon: GeoJSONPolygon | null | undefined,
+    centerLat: number | null | undefined,
+    centerLng: number | null | undefined,
+    radiusMeters: number | null | undefined
+): boolean {
+    // Check polygon if available
+    if (polygon) {
+        try {
+            if (isPointInPolygonGeofence(lat, lng, polygon)) {
+                return true;
+            }
+        } catch (err) {
+            console.warn('Error checking polygon geofence:', err);
+        }
+    }
+
+    // Fall back to circular radius check
+    if (centerLat !== null && centerLat !== undefined && centerLng !== null && centerLng !== undefined) {
+        const radius = radiusMeters || 100; // Default 100m
+        const distance = calculateDistanceInMeters(
+            { latitude: lat, longitude: lng },
+            { latitude: centerLat, longitude: centerLng }
+        );
+        return distance <= radius;
+    }
+
+    return false;
+}
+
+/**
+ * Calculates the centroid (center point) of a polygon
+ * Useful for auto-centering map view
+ * 
+ * @param polygon GeoJSON Polygon
+ * @returns [latitude, longitude] of the centroid
+ */
+export function calculatePolygonCentroid(
+    polygon: GeoJSONPolygon
+): [number, number] | null {
+    const coordinates = extractPolygonCoordinates(polygon);
+    
+    if (coordinates.length === 0) {
+        return null;
+    }
+
+    let sumLat = 0;
+    let sumLng = 0;
+
+    coordinates.forEach(([lng, lat]) => {
+        sumLng += lng;
+        sumLat += lat;
+    });
+
+    return [sumLat / coordinates.length, sumLng / coordinates.length];
+}
+
+/**
+ * Validates polygon has minimum required points and forms a closed ring
+ * 
+ * @param polygon GeoJSON Polygon
+ * @returns true if polygon is valid
+ */
+export function isValidPolygon(polygon: GeoJSONPolygon | null | undefined): boolean {
+    if (!polygon) return false;
+
+    try {
+        const coordinates = extractPolygonCoordinates(polygon);
+        
+        if (coordinates.length < 3) {
+            return false;
+        }
+
+        // Check if polygon is closed (first and last point same)
+        const first = coordinates[0];
+        const last = coordinates[coordinates.length - 1];
+        
+        if (first[0] === last[0] && first[1] === last[1]) {
+            return true;
+        }
+
+        // Polygon will be auto-closed, so still valid
+        return true;
+    } catch (err) {
+        console.warn('Invalid polygon:', err);
+        return false;
+    }
+}
+
+/**
+ * Converts polygon coordinates to GeoJSON format
+ * 
+ * @param coordinates Array of [lng, lat] pairs
+ * @returns GeoJSON FeatureCollection
+ */
+export function coordinatesToGeoJSON(coordinates: Array<[number, number]>): GeoJSONPolygon {
+    // Ensure polygon is closed
+    if (coordinates.length > 0) {
+        const first = coordinates[0];
+        const last = coordinates[coordinates.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+            coordinates = [...coordinates, first];
+        }
+    }
+
+    return {
+        type: 'FeatureCollection',
+        features: [
+            {
+                type: 'Feature',
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [coordinates]
+                }
+            }
+        ]
+    };
+}

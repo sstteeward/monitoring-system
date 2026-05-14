@@ -3,7 +3,9 @@ import { coordinatorService, type Company, type CompanyRequest } from '../servic
 import { CardGridSkeleton, TableSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import UserClickableName from './UserClickableName';
-import LocationPickerMap from './LocationPickerMap';
+
+import AdvancedLocationPickerMap from './AdvancedLocationPickerMap';
+import type { GeoJSONPolygon } from '../utils/geoUtils';
 import './CoordinatorDashboard.css';
 
 type CompanyViewMode = 'list' | 'detail';
@@ -18,6 +20,9 @@ const CompaniesView: React.FC = () => {
     const [detailLoading, setDetailLoading] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
     const [pendingRequests, setPendingRequests] = useState<CompanyRequest[]>([]);
+    const [selectedPendingRequest, setSelectedPendingRequest] = useState<CompanyRequest | null>(null);
+    const [reviewDepartmentId, setReviewDepartmentId] = useState<string>('');
+    const [reviewHandleCompany, setReviewHandleCompany] = useState<boolean>(true);
     const [requestActionId, setRequestActionId] = useState<string | null>(null);
     const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -35,6 +40,8 @@ const CompaniesView: React.FC = () => {
         latitude: '',
         longitude: '',
         geofence_radius: '100',
+        geofence_polygon: null as GeoJSONPolygon | null,
+        geofence_mode: 'circular' as 'circular' | 'polygon' | 'hybrid' | null,
     });
 
     // New company form state
@@ -48,6 +55,8 @@ const CompaniesView: React.FC = () => {
         latitude: '',
         longitude: '',
         geofence_radius: '100', // Default 100 meters
+        geofence_polygon: null as GeoJSONPolygon | null,
+        geofence_mode: 'circular' as 'circular' | 'polygon' | 'hybrid' | null,
     });
     const [formSubmitting, setFormSubmitting] = useState(false);
 
@@ -89,11 +98,12 @@ const CompaniesView: React.FC = () => {
         }
     };
 
-    const handleApproveRequest = async (req: CompanyRequest) => {
+    const handleApproveRequest = async (req: CompanyRequest, options?: { department_id?: string, handle_company?: boolean }) => {
         setRequestActionId(req.id);
         try {
-            const newCompany = await coordinatorService.approveCompanyRequest(req.name);
-            setCompanies(prev => [...prev, { ...newCompany, intern_count: 0 }].sort((a, b) => a.name.localeCompare(b.name)));
+            const newCompany = await coordinatorService.approveCompanyRequest(req.name, options);
+            const updatedDeptName = departments.find(d => d.id === newCompany.department_id)?.name || 'Uncategorized';
+            setCompanies(prev => [...prev, { ...newCompany, department_name: updatedDeptName, intern_count: 0 }].sort((a, b) => a.name.localeCompare(b.name)));
             // Remove ALL pending requests with the same name (case-insensitive)
             setPendingRequests(prev => prev.filter(r => r.name.toLowerCase() !== req.name.toLowerCase()));
         } catch (err) {
@@ -149,6 +159,8 @@ const CompaniesView: React.FC = () => {
             latitude: company.latitude?.toString() || '',
             longitude: company.longitude?.toString() || '',
             geofence_radius: company.geofence_radius?.toString() || '100',
+            geofence_polygon: (company as any).geofence_polygon || null,
+            geofence_mode: (company as any).geofence_mode || 'circular',
         });
         setDetailLoading(true);
         try {
@@ -182,10 +194,12 @@ const CompaniesView: React.FC = () => {
                 latitude: newCompany.latitude ? parseFloat(newCompany.latitude) : null,
                 longitude: newCompany.longitude ? parseFloat(newCompany.longitude) : null,
                 geofence_radius: newCompany.geofence_radius ? parseInt(newCompany.geofence_radius) : null,
+                geofence_polygon: newCompany.geofence_polygon || null,
+                geofence_mode: newCompany.geofence_mode || 'circular',
             });
             // Reload companies to getjoined data (department name, handled status)
             await loadCompanies();
-            setNewCompany({ name: '', address: '', contact_person: '', contact_email: '', industry: '', department_id: '', latitude: '', longitude: '', geofence_radius: '100' });
+            setNewCompany({ name: '', address: '', contact_person: '', contact_email: '', industry: '', department_id: '', latitude: '', longitude: '', geofence_radius: '100', geofence_polygon: null, geofence_mode: 'circular' });
             setShowAddForm(false);
         } catch (err) {
             console.error('Failed to create company:', err);
@@ -210,14 +224,16 @@ const CompaniesView: React.FC = () => {
                 latitude: editCompanyForm.latitude ? parseFloat(editCompanyForm.latitude) : null,
                 longitude: editCompanyForm.longitude ? parseFloat(editCompanyForm.longitude) : null,
                 geofence_radius: editCompanyForm.geofence_radius ? parseInt(editCompanyForm.geofence_radius) : null,
+                geofence_polygon: editCompanyForm.geofence_polygon || null,
+                geofence_mode: editCompanyForm.geofence_mode || 'circular',
             });
             const updatedDeptName = departments.find(d => d.id === updated.department_id)?.name || 'Uncategorized';
             setSelectedCompany({ ...selectedCompany, ...updated, department_name: updatedDeptName });
             setCompanies(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated, department_name: updatedDeptName } : c));
             setIsEditingCompany(false);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to update company:', err);
-            alert('Error: Could not update company.');
+            alert(`Error: Could not update company.\nDetails: ${err.message || JSON.stringify(err)}`);
         } finally {
             setUpdateSubmitting(false);
         }
@@ -389,9 +405,9 @@ const CompaniesView: React.FC = () => {
                                         value={editCompanyForm.department_id} 
                                         onChange={e => setEditCompanyForm(p => ({ ...p, department_id: e.target.value }))}
                                     >
-                                        <option value="">Uncategorized</option>
+                                        <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Uncategorized</option>
                                         {departments.map(d => (
-                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                            <option key={d.id} value={d.id} style={{ background: '#1a1a1a', color: '#fff' }}>{d.name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -400,15 +416,22 @@ const CompaniesView: React.FC = () => {
                             <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', color: 'var(--admin-text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>Geofencing (Optional)</h4>
                             
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <LocationPickerMap 
+                                <AdvancedLocationPickerMap 
                                     initialLat={editCompanyForm.latitude ? parseFloat(editCompanyForm.latitude) : null}
                                     initialLng={editCompanyForm.longitude ? parseFloat(editCompanyForm.longitude) : null}
+                                    initialPolygon={editCompanyForm.geofence_polygon}
                                     geofenceRadius={editCompanyForm.geofence_radius ? parseInt(editCompanyForm.geofence_radius) : 100}
                                     onLocationSelect={(lat, lng) => {
                                         setEditCompanyForm(p => ({ 
                                             ...p, 
                                             latitude: lat.toFixed(6), 
                                             longitude: lng.toFixed(6) 
+                                        }));
+                                    }}
+                                    onPolygonChange={(polygon) => {
+                                        setEditCompanyForm(p => ({ 
+                                            ...p, 
+                                            geofence_polygon: polygon 
                                         }));
                                     }}
                                 />
@@ -574,9 +597,9 @@ const CompaniesView: React.FC = () => {
                                     value={newCompany.department_id} 
                                     onChange={e => setNewCompany(p => ({ ...p, department_id: e.target.value }))}
                                 >
-                                    <option value="">Uncategorized</option>
+                                    <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Uncategorized</option>
                                     {departments.map(d => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                        <option key={d.id} value={d.id} style={{ background: '#1a1a1a', color: '#fff' }}>{d.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -585,15 +608,22 @@ const CompaniesView: React.FC = () => {
                         <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', color: 'var(--admin-text-primary)', fontSize: '0.9rem', fontWeight: 600 }}>Geofencing (Optional)</h4>
                         
                         <div style={{ marginBottom: '1.5rem' }}>
-                            <LocationPickerMap 
+                            <AdvancedLocationPickerMap 
                                 initialLat={newCompany.latitude ? parseFloat(newCompany.latitude) : null}
                                 initialLng={newCompany.longitude ? parseFloat(newCompany.longitude) : null}
+                                initialPolygon={newCompany.geofence_polygon}
                                 geofenceRadius={newCompany.geofence_radius ? parseInt(newCompany.geofence_radius) : 100}
                                 onLocationSelect={(lat, lng) => {
                                     setNewCompany(p => ({ 
                                         ...p, 
                                         latitude: lat.toFixed(6), 
                                         longitude: lng.toFixed(6) 
+                                    }));
+                                }}
+                                onPolygonChange={(polygon) => {
+                                    setNewCompany(p => ({ 
+                                        ...p, 
+                                        geofence_polygon: polygon 
                                     }));
                                 }}
                             />
@@ -646,6 +676,18 @@ const CompaniesView: React.FC = () => {
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                                     <button
+                                        onClick={() => {
+                                            setSelectedPendingRequest(req);
+                                            setReviewDepartmentId('');
+                                            setReviewHandleCompany(true);
+                                        }}
+                                        className="btn btn-secondary"
+                                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text-primary)' }}
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'text-bottom' }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                                        Review
+                                    </button>
+                                    <button
                                         disabled={requestActionId === req.id}
                                         onClick={() => handleApproveRequest(req)}
                                         className="btn btn-approve"
@@ -664,6 +706,117 @@ const CompaniesView: React.FC = () => {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Review Modal for Pending Company Request */}
+            {selectedPendingRequest && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 1000,
+                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <div className="glass-card fade-in" style={{
+                        borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 600,
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        maxHeight: '90vh', overflowY: 'auto'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 700 }}>Review Company Request</h3>
+                            <button onClick={() => setSelectedPendingRequest(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--admin-text-primary)' }}>{selectedPendingRequest.name}</div>
+                            <div style={{ fontSize: '0.9rem', color: 'var(--admin-text-secondary)', marginTop: '0.2rem' }}>
+                                Requested by <strong>{selectedPendingRequest.student_name ?? 'a student'}</strong>
+                            </div>
+                        </div>
+
+                        {(selectedPendingRequest.latitude || selectedPendingRequest.geofence_polygon) ? (
+                            <div style={{ marginBottom: '1.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
+                                <AdvancedLocationPickerMap
+                                    initialLat={selectedPendingRequest.latitude || null}
+                                    initialLng={selectedPendingRequest.longitude || null}
+                                    initialPolygon={selectedPendingRequest.geofence_polygon || null}
+                                    geofenceRadius={selectedPendingRequest.geofence_radius || 100}
+                                    onLocationSelect={() => {}}
+                                    onPolygonChange={() => {}}
+                                />
+                                <div style={{ padding: '0.75rem', background: 'var(--admin-bg)', fontSize: '0.8rem', color: 'var(--admin-text-secondary)', display: 'flex', gap: '1rem', borderTop: '1px solid var(--admin-border)' }}>
+                                    <span>Lat: {selectedPendingRequest.latitude?.toFixed(5) || 'N/A'}</span>
+                                    <span>Lng: {selectedPendingRequest.longitude?.toFixed(5) || 'N/A'}</span>
+                                    <span>Radius: {selectedPendingRequest.geofence_radius}m</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ padding: '2rem', textAlign: 'center', background: 'var(--admin-bg)', borderRadius: '12px', border: '1px solid var(--admin-border)', marginBottom: '1.5rem', color: 'var(--admin-text-secondary)' }}>
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.5rem', opacity: 0.5 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                                <p style={{ margin: 0 }}>No location details provided with this request.</p>
+                            </div>
+                        )}
+
+                        <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '0.4rem' }}>Department Category (Optional)</label>
+                                <select 
+                                    style={inputStyle} 
+                                    value={reviewDepartmentId} 
+                                    onChange={e => setReviewDepartmentId(e.target.value)}
+                                >
+                                    <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Uncategorized</option>
+                                    {departments.map(d => (
+                                        <option key={d.id} value={d.id} style={{ background: '#1a1a1a', color: '#fff' }}>{d.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={reviewHandleCompany} 
+                                    onChange={e => setReviewHandleCompany(e.target.checked)} 
+                                    style={{ width: '16px', height: '16px', accentColor: 'var(--primary)' }}
+                                />
+                                Handle this company immediately
+                            </label>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setSelectedPendingRequest(null)}
+                                style={{ padding: '0.75rem 1.25rem', borderRadius: 10, border: '1px solid var(--admin-border)', background: 'var(--admin-bg)', color: 'var(--admin-text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={requestActionId === selectedPendingRequest.id}
+                                onClick={() => {
+                                    handleRejectRequest(selectedPendingRequest);
+                                    setSelectedPendingRequest(null);
+                                }}
+                                className="btn btn-reject"
+                                style={{ padding: '0.75rem 1.25rem' }}
+                            >
+                                Reject
+                            </button>
+                            <button
+                                disabled={requestActionId === selectedPendingRequest.id}
+                                onClick={() => {
+                                    handleApproveRequest(selectedPendingRequest, { 
+                                        department_id: reviewDepartmentId || undefined, 
+                                        handle_company: reviewHandleCompany 
+                                    });
+                                    setSelectedPendingRequest(null);
+                                }}
+                                className="btn btn-approve"
+                                style={{ padding: '0.75rem 1.25rem' }}
+                            >
+                                {requestActionId === selectedPendingRequest.id ? 'Approving...' : 'Approve Company'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

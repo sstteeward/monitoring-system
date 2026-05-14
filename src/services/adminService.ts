@@ -442,28 +442,51 @@ export const adminService = {
         if (!logs || logs.length === 0) return [];
 
         // Step 2: Get unique user IDs and fetch their profiles
-        const userIds = [...new Set(logs.map((l: any) => l.user_id))];
-        const { data: profiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('auth_user_id, first_name, last_name, email, department_id')
-            .in('auth_user_id', userIds);
+        const userIds = [...new Set(logs.map((l: any) => l.user_id).filter(Boolean))];
+        let profiles: any[] = [];
+        
+        if (userIds.length > 0) {
+            const { data: profilesData, error: profilesError } = await supabase
+                .from('profiles')
+                .select('auth_user_id, first_name, last_name, email, department_id, company_id')
+                .in('auth_user_id', userIds);
 
-        if (profilesError) {
-            console.error("Error fetching profiles for security alerts:", profilesError);
+            if (profilesError) {
+                console.error("Error fetching profiles for security alerts:", profilesError);
+            } else if (profilesData) {
+                profiles = profilesData;
+            }
         }
 
         // Step 3: Build a lookup map and merge
         const profileMap: Record<string, any> = {};
-        (profiles ?? []).forEach((p: any) => { profileMap[p.auth_user_id] = p; });
+        profiles.forEach((p: any) => { profileMap[p.auth_user_id] = p; });
 
         let merged = logs.map((log: any) => ({
             ...log,
             profiles: profileMap[log.user_id] || null,
         }));
 
-        // Step 4: Filter by department if provided (coordinator scoping)
+        // Step 2: Filter by department if provided (coordinator scoping)
         if (departmentId) {
-            merged = merged.filter(log => log.profiles?.department_id === departmentId);
+            // Fetch companies handled by this coordinator
+            let handledCompanyIds: string[] = [];
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: handledData } = await supabase
+                    .from('coordinator_handled_companies')
+                    .select('company_id')
+                    .eq('coordinator_id', user.id);
+                if (handledData) {
+                    handledCompanyIds = handledData.map(h => h.company_id);
+                }
+            }
+
+            merged = merged.filter(log => {
+                const isSameDepartment = log.profiles?.department_id === departmentId;
+                const isHandledCompany = log.profiles?.company_id && handledCompanyIds.includes(log.profiles.company_id);
+                return isSameDepartment || isHandledCompany;
+            });
         }
 
         return merged;

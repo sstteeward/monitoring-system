@@ -145,9 +145,10 @@
   }
 }
 
-@media (max-width: 500px) {
+@media (max-width: 540px) {
   .dtr-card-container {
-    width: calc(100vw - 40px);
+    width: 500px !important;
+    zoom: calc((100vw - 24px) / 500);
   }
 }
 
@@ -785,26 +786,89 @@
 
 
 @media print {
+  /* Hide absolutely everything by default */
   body * {
     visibility: hidden;
   }
-  
+
+  /* Hide common layout chrome so it doesn't take up space */
+  .sidebar,
+  .topbar,
+  .dtr-actions,
+  .dtr-main-heading,
+  .dtr-header-section,
+  .tc-card-header-actions,
+  .tc-flip-btn,
+  .ojt-info-banner,
+  nav,
+  header,
+  footer,
+  aside {
+    display: none !important;
+  }
+
+  /* Reset the dashboard layout so it doesn't offset for the sidebar */
+  .dashboard-container {
+    display: block !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .dashboard-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .page-content {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .dtr-view-wrapper {
+    margin: 0 !important;
+  }
+
+  /* Make the DTR grid and its children visible */
+  .dashboard-container,
+  .dashboard-main,
+  .page-content,
+  .dtr-view-wrapper,
+  .dtr-container,
   .dtr-cards-grid,
   .dtr-cards-grid * {
-    visibility: visible;
+    visibility: visible !important;
+  }
+
+  /* Reset the container to fill the page cleanly */
+  .dtr-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    background: #fff !important;
   }
 
   .dtr-cards-grid {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    gap: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10px 0 !important;
+    gap: 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .dtr-card-wrapper {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .dtr-card-container {
@@ -812,13 +876,126 @@
     break-inside: avoid;
     margin-bottom: 20px;
     width: 480px !important;
+    perspective: none !important;
   }
 
-  .tc-flip-btn,
-  .dtr-actions, 
-  .dtr-main-heading, 
-  .tc-card-header-actions,
-  .dtr-header-section { 
-    display: none !important; 
+  .dtr-card-inner {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .dtr-card-front,
+  .dtr-card-back {
+    position: relative !important;
+    transform: none !important;
+    background: #fff9e1 !important;
+    color: #111 !important;
+    box-shadow: none !important;
+    border: 1px solid #333 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .dtr-card-back {
+    page-break-before: always;
+    margin-top: 20px;
+  }
+
+  /* Ensure all text and inputs print as black */
+  .tc-grid-input,
+  .tc-line,
+  .tc-left-table td input,
+  .tc-right-table td input {
+    color: #111 !important;
+  }
+
+  .tc-sig-line {
+    border-top-color: #111 !important;
+  }
+
+  /* Set page margins */
+  @page {
+    margin: 10mm;
+    size: auto;
   }
 }
+
+/* ── Signature Styles ── */
+.sign-cell {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0;
+  position: relative;
+  height: 24px;
+}
+
+.dtr-btn-sign-day {
+  background: transparent;
+  border: 1px dashed rgba(0,0,0,0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.dtr-btn-sign-day:hover {
+  opacity: 1;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.dtr-signature-stamp {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.dtr-signature-stamp img {
+  max-width: 150%; /* Allow to overflow a bit horizontally like a real signature */
+  max-height: 150%;
+  object-fit: contain;
+  opacity: 0.85; /* Ink effect */
+  transform: scale(1.2) rotate(-5deg); /* Slight rotation for realism */
+  pointer-events: none;
+}
+
+/* Hover effect on stamp to allow unsigning */
+.dtr-signature-stamp:hover::after {
+  content: '✕';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+@media print {
+  .dtr-btn-sign-day {
+    display: none !important;
+  }
+  .dtr-signature-stamp:hover::after {
+    display: none !important;
+  }
+}
+

@@ -325,11 +325,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                         <div className="profile-name-grid">
                             <div>
                                 <label style={labelStyle}>First Name</label>
-                                <input style={inputStyle} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
+                                <input style={inputStyle} value={firstName} onChange={e => setFirstName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="First name" />
                             </div>
                             <div>
                                 <label style={labelStyle}>Last Name</label>
-                                <input style={inputStyle} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" />
+                                <input style={inputStyle} value={lastName} onChange={e => setLastName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Last name" />
                             </div>
                         </div>
 

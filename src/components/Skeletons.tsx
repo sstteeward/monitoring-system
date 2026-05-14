@@ -29,6 +29,20 @@ export const TableSkeleton: React.FC<{ rows?: number, cols?: number }> = ({ rows
     </div>
 );
 
+export const TableRowSkeleton: React.FC<{ rows?: number, cols?: number }> = ({ rows = 5, cols = 5 }) => (
+    <>
+        {Array.from({ length: rows }).map((_, ri) => (
+            <tr key={ri}>
+                {Array.from({ length: cols }).map((_, ci) => (
+                    <td key={ci}>
+                        <div className="skeleton skeleton-text" style={{ width: '100%', height: '20px', margin: 0, opacity: 0.6 }} />
+                    </td>
+                ))}
+            </tr>
+        ))}
+    </>
+);
+
 export const ListSkeleton: React.FC<{ items?: number }> = ({ items = 3 }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
         {Array.from({ length: items }).map((_, i) => (

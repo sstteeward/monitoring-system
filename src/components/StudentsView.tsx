@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { coordinatorService } from '../services/coordinatorService';
-import { TableSkeleton } from './Skeletons';
+import { TableRowSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
 import { adminService } from '../services/adminService';
@@ -169,7 +169,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                     </thead>
                     <tbody>
                         {loading ? (
-                            <TableSkeleton rows={8} cols={6} />
+                            <TableRowSkeleton rows={8} cols={6} />
                         ) : filteredStudents.length > 0 ? (
                             filteredStudents.map(student => {
                                 const color = avatarColor(student.first_name ?? 'A');

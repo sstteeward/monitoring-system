@@ -5,7 +5,7 @@
  * Used by clock-in, clock-out, and break actions equally.
  */
 
-import { calculateDistanceInMeters, getAccuratePosition } from '../utils/geoUtils';
+import { calculateDistanceInMeters, getAccuratePosition, isPointInGeofence, type GeoJSONPolygon } from '../utils/geoUtils';
 import type { Profile } from './profileService';
 import type { Timesheet } from './timeTracking';
 
@@ -156,10 +156,11 @@ export async function runFullAntiCheatSuite(
     const companyLat = profile.company?.latitude;
     const companyLng = profile.company?.longitude;
     const radius = profile.company?.geofence_radius || 100;
+    const geofencePolygon = (profile.company as any)?.geofence_polygon as GeoJSONPolygon | null;
 
-    // If the company has no coordinates, skip all geo checks (legacy/unconfigured company)
-    if (!companyLat || !companyLng) {
-        return { passed: true, flags: ['No company coordinates — geo checks skipped'] };
+    // If the company has no coordinates and no polygon, skip all geo checks (legacy/unconfigured company)
+    if (!geofencePolygon && (!companyLat || !companyLng)) {
+        return { passed: true, flags: ['No company coordinates or polygon — geo checks skipped'] };
     }
 
     // ── 1. Emulator / VM Detection ──────────────────────────────────────
@@ -251,21 +252,39 @@ export async function runFullAntiCheatSuite(
     // ── 7. Multi-Sample Consistency ─────────────────────────────────────
     // Removed to improve clock-in speed.
 
-    // ── 8. Geofence Distance Check ──────────────────────────────────────
-    const distance = calculateDistanceInMeters(
-        { latitude: userLat, longitude: userLng },
-        { latitude: companyLat, longitude: companyLng }
+    // ── 8. Geofence Distance Check (Polygon or Circular) ─────────────────
+    const inGeofence = isPointInGeofence(
+        userLat,
+        userLng,
+        geofencePolygon,
+        companyLat,
+        companyLng,
+        radius
     );
 
-    if (distance > radius) {
+    if (!inGeofence) {
+        // Calculate distance for error message
+        let distance = 0;
+        let distanceMsg = '';
+        
+        if (geofencePolygon) {
+            distanceMsg = 'outside the geofence area';
+        } else if (companyLat && companyLng) {
+            distance = calculateDistanceInMeters(
+                { latitude: userLat, longitude: userLng },
+                { latitude: companyLat, longitude: companyLng }
+            );
+            distanceMsg = `${Math.round(distance)}m away (Limit: ${radius}m)`;
+        }
+
         return {
             passed: false,
             latitude: userLat,
             longitude: userLng,
             accuracy,
             antiCheatReason: 'Geofence Violation',
-            antiCheatDetails: { action, distance, radius },
-            userMessage: `You must be within the company premises to perform this action. You are ${Math.round(distance)}m away (Limit: ${radius}m).`,
+            antiCheatDetails: { action, distance, radius, polygonUsed: !!geofencePolygon },
+            userMessage: `You must be within the company premises to perform this action. You are ${distanceMsg}.`,
             flags: ['geofence_violation']
         };
     }
@@ -316,11 +335,13 @@ export async function runFullAntiCheatSuite(
  * A lightweight single-sample geofence check for session drift monitoring.
  * Does NOT run full anti-cheat (no multi-sample, no spoof detection).
  * Designed for rapid, periodic background checks.
+ * Supports both polygon and circular geofencing.
  */
 export async function quickGeofenceCheck(
-    companyLat: number,
-    companyLng: number,
-    radius: number
+    companyLat: number | null | undefined,
+    companyLng: number | null | undefined,
+    radius: number,
+    geofencePolygon?: GeoJSONPolygon | null
 ): Promise<{ inBounds: boolean; distance: number; latitude: number; longitude: number }> {
     const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -333,14 +354,36 @@ export async function quickGeofenceCheck(
     const userLat = position.coords.latitude;
     const userLng = position.coords.longitude;
 
-    const distance = calculateDistanceInMeters(
-        { latitude: userLat, longitude: userLng },
-        { latitude: companyLat, longitude: companyLng }
-    );
+    // Check polygon first if available
+    if (geofencePolygon && companyLat && companyLng) {
+        const inBounds = isPointInGeofence(userLat, userLng, geofencePolygon, companyLat, companyLng, radius);
+        return {
+            inBounds,
+            distance: 0, // Distance not applicable for polygon
+            latitude: userLat,
+            longitude: userLng
+        };
+    }
 
+    // Fall back to circular geofence
+    if (companyLat && companyLng) {
+        const distance = calculateDistanceInMeters(
+            { latitude: userLat, longitude: userLng },
+            { latitude: companyLat, longitude: companyLng }
+        );
+
+        return {
+            inBounds: distance <= radius,
+            distance,
+            latitude: userLat,
+            longitude: userLng
+        };
+    }
+
+    // No geofence configured
     return {
-        inBounds: distance <= radius,
-        distance,
+        inBounds: true,
+        distance: 0,
         latitude: userLat,
         longitude: userLng
     };
@@ -425,7 +468,7 @@ export interface SessionMonitorCallbacks {
  * Starts continuous real-time GPS monitoring during an active session.
  *
  * Uses navigator.geolocation.watchPosition for instant detection of:
- * - Leaving the geofence (drift)
+ * - Leaving the geofence (drift) - supports both polygon and circular
  * - Sudden position jumps (fake GPS toggled on/off)
  * - Unnaturally stable coordinates (no micro-jitter = spoofed)
  * - VPN usage (IP geolocation cross-check, runs once at start)
@@ -433,10 +476,11 @@ export interface SessionMonitorCallbacks {
  * Returns a cleanup function to stop monitoring.
  */
 export function startContinuousMonitor(
-    companyLat: number,
-    companyLng: number,
+    companyLat: number | null | undefined,
+    companyLng: number | null | undefined,
     radius: number,
-    callbacks: SessionMonitorCallbacks
+    callbacks: SessionMonitorCallbacks,
+    geofencePolygon?: GeoJSONPolygon | null
 ): () => void {
     let watchId: number | null = null;
     let lastPosition: { lat: number; lng: number; time: number } | null = null;
@@ -454,13 +498,24 @@ export function startContinuousMonitor(
                 // Skip very inaccurate readings
                 if (accuracy > 200) return;
 
-                // ── Geofence Check ──
-                const distance = calculateDistanceInMeters(
-                    { latitude, longitude },
-                    { latitude: companyLat, longitude: companyLng }
-                );
+                // ── Geofence Check (Polygon or Circular) ──
+                let isOutOfBounds = false;
+                let distance = 0;
 
-                if (distance > radius) {
+                if (geofencePolygon && companyLat && companyLng) {
+                    // Use polygon check
+                    const inBounds = isPointInGeofence(latitude, longitude, geofencePolygon, companyLat, companyLng, radius);
+                    isOutOfBounds = !inBounds;
+                } else if (companyLat && companyLng) {
+                    // Fall back to circular check
+                    distance = calculateDistanceInMeters(
+                        { latitude, longitude },
+                        { latitude: companyLat, longitude: companyLng }
+                    );
+                    isOutOfBounds = distance > radius;
+                }
+
+                if (isOutOfBounds) {
                     callbacks.onOutOfBounds(distance, latitude, longitude);
                 } else {
                     callbacks.onBackInBounds();

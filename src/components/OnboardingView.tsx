@@ -3,8 +3,18 @@ import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../services/adminService';
 import type { Profile } from '../services/profileService';
 import CustomSelect from './CustomSelect';
+import AdvancedLocationPickerMap from './AdvancedLocationPickerMap';
+import type { GeoJSONPolygon } from '../utils/geoUtils';
 
-interface Company { id: string; name: string; address?: string; }
+interface Company { 
+    id: string; 
+    name: string; 
+    address?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    geofence_polygon?: GeoJSONPolygon | null;
+    geofence_radius?: number | null;
+}
 
 interface OnboardingViewProps {
     profile: Profile;
@@ -17,6 +27,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [search, setSearch] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
     const [firstName, setFirstName] = useState(profile.first_name ?? '');
+    const [middleName, setMiddleName] = useState(profile.middle_name ?? '');
     const [lastName, setLastName] = useState(profile.last_name ?? '');
     const [birthday, setBirthday] = useState(profile.birthday ?? '');
     const [address, setAddress] = useState(profile.address ?? '');
@@ -27,16 +38,41 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [department, setDepartment] = useState(profile.department ?? '');
     const [requiredHours, setRequiredHours] = useState(profile.required_ojt_hours ?? 400);
     const [saving, setSaving] = useState(false);
-    const [requestingCompany, setRequestingCompany] = useState(false);
-    const [requestSent, setRequestSent] = useState(false);
     const [requestedName, setRequestedName] = useState('');
+    
+    // New Geofence state for company request
+    const [showNewCompanyForm, setShowNewCompanyForm] = useState(false);
+    const [newCompanyLat, setNewCompanyLat] = useState<number | null>(null);
+    const [newCompanyLng, setNewCompanyLng] = useState<number | null>(null);
+    const [newCompanyRadius] = useState<number>(100);
+    const [newCompanyPolygon, setNewCompanyPolygon] = useState<GeoJSONPolygon | null>(null);
+    const [pendingRequest, setPendingRequest] = useState<{ name: string; status: string; requested_by: string } | null>(null);
+
     const [error, setError] = useState<string | null>(null);
     const [step, setStep] = useState<1 | 2>(1);
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
     const [courses, setCourses] = useState<{ id: string; name: string; description?: string }[]>([]);
 
     useEffect(() => {
-        supabase.from('companies').select('id, name, address').order('name').then(({ data }) => {
+        // Fetch pending requests to see if user is already blocked
+        const checkPending = async () => {
+            const authId = (await supabase.auth.getUser()).data.user?.id;
+            if (authId) {
+                const { data } = await supabase
+                    .from('company_requests')
+                    .select('*')
+                    .eq('requested_by', authId)
+                    .eq('status', 'pending')
+                    .limit(1)
+                    .maybeSingle();
+                if (data) {
+                    setPendingRequest(data);
+                }
+            }
+        };
+        checkPending();
+
+        supabase.from('companies').select('id, name, address, latitude, longitude, geofence_polygon, geofence_radius').order('name').then(({ data }) => {
             setCompanies(data ?? []);
         });
         adminService.getDepartments().then(setDepartments);
@@ -55,28 +91,13 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         setShowDropdown(false);
     };
 
-    const handleRequestCompany = async () => {
+    const handleRequestCompanyClick = () => {
         const name = search.trim();
         if (!name) return;
-        setRequestingCompany(true);
-        setError(null);
-        try {
-            const { error: err } = await supabase
-                .from('company_requests')
-                .insert({
-                    name,
-                    student_name: `${firstName} ${lastName}`.trim() || null,
-                    status: 'pending',
-                });
-            if (err) throw err;
-            setRequestedName(name);
-            setRequestSent(true);
-            setShowDropdown(false);
-        } catch (err: any) {
-            setError(err.message ?? 'Failed to submit request.');
-        } finally {
-            setRequestingCompany(false);
-        }
+        setRequestedName(name);
+        setShowNewCompanyForm(true);
+        setSelectedCompanyId('');
+        setShowDropdown(false);
     };
 
 
@@ -96,7 +117,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedCompanyId && !requestSent) {
+        if (!selectedCompanyId && !showNewCompanyForm) {
             setError('Please select your internship company or request a new one.');
             return;
         }
@@ -105,10 +126,29 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         try {
             const authId = (await supabase.auth.getUser()).data.user?.id;
             const selectedDept = departments.find(d => d.name === department.trim());
+            
+            // If requesting a new company, create the request first
+            if (showNewCompanyForm) {
+                const { error: reqErr } = await supabase
+                    .from('company_requests')
+                    .insert({
+                        name: requestedName,
+                        student_name: `${firstName.trim()} ${lastName.trim()}`,
+                        requested_by: authId,
+                        status: 'pending',
+                        latitude: newCompanyLat,
+                        longitude: newCompanyLng,
+                        geofence_radius: newCompanyRadius,
+                        geofence_polygon: newCompanyPolygon,
+                    });
+                if (reqErr) throw reqErr;
+            }
+
             const { error: err } = await supabase
                 .from('profiles')
                 .update({
                     first_name: firstName.trim(),
+                    middle_name: middleName.trim() || null,
                     last_name: lastName.trim(),
                     birthday: birthday || null,
                     address: address.trim() || null,
@@ -125,24 +165,53 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 
             if (err) throw err;
             onComplete();
-        } catch (err: any) {
-            setError(err.message ?? 'Failed to save. Please try again.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to save. Please try again.');
         } finally {
             setSaving(false);
         }
     };
 
+    if (pendingRequest) {
+        return (
+            <div style={{
+                minHeight: '100vh', height: '100%', width: '100%',
+                background: 'var(--bg-page)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+            }}>
+                <div className="glass-card" style={{ maxWidth: 450, padding: '2rem', textAlign: 'center', borderRadius: 20 }}>
+                    <div style={{
+                        width: 64, height: 64, borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem'
+                    }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-bright)', fontSize: '1.4rem' }}>Pending Approval</h2>
+                    <p style={{ color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                        Your request to add the company <strong style={{ color: 'var(--text-bright)' }}>{pendingRequest.name}</strong> is currently pending approval by the coordinator.
+                    </p>
+                    <p style={{ color: 'var(--text-muted)', lineHeight: 1.5, fontSize: '0.95rem' }}>
+                        You will be able to access your dashboard and start logging time once it is approved. We will notify you when that happens!
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div style={{
             minHeight: '100vh',
+            height: '100%',
             width: '100%',
             background: 'var(--bg-page)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
-            padding: '2rem 1rem',
+            padding: '1rem',
+            overflowY: 'auto'
         }}>
-            <div style={{ width: '100%', maxWidth: 520 }}>
+            <div style={{ width: '100%', maxWidth: 520, margin: 'auto' }}>
 
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
@@ -183,7 +252,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 {/* Card */}
                 <div className="glass-card" style={{
                     borderRadius: 20,
-                    padding: '2rem',
+                    padding: '1.5rem 2rem',
                     boxShadow: '0 8px 40px rgba(0,0,0,0.25)',
                     position: 'relative',
                     zIndex: 60,
@@ -199,35 +268,43 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                     {/* ── Step 1: Personal Info ── */}
                     {step === 1 && (
                         <form onSubmit={handleNext}>
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                            <div style={{ marginBottom: '1rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.8rem' }}>
                                     <div>
                                         <label style={labelSt}>First Name *</label>
-                                        <input style={inputSt} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Juan" required />
+                                        <input style={inputSt} value={firstName} onChange={e => setFirstName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="First" required />
+                                    </div>
+                                    <div>
+                                        <label style={labelSt}>Middle Name</label>
+                                        <input style={inputSt} value={middleName} onChange={e => setMiddleName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Middle (Opt)" />
                                     </div>
                                     <div>
                                         <label style={labelSt}>Last Name *</label>
-                                        <input style={inputSt} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="dela Cruz" required />
+                                        <input style={inputSt} value={lastName} onChange={e => setLastName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Last" required />
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.8rem' }}>
                                     <div>
                                         <label style={labelSt}>Birthday *</label>
                                         <input style={inputSt} type="date" value={birthday} onChange={e => setBirthday(e.target.value)} required />
                                     </div>
                                     <div>
-                                        <label style={labelSt}>Contact Number *</label>
-                                        <input style={inputSt} type="tel" value={contactNumber} onChange={e => setContactNumber(e.target.value)} placeholder="e.g. 09123456789" required />
+                                        <label style={labelSt}>Contact No. *</label>
+                                        <input style={inputSt} type="tel" value={contactNumber} onChange={e => setContactNumber(e.target.value)} placeholder="e.g. 0912..." required />
+                                    </div>
+                                    <div>
+                                        <label style={labelSt}>Required Hours</label>
+                                        <input style={inputSt} type="number" min={0} value={requiredHours} onChange={e => setRequiredHours(Number(e.target.value))} />
                                     </div>
                                 </div>
 
-                                <div style={{ marginBottom: '1.25rem' }}>
+                                <div style={{ marginBottom: '0.8rem' }}>
                                     <label style={labelSt}>Complete Address *</label>
-                                    <input style={inputSt} value={address} onChange={e => setAddress(e.target.value)} placeholder="123 Main St, Brgy, City, Province" required />
+                                    <input style={inputSt} value={address} onChange={e => setAddress(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="123 Main St, Brgy, City, Province" required />
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '0.8rem' }}>
                                     <div>
                                         <label style={labelSt}>Course *</label>
                                         <CustomSelect
@@ -251,7 +328,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                                     <div>
                                         <label style={labelSt}>Year Level *</label>
                                         <CustomSelect
@@ -268,16 +345,24 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     </div>
                                     <div>
                                         <label style={labelSt}>Section *</label>
-                                        <input style={inputSt} value={section} onChange={e => setSection(e.target.value)} placeholder="e.g. A" required />
+                                        <CustomSelect
+                                            value={section}
+                                            onChange={setSection}
+                                            placeholder="Select Section"
+                                            options={[
+                                                { value: 'A', label: 'A' },
+                                                { value: 'B', label: 'B' },
+                                                { value: 'C', label: 'C' },
+                                                { value: 'D', label: 'D' },
+                                                { value: 'E', label: 'E' },
+                                                { value: 'F', label: 'F' },
+                                                { value: 'G', label: 'G' },
+                                                { value: 'H', label: 'H' },
+                                                { value: 'I', label: 'I' },
+                                                { value: 'J', label: 'J' },
+                                            ]}
+                                        />
                                     </div>
-                                </div>
-
-                                <div style={{ marginBottom: '0.5rem' }}>
-                                    <label style={labelSt}>Required SIL Hours</label>
-                                    <input style={inputSt} type="number" min={0} value={requiredHours}
-                                        onChange={e => setRequiredHours(Number(e.target.value))} />
-                                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                                    </p>
                                 </div>
                             </div>
                             <button type="submit" style={btnPrimary}>
@@ -294,7 +379,11 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                 <input
                                     style={inputSt}
                                     value={search}
-                                    onChange={e => { setSearch(e.target.value); setShowDropdown(true); setSelectedCompanyId(''); }}
+                                    onChange={e => { 
+                                        setSearch(e.target.value.replace(/\b\w/g, c => c.toUpperCase())); 
+                                        setShowDropdown(true); 
+                                        setSelectedCompanyId(''); 
+                                    }}
                                     onFocus={() => setShowDropdown(true)}
                                     placeholder="Search or select a company…"
                                     autoComplete="off"
@@ -338,60 +427,83 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                         </div>
                                         <button
                                             type="button"
-                                            disabled={requestingCompany}
-                                            onClick={handleRequestCompany}
+                                            onClick={handleRequestCompanyClick}
                                             style={{
                                                 width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem',
                                                 padding: '0.75rem 1rem', background: 'transparent', border: 'none',
-                                                cursor: requestingCompany ? 'not-allowed' : 'pointer',
+                                                cursor: 'pointer',
                                                 color: '#10b981', fontSize: '0.88rem', fontWeight: 600,
                                                 fontFamily: 'Inter, sans-serif', textAlign: 'left',
                                             }}
                                             onMouseOver={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.08)')}
                                             onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                                         >
-                                            {requestingCompany ? (
-                                                <span style={{ opacity: 0.7 }}>Submitting request…</span>
-                                            ) : (
-                                                <>
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                                                    Request &ldquo;{search}&rdquo; — notify coordinator
-                                                </>
-                                            )}
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                                            Request &ldquo;{search}&rdquo;
                                         </button>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Request sent success banner */}
-                            {requestSent && (
+                            {/* Request new company sub-form */}
+                            {showNewCompanyForm && (
                                 <div style={{
-                                    background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
-                                    borderRadius: 12, padding: '0.9rem 1rem', marginBottom: '1.25rem',
-                                    display: 'flex', alignItems: 'flex-start', gap: '0.65rem',
+                                    background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)',
+                                    borderRadius: 12, padding: '1.25rem', marginBottom: '1.25rem'
                                 }}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><polyline points="20 6 9 17 4 12" /></svg>
-                                    <div>
-                                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#10b981' }}>Request sent!</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                                            Your coordinator has been notified to add <strong style={{ color: 'var(--text-bright)' }}>{requestedName}</strong>. You can proceed to the dashboard now.
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                                <circle cx="8.5" cy="7" r="4" />
+                                                <line x1="20" y1="8" x2="20" y2="14" />
+                                                <line x1="23" y1="11" x2="17" y2="11" />
+                                            </svg>
+                                            <span style={{ fontSize: '0.95rem', color: '#10b981', fontWeight: 600 }}>
+                                                New Company Request: {requestedName}
+                                            </span>
                                         </div>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowNewCompanyForm(false)}
+                                            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </button>
                                     </div>
+
+                                    <label style={{ ...labelSt, marginBottom: '0.5rem', display: 'block' }}>Company Location & Geofence (Optional)</label>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.4 }}>
+                                        Help your coordinator by drawing the company location on the map. This ensures you can clock in properly once approved.
+                                    </p>
+                                    
+                                    <AdvancedLocationPickerMap
+                                        initialLat={newCompanyLat}
+                                        initialLng={newCompanyLng}
+                                        initialPolygon={newCompanyPolygon}
+                                        geofenceRadius={newCompanyRadius}
+                                        onLocationSelect={(lat, lng) => {
+                                            setNewCompanyLat(lat);
+                                            setNewCompanyLng(lng);
+                                        }}
+                                        onPolygonChange={(poly) => setNewCompanyPolygon(poly)}
+                                    />
                                 </div>
                             )}
 
-                            {selectedCompany && !requestSent && (
-                                <div style={{
-                                    background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
-                                    borderRadius: 12, padding: '0.75rem 1rem', marginBottom: '1.25rem',
-                                    display: 'flex', alignItems: 'center', gap: '0.6rem',
-                                }}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                    <span style={{ fontSize: '0.88rem', color: '#10b981', fontWeight: 600 }}>
-                                        {selectedCompany.name}
-                                    </span>
+                            {selectedCompany && !showNewCompanyForm && (
+                                <div style={{ marginBottom: '1.25rem' }}>
+                                    <label style={{ ...labelSt, marginBottom: '0.5rem', display: 'block' }}>Company Location</label>
+                                    <div style={{ pointerEvents: 'none', opacity: 0.9 }}>
+                                        <AdvancedLocationPickerMap
+                                            initialLat={selectedCompany.latitude}
+                                            initialLng={selectedCompany.longitude}
+                                            initialPolygon={selectedCompany.geofence_polygon}
+                                            geofenceRadius={selectedCompany.geofence_radius || 100}
+                                            onLocationSelect={() => {}}
+                                            onPolygonChange={() => {}}
+                                        />
+                                    </div>
                                 </div>
                             )}
 
@@ -403,8 +515,8 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                 >
                                     ← Back
                                 </button>
-                                <button type="submit" style={{ ...btnPrimary, flex: 1 }} disabled={saving || (!selectedCompanyId && !requestSent)}>
-                                    {saving ? 'Saving…' : 'Go to Dashboard →'}
+                                <button type="submit" style={{ ...btnPrimary, flex: 1 }} disabled={saving || (!selectedCompanyId && !showNewCompanyForm)}>
+                                    {saving ? 'Submitting...' : showNewCompanyForm ? 'Submit Request' : 'Complete Profile'}
                                 </button>
                             </div>
                         </form>
@@ -433,9 +545,9 @@ const labelSt: React.CSSProperties = {
 };
 const inputSt: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box',
-    padding: '0.7rem 0.9rem',
+    padding: '0.55rem 0.8rem',
     background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-    borderRadius: 10, color: 'var(--text-primary)',
+    borderRadius: 8, color: 'var(--text-primary)',
     fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', outline: 'none',
 };
 const btnPrimary: React.CSSProperties = {

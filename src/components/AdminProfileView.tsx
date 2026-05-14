@@ -174,7 +174,7 @@ const AdminProfileView: React.FC<AdminProfileViewProps> = ({ initialProfile, onP
                                 <input
                                     style={inputStyle}
                                     value={firstName}
-                                    onChange={e => setFirstName(e.target.value)}
+                                    onChange={e => setFirstName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))}
                                     placeholder="First name"
                                     onFocus={e => { e.target.style.borderColor = '#10b981'; e.target.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.12)'; }}
                                     onBlur={e => { e.target.style.borderColor = 'var(--admin-border)'; e.target.style.boxShadow = 'none'; }}
@@ -185,7 +185,7 @@ const AdminProfileView: React.FC<AdminProfileViewProps> = ({ initialProfile, onP
                                 <input
                                     style={inputStyle}
                                     value={lastName}
-                                    onChange={e => setLastName(e.target.value)}
+                                    onChange={e => setLastName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))}
                                     placeholder="Last name"
                                     onFocus={e => { e.target.style.borderColor = '#10b981'; e.target.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.12)'; }}
                                     onBlur={e => { e.target.style.borderColor = 'var(--admin-border)'; e.target.style.boxShadow = 'none'; }}

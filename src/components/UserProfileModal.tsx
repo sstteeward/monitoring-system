@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { profileService, type Profile } from '../services/profileService';
 import { DTRCard } from './DTRCard';
+import { SignaturePad } from './SignaturePad';
 
 interface UserProfileModalProps {
     profileId: string | null;
@@ -12,6 +13,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(false);
     const [showDTR, setShowDTR] = useState(false);
+    const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+    const [showSignaturePad, setShowSignaturePad] = useState(false);
+
+    useEffect(() => {
+        profileService.getCurrentProfile().then(setCurrentUser);
+    }, []);
 
     useEffect(() => {
         if (!profileId) return;
@@ -314,7 +321,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                     overflow: 'auto',
                     animation: 'fadeIn 0.3s ease-out'
                 }}>
-                    <div style={{position: 'relative', minWidth: '100%', width: 'fit-content'}} onClick={e => e.stopPropagation()}>
+                    <div style={{position: 'relative', minWidth: '100%', width: 'fit-content', padding: '2rem', display: 'flex', justifyContent: 'center'}} onClick={e => e.stopPropagation()}>
                         <button className="glass-card" onClick={(e) => { e.stopPropagation(); setShowDTR(false); }} style={{
                             position: 'fixed', top: '16px', right: '16px', zIndex: 10000,
                             width: '40px', height: '40px',
@@ -335,13 +342,37 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                             e.currentTarget.style.transform = 'scale(1)';
                         }}
                         >&times;</button>
-                        <DTRCard 
-                            requiredHours={profile.required_ojt_hours || 0} 
-                            userId={profile.auth_user_id} 
-                            employeeName={`${profile.first_name} ${profile.last_name}`}
-                            department={profile.department || "N/A"}
-                            isCoordinatorView={true}
-                        />
+                        
+                        {showSignaturePad ? (
+                            <div style={{ margin: 'auto', width: '100%', maxWidth: '600px', marginTop: '10vh' }}>
+                                <div style={{ background: 'var(--bg-elevated)', padding: '2rem', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+                                    <h2 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--text-bright)' }}>Set Up Your Signature</h2>
+                                    <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Before signing DTR cards, please draw your signature below. This will be saved to your profile and stamped on the cards.</p>
+                                    <SignaturePad 
+                                        onCancel={() => setShowSignaturePad(false)}
+                                        onSave={async (sigUrl) => {
+                                            try {
+                                                await profileService.updateProfile({ coordinator_signature: sigUrl });
+                                                setCurrentUser(prev => prev ? { ...prev, coordinator_signature: sigUrl } : prev);
+                                                setShowSignaturePad(false);
+                                            } catch (e) {
+                                                console.error("Failed to save signature", e);
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            <DTRCard 
+                                requiredHours={profile.required_ojt_hours || 0} 
+                                userId={profile.auth_user_id} 
+                                employeeName={`${profile.first_name} ${profile.last_name}`}
+                                department={profile.department || "N/A"}
+                                isCoordinatorView={currentUser?.account_type === 'coordinator'}
+                                coordinatorSignature={currentUser?.coordinator_signature}
+                                onRequireSignature={() => setShowSignaturePad(true)}
+                            />
+                        )}
                     </div>
                 </div>
             )}

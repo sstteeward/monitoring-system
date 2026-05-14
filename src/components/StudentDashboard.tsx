@@ -306,7 +306,7 @@ const StudentDashboard: React.FC = () => {
 
                 onVpnDetected: (details) => {
                     setDriftWarning(
-                        ` VPN/Proxy detected: ${details.reason || 'IP location mismatch'}. Your IP geolocates ${details.distanceKm}km from your GPS position.`
+                        ` VPN/Proxy detected: ${details.reason || 'IP location mismatch'}. Your IP geolocates ${details.distanceKm}km from your location position.`
                     );
                     logAntiCheat('VPN / Proxy Detected', {
                         action: 'Continuous-Monitor',
@@ -349,7 +349,7 @@ const StudentDashboard: React.FC = () => {
     }, [session?.id, session?.status]);
 
     // ── Clock In — Full Anti-Cheat Suite ─────────────────────────────────
-    const initiateClockIn = async () => {
+    const initiateClockIn = async (shiftOverride?: 'morning' | 'afternoon') => {
         try {
             setIsActionLoading(true);
 
@@ -373,7 +373,8 @@ const StudentDashboard: React.FC = () => {
 
                 // Write to DTR: first clock-in = morning, second = afternoon
                 const completedBefore = todaySessions.filter(s => s.status === 'completed').length;
-                const dtrField = completedBefore === 0 ? 'morning_in' : 'afternoon_in';
+                let dtrField = completedBefore === 0 ? 'morning_in' : 'afternoon_in';
+                if (shiftOverride) dtrField = `${shiftOverride}_in`;
                 try { await dtrService.upsertDTRField(dtrField as any, new Date().toISOString()); }
                 catch (dtrErr) { console.warn('[DTR] Write failed (non-blocking):', dtrErr); }
             } else {
@@ -383,7 +384,8 @@ const StudentDashboard: React.FC = () => {
                 await loadTodaySessions();
 
                 const completedBefore = todaySessions.filter(s => s.status === 'completed').length;
-                const dtrField = completedBefore === 0 ? 'morning_in' : 'afternoon_in';
+                let dtrField = completedBefore === 0 ? 'morning_in' : 'afternoon_in';
+                if (shiftOverride) dtrField = `${shiftOverride}_in`;
                 try { await dtrService.upsertDTRField(dtrField as any, new Date().toISOString()); }
                 catch (dtrErr) { console.warn('[DTR] Write failed (non-blocking):', dtrErr); }
             }
@@ -794,8 +796,8 @@ const StudentDashboard: React.FC = () => {
                                 </div>
 
                                 <div style={{ position: 'relative' }}>
-                                    <button 
-                                        className="topbar-user-btn" 
+                                    <button
+                                        className="topbar-user-btn"
                                         onClick={() => setShowNotifications(!showNotifications)}
                                         style={{ padding: '0.5rem', background: 'var(--bg-elevated)', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                     >
@@ -806,7 +808,7 @@ const StudentDashboard: React.FC = () => {
                                             </span>
                                         )}
                                     </button>
-                                    
+
                                     {showNotifications && (
                                         <>
                                             <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setShowNotifications(false)} />
@@ -827,10 +829,10 @@ const StudentDashboard: React.FC = () => {
                                                         </div>
                                                     ) : (
                                                         notifications.map(n => (
-                                                            <div 
-                                                                key={n.id} 
+                                                            <div
+                                                                key={n.id}
                                                                 onClick={() => { if (!n.is_read) markNotificationAsRead(n.id); }}
-                                                                style={{ 
+                                                                style={{
                                                                     padding: '1rem', borderBottom: '1px solid var(--border)', cursor: 'pointer',
                                                                     background: n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)',
                                                                     borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--primary)',
@@ -994,9 +996,10 @@ const StudentDashboard: React.FC = () => {
                                                     <div style={{ display: 'flex', gap: '0.5rem', width: '100%', justifyContent: 'center' }}>
                                                         <button
                                                             className={`btn btn-shift ${completedSessions.length === 0 ? 'suggested' : ''} ${isActionLoading ? 'loading' : ''}`}
-                                                            onClick={initiateClockIn}
-                                                            disabled={isActionLoading}
-                                                            title="Clock in for morning shift"
+                                                            onClick={() => initiateClockIn('morning')}
+                                                            disabled={isActionLoading || hour >= 12 || !profile?.company_id}
+                                                            title={!profile?.company_id ? "You must have an assigned company to clock in" : hour >= 12 ? "Cannot time in for morning after 12:00 PM" : "Clock in for morning shift"}
+                                                            style={!profile?.company_id || hour >= 12 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                                         >
                                                             {isActionLoading ? (
                                                                 <span className="btn-loading-text">Clocking In...</span>
@@ -1009,9 +1012,10 @@ const StudentDashboard: React.FC = () => {
                                                         </button>
                                                         <button
                                                             className={`btn btn-shift ${completedSessions.length === 1 ? 'suggested' : ''} ${isActionLoading ? 'loading' : ''}`}
-                                                            onClick={initiateClockIn}
-                                                            disabled={isActionLoading}
-                                                            title="Clock in for afternoon shift"
+                                                            onClick={() => initiateClockIn('afternoon')}
+                                                            disabled={isActionLoading || hour < 12 || !profile?.company_id}
+                                                            title={!profile?.company_id ? "You must have an assigned company to clock in" : hour < 12 ? "Cannot time in for afternoon before 12:00 PM" : "Clock in for afternoon shift"}
+                                                            style={!profile?.company_id || hour < 12 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                                         >
                                                             {isActionLoading ? (
                                                                 <span className="btn-loading-text">Clocking In...</span>

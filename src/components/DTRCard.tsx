@@ -57,22 +57,34 @@ export interface DTRCardProps {
   /** If provided, the card will auto-fetch DTR data from Supabase */
   userId?: string;
   isCoordinatorView?: boolean;
+  coordinatorSignature?: string | null;
+  onRequireSignature?: () => void;
 }
 
 export function DTRCard({ 
   employeeName = "STUDENT NAME", 
   department = "DEPARTMENT", 
   position = "STUDENT", 
+  month: monthProp,
   requiredHours = 0,
   userId,
-  isCoordinatorView = false
+  isCoordinatorView = false,
+  coordinatorSignature,
+  onRequireSignature
 }: DTRCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [signatures, setSignatures] = useState<Record<string, string>>({});
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
+
+  // Helper to get formatted pay ending
+  const getFormattedPayEnding = (m: number, y: number) => {
+    const monthName = new Date(y, m - 1).toLocaleString('default', { month: 'long' });
+    return `${monthName} ${y}`;
+  };
 
   const createEmptyRecords = (): DTRRecord[] =>
     Array.from({ length: 31 }, (_, i) => ({
@@ -80,32 +92,37 @@ export function DTRCard({
       overtimeIn: '', overtimeOut: '', total: '', autoFilled: false
     }));
 
-  const createNewCard = (id: string, month?: number, year?: number): DTRCardData => ({
-    id,
-    isFlipped: false,
-    header: {
-      no: '',
-      payEnding: '',
-      name: employeeName,
-      position: position,
-      dept: department,
-      age: '',
-    },
-    payroll: {
-      regRate: '', amount1: '',
-      overRate: '', amount2: '',
-      totalEarnings: '',
-      fines: '',
-      withholdingTax: '',
-      sss: '',
-      totalDeductions: '',
-      netPay: '',
-    },
-    frontRecords: createEmptyRecords(),
-    backRecords: createEmptyRecords(),
-    month: month || currentMonth,
-    year: year || currentYear,
-  });
+  const createNewCard = (id: string, month?: number, year?: number): DTRCardData => {
+    const targetMonth = month || currentMonth;
+    const targetYear = year || currentYear;
+    
+    return {
+      id,
+      isFlipped: false,
+      header: {
+        no: '',
+        payEnding: getFormattedPayEnding(targetMonth, targetYear),
+        name: employeeName,
+        position: position,
+        dept: department,
+        age: '',
+      },
+      payroll: {
+        regRate: '', amount1: '',
+        overRate: '', amount2: '',
+        totalEarnings: '',
+        fines: '',
+        withholdingTax: '',
+        sss: '',
+        totalDeductions: '',
+        netPay: '',
+      },
+      frontRecords: createEmptyRecords(),
+      backRecords: createEmptyRecords(),
+      month: targetMonth,
+      year: targetYear,
+    };
+  };
 
   const [cards, setCards] = useState<DTRCardData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -149,7 +166,13 @@ export function DTRCard({
 
   const loadDTRForCard = async (card: DTRCardData): Promise<DTRCardData> => {
     if (!userId || !card.month || !card.year) return card;
-    const records = await dtrService.fetchMonthDTR(card.month, card.year);
+    // Always use fetchMonthDTRForUser because it accepts an explicit userId
+    const records = await dtrService.fetchMonthDTRForUser(userId, card.month, card.year);
+    
+    // Also fetch signatures for this month
+    const monthSigs = await dtrService.fetchMonthSignatures(userId, card.month, card.year);
+    setSignatures(prev => ({ ...prev, ...monthSigs }));
+
     return applyDTRData(card, records);
   };
 
@@ -157,18 +180,69 @@ export function DTRCard({
   useEffect(() => {
     if (cards.length > 0) return;
 
-    const initCard = createNewCard(crypto.randomUUID(), currentMonth, currentYear);
-    
     if (userId) {
       setIsLoading(true);
-      loadDTRForCard(initCard).then(loaded => {
-        setCards([loaded]);
+      // Auto-discover which months have DTR data and create cards for each
+      dtrService.fetchDTRMonthsForUser(userId).then(async (months) => {
+        // If a month prop was provided, ensure it's in the list
+        if (monthProp) {
+           const match = monthProp.match(/(\w+)\s+(\d{4})/);
+           if (match) {
+             const mName = match[1];
+             const yVal = parseInt(match[2], 10);
+             const mVal = new Date(`${mName} 1, ${yVal}`).getMonth() + 1;
+             if (!isNaN(mVal) && !months.some(m => m.month === mVal && m.year === yVal)) {
+               months.push({ month: mVal, year: yVal });
+             }
+           }
+        }
+
+        // Always include the current month
+        const currentKey = `${currentYear}-${currentMonth}`;
+        const hasCurrentMonth = months.some(m => `${m.year}-${m.month}` === currentKey);
+        if (!hasCurrentMonth) {
+          months.push({ month: currentMonth, year: currentYear });
+        }
+
+        // Sort chronologically
+        months.sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
+
+        // Create and load cards for each month
+        const cardPromises = months.map(m => {
+          const card = createNewCard(crypto.randomUUID(), m.month, m.year);
+          return loadDTRForCard(card);
+        });
+
+        const loaded = await Promise.all(cardPromises);
+        setCards(loaded);
         setIsLoading(false);
+      }).catch(() => {
+        // Fallback: just show current month
+        const initCard = createNewCard(crypto.randomUUID(), currentMonth, currentYear);
+        loadDTRForCard(initCard).then(loaded => {
+          setCards([loaded]);
+          setIsLoading(false);
+        });
       });
     } else {
-      setCards([initCard]);
+      let initMonth = currentMonth;
+      let initYear = currentYear;
+      
+      if (monthProp) {
+        const match = monthProp.match(/(\w+)\s+(\d{4})/);
+        if (match) {
+          const mName = match[1];
+          const yVal = parseInt(match[2], 10);
+          const mVal = new Date(`${mName} 1, ${yVal}`).getMonth() + 1;
+          if (!isNaN(mVal)) {
+            initMonth = mVal;
+            initYear = yVal;
+          }
+        }
+      }
+      setCards([createNewCard(crypto.randomUUID(), initMonth, initYear)]);
     }
-  }, [employeeName, department, position, userId]);
+  }, [employeeName, department, position, userId, monthProp]);
 
   // ── Real-time subscription ────────────────────────────────────────────
   useEffect(() => {
@@ -246,6 +320,36 @@ export function DTRCard({
     }
   };
 
+  const handleSignDay = async (date: string, isSigned: boolean) => {
+    if (!userId || !isCoordinatorView) return;
+
+    if (isSigned) {
+      // Unsign
+      try {
+        await dtrService.unsignDTRDay(userId, date);
+        setSignatures(prev => {
+          const next = { ...prev };
+          delete next[date];
+          return next;
+        });
+      } catch (e) {
+        console.error("Failed to unsign", e);
+      }
+    } else {
+      // Sign
+      if (!coordinatorSignature) {
+        if (onRequireSignature) onRequireSignature();
+        return;
+      }
+      try {
+        await dtrService.signDTRDay(userId, date, coordinatorSignature);
+        setSignatures(prev => ({ ...prev, [date]: coordinatorSignature }));
+      } catch (e) {
+        console.error("Failed to sign", e);
+      }
+    }
+  };
+
   const handleFlip = (cardId: string) => {
     setCards(prev => prev.map(c => c.id === cardId ? { ...c, isFlipped: !c.isFlipped } : c));
   };
@@ -264,7 +368,58 @@ export function DTRCard({
       const recordsField = side === 'front' ? 'frontRecords' : 'backRecords';
       return {
         ...c,
-        [recordsField]: c[recordsField].map(r => r.day === day ? { ...r, [field]: val } : r)
+        [recordsField]: c[recordsField].map(r => {
+          if (r.day !== day) return r;
+          const updated = { ...r, [field]: val };
+          
+          if (['morningIn', 'morningOut', 'afternoonIn', 'afternoonOut', 'overtimeIn', 'overtimeOut'].includes(field)) {
+             let totalMins = 0;
+             const parseTime = (timeStr: string) => {
+               if (!timeStr) return 0;
+               const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/i);
+               if (match) {
+                 let h = parseInt(match[1], 10);
+                 const m = parseInt(match[2], 10);
+                 const ampm = match[3]?.toLowerCase();
+                 if (ampm === 'pm' && h < 12) h += 12;
+                 if (ampm === 'am' && h === 12) h = 0;
+                 // Default to PM if afternoon/overtime and no am/pm specified
+                 if (!ampm && h < 12 && (field.includes('afternoon') || field.includes('overtime'))) {
+                    // Let's assume user meant PM if they type 1:00 for afternoon
+                    if (h >= 1 && h <= 5) h += 12; 
+                 }
+                 return h * 60 + m; 
+               }
+               return 0;
+             };
+             
+             const mIn = parseTime(updated.morningIn);
+             const mOut = parseTime(updated.morningOut);
+             const aIn = parseTime(updated.afternoonIn);
+             const aOut = parseTime(updated.afternoonOut);
+             const oIn = parseTime(updated.overtimeIn);
+             const oOut = parseTime(updated.overtimeOut);
+             
+             // If we have an AM morning out without AM/PM but it's < morning in, maybe it's 12 PM?
+             // Simple calculation
+             if (mIn && mOut && mOut > mIn) totalMins += (mOut - mIn);
+             // handle case where morningOut is 12:00 (which is 12:00 PM) but mIn is 08:00 AM
+             else if (mIn && mOut && mOut + 12*60 > mIn && mOut < 12*60) totalMins += (mOut + 12*60 - mIn);
+             
+             if (aIn && aOut && aOut > aIn) totalMins += (aOut - aIn);
+             else if (aIn && aOut && aOut + 12*60 > aIn && aOut < 12*60) totalMins += (aOut + 12*60 - aIn);
+             
+             if (oIn && oOut && oOut > oIn) totalMins += (oOut - oIn);
+             else if (oIn && oOut && oOut + 12*60 > oIn && oOut < 12*60) totalMins += (oOut + 12*60 - oIn);
+             
+             if (totalMins > 0) {
+               updated.total = (totalMins / 60).toFixed(2);
+             } else {
+               updated.total = '';
+             }
+          }
+          return updated;
+        })
       };
     }));
   };
@@ -272,23 +427,63 @@ export function DTRCard({
   const handleDownloadImage = () => {
     const element = containerRef.current;
     if (!element) return;
+
+    // Find only the card front faces (the actual DTR papers)
+    const cardFronts = element.querySelectorAll('.dtr-card-front');
+    if (cardFronts.length === 0) return;
+
     setIsPrinting(true);
-    setTimeout(() => {
-      html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#f0f2f5'
-      }).then(canvas => {
-        const today = new Date();
-        const dateStr = today.toISOString().split('T')[0];
-        const filename = `DTR_Cards_${dateStr}.webp`;
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+
+    setTimeout(async () => {
+      for (let i = 0; i < cardFronts.length; i++) {
+        const cardEl = cardFronts[i] as HTMLElement;
+        const canvas = await html2canvas(cardEl, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#fff9e1'
+        });
+        const filename = cardFronts.length === 1
+          ? `DTR_${dateStr}.webp`
+          : `DTR_Card${i + 1}_Front_${dateStr}.webp`;
         const link = document.createElement('a');
         link.download = filename;
         link.href = canvas.toDataURL('image/webp', 0.95);
         link.click();
-        setIsPrinting(false);
-      });
+      }
+
+      // Also download the back sides
+      const cardBacks = element.querySelectorAll('.dtr-card-back');
+      for (let i = 0; i < cardBacks.length; i++) {
+        const cardEl = cardBacks[i] as HTMLElement;
+        // Temporarily make visible for capture
+        const origPos = cardEl.style.position;
+        const origTransform = cardEl.style.transform;
+        cardEl.style.position = 'relative';
+        cardEl.style.transform = 'none';
+
+        const canvas = await html2canvas(cardEl, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#fff9e1'
+        });
+        const filename = cardBacks.length === 1
+          ? `DTR_Back_${dateStr}.webp`
+          : `DTR_Card${i + 1}_Back_${dateStr}.webp`;
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/webp', 0.95);
+        link.click();
+
+        // Restore original styles
+        cardEl.style.position = origPos;
+        cardEl.style.transform = origTransform;
+      }
+
+      setIsPrinting(false);
     }, 100);
   };
 
@@ -345,9 +540,12 @@ export function DTRCard({
                   <DTRFace 
                     data={card} 
                     side="front" 
+                    signatures={signatures}
+                    isCoordinatorView={isCoordinatorView}
                     onHeaderChange={(f, v) => updateHeader(card.id, f, v)}
                     onPayrollChange={(f, v) => updatePayroll(card.id, f, v)}
                     onRecordChange={(d, f, v) => updateRecord(card.id, 'front', d, f, v)}
+                    onSignDay={handleSignDay}
                   />
                 </div>
 
@@ -356,9 +554,12 @@ export function DTRCard({
                   <DTRFace 
                     data={card} 
                     side="back" 
+                    signatures={signatures}
+                    isCoordinatorView={isCoordinatorView}
                     onHeaderChange={(f, v) => updateHeader(card.id, f, v)}
                     onPayrollChange={(f, v) => updatePayroll(card.id, f, v)}
                     onRecordChange={(d, f, v) => updateRecord(card.id, 'back', d, f, v)}
+                    onSignDay={handleSignDay}
                   />
                 </div>
               </div>
@@ -391,12 +592,6 @@ export function DTRCard({
             </svg>
             Download All
           </button>
-          <button className="dtr-btn dtr-btn-secondary" onClick={() => window.print()}>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            Print
-          </button>
         </div>
       )}
     </div>
@@ -406,13 +601,21 @@ export function DTRCard({
 interface FaceProps {
   data: DTRCardData;
   side: 'front' | 'back';
+  signatures: Record<string, string>;
+  isCoordinatorView: boolean;
   onHeaderChange: (field: keyof DTRCardData['header'], val: string) => void;
   onPayrollChange: (field: keyof DTRCardData['payroll'], val: string) => void;
   onRecordChange: (day: number, field: keyof DTRRecord, val: string) => void;
+  onSignDay?: (date: string, isSigned: boolean) => void;
 }
 
-function DTRFace({ data, side, onHeaderChange, onPayrollChange, onRecordChange }: FaceProps) {
+function DTRFace({ data, side, signatures, isCoordinatorView, onHeaderChange, onPayrollChange, onRecordChange, onSignDay }: FaceProps) {
   const records = side === 'front' ? data.frontRecords : data.backRecords;
+
+  const getRecordDate = (day: number) => {
+    if (!data.year || !data.month) return '';
+    return `${data.year}-${String(data.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
 
   return (
     <>
@@ -524,7 +727,7 @@ function DTRFace({ data, side, onHeaderChange, onPayrollChange, onRecordChange }
       <div className="tc-grid-section">
         <table className="tc-grid">
           <colgroup>
-            <col style={{ width: '7%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '15%' }} />
+            <col style={{ width: '7%' }} /><col style={{ width: '12%' }} /><col style={{ width: '12%' }} /><col style={{ width: '12%' }} /><col style={{ width: '12%' }} /><col style={{ width: '12%' }} /><col style={{ width: '12%' }} /><col style={{ width: '12%' }} /><col style={{ width: '9%' }} />
           </colgroup>
           <thead>
             <tr>
@@ -533,24 +736,43 @@ function DTRFace({ data, side, onHeaderChange, onPayrollChange, onRecordChange }
               <th colSpan={2}>AFTERNOON</th>
               <th colSpan={2}>OVERTIME</th>
               <th rowSpan={2} style={{ fontSize: '8px' }}>Daily Total</th>
+              <th rowSpan={2} style={{ fontSize: '8px' }}>Sign</th>
             </tr>
             <tr>
               <th>IN</th><th>OUT</th><th>IN</th><th>OUT</th><th>IN</th><th>OUT</th>
             </tr>
           </thead>
           <tbody>
-            {records.map((rec) => (
-              <tr key={rec.day} className={rec.autoFilled ? 'dtr-auto-filled' : ''}>
-                <td className="day-num">{rec.day}</td>
-                <td><input className="tc-grid-input" value={rec.morningIn} onChange={e => onRecordChange(rec.day, 'morningIn', e.target.value)} /></td>
-                <td><input className="tc-grid-input" value={rec.morningOut} onChange={e => onRecordChange(rec.day, 'morningOut', e.target.value)} /></td>
-                <td><input className="tc-grid-input" value={rec.afternoonIn} onChange={e => onRecordChange(rec.day, 'afternoonIn', e.target.value)} /></td>
-                <td><input className="tc-grid-input" value={rec.afternoonOut} onChange={e => onRecordChange(rec.day, 'afternoonOut', e.target.value)} /></td>
-                <td><input className="tc-grid-input" value={rec.overtimeIn} onChange={e => onRecordChange(rec.day, 'overtimeIn', e.target.value)} /></td>
-                <td><input className="tc-grid-input" value={rec.overtimeOut} onChange={e => onRecordChange(rec.day, 'overtimeOut', e.target.value)} /></td>
-                <td><input className="tc-grid-input" value={rec.total} onChange={e => onRecordChange(rec.day, 'total', e.target.value)} /></td>
-              </tr>
-            ))}
+            {records.map((rec) => {
+              const recordDate = getRecordDate(rec.day);
+              const signature = recordDate ? signatures[recordDate] : null;
+              
+              return (
+                <tr key={rec.day} className={rec.autoFilled ? 'dtr-auto-filled' : ''}>
+                  <td className="day-num">{rec.day}</td>
+                  <td><input className="tc-grid-input" value={rec.morningIn} onChange={e => onRecordChange(rec.day, 'morningIn', e.target.value)} /></td>
+                  <td><input className="tc-grid-input" value={rec.morningOut} onChange={e => onRecordChange(rec.day, 'morningOut', e.target.value)} /></td>
+                  <td><input className="tc-grid-input" value={rec.afternoonIn} onChange={e => onRecordChange(rec.day, 'afternoonIn', e.target.value)} /></td>
+                  <td><input className="tc-grid-input" value={rec.afternoonOut} onChange={e => onRecordChange(rec.day, 'afternoonOut', e.target.value)} /></td>
+                  <td><input className="tc-grid-input" value={rec.overtimeIn} onChange={e => onRecordChange(rec.day, 'overtimeIn', e.target.value)} /></td>
+                  <td><input className="tc-grid-input" value={rec.overtimeOut} onChange={e => onRecordChange(rec.day, 'overtimeOut', e.target.value)} /></td>
+                  <td><input className="tc-grid-input" value={rec.total} onChange={e => onRecordChange(rec.day, 'total', e.target.value)} /></td>
+                  <td className="sign-cell">
+                    {signature ? (
+                      <div className="dtr-signature-stamp" onClick={() => isCoordinatorView && onSignDay && recordDate && onSignDay(recordDate, true)}>
+                        <img src={signature} alt="sig" />
+                      </div>
+                    ) : (
+                      isCoordinatorView && recordDate && rec.total ? (
+                        <button className="dtr-btn-sign-day" onClick={() => onSignDay && onSignDay(recordDate, false)}>
+                          ✍️
+                        </button>
+                      ) : null
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -112,6 +112,16 @@ const CoordinatorDashboard: React.FC = () => {
         }
     };
 
+    const refreshStats = async () => {
+        try {
+            const stats = await coordinatorService.getOverviewStats(coordinatorDepartment?.id);
+            setOverviewStats(stats);
+            setTotalPendingCount(stats.totalPendingCount || 0);
+        } catch (err) {
+            console.error('Error refreshing stats:', err);
+        }
+    };
+
     const navigateTo = (view: View, param?: any) => {
         routerNavigate(view === 'overview' ? '/coordinator' : `/coordinator/${view}`);
 
@@ -355,7 +365,7 @@ const CoordinatorDashboard: React.FC = () => {
                     {currentView === 'departments' && <CoordinatorDepartmentView />}
                     {currentView === 'students' && <StudentsView initialFilter={studentFilter} />}
                     {currentView === 'grades' && <GradesView />}
-                    {currentView === 'approvals' && <ApprovalsView initialTab={approvalsTab} key={approvalsTab} />}
+                    {currentView === 'approvals' && <ApprovalsView initialTab={approvalsTab} key={approvalsTab} onActionComplete={refreshStats} />}
                     {currentView === 'announcement' && <AnnouncementsView isCoordinator={true} />}
                     {currentView === 'security' && (
                         <SecurityAlertsView departmentId={coordinatorDepartment?.id} />

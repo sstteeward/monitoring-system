@@ -5,12 +5,13 @@ export interface Profile {
     auth_user_id: string;
     email: string | null;
     first_name: string | null;
+    middle_name?: string | null;
     last_name: string | null;
     account_type: 'student' | 'coordinator' | 'admin';
     required_ojt_hours: number;
     absences: number;
     company_id: string | null;
-    company?: { name: string; latitude?: number | null; longitude?: number | null; geofence_radius?: number | null } | null;
+    company?: { name: string; latitude?: number | null; longitude?: number | null; geofence_radius?: number | null; geofence_polygon?: any | null } | null;
     department_info?: { name: string } | null;
     avatar_url: string | null;
     created_at: string;
@@ -24,6 +25,8 @@ export interface Profile {
     course?: string | null;
     department?: string | null;
     grade?: string | null;
+    // Signature
+    coordinator_signature?: string | null;
     // Enterprise fields
     department_id?: string | null;
     permissions?: any;
@@ -39,7 +42,7 @@ export const profileService = {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('*, company:companies(name, latitude, longitude, geofence_radius)')
+            .select('*, company:companies(name, latitude, longitude, geofence_radius, geofence_polygon)')
             .eq('auth_user_id', user.id)
             .single();
 

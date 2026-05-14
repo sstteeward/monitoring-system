@@ -8,9 +8,10 @@ import './CoordinatorDashboard.css';
 
 interface ApprovalsViewProps {
     initialTab?: 'documents' | 'journals' | 'dtr' | 'dept_changes';
+    onActionComplete?: () => void;
 }
 
-const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' }) => {
+const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents', onActionComplete }) => {
     const [activeTab, setActiveTab] = useState<'documents' | 'journals' | 'dtr' | 'dept_changes'>(initialTab);
     const [documents, setDocuments] = useState<any[]>([]);
     const [journals, setJournals] = useState<any[]>([]);
@@ -126,6 +127,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents' 
                 await departmentRequestService.actionRequest(id, status, remarks);
                 setDeptRequests(prev => prev.filter(d => d.id !== id));
             }
+            if (onActionComplete) onActionComplete();
         } catch (err) {
             console.error(`Failed to mark item as ${status}:`, err);
             alert(`Error: Could not mark item as ${status}`);

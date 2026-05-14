@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import type { GeoJSONPolygon } from '../utils/geoUtils';
 import type { Profile } from './profileService';
 import type { Timesheet } from './timeTracking';
 import { notificationService } from './notificationService';
@@ -25,6 +26,8 @@ export interface Company {
     latitude: number | null;
     longitude: number | null;
     geofence_radius: number | null;
+    geofence_polygon: any | null; // GeoJSON FeatureCollection
+    geofence_mode: 'circular' | 'polygon' | 'hybrid' | null; // Which mode is active
     department_name?: string; // virtual, from join
     created_at: string;
     updated_at: string;
@@ -39,6 +42,10 @@ export interface CompanyRequest {
     student_name: string | null;
     status: 'pending' | 'approved' | 'rejected';
     created_at: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    geofence_radius?: number | null;
+    geofence_polygon?: GeoJSONPolygon | null;
 }
 
 async function checkPermission(permissionKey: string): Promise<boolean> {
@@ -548,17 +555,64 @@ export const coordinatorService = {
      * Approve a company request: create the real company then mark ALL requests
      * with the same name (case-insensitive) as approved to avoid duplicates.
      */
-    async approveCompanyRequest(name: string) {
-        // 1. Insert one company (coordinator context — RLS allows this)
-        const { data: newCompany, error: createErr } = await supabase
-            .from('companies')
-            .insert([{ name }])
-            .select()
-            .single();
+    async approveCompanyRequest(name: string, options?: { department_id?: string, handle_company?: boolean }) {
+        // 0. Fetch the pending requests matching this name to extract geofence details and student IDs
+        const { data: requests, error: fetchReqErr } = await supabase
+            .from('company_requests')
+            .select('*')
+            .eq('status', 'pending')
+            .ilike('name', name);
 
-        if (createErr) {
-            console.error('Error creating company from request:', createErr);
-            throw createErr;
+        if (fetchReqErr) {
+            console.error('Error fetching company requests:', fetchReqErr);
+            throw fetchReqErr;
+        }
+
+        // We will use the geofence details from the first request that has them (if any)
+        const requestWithGeofence = requests?.find(req => req.latitude || req.geofence_polygon);
+
+        // 1. Check if a company with this name already exists (case-insensitive)
+        const { data: existing } = await supabase
+            .from('companies')
+            .select('*')
+            .ilike('name', name)
+            .limit(1)
+            .maybeSingle();
+
+        let company: Company;
+
+        if (existing) {
+            // Company already exists — reuse it, don't create a duplicate
+            company = existing as Company;
+            if (options?.department_id) {
+                const { error: updateErr } = await supabase.from('companies').update({ department_id: options.department_id }).eq('id', company.id);
+                if (updateErr) console.error('Error updating company department:', updateErr);
+            }
+        } else {
+            // Insert a new company with the geofence data from the request
+            const insertPayload: Partial<Company> = { 
+                name,
+                department_id: options?.department_id || null
+            };
+            if (requestWithGeofence) {
+                insertPayload.latitude = requestWithGeofence.latitude;
+                insertPayload.longitude = requestWithGeofence.longitude;
+                insertPayload.geofence_radius = requestWithGeofence.geofence_radius;
+                insertPayload.geofence_polygon = requestWithGeofence.geofence_polygon;
+                insertPayload.geofence_mode = requestWithGeofence.geofence_polygon ? 'polygon' : 'circular';
+            }
+
+            const { data: newCompany, error: createErr } = await supabase
+                .from('companies')
+                .insert([insertPayload])
+                .select()
+                .single();
+
+            if (createErr) {
+                console.error('Error creating company from request:', createErr);
+                throw createErr;
+            }
+            company = newCompany as Company;
         }
 
         // 2. Mark ALL pending requests with the same name as approved
@@ -573,13 +627,53 @@ export const coordinatorService = {
             throw updateErr;
         }
 
-        return newCompany as Company;
+        // 3. Handle the company if requested
+        if (options?.handle_company) {
+            try {
+                await this.toggleCompanyHandling(company.id, true);
+                company.is_handled = true;
+            } catch (err) {
+                console.error('Error auto-handling company:', err);
+            }
+        }
+
+        // 3. Auto-assign the requesting students to this new company & notify them
+        if (requests && requests.length > 0) {
+            const studentIds = requests.map(req => req.requested_by).filter(Boolean);
+            if (studentIds.length > 0) {
+                // Update their profiles
+                const { error: profileErr } = await supabase
+                    .from('profiles')
+                    .update({ company_id: company.id })
+                    .in('auth_user_id', studentIds);
+
+                if (profileErr) {
+                    console.error('Error auto-assigning students to company:', profileErr);
+                }
+
+                // Send notifications
+                for (const studentId of studentIds) {
+                    await notificationService.createNotification(
+                        studentId,
+                        'Company Request Approved',
+                        `Your request to add the company ${name} has been approved! You can now access your dashboard.`,
+                        'success'
+                    ).catch(err => console.error('Error sending approval notification:', err));
+                }
+            }
+        }
+
+        return company;
     },
 
-    /**
-     * Reject a company request
-     */
     async rejectCompanyRequest(requestId: string) {
+        // Fetch the request first to know who requested it
+        const { data: request } = await supabase
+            .from('company_requests')
+            .select('*')
+            .eq('id', requestId)
+            .single();
+
         const { error } = await supabase
             .from('company_requests')
             .update({ status: 'rejected' })
@@ -588,6 +682,16 @@ export const coordinatorService = {
         if (error) {
             console.error('Error rejecting company request:', error);
             throw error;
+        }
+
+        // Send a notification to the student so they know to try again
+        if (request?.requested_by) {
+            await notificationService.createNotification(
+                request.requested_by,
+                'Company Request Rejected',
+                `Your request to add the company ${request.name} was rejected. Please select or request a different company.`,
+                'warning'
+            ).catch(err => console.error('Error sending rejection notification:', err));
         }
 
         return true;
@@ -915,6 +1019,62 @@ export const coordinatorService = {
             console.error('Failed to notify student about grade update:', notifErr);
         }
 
+        return true;
+    },
+
+    /**
+     * Update a student's section
+     */
+    async updateStudentSection(studentId: string, section: string) {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ section })
+            .eq('auth_user_id', studentId);
+
+        if (error) {
+            console.error('Error updating student section:', error);
+            throw error;
+        }
+        return true;
+    },
+
+    /**
+     * Bulk update all students from an old section name to a new section name
+     */
+    async bulkUpdateSectionName(oldSection: string, newSection: string, departmentId?: string, course?: string, yearLevel?: string) {
+        // If departmentId is provided, we only update students in that department
+        let query = supabase
+            .from('profiles')
+            .update({ section: newSection });
+
+        // Build the query conditions
+        let finalQuery;
+        if (oldSection === 'Unassigned Section') {
+            finalQuery = query.is('section', null).eq('account_type', 'student');
+        } else {
+            finalQuery = query.eq('section', oldSection).eq('account_type', 'student');
+        }
+
+        if (departmentId) {
+            finalQuery = finalQuery.eq('department_id', departmentId);
+        }
+        
+        if (course) {
+            if (course === 'Unassigned Course') finalQuery = finalQuery.is('course', null);
+            else finalQuery = finalQuery.eq('course', course);
+        }
+        
+        if (yearLevel) {
+            if (yearLevel === 'Unassigned Year') finalQuery = finalQuery.is('year_level', null);
+            else finalQuery = finalQuery.eq('year_level', yearLevel);
+        }
+
+        const { error } = await finalQuery;
+
+        if (error) {
+            console.error('Error bulk updating section:', error);
+            throw error;
+        }
         return true;
     }
 };
