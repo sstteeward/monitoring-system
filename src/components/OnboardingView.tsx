@@ -164,7 +164,12 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 .eq('auth_user_id', authId);
 
             if (err) throw err;
-            onComplete();
+            
+            if (showNewCompanyForm) {
+                setPendingRequest({ name: requestedName, status: 'pending', requested_by: authId || '' });
+            } else {
+                onComplete();
+            }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Failed to save. Please try again.');
         } finally {
