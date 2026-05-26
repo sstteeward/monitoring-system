@@ -140,6 +140,11 @@ const StudentDashboard: React.FC = () => {
     const loadProfile = async () => {
         try {
             const data = await profileService.getCurrentProfile();
+            if (!data) {
+                await supabase.auth.signOut();
+                routerNavigate('/login', { replace: true });
+                return;
+            }
             setProfile(data);
             // Show onboarding if company hasn't been set yet OR missing crucial new profile fields
             const isMissingFields = !data?.company_id || !data?.course || !data?.department || !data?.year_level;
@@ -148,6 +153,8 @@ const StudentDashboard: React.FC = () => {
             }
         } catch (err) {
             console.error('Error loading profile:', err);
+            await supabase.auth.signOut();
+            routerNavigate('/login', { replace: true });
         }
     };
 

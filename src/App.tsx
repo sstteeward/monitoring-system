@@ -28,6 +28,8 @@ function AppContent() {
     }
   };
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -75,17 +77,22 @@ function AppContent() {
 
       if (!error && data) {
         setProfile(data);
+      } else {
+        setProfile(null);
+        setSession(null);
+        await supabase.auth.signOut();
+        navigate('/login', { replace: true });
       }
     } catch (e) {
       console.error("Error fetching profile for routing", e);
+      setProfile(null);
+      setSession(null);
+      await supabase.auth.signOut();
+      navigate('/login', { replace: true });
     } finally {
       setLoading(false);
     }
   };
-
-
-
-  const navigate = useNavigate();
 
   if (loading) {
     return <div style={{ color: 'var(--text-muted)', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;

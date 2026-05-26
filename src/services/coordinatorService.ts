@@ -3,6 +3,7 @@ import type { GeoJSONPolygon } from '../utils/geoUtils';
 import type { Profile } from './profileService';
 import type { Timesheet } from './timeTracking';
 import { notificationService } from './notificationService';
+import { emailService } from './emailService';
 
 // Define a type for Daily Journals since it might not be exported from journalService
 export interface DailyJournal {
@@ -651,7 +652,14 @@ export const coordinatorService = {
                     console.error('Error auto-assigning students to company:', profileErr);
                 }
 
-                // Send notifications
+                // Send notifications (both in-app and email)
+                const { data: studentProfiles } = await supabase
+                    .from('profiles')
+                    .select('email, first_name, last_name, auth_user_id')
+                    .in('auth_user_id', studentIds);
+
+                const profileMap = new Map((studentProfiles ?? []).map(p => [p.auth_user_id, p]));
+
                 for (const studentId of studentIds) {
                     await notificationService.createNotification(
                         studentId,
@@ -659,6 +667,13 @@ export const coordinatorService = {
                         `Your request to add the company ${name} has been approved! You can now access your dashboard.`,
                         'success'
                     ).catch(err => console.error('Error sending approval notification:', err));
+
+                    const profile = profileMap.get(studentId);
+                    if (profile && profile.email) {
+                        const studentName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Student';
+                        await emailService.sendCompanyApprovalEmail(profile.email, studentName, name)
+                            .catch(err => console.error('Error sending approval email:', err));
+                    }
                 }
             }
         }
@@ -692,6 +707,19 @@ export const coordinatorService = {
                 `Your request to add the company ${request.name} was rejected. Please select or request a different company.`,
                 'warning'
             ).catch(err => console.error('Error sending rejection notification:', err));
+
+            // Fetch the requesting student's profile to get their email
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('email, first_name, last_name')
+                .eq('auth_user_id', request.requested_by)
+                .single();
+
+            if (profile && profile.email) {
+                const studentName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Student';
+                await emailService.sendCompanyRejectionEmail(profile.email, studentName, request.name)
+                    .catch(err => console.error('Error sending rejection email:', err));
+            }
         }
 
         return true;
