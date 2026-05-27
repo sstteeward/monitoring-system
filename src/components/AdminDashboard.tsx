@@ -50,8 +50,24 @@ const AdminDashboard: React.FC = () => {
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
     const [deletingUser, setDeletingUser] = useState(false);
     const [viewProfileId, setViewProfileId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useTheme();
+
+    const filteredProfiles = allProfiles.filter(p => {
+        const query = searchQuery.toLowerCase().trim();
+        if (!query) return true;
+        const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
+        return (
+            fullName.includes(query) ||
+            (p.email || '').toLowerCase().includes(query) ||
+            (p.account_type || '').toLowerCase().includes(query)
+        );
+    });
+
+    useEffect(() => {
+        setSearchQuery('');
+    }, [currentView]);
 
     useEffect(() => {
         const path = location.pathname.replace('/admin/', '').replace('/admin', '');
@@ -372,9 +388,82 @@ const AdminDashboard: React.FC = () => {
                         {currentView === 'users' && (
                             <div className="fade-in">
                                 <div className="admin-table-card glass-card">
-                                    <div className="admin-table-header">
-                                        <div className="admin-table-title">All Users</div>
-                                        <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.875rem' }}>Total: {allProfiles.length} users</div>
+                                    <div className="admin-table-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
+                                        <div>
+                                            <div className="admin-table-title">All Users</div>
+                                            <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.875rem', marginTop: '2px' }}>Total: {filteredProfiles.length} of {allProfiles.length} users</div>
+                                        </div>
+                                        <div style={{ position: 'relative', minWidth: '240px' }}>
+                                            <input
+                                                type="text"
+                                                placeholder="Search users..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                style={{
+                                                    background: 'var(--bg-elevated)',
+                                                    border: '1px solid var(--border)',
+                                                    borderRadius: '8px',
+                                                    padding: '0.5rem 0.9rem 0.5rem 2.2rem',
+                                                    color: 'var(--text-primary)',
+                                                    fontSize: '0.85rem',
+                                                    width: '100%',
+                                                    outline: 'none',
+                                                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                                                }}
+                                                onFocus={(e) => {
+                                                    e.currentTarget.style.borderColor = '#10b981';
+                                                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.12)';
+                                                }}
+                                                onBlur={(e) => {
+                                                    e.currentTarget.style.borderColor = 'var(--border)';
+                                                    e.currentTarget.style.boxShadow = 'none';
+                                                }}
+                                            />
+                                            <svg
+                                                width="14"
+                                                height="14"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="var(--text-muted)"
+                                                strokeWidth="2.5"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: '0.8rem',
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    pointerEvents: 'none'
+                                                }}
+                                            >
+                                                <circle cx="11" cy="11" r="8" />
+                                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                            </svg>
+                                            {searchQuery && (
+                                                <button
+                                                    onClick={() => setSearchQuery('')}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        right: '0.8rem',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: 'var(--text-muted)',
+                                                        cursor: 'pointer',
+                                                        padding: 0,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                                    </svg>
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                     <table className="admin-table">
                                         <thead>
@@ -387,46 +476,77 @@ const AdminDashboard: React.FC = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {allProfiles.map(p => (
-                                                <tr key={p.id} onClick={() => setViewProfileId(p.id)} className="clickable-row">
-                                                    <td><UserClickableName userId={p.id} userName={`${p.first_name} ${p.last_name}`} /></td>
-                                                    <td>{p.email}</td>
-                                                    <td>
-                                                        <span className={`admin-badge badge-${p.account_type}`}>
-                                                            {p.account_type}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <CustomSelect
-                                                            value={p.account_type}
-                                                            disabled={updatingUserId === p.auth_user_id}
-                                                            onChange={(val) => handleRoleUpdate(p.auth_user_id, val as 'student' | 'coordinator' | 'admin')}
-                                                            options={[
-                                                                { value: 'student', label: 'Student' },
-                                                                { value: 'coordinator', label: 'Coordinator' },
-                                                                { value: 'admin', label: 'Admin' },
-                                                            ]}
-                                                        />
-                                                    </td>
-                                                    <td style={{ textAlign: 'right' }}>
-                                                        <button
+                                            {filteredProfiles.length > 0 ? (
+                                                filteredProfiles.map(p => (
+                                                    <tr key={p.id} onClick={() => setViewProfileId(p.id)} className="clickable-row">
+                                                        <td><UserClickableName userId={p.id} userName={`${p.first_name} ${p.last_name}`} /></td>
+                                                        <td>{p.email}</td>
+                                                        <td>
+                                                            <span className={`admin-badge badge-${p.account_type}`}>
+                                                                {p.account_type}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <CustomSelect
+                                                                value={p.account_type}
+                                                                disabled={updatingUserId === p.auth_user_id}
+                                                                onChange={(val) => handleRoleUpdate(p.auth_user_id, val as 'student' | 'coordinator' | 'admin')}
+                                                                options={[
+                                                                    { value: 'student', label: 'Student' },
+                                                                    { value: 'coordinator', label: 'Coordinator' },
+                                                                    { value: 'admin', label: 'Admin' },
+                                                                ]}
+                                                            />
+                                                        </td>
+                                                        <td style={{ textAlign: 'right' }}>
+                                                            <button
+                                                                style={{
+                                                                    background: 'none',
+                                                                    border: 'none',
+                                                                    color: '#ef4444',
+                                                                    cursor: 'pointer',
+                                                                    padding: '0.4rem 0.6rem',
+                                                                    fontSize: '0.85rem',
+                                                                    fontWeight: 600
+                                                                }}
+                                                                onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: p.auth_user_id, name: `${p.first_name} ${p.last_name}` }); }}
+                                                                disabled={updatingUserId === p.auth_user_id}
+                                                            >
+                                                                {updatingUserId === p.auth_user_id ? '...' : 'Delete'}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
+                                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.4 }}>
+                                                            <circle cx="11" cy="11" r="8" />
+                                                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                                        </svg>
+                                                        <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem', fontSize: '0.95rem' }}>No Users Found</p>
+                                                        <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>No profiles match &ldquo;{searchQuery}&rdquo;</p>
+                                                        <button 
+                                                            onClick={() => setSearchQuery('')}
                                                             style={{
-                                                                background: 'none',
-                                                                border: 'none',
-                                                                color: '#ef4444',
+                                                                background: 'var(--bg-elevated)',
+                                                                border: '1px solid var(--border)',
+                                                                borderRadius: '8px',
+                                                                padding: '0.4rem 1rem',
+                                                                color: 'var(--text-primary)',
                                                                 cursor: 'pointer',
-                                                                padding: '0.4rem 0.6rem',
-                                                                fontSize: '0.85rem',
-                                                                fontWeight: 600
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: 600,
+                                                                transition: 'all 0.15s'
                                                             }}
-                                                            onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: p.auth_user_id, name: `${p.first_name} ${p.last_name}` }); }}
-                                                            disabled={updatingUserId === p.auth_user_id}
+                                                            onMouseOver={e => e.currentTarget.style.borderColor = '#10b981'}
+                                                            onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
                                                         >
-                                                            {updatingUserId === p.auth_user_id ? '...' : 'Delete'}
+                                                            Clear Search
                                                         </button>
                                                     </td>
                                                 </tr>
-                                            ))}
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>

@@ -353,6 +353,19 @@ export const adminService = {
         return data as Department;
     },
 
+    async updateDepartment(id: string, name: string, description: string) {
+        const { data, error } = await supabase
+            .from('departments')
+            .update({ name, description })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        await this.logAction('update_department', 'departments', id, { name, description });
+        return data as Department;
+    },
+
     // --- Courses ---
     async getCourses() {
         const { data, error } = await supabase

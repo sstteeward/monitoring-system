@@ -13,7 +13,19 @@ type CompanyViewMode = 'list' | 'detail';
 const CompaniesView: React.FC = () => {
     const [mode, setMode] = useState<CompanyViewMode>('list');
     const [companies, setCompanies] = useState<Company[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+
+    const filteredCompanies = companies.filter(company => {
+        const query = searchQuery.toLowerCase().trim();
+        if (!query) return true;
+        return (
+            (company.name || '').toLowerCase().includes(query) ||
+            (company.industry || '').toLowerCase().includes(query) ||
+            (company.address || '').toLowerCase().includes(query) ||
+            (company.department_name || '').toLowerCase().includes(query)
+        );
+    });
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
     const [companyStudents, setCompanyStudents] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
@@ -559,9 +571,82 @@ const CompaniesView: React.FC = () => {
                     <h2 className="view-title">OJT Companies</h2>
                     <p className="view-subtitle">Manage partner companies and view assigned interns</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => setShowAddForm(v => !v)}>
-                    {showAddForm ? 'Cancel' : '+ Add Company'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative', minWidth: '240px' }}>
+                        <input
+                            type="text"
+                            placeholder="Search companies..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                background: 'var(--bg-elevated)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                padding: '0.5rem 0.9rem 0.5rem 2.2rem',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.85rem',
+                                width: '100%',
+                                outline: 'none',
+                                transition: 'border-color 0.15s, box-shadow 0.15s',
+                            }}
+                            onFocus={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--primary)';
+                                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.12)';
+                            }}
+                            onBlur={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--border)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                        />
+                        <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="var(--text-muted)"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{
+                                position: 'absolute',
+                                left: '0.8rem',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                pointerEvents: 'none'
+                            }}
+                        >
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                style={{
+                                    position: 'absolute',
+                                    right: '0.8rem',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                    <button className="btn btn-primary" onClick={() => setShowAddForm(v => !v)}>
+                        {showAddForm ? 'Cancel' : '+ Add Company'}
+                    </button>
+                </div>
             </div>
 
             {/* Add Company Form */}
@@ -823,10 +908,10 @@ const CompaniesView: React.FC = () => {
 
             {loading ? (
                 <CardGridSkeleton cards={6} height={180} />
-            ) : companies.length > 0 ? (
+            ) : filteredCompanies.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                     {/* Group companies by department */}
-                    {Array.from(new Set(companies.map(c => c.department_name || 'Uncategorized'))).sort((a, b) => {
+                    {Array.from(new Set(filteredCompanies.map(c => c.department_name || 'Uncategorized'))).sort((a, b) => {
                         if (a === 'Uncategorized') return 1;
                         if (b === 'Uncategorized') return -1;
                         return a.localeCompare(b);
@@ -846,7 +931,7 @@ const CompaniesView: React.FC = () => {
                                 {dept}
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-                                {companies.filter(c => (c.department_name || 'Uncategorized') === dept).map(company => (
+                                {filteredCompanies.filter(c => (c.department_name || 'Uncategorized') === dept).map(company => (
                                     <div
                                         key={company.id}
                                         onClick={() => handleCompanyClick(company)}
@@ -921,11 +1006,38 @@ const CompaniesView: React.FC = () => {
                         </div>
                     ))}
                 </div>
-            ) : (
+            ) : companies.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.3 }}><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                     <p style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>No Companies Yet</p>
                     <p style={{ fontSize: '0.9rem' }}>Click "Add Company" to register your first OJT partner.</p>
+                </div>
+            ) : (
+                <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.4 }}>
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>No Matches Found</p>
+                    <p style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>No companies found matching &ldquo;{searchQuery}&rdquo;</p>
+                    <button 
+                        onClick={() => setSearchQuery('')}
+                        style={{
+                            background: 'var(--admin-bg)',
+                            border: '1px solid var(--admin-border)',
+                            borderRadius: '8px',
+                            padding: '0.45rem 1rem',
+                            color: 'var(--admin-text-secondary)',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            transition: 'all 0.15s'
+                        }}
+                        onMouseOver={e => e.currentTarget.style.background = 'var(--admin-card-bg)'}
+                        onMouseOut={e => e.currentTarget.style.background = 'var(--admin-bg)'}
+                    >
+                        Clear Search Query
+                    </button>
                 </div>
             )}
         </div>

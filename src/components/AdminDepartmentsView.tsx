@@ -19,6 +19,12 @@ const AdminDepartmentsView: React.FC = () => {
     // For assigning a coordinator to a department
     const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
 
+    // Editing department state
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editName, setEditName] = useState('');
+    const [editDesc, setEditDesc] = useState('');
+    const [updating, setUpdating] = useState(false);
+
     useEffect(() => {
         loadData();
     }, []);
@@ -53,6 +59,20 @@ const AdminDepartmentsView: React.FC = () => {
             alert(error.message || 'Failed to create department');
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleUpdate = async (id: string) => {
+        if (!editName.trim()) return;
+        setUpdating(true);
+        try {
+            const updated = await adminService.updateDepartment(id, editName, editDesc);
+            setDepartments(departments.map(d => d.id === id ? updated : d));
+            setEditingId(null);
+        } catch (error: any) {
+            alert(error.message || 'Failed to update department');
+        } finally {
+            setUpdating(false);
         }
     };
 
@@ -176,17 +196,86 @@ const AdminDepartmentsView: React.FC = () => {
                             <tbody>
                                 {departments.map(dep => (
                                     <tr key={dep.id}>
-                                        <td style={{ fontWeight: 600, color: 'var(--admin-text-primary)' }}>{dep.name}</td>
-                                        <td style={{ color: 'var(--admin-text-secondary)', fontSize: '0.85rem' }}>{dep.description || '-'}</td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <button
-                                                className="role-select"
-                                                style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)', padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
-                                                onClick={() => handleDelete(dep.id, dep.name)}
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
+                                        {editingId === dep.id ? (
+                                            <>
+                                                <td>
+                                                    <input
+                                                        value={editName}
+                                                        onChange={e => setEditName(e.target.value)}
+                                                        style={{ 
+                                                            width: '100%', 
+                                                            padding: '0.4rem 0.6rem', 
+                                                            background: 'var(--bg-page)', 
+                                                            border: '1px solid var(--admin-primary)', 
+                                                            borderRadius: 6, 
+                                                            color: 'var(--text-primary)', 
+                                                            outline: 'none',
+                                                            fontSize: '0.85rem'
+                                                        }}
+                                                        required
+                                                    />
+                                                </td>
+                                                <td>
+                                                    <input
+                                                        value={editDesc}
+                                                        onChange={e => setEditDesc(e.target.value)}
+                                                        style={{ 
+                                                            width: '100%', 
+                                                            padding: '0.4rem 0.6rem', 
+                                                            background: 'var(--bg-page)', 
+                                                            border: '1px solid var(--admin-border)', 
+                                                            borderRadius: 6, 
+                                                            color: 'var(--text-primary)', 
+                                                            outline: 'none',
+                                                            fontSize: '0.85rem'
+                                                        }}
+                                                    />
+                                                </td>
+                                                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                    <button
+                                                        className="role-select"
+                                                        style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)', padding: '0.3rem 0.6rem', fontSize: '0.75rem', marginRight: '0.5rem', fontWeight: 600 }}
+                                                        onClick={() => handleUpdate(dep.id)}
+                                                        disabled={updating}
+                                                    >
+                                                        {updating ? '...' : 'Save'}
+                                                    </button>
+                                                    <button
+                                                        className="role-select"
+                                                        style={{ color: 'var(--text-muted)', borderColor: 'var(--admin-border)', padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                                                        onClick={() => setEditingId(null)}
+                                                        disabled={updating}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td style={{ fontWeight: 600, color: 'var(--admin-text-primary)' }}>{dep.name}</td>
+                                                <td style={{ color: 'var(--admin-text-secondary)', fontSize: '0.85rem' }}>{dep.description || '-'}</td>
+                                                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                    <button
+                                                        className="role-select"
+                                                        style={{ color: '#60a5fa', borderColor: 'rgba(96, 165, 250, 0.3)', padding: '0.3rem 0.6rem', fontSize: '0.75rem', marginRight: '0.5rem' }}
+                                                        onClick={() => {
+                                                            setEditingId(dep.id);
+                                                            setEditName(dep.name);
+                                                            setEditDesc(dep.description || '');
+                                                        }}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        className="role-select"
+                                                        style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)', padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                                                        onClick={() => handleDelete(dep.id, dep.name)}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
