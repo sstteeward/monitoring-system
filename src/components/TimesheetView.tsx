@@ -1,23 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { TableSkeleton, CardGridSkeleton } from './Skeletons';
-import { DTRCard } from './DTRCard';
 import { profileService } from '../services/profileService';
 import { supabase } from '../lib/supabaseClient';
 import './TimesheetView.css';
 
-const TimesheetView: React.FC = () => {
+interface TimesheetViewProps {
+    onNavigateToDTR?: () => void;
+}
+
+const TimesheetView: React.FC<TimesheetViewProps> = ({ onNavigateToDTR }) => {
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showDTR, setShowDTR] = useState(false);
-    const [requiredHours, setRequiredHours] = useState<number>(0);
-    const [userId, setUserId] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         loadTimesheets();
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) setUserId(user.id);
-        });
     }, []);
 
     const loadTimesheets = async () => {
@@ -28,9 +25,6 @@ const TimesheetView: React.FC = () => {
                 profileService.getCurrentProfile()
             ]);
             setTimesheets(data);
-            if (profile?.required_ojt_hours) {
-                setRequiredHours(profile.required_ojt_hours);
-            }
         } catch (error) {
             console.error('Failed to load data:', error);
         } finally {
@@ -101,12 +95,14 @@ const TimesheetView: React.FC = () => {
                     <p className="header-subtitle">Chronological log of all work sessions</p>
                 </div>
                 <div style={{display: 'flex', gap: '10px'}}>
-                    <button className="refresh-btn" onClick={() => setShowDTR(true)} style={{backgroundColor: 'var(--primary-color)', color: 'white', border: 'none'}}>
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        DTR
-                    </button>
+                    {onNavigateToDTR && (
+                        <button className="refresh-btn" onClick={onNavigateToDTR} style={{backgroundColor: 'var(--primary-color)', color: 'white', border: 'none'}}>
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            DTR
+                        </button>
+                    )}
                     <button className="refresh-btn" onClick={loadTimesheets} disabled={loading}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
                         Refresh
@@ -198,43 +194,6 @@ const TimesheetView: React.FC = () => {
                     </div>
                 )}
             </div>
-
-            {showDTR && (
-                <div className="modal-overlay" onClick={() => setShowDTR(false)} style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-                    backgroundColor: 'rgba(0,0,0,0.4)', 
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    zIndex: 9999,
-                    display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '0',
-                    overflow: 'auto',
-                    animation: 'fadeIn 0.3s ease-out'
-                }}>
-                    <div style={{position: 'relative', minWidth: '100%', width: 'fit-content'}} onClick={e => e.stopPropagation()}>
-                        <button className="glass-card" onClick={() => setShowDTR(false)} style={{
-                            position: 'fixed', top: '16px', right: '16px', zIndex: 10000,
-                            width: '40px', height: '40px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', 
-                            borderRadius: '12px', cursor: 'pointer', fontSize: '24px', color: 'var(--text-primary)',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                            transition: 'all 0.3s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--primary)';
-                            e.currentTarget.style.color = 'var(--primary)';
-                            e.currentTarget.style.transform = 'scale(1.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--border-strong)';
-                            e.currentTarget.style.color = 'var(--text-primary)';
-                            e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                        >&times;</button>
-                        <DTRCard requiredHours={requiredHours} userId={userId} />
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

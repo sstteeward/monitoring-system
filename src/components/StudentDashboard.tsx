@@ -572,7 +572,7 @@ const StudentDashboard: React.FC = () => {
 
     const renderView = () => {
         switch (currentView) {
-            case 'timesheets': return <TimesheetView />;
+            case 'timesheets': return <TimesheetView onNavigateToDTR={() => navigateTo('dtr')} />;
             case 'performance': return <PerformanceView />;
             case 'profile': return <ProfileView onProfileUpdated={setProfile} />;
             case 'settings': return <SettingsView />;
