@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { TableSkeleton, CardGridSkeleton } from './Skeletons';
-import { profileService } from '../services/profileService';
-import { supabase } from '../lib/supabaseClient';
 import './TimesheetView.css';
 
 interface TimesheetViewProps {
@@ -20,10 +18,7 @@ const TimesheetView: React.FC<TimesheetViewProps> = ({ onNavigateToDTR }) => {
     const loadTimesheets = async () => {
         try {
             setLoading(true);
-            const [data, profile] = await Promise.all([
-                timeTrackingService.getTimesheets(),
-                profileService.getCurrentProfile()
-            ]);
+            const data = await timeTrackingService.getTimesheets();
             setTimesheets(data);
         } catch (error) {
             console.error('Failed to load data:', error);
