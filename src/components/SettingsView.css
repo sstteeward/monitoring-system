@@ -31,7 +31,12 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 1.5rem 2rem;
+    background: var(--bg-card);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+html[data-theme="light"] .settings-card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .card-header {

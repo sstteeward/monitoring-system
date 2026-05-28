@@ -120,13 +120,25 @@ button {
   font-weight: 500;
   font-family: inherit;
   background: linear-gradient(145deg, #1a1a1a, #141414);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+html[data-theme="light"] button {
+  background: linear-gradient(145deg, #ffffff, #f1f5f9);
+  border: 1px solid #e2e8f0;
+  color: var(--text-primary);
 }
 
 button:hover {
   border-color: rgba(16, 185, 129, 0.4);
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+}
+
+html[data-theme="light"] button:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
 }
 
 button:focus {
@@ -368,6 +380,10 @@ html[data-theme="light"] .skeleton::after {
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+html[data-theme="light"] .glass-card {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 .glass-card::before {

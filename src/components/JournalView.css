@@ -850,3 +850,149 @@
 .lightbox-close:hover {
     color: #ef4444;
 }
+
+/* ══════════════════════════════════════════
+   LIGHT MODE OVERRIDES
+   ══════════════════════════════════════════ */
+html[data-theme="light"] .journal-container {
+    color: var(--text-secondary);
+}
+
+html[data-theme="light"] .journal-title,
+html[data-theme="light"] .history-title-group h3,
+html[data-theme="light"] .widget-title,
+html[data-theme="light"] .card-title,
+html[data-theme="light"] .date-day,
+html[data-theme="light"] .reflection-title,
+html[data-theme="light"] .author-name,
+html[data-theme="light"] .cal-date,
+html[data-theme="light"] .stat-value,
+html[data-theme="light"] .journal-modal-header h3 {
+    color: var(--text-primary);
+}
+
+html[data-theme="light"] .journal-subtitle,
+html[data-theme="light"] .cal-day-name,
+html[data-theme="light"] .stat-label,
+html[data-theme="light"] .rate-label,
+html[data-theme="light"] .reflection-tip,
+html[data-theme="light"] .section-title,
+html[data-theme="light"] .journal-modal-close {
+    color: var(--text-muted);
+}
+
+html[data-theme="light"] .card-snippet,
+html[data-theme="light"] .history-legend,
+html[data-theme="light"] .reflection-quote,
+html[data-theme="light"] .feedback-quote {
+    color: var(--text-secondary);
+}
+
+html[data-theme="light"] .card-icons {
+    color: var(--text-dim);
+}
+
+html[data-theme="light"] .btn-filter {
+    background: var(--bg-elevated);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+html[data-theme="light"] .btn-filter:hover {
+    background: var(--border);
+}
+
+html[data-theme="light"] .btn-new-entry {
+    color: #ffffff;
+}
+
+html[data-theme="light"] .reflective-card {
+    background: var(--bg-elevated);
+}
+
+html[data-theme="light"] .reflection-icon {
+    color: #ffffff;
+}
+
+html[data-theme="light"] .card-date-box {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.25);
+}
+
+html[data-theme="light"] .date-month {
+    color: #059669;
+}
+
+html[data-theme="light"] .cal-date:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+html[data-theme="light"] .cal-date.active {
+    border-color: #059669;
+    color: #059669;
+}
+
+html[data-theme="light"] .cal-date.muted {
+    color: var(--text-dim);
+}
+
+html[data-theme="light"] .progress-bar-bg {
+    background: var(--bg-elevated);
+}
+
+html[data-theme="light"] .rate-value {
+    color: #059669;
+}
+
+html[data-theme="light"] .journal-modal-overlay {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="light"] .journal-modal-content {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+html[data-theme="light"] .journal-modal-header {
+    border-bottom-color: var(--border);
+}
+
+html[data-theme="light"] .journal-textarea-wrapper .journal-textarea {
+    background: var(--bg-elevated);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+html[data-theme="light"] .journal-actions {
+    border-top-color: var(--border);
+}
+
+html[data-theme="light"] .btn-secondary {
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+html[data-theme="light"] .btn-primary {
+    color: #ffffff;
+}
+
+html[data-theme="light"] .cal-nav {
+    color: var(--text-primary);
+}
+
+html[data-theme="light"] .badge-count {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+html[data-theme="light"] .status-badge.approved {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+html[data-theme="light"] .status-badge.draft {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border-color: rgba(59, 130, 246, 0.2);
+}

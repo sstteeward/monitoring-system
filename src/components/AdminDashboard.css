@@ -17,7 +17,7 @@ html[data-theme="dark"] {
 
 html[data-theme="light"] {
   --admin-bg: var(--bg-app);
-  --admin-card-bg: var(--glass-bg);
+  --admin-card-bg: var(--bg-card);
   --admin-border: var(--border);
   --admin-text-primary: var(--text-primary);
   --admin-text-secondary: var(--text-secondary);
@@ -469,6 +469,10 @@ html[data-theme="light"] {
   padding: 2rem 2.5rem;
   overflow: hidden;
   margin-bottom: 0.5rem;
+}
+
+html[data-theme="light"] .admin-welcome-banner {
+  background: linear-gradient(135deg, #10b981 0%, #0d9488 60%, #059669 100%);
 }
 
 .admin-welcome-bg {

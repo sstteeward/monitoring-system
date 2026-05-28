@@ -215,18 +215,41 @@ const StudentDashboard: React.FC = () => {
     };
 
     const logAntiCheat = async (reason: string, details: any = {}) => {
-        if (!user) {
-            console.warn('[AntiCheat] No user session — skipping log');
+        // Resolve user ID using profile, local state, or direct Supabase fetch
+        let authUserId = profile?.auth_user_id || user?.id;
+        if (!authUserId) {
+            try {
+                const { data: { user: freshUser } } = await supabase.auth.getUser();
+                authUserId = freshUser?.id;
+            } catch (err) {
+                console.error('[AntiCheat] Failed to fetch user on demand:', err);
+            }
+        }
+
+        if (!authUserId) {
+            console.warn('[AntiCheat] No authenticated user session found — skipping log');
             return;
         }
+
         try {
-            console.log('[AntiCheat] Logging flag:', reason, details);
+            console.log('[AntiCheat] Logging flag:', reason, details, 'for user:', authUserId);
+            
+            // Capture user details at the time of the event
+            const studentName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : (user?.email?.split('@')[0] || 'Unknown User');
+            const studentEmail = profile?.email || user?.email || 'Unknown Email';
+
             const { error: insertError } = await supabase.from('audit_logs').insert([{
-                user_id: user.id,
+                user_id: authUserId,
                 action: 'anti_cheat_flag',
                 table_name: 'timesheets',
                 record_id: null,
-                details: { event: `${details.action || 'Clock Action'} Blocked`, reason, ...details }
+                details: { 
+                    event: `${details.action || 'Clock Action'} Blocked`, 
+                    reason, 
+                    studentName,
+                    studentEmail,
+                    ...details 
+                }
             }]);
 
             if (insertError) {

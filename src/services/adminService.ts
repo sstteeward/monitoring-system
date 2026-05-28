@@ -439,70 +439,101 @@ export const adminService = {
      * Optional departmentId to filter for coordinator view
      */
     async getSecurityAlerts(departmentId?: string) {
-        // Step 1: Fetch anti-cheat audit logs
-        const { data: logs, error: logsError } = await supabase
+        // Use the RPC function to bypass RLS on the profiles table and fetch joined data
+        const { data: rawLogs, error } = await supabase.rpc('admin_get_security_alerts');
+
+        if (error) {
+            console.error("Error fetching security alerts via RPC:", error);
+            // Fallback if RPC doesn't exist yet
+            return await this._getSecurityAlertsFallback(departmentId);
+        }
+
+        if (!rawLogs || rawLogs.length === 0) return [];
+
+        // Map the flat RPC result back to the nested structure the UI expects
+        let merged = rawLogs.map((log: any) => ({
+            id: log.id,
+            user_id: log.user_id,
+            action: log.action,
+            table_name: log.table_name,
+            record_id: log.record_id,
+            details: log.details,
+            ip_address: log.ip_address,
+            created_at: log.created_at,
+            profiles: log.user_id ? {
+                first_name: log.profile_first_name,
+                last_name: log.profile_last_name,
+                email: log.profile_email,
+                account_type: log.profile_account_type,
+                department_id: log.profile_department_id,
+                company_id: log.profile_company_id
+            } : null
+        }));
+
+        // Filter by department if provided (coordinator scoping)
+        if (departmentId) {
+            merged = await this._filterByDepartment(merged, departmentId);
+        }
+
+        return merged;
+    },
+
+    async _getSecurityAlertsFallback(departmentId?: string) {
+        const { data: rawLogs, error: rawError } = await supabase
             .from('audit_logs')
             .select('*')
             .eq('action', 'anti_cheat_flag')
             .order('created_at', { ascending: false })
             .limit(200);
 
-        if (logsError) {
-            console.error("Error fetching security alerts:", logsError);
-            return [];
-        }
+        if (rawError) return [];
+        if (!rawLogs || rawLogs.length === 0) return [];
 
-        if (!logs || logs.length === 0) return [];
+        const userIds = [...new Set(rawLogs.map((l: any) => l.user_id).filter(Boolean))];
+        let profileMap: Record<string, any> = {};
 
-        // Step 2: Get unique user IDs and fetch their profiles
-        const userIds = [...new Set(logs.map((l: any) => l.user_id).filter(Boolean))];
-        let profiles: any[] = [];
-        
         if (userIds.length > 0) {
-            const { data: profilesData, error: profilesError } = await supabase
+            const { data: profilesData } = await supabase
                 .from('profiles')
-                .select('auth_user_id, first_name, last_name, email, department_id, company_id')
+                .select('auth_user_id, first_name, last_name, email, account_type, department_id, company_id')
                 .in('auth_user_id', userIds);
 
-            if (profilesError) {
-                console.error("Error fetching profiles for security alerts:", profilesError);
-            } else if (profilesData) {
-                profiles = profilesData;
+            if (profilesData) {
+                profilesData.forEach((p: any) => { profileMap[p.auth_user_id] = p; });
             }
         }
 
-        // Step 3: Build a lookup map and merge
-        const profileMap: Record<string, any> = {};
-        profiles.forEach((p: any) => { profileMap[p.auth_user_id] = p; });
-
-        let merged = logs.map((log: any) => ({
+        let merged = rawLogs.map((log: any) => ({
             ...log,
             profiles: profileMap[log.user_id] || null,
         }));
 
-        // Step 2: Filter by department if provided (coordinator scoping)
         if (departmentId) {
-            // Fetch companies handled by this coordinator
-            let handledCompanyIds: string[] = [];
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data: handledData } = await supabase
-                    .from('coordinator_handled_companies')
-                    .select('company_id')
-                    .eq('coordinator_id', user.id);
-                if (handledData) {
-                    handledCompanyIds = handledData.map(h => h.company_id);
-                }
-            }
-
-            merged = merged.filter(log => {
-                const isSameDepartment = log.profiles?.department_id === departmentId;
-                const isHandledCompany = log.profiles?.company_id && handledCompanyIds.includes(log.profiles.company_id);
-                return isSameDepartment || isHandledCompany;
-            });
+            merged = await this._filterByDepartment(merged, departmentId);
         }
 
         return merged;
+    },
+
+    /** Helper: filter security alerts by coordinator's department/handled companies */
+    async _filterByDepartment(alerts: any[], departmentId: string) {
+        let handledCompanyIds: string[] = [];
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data: handledData } = await supabase
+                .from('coordinator_handled_companies')
+                .select('company_id')
+                .eq('coordinator_id', user.id);
+            if (handledData) {
+                handledCompanyIds = handledData.map(h => h.company_id);
+            }
+        }
+
+        return alerts.filter(log => {
+            const isSameDepartment = log.profiles?.department_id === departmentId;
+            const isHandledCompany = log.profiles?.company_id && handledCompanyIds.includes(log.profiles.company_id);
+            return isSameDepartment || isHandledCompany;
+        });
     }
 };
 

@@ -213,6 +213,10 @@ html[data-theme="light"] .btn-reject:hover {
     margin-bottom: 0.5rem;
 }
 
+html[data-theme="light"] .cd-welcome-banner {
+    background: linear-gradient(135deg, #10b981 0%, #0d9488 60%, #059669 100%);
+}
+
 .cd-welcome-bg {
     position: absolute;
     inset: 0;

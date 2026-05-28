@@ -110,6 +110,12 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                                     const date = new Date(log.created_at);
                                     const reason = log.details?.reason || 'Suspicious Activity Detected';
                                     const event = log.details?.event || 'Anti-Cheat Flag';
+
+                                    // Normalize profiles: PostgREST may return an array (indirect FK) or an object (direct FK)
+                                    let profile = log.profiles;
+                                    if (Array.isArray(profile)) {
+                                        profile = profile.length > 0 ? profile[0] : null;
+                                    }
                                     
                                     return (
                                         <tr key={log.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s ease' }} className="cd-table-row-hover">
@@ -119,12 +125,23 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                                             </td>
                                             <td style={{ padding: '16px', color: 'var(--text-primary)', verticalAlign: 'top' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <div className="admin-user-avatar" style={{ width: 32, height: 32, flexShrink: 0 }}>
-                                                        {log.profiles?.first_name?.[0]}{log.profiles?.last_name?.[0]}
+                                                    <div className="admin-user-avatar" style={{ 
+                                                        width: 32, 
+                                                        height: 32, 
+                                                        flexShrink: 0,
+                                                        backgroundColor: profile ? undefined : 'rgba(239, 68, 68, 0.1)',
+                                                        color: profile ? undefined : '#ef4444',
+                                                        border: profile ? undefined : '1px solid rgba(239, 68, 68, 0.2)'
+                                                    }}>
+                                                        {profile ? `${profile.first_name?.[0] || ''}${profile.last_name?.[0] || ''}` : '?'}
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontWeight: 500 }}>{log.profiles?.first_name} {log.profiles?.last_name}</div>
-                                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{log.profiles?.email}</div>
+                                                        <div style={{ fontWeight: 500 }}>
+                                                            {profile ? `${profile.first_name} ${profile.last_name}` : (log.details?.studentName || 'Deleted / Unknown User')}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                            {profile?.email || log.details?.studentEmail || 'User account no longer exists'}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
