@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { adminService, type Course } from '../services/adminService';
 import { TableSkeleton } from './Skeletons';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 
 const AdminCoursesView: React.FC = () => {
     const [courses, setCourses] = useState<Course[]>([]);
@@ -9,6 +11,15 @@ const AdminCoursesView: React.FC = () => {
     const [newName, setNewName] = useState('');
     const [newDesc, setNewDesc] = useState('');
     const [submitting, setSubmitting] = useState(false);
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedCourses,
+        totalItems,
+        itemsPerPage
+    } = usePagination(courses, 10);
 
     useEffect(() => { loadData(); }, []);
 
@@ -105,6 +116,7 @@ const AdminCoursesView: React.FC = () => {
                 {courses.length === 0 && !isCreating ? (
                     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--admin-text-secondary)' }}>No courses created yet.</div>
                 ) : (
+                    <>
                     <table className="admin-table">
                         <thead>
                             <tr>
@@ -114,7 +126,7 @@ const AdminCoursesView: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {courses.map(c => (
+                            {paginatedCourses.map(c => (
                                 <tr key={c.id}>
                                     <td style={{ fontWeight: 600, color: 'var(--admin-text-primary)' }}>{c.name}</td>
                                     <td style={{ color: 'var(--admin-text-secondary)', fontSize: '0.85rem' }}>{c.description || '-'}</td>
@@ -131,6 +143,19 @@ const AdminCoursesView: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
+                    <div style={{ marginTop: '1rem', paddingBottom: '1rem' }}>
+                        {!isCreating && courses.length > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                itemName="courses"
+                            />
+                        )}
+                    </div>
+                    </>
                 )}
             </div>
         </div>

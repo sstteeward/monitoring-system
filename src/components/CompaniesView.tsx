@@ -6,6 +6,8 @@ import UserClickableName from './UserClickableName';
 
 import AdvancedLocationPickerMap from './AdvancedLocationPickerMap';
 import type { GeoJSONPolygon } from '../utils/geoUtils';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 import './CoordinatorDashboard.css';
 
 type CompanyViewMode = 'list' | 'detail';
@@ -71,6 +73,24 @@ const CompaniesView: React.FC = () => {
         geofence_mode: 'circular' as 'circular' | 'polygon' | 'hybrid' | null,
     });
     const [formSubmitting, setFormSubmitting] = useState(false);
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedCompanies,
+        totalItems,
+        itemsPerPage
+    } = usePagination(filteredCompanies, 10);
+
+    const {
+        currentPage: currentStudentsPage,
+        setCurrentPage: setCurrentStudentsPage,
+        totalPages: totalStudentsPages,
+        paginatedItems: paginatedCompanyStudents,
+        totalItems: totalStudentsItems,
+        itemsPerPage: studentsItemsPerPage
+    } = usePagination(companyStudents, 10);
 
     useEffect(() => {
         Promise.all([
@@ -526,7 +546,7 @@ const CompaniesView: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {companyStudents.map(student => (
+                                    {paginatedCompanyStudents.map(student => (
                                         <tr key={student.id}>
                                             <td style={{ fontWeight: 500, color: 'var(--admin-text-primary)' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -557,6 +577,16 @@ const CompaniesView: React.FC = () => {
                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.3 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
                             <p>No students assigned to this company yet.</p>
                         </div>
+                    )}
+                    {!detailLoading && companyStudents.length > 0 && (
+                        <Pagination
+                            currentPage={currentStudentsPage}
+                            totalPages={totalStudentsPages}
+                            totalItems={totalStudentsItems}
+                            itemsPerPage={studentsItemsPerPage}
+                            onPageChange={setCurrentStudentsPage}
+                            itemName="students"
+                        />
                     )}
                 </div>
             </div>
@@ -908,10 +938,10 @@ const CompaniesView: React.FC = () => {
 
             {loading ? (
                 <CardGridSkeleton cards={6} height={180} />
-            ) : filteredCompanies.length > 0 ? (
+            ) : paginatedCompanies.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                     {/* Group companies by department */}
-                    {Array.from(new Set(filteredCompanies.map(c => c.department_name || 'Uncategorized'))).sort((a, b) => {
+                    {Array.from(new Set(paginatedCompanies.map(c => c.department_name || 'Uncategorized'))).sort((a, b) => {
                         if (a === 'Uncategorized') return 1;
                         if (b === 'Uncategorized') return -1;
                         return a.localeCompare(b);
@@ -931,7 +961,7 @@ const CompaniesView: React.FC = () => {
                                 {dept}
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-                                {filteredCompanies.filter(c => (c.department_name || 'Uncategorized') === dept).map(company => (
+                                {paginatedCompanies.filter(c => (c.department_name || 'Uncategorized') === dept).map(company => (
                                     <div
                                         key={company.id}
                                         onClick={() => handleCompanyClick(company)}
@@ -1005,6 +1035,14 @@ const CompaniesView: React.FC = () => {
                             </div>
                         </div>
                     ))}
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={totalItems}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={setCurrentPage}
+                        itemName="companies"
+                    />
                 </div>
             ) : companies.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>

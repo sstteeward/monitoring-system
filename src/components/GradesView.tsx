@@ -5,6 +5,8 @@ import { TableSkeleton } from './Skeletons';
 import UserProfileModal from './UserProfileModal';
 import UserClickableName from './UserClickableName';
 import CustomSelect from './CustomSelect';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 import './CoordinatorDashboard.css'; // Reusing coordinator styles
 
 interface GradesViewProps {
@@ -154,6 +156,15 @@ const GradesView: React.FC<GradesViewProps> = ({ isAdmin = false }) => {
         const [c, y, s] = selectedGroupKey.split('|');
         selectedGroup = { course: c, year: y, section: s, students: [] };
     }
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedStudents,
+        totalItems,
+        itemsPerPage
+    } = usePagination(selectedGroup?.students || [], 10);
 
     if (error) return (
         <div className="view-container">
@@ -506,7 +517,7 @@ const GradesView: React.FC<GradesViewProps> = ({ isAdmin = false }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {selectedGroup.students.map(student => {
+                                {paginatedStudents.map(student => {
                                     const color = avatarColor(student.first_name ?? 'A');
                                     const currentGrade = student.grade || '';
                                     const editedGrade = editedGrades[student.auth_user_id] ?? currentGrade;
@@ -574,6 +585,16 @@ const GradesView: React.FC<GradesViewProps> = ({ isAdmin = false }) => {
                                 })}
                             </tbody>
                         </table>
+                        {!loading && selectedGroup.students.length > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                itemName="students"
+                            />
+                        )}
                     </div>
                 </div>
             )}

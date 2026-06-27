@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { adminService, type Feedback } from '../services/adminService';
 import { TableSkeleton } from './Skeletons';
 import UserClickableName from './UserClickableName';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 
 interface AdminFeedbackViewProps {
     onFeedbackAction?: () => void;
@@ -51,6 +53,15 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
         if (filterStatus === 'all') return true;
         return item.status === filterStatus;
     });
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedFeedback,
+        totalItems,
+        itemsPerPage
+    } = usePagination(filteredFeedback, 10);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -146,7 +157,7 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {filteredFeedback.map(item => {
+                    {paginatedFeedback.map(item => {
                         const statusColors = getStatusColor(item.status);
                         const typeColors = getTypeColor(item.type);
                         const user = item.profiles;
@@ -260,6 +271,16 @@ const AdminFeedbackView: React.FC<AdminFeedbackViewProps> = ({ onFeedbackAction 
                             </div>
                         );
                     })}
+                    <div style={{ marginTop: '1rem' }}>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            itemName="feedback items"
+                        />
+                    </div>
                 </div>
             )}
         </div>

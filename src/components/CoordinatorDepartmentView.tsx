@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { coordinatorService } from '../services/coordinatorService';
 import type { Profile } from '../services/profileService';
 import UserClickableName from './UserClickableName';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 import './CoordinatorDashboard.css';
 
 interface Department {
@@ -19,6 +21,15 @@ const CoordinatorDepartmentView: React.FC = () => {
     const [assigning, setAssigning] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState('');
     const [removingId, setRemovingId] = useState<string | null>(null);
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedStudents,
+        totalItems,
+        itemsPerPage
+    } = usePagination(students, 10);
 
     useEffect(() => {
         loadDepartmentData();
@@ -262,7 +273,7 @@ const CoordinatorDepartmentView: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {students.length > 0 ? students.map(student => {
+                        {paginatedStudents.length > 0 ? paginatedStudents.map(student => {
                             const color = avatarColor(student.first_name ?? 'A');
                             return (
                                 <tr key={student.id}>
@@ -278,9 +289,9 @@ const CoordinatorDepartmentView: React.FC = () => {
                                             }}>
                                                 {!student.avatar_url && (student.first_name?.[0]?.toUpperCase() ?? '?')}
                                             </div>
-                                            <UserClickableName 
-                                                userId={student.id} 
-                                                userName={`${student.first_name} ${student.last_name}`} 
+                                            <UserClickableName
+                                                userId={student.id}
+                                                userName={`${student.first_name} ${student.last_name}`}
                                             />
                                         </div>
                                     </td>
@@ -360,6 +371,15 @@ const CoordinatorDepartmentView: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                itemName="students"
+            />
         </div>
     );
 };

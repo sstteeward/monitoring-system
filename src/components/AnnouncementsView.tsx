@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { notificationService, type Announcement, type UserNotification, type AnnouncementReaction } from '../services/notificationService';
 import { supabase } from '../lib/supabaseClient';
 import { ListSkeleton } from './Skeletons';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 import './AnnouncementsView.css';
 
 interface AnnouncementsViewProps {
@@ -14,6 +16,24 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
     const [notifications, setNotifications] = useState<UserNotification[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+
+    const {
+        currentPage: annPage,
+        setCurrentPage: setAnnPage,
+        totalPages: annTotalPages,
+        paginatedItems: paginatedAnnouncements,
+        totalItems: annTotal,
+        itemsPerPage: annItemsPerPage
+    } = usePagination(announcements, 10);
+
+    const {
+        currentPage: notifPage,
+        setCurrentPage: setNotifPage,
+        totalPages: notifTotalPages,
+        paginatedItems: paginatedNotifications,
+        totalItems: notifTotal,
+        itemsPerPage: notifItemsPerPage
+    } = usePagination(notifications, 10);
 
     // Reactions state
     const [reactions, setReactions] = useState<AnnouncementReaction[]>([]);
@@ -250,45 +270,69 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                         <div className="announcements-list">
                             {viewType === 'school' ? (
                                 announcements.length > 0 ? (
-                                    announcements.map(item => {
-                                        return (
-                                            <div
-                                                key={item.id}
-                                                className="announcement-card clickable glass-card"
-                                                onClick={() => setSelectedAnnouncement(item)}
-                                            >
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-bright)' }}>{item.title}</h3>
-                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                                                        {new Date(item.created_at).toLocaleDateString()}
-                                                    </span>
+                                    <div>
+                                        {paginatedAnnouncements.map(item => {
+                                            return (
+                                                <div
+                                                    key={item.id}
+                                                    className="announcement-card clickable glass-card"
+                                                    onClick={() => setSelectedAnnouncement(item)}
+                                                >
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-bright)' }}>{item.title}</h3>
+                                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                                                            {new Date(item.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })
+                                            );
+                                        })}
+                                        <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                                            <Pagination
+                                                currentPage={annPage}
+                                                totalPages={annTotalPages}
+                                                totalItems={annTotal}
+                                                itemsPerPage={annItemsPerPage}
+                                                onPageChange={setAnnPage}
+                                                itemName="announcements"
+                                            />
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="empty-state">No school announcements at this time.</div>
                                 )
                             ) : (
                                 notifications.length > 0 ? (
-                                    notifications.map(item => (
-                                        <div key={item.id} className={`notification-card glass-card ${item.type} ${item.is_read ? 'read' : ''}`}>
-                                            <div className="notification-icon">
-                                                {item.type === 'danger' && '⚠️'}
-                                                {item.type === 'warning' && '🔔'}
-                                                {item.type === 'success' && '✅'}
-                                                {item.type === 'info' && 'ℹ️'}
+                                    <div>
+                                        {paginatedNotifications.map(item => (
+                                            <div key={item.id} className={`notification-card glass-card ${item.type} ${item.is_read ? 'read' : ''}`}>
+                                                <div className="notification-icon">
+                                                    {item.type === 'danger' && '⚠️'}
+                                                    {item.type === 'warning' && '🔔'}
+                                                    {item.type === 'success' && '✅'}
+                                                    {item.type === 'info' && 'ℹ️'}
+                                                </div>
+                                                <div className="notification-content">
+                                                    <h3 className="notification-card-title">{item.title}</h3>
+                                                    <p className="notification-message">{item.message}</p>
+                                                    <span className="notification-date">
+                                                        {new Date(item.created_at).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                {!item.is_read && <div className="unread-dot" />}
                                             </div>
-                                            <div className="notification-content">
-                                                <h3 className="notification-card-title">{item.title}</h3>
-                                                <p className="notification-message">{item.message}</p>
-                                                <span className="notification-date">
-                                                    {new Date(item.created_at).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                            {!item.is_read && <div className="unread-dot" />}
+                                        ))}
+                                        <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                                            <Pagination
+                                                currentPage={notifPage}
+                                                totalPages={notifTotalPages}
+                                                totalItems={notifTotal}
+                                                itemsPerPage={notifItemsPerPage}
+                                                onPageChange={setNotifPage}
+                                                itemName="notifications"
+                                            />
                                         </div>
-                                    ))
+                                    </div>
                                 ) : (
                                     <div className="empty-state">All your documents are in order! No pending notifications.</div>
                                 )

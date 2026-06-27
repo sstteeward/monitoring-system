@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { profileService, type Profile } from '../services/profileService';
 import { CardGridSkeleton, TableSkeleton } from './Skeletons';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 import './PerformanceView.css';
 
 interface DailyRecord {
@@ -99,6 +101,15 @@ const PerformanceView: React.FC = () => {
     // Sort descending by date
     const dtrList = Object.values(groupedDtr).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedDTRs,
+        totalItems,
+        itemsPerPage
+    } = usePagination(dtrList, 10);
+
     const formatTime = (isoString: string | null) => {
         if (!isoString) return '—';
         return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -194,7 +205,7 @@ const PerformanceView: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {dtrList.map((day) => (
+                                    {paginatedDTRs.map((day) => (
                                         <tr key={day.date}>
                                             <td className="fw-500">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</td>
                                             <td>{formatTime(day.firstIn)}</td>
@@ -205,6 +216,18 @@ const PerformanceView: React.FC = () => {
                                     ))}
                                 </tbody>
                             </table>
+                            {dtrList.length > 0 && (
+                                <div style={{ marginTop: '1.5rem' }}>
+                                    <Pagination
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        totalItems={totalItems}
+                                        itemsPerPage={itemsPerPage}
+                                        onPageChange={setCurrentPage}
+                                        itemName="records"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

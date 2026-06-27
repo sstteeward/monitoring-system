@@ -3,6 +3,8 @@ import { adminService } from '../services/adminService';
 import type { Profile } from '../services/profileService';
 import { TableSkeleton } from './Skeletons';
 import UserClickableName from './UserClickableName';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 
 
 const defaultPermissions = {
@@ -158,6 +160,15 @@ const AdminRoleManagementView: React.FC = () => {
         c.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedCoordinators,
+        totalItems,
+        itemsPerPage
+    } = usePagination(filteredCoordinators, 10);
+
     if (loading) return (
         <div className="fade-in">
             <div className="admin-table-card glass-card">
@@ -259,7 +270,7 @@ const AdminRoleManagementView: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredCoordinators.map(c => (
+                            {paginatedCoordinators.map(c => (
                                 <tr key={c.id} style={{ background: selectedUser?.id === c.id ? 'var(--nav-active-bg)' : 'transparent' }}>
                                     <td style={{ fontWeight: 600, color: 'var(--admin-text-primary)' }}>
                                         <UserClickableName userId={c.id} userName={`${c.first_name} ${c.last_name}`} />
@@ -291,6 +302,18 @@ const AdminRoleManagementView: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
+                    <div style={{ marginTop: '1rem', paddingBottom: '1rem' }}>
+                        {!loading && filteredCoordinators.length > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                itemName="coordinators"
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
 

@@ -6,6 +6,8 @@ import './CoordinatorDashboard.css';
 import { adminService } from '../services/adminService';
 import UserProfileModal from './UserProfileModal';
 import UserClickableName from './UserClickableName';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 
 interface StudentsViewProps {
     initialFilter?: 'all' | 'assigned' | 'completed' | 'in-progress' | 'at-risk';
@@ -68,6 +70,15 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                 return true;
         }
     });
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedStudents,
+        totalItems,
+        itemsPerPage
+    } = usePagination(filteredStudents, 10);
 
     const avatarColor = (name: string) => {
         const colors = ['#10b981', '#3b82f6', '#0d9488', '#f59e0b', '#ef4444', '#14b8a6', '#ec4899'];
@@ -170,8 +181,8 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                     <tbody>
                         {loading ? (
                             <TableRowSkeleton rows={8} cols={6} />
-                        ) : filteredStudents.length > 0 ? (
-                            filteredStudents.map(student => {
+                        ) : paginatedStudents.length > 0 ? (
+                            paginatedStudents.map(student => {
                                 const color = avatarColor(student.first_name ?? 'A');
                                 return (
                                     <tr
@@ -273,6 +284,17 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                     </tbody>
                 </table>
             </div>
+
+            {!loading && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCurrentPage}
+                    itemName="students"
+                />
+            )}
 
             {/* Delete Confirmation Modal */}
             {deleteTarget && (

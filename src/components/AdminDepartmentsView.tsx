@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabaseClient';
 import { TableSkeleton, CardSkeleton } from './Skeletons';
 import CustomSelect from './CustomSelect';
 import UserClickableName from './UserClickableName';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 
 const AdminDepartmentsView: React.FC = () => {
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -24,6 +26,24 @@ const AdminDepartmentsView: React.FC = () => {
     const [editName, setEditName] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [updating, setUpdating] = useState(false);
+
+    const {
+        currentPage: deptPage,
+        setCurrentPage: setDeptPage,
+        totalPages: deptTotalPages,
+        paginatedItems: paginatedDeps,
+        totalItems: deptTotalItems,
+        itemsPerPage: deptItemsPerPage
+    } = usePagination(departments, 10);
+
+    const {
+        currentPage: coordPage,
+        setCurrentPage: setCoordPage,
+        totalPages: coordTotalPages,
+        paginatedItems: paginatedCoords,
+        totalItems: coordTotalItems,
+        itemsPerPage: coordItemsPerPage
+    } = usePagination(coordinators, 10);
 
     useEffect(() => {
         loadData();
@@ -185,6 +205,7 @@ const AdminDepartmentsView: React.FC = () => {
                     {departments.length === 0 && !isCreating ? (
                         <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--admin-text-secondary)' }}>No departments created yet.</div>
                     ) : (
+                        <>
                         <table className="admin-table">
                             <thead>
                                 <tr>
@@ -194,7 +215,7 @@ const AdminDepartmentsView: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {departments.map(dep => (
+                                {paginatedDeps.map(dep => (
                                     <tr key={dep.id}>
                                         {editingId === dep.id ? (
                                             <>
@@ -280,6 +301,19 @@ const AdminDepartmentsView: React.FC = () => {
                                 ))}
                             </tbody>
                         </table>
+                        <div style={{ marginTop: '1rem' }}>
+                            {departments.length > 0 && (
+                                <Pagination
+                                    currentPage={deptPage}
+                                    totalPages={deptTotalPages}
+                                    totalItems={deptTotalItems}
+                                    itemsPerPage={deptItemsPerPage}
+                                    onPageChange={setDeptPage}
+                                    itemName="departments"
+                                />
+                            )}
+                        </div>
+                        </>
                     )}
                 </div>
             </div>
@@ -293,7 +327,7 @@ const AdminDepartmentsView: React.FC = () => {
                     </div>
 
                     <div style={{ padding: '0 1rem' }}>
-                        {coordinators.map(coord => (
+                        {paginatedCoords.map(coord => (
                             <div key={coord.id} style={{ padding: '1rem 0', borderBottom: '1px solid var(--admin-border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <div className="admin-user-avatar" style={{ width: 28, height: 28, fontSize: '0.8rem' }}>
@@ -318,6 +352,18 @@ const AdminDepartmentsView: React.FC = () => {
                                 />
                             </div>
                         ))}
+                        {coordinators.length > 0 && (
+                            <div style={{ padding: '1rem 0' }}>
+                                <Pagination
+                                    currentPage={coordPage}
+                                    totalPages={coordTotalPages}
+                                    totalItems={coordTotalItems}
+                                    itemsPerPage={coordItemsPerPage}
+                                    onPageChange={setCoordPage}
+                                    itemName="coordinators"
+                                />
+                            </div>
+                        )}
                         {coordinators.length === 0 && (
                             <div style={{ padding: '2rem 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No coordinators found in the system.</div>
                         )}

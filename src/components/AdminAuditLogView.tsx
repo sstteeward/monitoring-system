@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { adminService, type AuditLog } from '../services/adminService';
 import { TableSkeleton } from './Skeletons';
 import UserClickableName from './UserClickableName';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 
 const AdminAuditLogView: React.FC = () => {
     const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -33,6 +35,15 @@ const AdminAuditLogView: React.FC = () => {
     );
 
     const uniqueActions = Array.from(new Set(logs.map(l => l.action)));
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedLogs,
+        totalItems,
+        itemsPerPage
+    } = usePagination(filteredLogs, 10);
 
     if (loading) return (
         <div className="fade-in">
@@ -83,7 +94,7 @@ const AdminAuditLogView: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredLogs.map(log => (
+                                {paginatedLogs.map(log => (
                                     <tr key={log.id}>
                                         <td style={{ color: 'var(--admin-text-secondary)', fontSize: '0.85rem' }}>{new Date(log.created_at).toLocaleString()}</td>
                                         <td>
@@ -123,6 +134,16 @@ const AdminAuditLogView: React.FC = () => {
                                 ))}
                             </tbody>
                         </table>
+                        {!loading && filteredLogs.length > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                itemName="audit logs"
+                            />
+                        )}
                     </div>
                 )}
             </div>

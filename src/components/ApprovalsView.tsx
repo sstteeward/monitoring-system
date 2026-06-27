@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 import { TableSkeleton } from './Skeletons';
 import UserClickableName from './UserClickableName';
 import { departmentRequestService, type DepartmentChangeRequest } from '../services/departmentRequestService';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 import './CoordinatorDashboard.css';
 
 interface ApprovalsViewProps {
@@ -32,6 +34,42 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
     const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
     const [remarks, setRemarks] = useState('');
     const [pendingAction, setPendingAction] = useState<'approved' | 'rejected' | null>(null);
+
+    const {
+        currentPage: docPage,
+        setCurrentPage: setDocPage,
+        totalPages: docTotalPages,
+        paginatedItems: paginatedDocs,
+        totalItems: docTotalItems,
+        itemsPerPage: docItemsPerPage
+    } = usePagination(documents, 10);
+
+    const {
+        currentPage: journalPage,
+        setCurrentPage: setJournalPage,
+        totalPages: journalTotalPages,
+        paginatedItems: paginatedJournals,
+        totalItems: journalTotalItems,
+        itemsPerPage: journalItemsPerPage
+    } = usePagination(journals, 10);
+
+    const {
+        currentPage: dtrPage,
+        setCurrentPage: setDtrPage,
+        totalPages: dtrTotalPages,
+        paginatedItems: paginatedTimesheets,
+        totalItems: dtrTotalItems,
+        itemsPerPage: dtrItemsPerPage
+    } = usePagination(timesheets, 10);
+
+    const {
+        currentPage: deptPage,
+        setCurrentPage: setDeptPage,
+        totalPages: deptTotalPages,
+        paginatedItems: paginatedDeptReqs,
+        totalItems: deptTotalItems,
+        itemsPerPage: deptItemsPerPage
+    } = usePagination(deptRequests, 10);
 
     useEffect(() => {
         const fetchDept = async () => {
@@ -218,8 +256,8 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                         <tbody>
                             {loading ? (
                                 <TableSkeleton rows={5} cols={5} />
-                            ) : documents.length > 0 ? (
-                                documents.map(doc => (
+                            ) : paginatedDocs.length > 0 ? (
+                                paginatedDocs.map(doc => (
                                     <tr
                                         key={doc.id}
                                         onClick={() => handlePreview(doc.file_path, doc.file_name)}
@@ -248,6 +286,16 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                             )}
                         </tbody>
                     </table>
+                    {!loading && documents.length > 0 && (
+                        <Pagination
+                            currentPage={docPage}
+                            totalPages={docTotalPages}
+                            totalItems={docTotalItems}
+                            itemsPerPage={docItemsPerPage}
+                            onPageChange={setDocPage}
+                            itemName="documents"
+                        />
+                    )}
                 </div>
             )}
 
@@ -265,8 +313,8 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                         <tbody>
                             {loading ? (
                                 <TableSkeleton rows={5} cols={4} />
-                            ) : journals.length > 0 ? (
-                                journals.map(j => (
+                            ) : paginatedJournals.length > 0 ? (
+                                paginatedJournals.map(j => (
                                     <tr key={j.id} className="hover-row" onClick={() => setPreviewJournal(j)}>
                                         <td>
                                             <UserClickableName 
@@ -289,6 +337,16 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                             )}
                         </tbody>
                     </table>
+                    {!loading && journals.length > 0 && (
+                        <Pagination
+                            currentPage={journalPage}
+                            totalPages={journalTotalPages}
+                            totalItems={journalTotalItems}
+                            itemsPerPage={journalItemsPerPage}
+                            onPageChange={setJournalPage}
+                            itemName="journals"
+                        />
+                    )}
                 </div>
             )}
 
@@ -306,8 +364,8 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                         <tbody>
                             {loading ? (
                                 <TableSkeleton rows={5} cols={4} />
-                            ) : timesheets.length > 0 ? (
-                                timesheets.map(t => (
+                            ) : paginatedTimesheets.length > 0 ? (
+                                paginatedTimesheets.map(t => (
                                     <tr key={t.id} className="hover-row">
                                         <td>
                                             <UserClickableName 
@@ -330,6 +388,16 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                             )}
                         </tbody>
                     </table>
+                    {!loading && timesheets.length > 0 && (
+                        <Pagination
+                            currentPage={dtrPage}
+                            totalPages={dtrTotalPages}
+                            totalItems={dtrTotalItems}
+                            itemsPerPage={dtrItemsPerPage}
+                            onPageChange={setDtrPage}
+                            itemName="timesheets"
+                        />
+                    )}
                 </div>
             )}
 
@@ -347,8 +415,8 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                         <tbody>
                             {loading ? (
                                 <TableSkeleton rows={3} cols={4} />
-                            ) : deptRequests.length > 0 ? (
-                                deptRequests.map(req => (
+                            ) : paginatedDeptReqs.length > 0 ? (
+                                paginatedDeptReqs.map(req => (
                                     <tr key={req.id} className="hover-row">
                                         <td>
                                             <UserClickableName 
@@ -377,6 +445,16 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                             )}
                         </tbody>
                     </table>
+                    {!loading && deptRequests.length > 0 && (
+                        <Pagination
+                            currentPage={deptPage}
+                            totalPages={deptTotalPages}
+                            totalItems={deptTotalItems}
+                            itemsPerPage={deptItemsPerPage}
+                            onPageChange={setDeptPage}
+                            itemName="requests"
+                        />
+                    )}
                 </div>
             )}
 

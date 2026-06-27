@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { documentService, type StudentDocument } from '../services/documentService';
 import { supabase } from '../lib/supabaseClient';
 import { CardGridSkeleton } from './Skeletons';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 import './DocumentsView.css';
 
 const DocumentsView: React.FC = () => {
@@ -19,6 +21,15 @@ const DocumentsView: React.FC = () => {
     const [documentToDelete, setDocumentToDelete] = useState<{ id: string, path: string, name: string } | null>(null);
     const [showUploadForm, setShowUploadForm] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedDocuments,
+        totalItems,
+        itemsPerPage
+    } = usePagination(documents, 10);
 
     useEffect(() => {
         loadDocuments();
@@ -152,9 +163,10 @@ const DocumentsView: React.FC = () => {
                 {loading ? (
                     <CardGridSkeleton cards={3} height={120} />
                 ) : documents.length > 0 ? (
-                    <div className="documents-grid">
-                        {documents.map((doc) => (
-                            <div
+                    <div>
+                        <div className="documents-grid">
+                            {paginatedDocuments.map((doc) => (
+                                <div
                                 key={doc.id}
                                 className="document-item-card glass-card"
                                 onClick={() => handlePreview(doc.file_path, doc.file_name)}
@@ -193,6 +205,17 @@ const DocumentsView: React.FC = () => {
                                 </div>
                             </div>
                         ))}
+                        </div>
+                        <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                itemName="documents"
+                            />
+                        </div>
                     </div>
                 ) : (
                     <div className="empty-state">No documents uploaded yet.</div>

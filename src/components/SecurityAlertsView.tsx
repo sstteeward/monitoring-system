@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { adminService } from '../services/adminService';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 
 // Inline SVG Icons (matching codebase pattern — no external icon library)
 const SvgIcon = {
@@ -39,6 +41,15 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
     useEffect(() => {
         fetchAlerts();
     }, [departmentId]);
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedAlerts,
+        totalItems,
+        itemsPerPage
+    } = usePagination(alerts, 10);
 
     const getFlagIcon = (reason: string) => {
         const lowerReason = (reason || '').toLowerCase();
@@ -106,7 +117,7 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                                 </tr>
                             </thead>
                             <tbody>
-                                {alerts.map(log => {
+                                {paginatedAlerts.map(log => {
                                     const date = new Date(log.created_at);
                                     const reason = log.details?.reason || 'Suspicious Activity Detected';
                                     const event = log.details?.event || 'Anti-Cheat Flag';
@@ -188,6 +199,16 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                                 })}
                             </tbody>
                         </table>
+                        {!loading && alerts.length > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                itemName="alerts"
+                            />
+                        )}
                     </div>
                 )}
             </div>

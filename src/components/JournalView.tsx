@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { journalService, type DailyJournal } from '../services/journalService';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 import './JournalView.css';
 
 const DEFAULT_FEEDBACK = [
@@ -26,6 +28,15 @@ const JournalView: React.FC = () => {
     const [loadingJournals, setLoadingJournals] = useState(true);
     const [feedback, setFeedback] = useState("Submit a new journal entry today to receive automatic feedback from your supervisor.");
     const [calendarDate, setCalendarDate] = useState(new Date());
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedJournals,
+        totalItems,
+        itemsPerPage
+    } = usePagination(allJournals, 10);
 
     useEffect(() => {
         loadAllJournals();
@@ -293,7 +304,7 @@ const JournalView: React.FC = () => {
                         ) : allJournals.length === 0 ? (
                             <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No entries found.</div>
                         ) : (
-                            allJournals.map((j: DailyJournal) => {
+                            paginatedJournals.map((j: DailyJournal) => {
                                 const d = new Date(j.entry_date);
                                 const month = d.toLocaleDateString('en-US', { month: 'short' });
                                 const day = d.getDate();
@@ -331,7 +342,18 @@ const JournalView: React.FC = () => {
                             })
                         )}
 
-
+                        {allJournals.length > 0 && (
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    totalItems={totalItems}
+                                    itemsPerPage={itemsPerPage}
+                                    onPageChange={setCurrentPage}
+                                    itemName="entries"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 

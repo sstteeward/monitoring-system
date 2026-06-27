@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { TableSkeleton, CardGridSkeleton } from './Skeletons';
+import { usePagination } from '../hooks/usePagination';
+import { Pagination } from './Pagination';
 import './TimesheetView.css';
 
 interface TimesheetViewProps {
@@ -10,6 +12,15 @@ interface TimesheetViewProps {
 const TimesheetView: React.FC<TimesheetViewProps> = ({ onNavigateToDTR }) => {
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const {
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedItems: paginatedTimesheets,
+        totalItems,
+        itemsPerPage
+    } = usePagination(timesheets, 10);
 
     useEffect(() => {
         loadTimesheets();
@@ -157,9 +168,9 @@ const TimesheetView: React.FC<TimesheetViewProps> = ({ onNavigateToDTR }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {timesheets.map((ts, idx) => {
+                                {paginatedTimesheets.map((ts, idx) => {
                                     const currentDate = formatDate(ts.clock_in);
-                                    const prevDate = idx > 0 ? formatDate(timesheets[idx - 1].clock_in) : null;
+                                    const prevDate = idx > 0 ? formatDate(paginatedTimesheets[idx - 1].clock_in) : null;
                                     const showDate = currentDate !== prevDate;
 
                                     return (
@@ -186,6 +197,16 @@ const TimesheetView: React.FC<TimesheetViewProps> = ({ onNavigateToDTR }) => {
                                 })}
                             </tbody>
                         </table>
+                        <div style={{ padding: '1rem', borderTop: '1px solid var(--border)' }}>
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                itemName="timesheets"
+                            />
+                        </div>
                     </div>
                 )}
             </div>
