@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePasteBlocker } from '../hooks/usePasteBlocker';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -10,6 +11,7 @@ interface CoordinatorSettingsViewProps {
 type SettingsTab = 'appearance' | 'layout' | 'notifications' | 'security' | 'about';
 
 const CoordinatorSettingsView: React.FC<CoordinatorSettingsViewProps> = ({ sidebarMode, setSidebarMode }) => {
+    const blockPaste = usePasteBlocker();
     const { theme, setTheme } = useTheme();
     const isDark = theme === 'dark';
     const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
@@ -68,7 +70,7 @@ const CoordinatorSettingsView: React.FC<CoordinatorSettingsViewProps> = ({ sideb
         </div>
     );
 
-    const tabs: { key: SettingsTab; label: string; icon: JSX.Element; desc: string }[] = [
+    const tabs: { key: SettingsTab; label: string; icon: React.ReactNode; desc: string }[] = [
         {
             key: 'appearance', label: 'Appearance', desc: 'Theme & display',
             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
@@ -243,8 +245,8 @@ const CoordinatorSettingsView: React.FC<CoordinatorSettingsViewProps> = ({ sideb
                                 <button className="btn btn-secondary" onClick={() => setChangingPassword(true)}>Change Password</button>
                             ) : (
                                 <form onSubmit={handleChangePassword}>
-                                    <input style={inputStyle} type="password" placeholder="New password (min. 8 chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                                    <input style={inputStyle} type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                                    <input style={inputStyle} type="password" placeholder="New password (min. 8 chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} onPaste={blockPaste} />
+                                    <input style={inputStyle} type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} onPaste={blockPaste} />
                                     {pwError && <div style={{ color: '#f87171', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{pwError}</div>}
                                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                                         <button type="submit" className="btn btn-primary" disabled={pwSaving}>{pwSaving ? 'Updating…' : 'Update Password'}</button>

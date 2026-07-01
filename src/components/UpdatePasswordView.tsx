@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { supabase } from "../lib/supabaseClient";
 import "./AuthSignup.css"; // Reuse auth styles
 
@@ -19,6 +20,7 @@ const EyeOffIcon = () => (
 );
 
 export default function UpdatePasswordView({ onComplete }: { onComplete: () => void }) {
+    const blockPaste = usePasteBlocker();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -85,6 +87,7 @@ export default function UpdatePasswordView({ onComplete }: { onComplete: () => v
                                             setPassword(e.target.value);
                                             setError(null);
                                         }}
+                                        onPaste={blockPaste}
                                         placeholder="Min 8 characters"
                                     />
                                     <button 
@@ -108,6 +111,7 @@ export default function UpdatePasswordView({ onComplete }: { onComplete: () => v
                                             setConfirmPassword(e.target.value);
                                             setError(null);
                                         }}
+                                        onPaste={blockPaste}
                                         placeholder="Min 8 characters"
                                     />
                                     <button 

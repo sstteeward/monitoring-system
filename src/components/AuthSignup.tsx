@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { useLocation } from "react-router-dom";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
@@ -50,6 +51,7 @@ const getStrengthColor = (score: number) => {
 
 export default function AuthSignup() {
     const location = useLocation();
+    const blockPaste = usePasteBlocker();
     // Read the portal role from URL search params (e.g. /login?portal=coordinator)
     const searchParams = new URLSearchParams(location.search);
     const roleState = searchParams.get('portal') || undefined;
@@ -404,6 +406,7 @@ export default function AuthSignup() {
                                                         setSignupPassword(e.target.value);
                                                         setErrors(prev => ({ ...prev, signupPassword: "" }));
                                                     }}
+                                                    onPaste={blockPaste}
                                                     placeholder="Min 8 chars"
                                                 />
                                                 <button
@@ -448,6 +451,7 @@ export default function AuthSignup() {
                                                         setSignupConfirm(e.target.value);
                                                         setErrors(prev => ({ ...prev, signupConfirm: "" }));
                                                     }}
+                                                    onPaste={blockPaste}
                                                     placeholder="Confirm password"
                                                 />
                                                 <button
@@ -539,6 +543,7 @@ export default function AuthSignup() {
                                                     setPassword(e.target.value);
                                                     setErrors(prev => ({ ...prev, password: "" }));
                                                 }}
+                                                onPaste={blockPaste}
                                                 placeholder="Enter your password"
                                             />
                                             <button

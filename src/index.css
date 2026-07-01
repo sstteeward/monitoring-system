@@ -779,3 +779,45 @@ html[data-theme="light"] .account-dropdown {
     height: 30px;
   }
 }
+
+/* ── Paste-blocked toast notification ── */
+.paste-blocked-toast {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  font-family: var(--font-inter);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(239, 68, 68, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3), 0 2px 8px rgba(0,0,0,0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.paste-blocked-toast svg {
+  flex-shrink: 0;
+  stroke: #fff;
+}
+
+.paste-blocked-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.paste-blocked-toast--exit {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px);
+}

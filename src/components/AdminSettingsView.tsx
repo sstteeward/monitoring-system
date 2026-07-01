@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePasteBlocker } from '../hooks/usePasteBlocker';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 import { adminService } from '../services/adminService';
@@ -10,6 +11,7 @@ const AdminSettingsView: React.FC<{
     sidebarMode?: 'expanded' | 'collapsed' | 'hover';
     setSidebarMode?: (mode: 'expanded' | 'collapsed' | 'hover') => void;
 }> = ({ profile, sidebarMode, setSidebarMode }) => {
+    const blockPaste = usePasteBlocker();
     const { theme, setTheme } = useTheme();
     const isDark = theme === 'dark';
     const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
@@ -92,7 +94,7 @@ const AdminSettingsView: React.FC<{
     const sectionSub: React.CSSProperties = { fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '1.25rem' };
     const inputStyle: React.CSSProperties = { width: '100%', padding: '0.65rem 0.9rem', background: 'var(--admin-bg)', border: '1px solid var(--admin-border)', borderRadius: 10, color: 'var(--admin-text-primary)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: '0.75rem' };
 
-    const tabs: { key: AdminSettingsTab; label: string; icon: JSX.Element; desc: string }[] = [
+    const tabs: { key: AdminSettingsTab; label: string; icon: React.ReactNode; desc: string }[] = [
         {
             key: 'system', label: 'System', desc: 'OJT rules & config',
             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
@@ -240,8 +242,8 @@ const AdminSettingsView: React.FC<{
                                 <button className="role-select" style={{ width: '100%' }} onClick={() => setChangingPassword(true)}>Change Password</button>
                             ) : (
                                 <form onSubmit={handleChangePassword}>
-                                    <input style={inputStyle} type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                                    <input style={inputStyle} type="password" placeholder="Confirm password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                                    <input style={inputStyle} type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} onPaste={blockPaste} />
+                                    <input style={inputStyle} type="password" placeholder="Confirm password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} onPaste={blockPaste} />
                                     {pwError && <div style={{ color: '#f87171', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{pwError}</div>}
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <button type="submit" className="role-select" style={{ flex: 1, background: 'var(--admin-primary)', color: 'white' }} disabled={pwSaving}>{pwSaving ? '…' : 'Save'}</button>
