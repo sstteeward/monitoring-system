@@ -48,7 +48,6 @@ const AdminDashboard: React.FC = () => {
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isSidebarMenuOpen, setIsSidebarMenuOpen] = useState(false);
     const [newFeedbackCount, setNewFeedbackCount] = useState(0);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
     const [deletingUser, setDeletingUser] = useState(false);

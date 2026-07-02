@@ -407,11 +407,12 @@
 
 @media (min-width: 1025px) {
     .dashboard-main {
-        margin-left: 72px;
-        /* Leaves space for the collapsed sidebar */
-    }
-    .dashboard-main.sidebar-expanded {
         margin-left: 240px;
+    }
+
+    .sidebar.sidebar-mode-collapsed ~ .dashboard-main,
+    .sidebar.sidebar-mode-hover:not(:hover) ~ .dashboard-main {
+        margin-left: 72px;
     }
 }
 

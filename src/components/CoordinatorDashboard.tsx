@@ -49,7 +49,6 @@ const CoordinatorDashboard: React.FC = () => {
     const [studentFilter, setStudentFilter] = useState<'all' | 'assigned' | 'completed' | 'in-progress' | 'at-risk'>('all');
     const [approvalsTab, setApprovalsTab] = useState<'documents' | 'journals' | 'dtr'>('documents');
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
-    const [isSidebarMenuOpen, setIsSidebarMenuOpen] = useState(false);
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [showAccountMenu, setShowAccountMenu] = useState(false);
     const [settingsExpanded, setSettingsExpanded] = useState(false);

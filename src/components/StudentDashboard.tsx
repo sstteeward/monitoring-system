@@ -35,7 +35,6 @@ const StudentDashboard: React.FC = () => {
     const [elapsed, setElapsed] = useState<string>('00:00:00');
     const [elapsedSecs, setElapsedSecs] = useState(0);
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
-    const [isSidebarMenuOpen, setIsSidebarMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     const [hasNewAnnouncements, setHasNewAnnouncements] = useState(false);
