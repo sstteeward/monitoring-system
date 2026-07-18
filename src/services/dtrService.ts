@@ -160,6 +160,45 @@ export const dtrService = {
     },
 
     /**
+     * Auto-corrects misplaced DTR fields caused by a previous bug where
+     * afternoon clock-out was written to morning_out instead of afternoon_out.
+     * Detects pattern: morning_out set without morning_in + afternoon_in set without afternoon_out.
+     */
+    async healMisplacedRecords(): Promise<void> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch all records for the current user that might be corrupted
+        const { data: records, error } = await supabase
+            .from('dtr_records')
+            .select('*')
+            .eq('user_id', user.id);
+
+        if (error || !records) return;
+
+        for (const record of records) {
+            // Pattern: morning_out is set but morning_in is NOT, AND afternoon_in is set but afternoon_out is NOT
+            // This means the clock-out was mistakenly placed in morning_out instead of afternoon_out
+            if (record.morning_out && !record.morning_in && record.afternoon_in && !record.afternoon_out) {
+                const { error: updateErr } = await supabase
+                    .from('dtr_records')
+                    .update({
+                        afternoon_out: record.morning_out,
+                        morning_out: null,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', record.id);
+
+                if (updateErr) {
+                    console.error('[DTR] Heal misplaced record failed:', updateErr);
+                } else {
+                    console.log(`[DTR] Auto-corrected record ${record.record_date}: moved morning_out → afternoon_out`);
+                }
+            }
+        }
+    },
+
+    /**
      * Fetches all DTR records for a given month/year for the current user.
      */
     async fetchMonthDTR(month: number, year: number): Promise<DTRRecordRow[]> {

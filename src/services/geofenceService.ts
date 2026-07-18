@@ -6,6 +6,7 @@
  */
 
 import { calculateDistanceInMeters, getAccuratePosition, isPointInGeofence, type GeoJSONPolygon } from '../utils/geoUtils';
+import { generateDeviceFingerprint, getDeviceComponents } from '../utils/deviceFingerprint';
 import type { Profile } from './profileService';
 import type { Timesheet } from './timeTracking';
 
@@ -22,6 +23,8 @@ export interface AntiCheatResult {
     longitude?: number;
     /** GPS accuracy in meters */
     accuracy?: number;
+    /** Distance from the company geofence center in meters */
+    distance_from_geofence?: number;
     /** If failed — the primary reason string */
     antiCheatReason?: string;
     /** If failed — structured details for audit logging */
@@ -30,6 +33,10 @@ export interface AntiCheatResult {
     userMessage?: string;
     /** All flags raised (even non-blocking warnings) */
     flags: string[];
+    /** SHA-256 device fingerprint hash */
+    deviceFingerprint?: string;
+    /** Raw device signal components (for audit display) */
+    deviceComponents?: Record<string, any>;
 }
 
 // ─── Detectors ───────────────────────────────────────────────────────────────
@@ -153,6 +160,17 @@ export async function runFullAntiCheatSuite(
 ): Promise<AntiCheatResult> {
     const flags: string[] = [];
 
+    // ── 0. Device Fingerprinting (non-blocking) ────────────────────────
+    let deviceFingerprint: string | undefined;
+    let deviceComponents: Record<string, any> | undefined;
+    try {
+        deviceFingerprint = await generateDeviceFingerprint();
+        deviceComponents = getDeviceComponents() as unknown as Record<string, any>;
+    } catch (err) {
+        console.warn('[AntiCheat] Device fingerprint generation failed:', err);
+        flags.push('fingerprint_failed');
+    }
+
     const companyLat = profile.company?.latitude;
     const companyLng = profile.company?.longitude;
     const radius = profile.company?.geofence_radius || 100;
@@ -160,7 +178,7 @@ export async function runFullAntiCheatSuite(
 
     // If the company has no coordinates and no polygon, skip all geo checks (legacy/unconfigured company)
     if (!geofencePolygon && (!companyLat || !companyLng)) {
-        return { passed: true, flags: ['No company coordinates or polygon — geo checks skipped'] };
+        return { passed: true, flags: ['No company coordinates or polygon — geo checks skipped'], deviceFingerprint, deviceComponents };
     }
 
     // ── 1. Emulator / VM Detection ──────────────────────────────────────
@@ -170,7 +188,9 @@ export async function runFullAntiCheatSuite(
             antiCheatReason: 'Emulator Detected',
             antiCheatDetails: { action },
             userMessage: 'Emulator or Virtualized Environment detected. Please use a real device to verify attendance.',
-            flags: ['emulator_detected']
+            flags: ['emulator_detected'],
+            deviceFingerprint,
+            deviceComponents
         };
     }
 
@@ -184,7 +204,9 @@ export async function runFullAntiCheatSuite(
             flags.push('gps_acquisition_failed_bypassed');
             return {
                 passed: true,
-                flags
+                flags,
+                deviceFingerprint,
+                deviceComponents
             };
         }
 
@@ -194,11 +216,21 @@ export async function runFullAntiCheatSuite(
             antiCheatReason: 'GPS Acquisition Failed',
             antiCheatDetails: { action, error: err.message },
             userMessage: err.message,
-            flags: ['gps_acquisition_failed']
+            flags: ['gps_acquisition_failed'],
+            deviceFingerprint,
+            deviceComponents
         };
     }
 
     const { latitude: userLat, longitude: userLng, altitude, speed, accuracy, heading } = position.coords;
+
+    let distance_from_geofence: number | undefined = undefined;
+    if (companyLat && companyLng) {
+        distance_from_geofence = calculateDistanceInMeters(
+            { latitude: userLat, longitude: userLng },
+            { latitude: companyLat, longitude: companyLng }
+        );
+    }
 
     // ── 3. Spoof Extension Detection ────────────────────────────────────
     const spoofResult = detectSpoofExtension(position);
@@ -208,10 +240,13 @@ export async function runFullAntiCheatSuite(
             latitude: userLat,
             longitude: userLng,
             accuracy,
+            distance_from_geofence,
             antiCheatReason: 'Browser Extension Spoofing',
             antiCheatDetails: { action, flag: spoofResult },
             userMessage: 'Geolocation API spoofing detected. Please disable it and try again.',
-            flags: ['spoof_extension']
+            flags: ['spoof_extension'],
+            deviceFingerprint,
+            deviceComponents
         };
     }
 
@@ -223,10 +258,13 @@ export async function runFullAntiCheatSuite(
             latitude: userLat,
             longitude: userLng,
             accuracy,
+            distance_from_geofence,
             antiCheatReason: 'Timing Anomaly',
             antiCheatDetails: { action, timeDiff },
             userMessage: 'Timing anomaly detected. The GPS data is stale or spoofed. Please disable any spoofers or refresh your location settings.',
-            flags: ['timing_anomaly']
+            flags: ['timing_anomaly'],
+            deviceFingerprint,
+            deviceComponents
         };
     }
 
@@ -242,10 +280,13 @@ export async function runFullAntiCheatSuite(
             latitude: userLat,
             longitude: userLng,
             accuracy,
+            distance_from_geofence,
             antiCheatReason: 'Fake GPS Signature',
             antiCheatDetails: { action, altitude, speed, accuracy, heading },
             userMessage: 'Suspicious GPS data detected. Please disable any Mock Location or Fake GPS apps, ensure you have a clear view of the sky, and try again.',
-            flags: ['fake_gps_signature']
+            flags: ['fake_gps_signature'],
+            deviceFingerprint,
+            deviceComponents
         };
     }
 
@@ -274,7 +315,7 @@ export async function runFullAntiCheatSuite(
                 { latitude: userLat, longitude: userLng },
                 { latitude: companyLat, longitude: companyLng }
             );
-            distanceMsg = `${Math.round(distance)}m away (Limit: ${radius}m)`;
+            distanceMsg = `${(distance / 1000).toFixed(2)} km away (Limit: ${(radius / 1000).toFixed(2)} km)`;
         }
 
         return {
@@ -282,10 +323,13 @@ export async function runFullAntiCheatSuite(
             latitude: userLat,
             longitude: userLng,
             accuracy,
+            distance_from_geofence,
             antiCheatReason: 'Geofence Violation',
             antiCheatDetails: { action, distance, radius, polygonUsed: !!geofencePolygon },
             userMessage: `You must be within the company premises to perform this action. You are ${distanceMsg}.`,
-            flags: ['geofence_violation']
+            flags: ['geofence_violation'],
+            deviceFingerprint,
+            deviceComponents
         };
     }
 
@@ -310,10 +354,13 @@ export async function runFullAntiCheatSuite(
                     latitude: userLat,
                     longitude: userLng,
                     accuracy,
-                    antiCheatReason: 'Teleportation / Speed Anomaly',
+                    distance_from_geofence,
+                    antiCheatReason: 'Teleportation Anomaly',
                     antiCheatDetails: { action, speed: spd, distFromLastOut, timeDiffSecs },
-                    userMessage: `Suspicious location change detected. You traveled ${Math.round(distFromLastOut)} meters in just ${Math.round(timeDiffSecs / 60)} minutes.`,
-                    flags: ['teleportation_anomaly']
+                    userMessage: `Suspicious location change detected. You traveled ${(distFromLastOut / 1000).toFixed(2)} km in just ${Math.round(timeDiffSecs / 60)} minutes.`,
+                    flags: ['teleportation_anomaly'],
+                    deviceFingerprint,
+                    deviceComponents
                 };
             }
         }
@@ -325,7 +372,10 @@ export async function runFullAntiCheatSuite(
         latitude: userLat,
         longitude: userLng,
         accuracy,
-        flags
+        distance_from_geofence,
+        flags,
+        deviceFingerprint,
+        deviceComponents
     };
 }
 

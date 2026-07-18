@@ -1,4 +1,5 @@
 // Lazy-load the Supabase client to avoid module import-time crashes when env vars are missing.
+import { generateDeviceFingerprint, getDeviceLabel } from '../utils/deviceFingerprint';
 async function getClient() {
   try {
     const mod = await import('../lib/supabaseClient');
@@ -108,6 +109,34 @@ export async function signIn({ email, password, role }: { email: string; passwor
 
     // 4. On absolute success, reset failed attempts
     await supabase.rpc('reset_failed_login', { user_email: email.toLowerCase() });
+
+    // 5. Register Device Fingerprint (non-blocking)
+    try {
+      const fingerprint = await generateDeviceFingerprint();
+      const deviceLabel = getDeviceLabel();
+      
+      const { error: fpError } = await supabase.from('device_fingerprints').upsert({
+        user_id: data.user.id,
+        fingerprint,
+        device_label: deviceLabel,
+        last_seen_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id, fingerprint'
+      });
+
+      if (fpError) {
+        console.warn('[Auth] Failed to register device fingerprint:', fpError);
+      } else {
+        // Increment the times_seen counter using an RPC call or let the database handle it
+        await supabase.rpc('increment_device_seen_count', { 
+            p_user_id: data.user.id, 
+            p_fingerprint: fingerprint 
+        });
+      }
+    } catch (fpErr) {
+      console.warn('[Auth] Error generating device fingerprint:', fpErr);
+    }
+
   } catch (checkError: any) {
     // If any check fails, save the error to survive the sign-out re-render/redirect
     const errorMsg = checkError.message || String(checkError);

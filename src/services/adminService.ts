@@ -459,7 +459,14 @@ export const adminService = {
             record_id: log.record_id,
             details: log.details,
             ip_address: log.ip_address,
+            device_fingerprint: log.device_fingerprint,
             created_at: log.created_at,
+            latitude: log.latitude,
+            longitude: log.longitude,
+            accuracy: log.accuracy,
+            distance_from_geofence: log.distance_from_geofence,
+            location_address: log.location_address,
+            map_url: log.map_url,
             profiles: log.user_id ? {
                 first_name: log.profile_first_name,
                 last_name: log.profile_last_name,
@@ -534,6 +541,24 @@ export const adminService = {
             const isHandledCompany = log.profiles?.company_id && handledCompanyIds.includes(log.profiles.company_id);
             return isSameDepartment || isHandledCompany;
         });
+    },
+
+    /**
+     * Fetch device fingerprint history for a user
+     */
+    async getDeviceHistory(userId: string) {
+        const { data, error } = await supabase
+            .from('device_fingerprints')
+            .select('*')
+            .eq('user_id', userId)
+            .order('last_seen_at', { ascending: false });
+
+        if (error) {
+            console.error('[AdminService] Error fetching device history:', error);
+            return [];
+        }
+
+        return data;
     }
 };
 

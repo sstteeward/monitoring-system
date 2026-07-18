@@ -1,7 +1,15 @@
--- Drop the function if it exists
+-- 1. Add location tracking columns to audit_logs
+ALTER TABLE public.audit_logs
+ADD COLUMN IF NOT EXISTS latitude DECIMAL(10,8),
+ADD COLUMN IF NOT EXISTS longitude DECIMAL(11,8),
+ADD COLUMN IF NOT EXISTS accuracy FLOAT,
+ADD COLUMN IF NOT EXISTS distance_from_geofence FLOAT,
+ADD COLUMN IF NOT EXISTS location_address TEXT,
+ADD COLUMN IF NOT EXISTS map_url TEXT;
+
+-- 2. Update the RPC function to return the new columns and fetch all clock-in/out attempts
 DROP FUNCTION IF EXISTS public.admin_get_security_alerts(uuid);
 
--- Create a SECURITY DEFINER function to bypass RLS and fetch alerts with profiles
 CREATE OR REPLACE FUNCTION public.admin_get_security_alerts(p_department_id uuid DEFAULT NULL)
 RETURNS TABLE (
     id uuid,

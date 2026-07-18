@@ -43,65 +43,133 @@ interface PositionOptions {
 }
 
 /**
- * Acquires a single high-accuracy GPS position.
- * Rejects if the browser denies permission, times out, or accuracy is too poor after retries.
+ * Acquires the best possible GPS position using a dual-source strategy:
+ *  1. Browser Geolocation API with watchPosition (continuous sampling)
+ *  2. IP-based geolocation fallback for desktop browsers
+ * Returns whichever source provides the best accuracy.
  */
 export async function getAccuratePosition(options: PositionOptions = {}): Promise<GeolocationPosition> {
-    const { maxAccuracy = 150, timeout = 12000, retries = 2 } = options;
+    const { timeout = 15000 } = options;
 
-    let lastPosition: GeolocationPosition | null = null;
-    let lastError: Error | GeolocationPositionError | null = null;
+    // Run both strategies in parallel
+    const [browserResult, ipResult] = await Promise.allSettled([
+        getBrowserPosition(timeout),
+        getIPGeolocation(),
+    ]);
 
-    for (let attempt = 0; attempt <= retries; attempt++) {
+    const browserPos = browserResult.status === 'fulfilled' ? browserResult.value : null;
+    const ipPos = ipResult.status === 'fulfilled' ? ipResult.value : null;
+
+    // If browser geolocation was denied, throw immediately
+    if (browserResult.status === 'rejected' && browserResult.reason?.message?.includes('denied')) {
+        throw browserResult.reason;
+    }
+
+    // If we have both, pick the more accurate one
+    if (browserPos && ipPos) {
+        const browserAcc = browserPos.coords.accuracy;
+        // IP geolocation is typically ~1-3km accurate
+        // Only prefer IP result if browser accuracy is really poor (>2km)
+        if (browserAcc > 2000 && ipPos.coords.accuracy < browserAcc) {
+            console.log(`[getAccuratePosition] Using IP geolocation (browser accuracy: ${browserAcc}m, IP accuracy: ${ipPos.coords.accuracy}m)`);
+            return ipPos;
+        }
+        return browserPos;
+    }
+
+    if (browserPos) return browserPos;
+    if (ipPos) return ipPos;
+
+    throw browserResult.status === 'rejected' 
+        ? browserResult.reason 
+        : new Error("Failed to acquire GPS position from any source.");
+}
+
+/** Browser Geolocation API with watchPosition for continuous sampling */
+async function getBrowserPosition(timeout: number): Promise<GeolocationPosition> {
+    return new Promise((resolve, reject) => {
+        let watchId: number;
+        let timeoutId: number;
+        let bestPosition: GeolocationPosition | null = null;
+
+        const cleanup = () => {
+            if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+            if (timeoutId !== undefined) clearTimeout(timeoutId);
+        };
+
+        timeoutId = window.setTimeout(() => {
+            cleanup();
+            if (bestPosition) {
+                resolve(bestPosition);
+            } else {
+                reject(new Error("Timeout while trying to acquire GPS position."));
+            }
+        }, timeout);
+
+        watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                if (!bestPosition || position.coords.accuracy < bestPosition.coords.accuracy) {
+                    bestPosition = position;
+                }
+                // If we get a good reading, resolve immediately
+                if (position.coords.accuracy <= 50) {
+                    cleanup();
+                    resolve(position);
+                }
+            },
+            (err) => {
+                if (err.code === 1) {
+                    cleanup();
+                    reject(new Error("You denied location access. Please go to your browser settings, clear permissions for this site, and try again."));
+                }
+            },
+            { enableHighAccuracy: true, timeout, maximumAge: 0 }
+        );
+    });
+}
+
+/** Fallback: IP-based geolocation using a free API */
+async function getIPGeolocation(): Promise<GeolocationPosition> {
+    // Try multiple IP geolocation services for redundancy
+    const apis = [
+        {
+            url: 'http://ip-api.com/json/?fields=lat,lon,city,status',
+            parse: (d: any) => d.status === 'success' ? { lat: d.lat, lng: d.lon } : null,
+        },
+        {
+            url: 'https://ipwho.is/',
+            parse: (d: any) => d.success !== false ? { lat: d.latitude, lng: d.longitude } : null,
+        },
+    ];
+
+    for (const api of apis) {
         try {
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    enableHighAccuracy: true,
-                    timeout,
-                    maximumAge: 0
-                });
-            });
-
-            lastPosition = position;
-
-            // Check accuracy — lower number = better
-            if (position.coords.accuracy <= maxAccuracy) {
-                return position;
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 5000);
+            const res = await fetch(api.url, { signal: controller.signal });
+            clearTimeout(timer);
+            const data = await res.json();
+            const coords = api.parse(data);
+            if (coords && coords.lat && coords.lng) {
+                // IP geolocation is ~1-3km accurate; report as 1500m
+                return {
+                    coords: {
+                        latitude: coords.lat,
+                        longitude: coords.lng,
+                        accuracy: 1500,
+                        altitude: null,
+                        altitudeAccuracy: null,
+                        heading: null,
+                        speed: null,
+                    },
+                    timestamp: Date.now(),
+                } as GeolocationPosition;
             }
-
-            // Accuracy too poor — will retry if attempts remain
-        } catch (err) {
-            lastError = err as Error | GeolocationPositionError;
-
-            // Permission denied is fatal — don't retry
-            if ((err as GeolocationPositionError).code === 1) {
-                throw new Error(
-                    "You denied location access. Please go to your browser settings, clear permissions for this site, and try again."
-                );
-            }
-
-            // On last attempt, throw
-            if (attempt === retries) {
-                throw new Error(
-                    "Could not get your location. Please check browser permissions and ensure GPS is enabled. " +
-                    ((err as GeolocationPositionError).message || '')
-                );
-            }
-        }
-
-        // Small delay before retry
-        if (attempt < retries) {
-            await new Promise(r => setTimeout(r, 800));
+        } catch {
+            continue; // try next API
         }
     }
-
-    // If we got a position but accuracy was always too poor, still return the best one
-    // but mark it so the caller can decide
-    if (lastPosition) {
-        return lastPosition;
-    }
-
-    throw lastError || new Error("Failed to acquire GPS position.");
+    throw new Error("IP geolocation failed.");
 }
 
 /**

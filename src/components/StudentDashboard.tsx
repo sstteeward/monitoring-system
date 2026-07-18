@@ -50,6 +50,7 @@ const StudentDashboard: React.FC = () => {
     const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
     const [errorModalTitle, setErrorModalTitle] = useState<string>('Error');
     const [driftWarning, setDriftWarning] = useState<string | null>(null);
+    const [activeShift, setActiveShift] = useState<'morning' | 'afternoon' | null>(null);
     const driftCountRef = useRef(0);
     const driftIntervalRef = useRef<number | null>(null);
 
@@ -75,6 +76,8 @@ const StudentDashboard: React.FC = () => {
         });
 
         checkAnnouncements();
+        // Auto-correct any DTR records corrupted by the old shift-detection bug
+        dtrService.healMisplacedRecords().catch(err => console.warn('[DTR] Heal check failed:', err));
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, []);
 
@@ -216,7 +219,22 @@ const StudentDashboard: React.FC = () => {
         setElapsed(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
     };
 
-    const logAntiCheat = async (reason: string, details: any = {}) => {
+    const fetchAddress = async (lat: number, lon: number) => {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const data = await res.json();
+            return data.display_name || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const logSecurityEvent = async (
+        actionType: 'anti_cheat_flag' | 'successful_clock_in' | 'successful_clock_out',
+        reason: string,
+        details: any = {},
+        locationData?: { latitude?: number; longitude?: number; accuracy?: number; distance_from_geofence?: number; deviceFingerprint?: string; deviceComponents?: any; }
+    ) => {
         // Resolve user ID using profile, local state, or direct Supabase fetch
         let authUserId = profile?.auth_user_id || user?.id;
         if (!authUserId) {
@@ -236,20 +254,47 @@ const StudentDashboard: React.FC = () => {
         try {
             console.log('[AntiCheat] Logging flag:', reason, details, 'for user:', authUserId);
             
+            let location_address = null;
+            let map_url = null;
+            if (locationData?.latitude && locationData?.longitude) {
+                location_address = await fetchAddress(locationData.latitude, locationData.longitude);
+                map_url = `https://www.google.com/maps?q=${locationData.latitude},${locationData.longitude}`;
+            }
+
+            let ip = null;
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                ip = data.ip;
+            } catch (err) {
+                console.error('[AntiCheat] Failed to fetch IP:', err);
+            }
+
             // Capture user details at the time of the event
             const studentName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : (user?.email?.split('@')[0] || 'Unknown User');
             const studentEmail = profile?.email || user?.email || 'Unknown Email';
 
             const { error: insertError } = await supabase.from('audit_logs').insert([{
                 user_id: authUserId,
-                action: 'anti_cheat_flag',
+                action: actionType,
                 table_name: 'timesheets',
                 record_id: null,
+                latitude: locationData?.latitude,
+                longitude: locationData?.longitude,
+                accuracy: locationData?.accuracy,
+                distance_from_geofence: locationData?.distance_from_geofence,
+                location_address,
+                map_url,
+                device_fingerprint: locationData?.deviceFingerprint || null,
                 details: { 
-                    event: `${details.action || 'Clock Action'} Blocked`, 
+                    event: actionType === 'anti_cheat_flag' ? `${details.action || 'Clock Action'} Blocked` : reason,
                     reason, 
                     studentName,
                     studentEmail,
+                    userAgent: navigator.userAgent,
+                    ip,
+                    deviceFingerprint: locationData?.deviceFingerprint || null,
+                    deviceComponents: locationData?.deviceComponents || null,
                     ...details 
                 }
             }]);
@@ -284,17 +329,17 @@ const StudentDashboard: React.FC = () => {
                 onOutOfBounds: (distance, lat, lng) => {
                     driftCountRef.current += 1;
                     setDriftWarning(
-                        `You are ${Math.round(distance)}m away from company premises (Limit: ${radius}m). Warning ${driftCountRef.current}/3.`
+                        `You are ${(distance / 1000).toFixed(2)} km away from company premises (Limit: ${(radius / 1000).toFixed(2)} km). Warning ${driftCountRef.current}/3.`
                     );
 
-                    logAntiCheat('Session Drift Detected', {
+                    logSecurityEvent('anti_cheat_flag', 'Session Drift Detected', {
                         action: 'Drift-Monitor',
                         distance: Math.round(distance),
                         radius,
                         consecutiveCount: driftCountRef.current,
                         userLat: lat,
                         userLng: lng
-                    });
+                    }, { latitude: lat, longitude: lng, distance_from_geofence: distance });
 
                     // Auto clock-out after 3 consecutive out-of-bounds detections
                     /*
@@ -319,18 +364,18 @@ const StudentDashboard: React.FC = () => {
 
                 onPositionJump: (jumpDistance, lat, lng) => {
                     setDriftWarning(
-                        ` Sudden GPS jump detected (${Math.round(jumpDistance)}m). This may indicate fake GPS was toggled.`
+                        ` Sudden GPS jump detected (${(jumpDistance / 1000).toFixed(2)} km). This may indicate fake GPS was toggled.`
                     );
-                    logAntiCheat('GPS Position Jump', {
+                    logSecurityEvent('anti_cheat_flag', 'GPS Position Jump', {
                         action: 'Continuous-Monitor',
                         jumpDistance: Math.round(jumpDistance),
                         userLat: lat,
                         userLng: lng
-                    });
+                    }, { latitude: lat, longitude: lng });
                 },
 
                 onSuspiciousJitter: (reason) => {
-                    logAntiCheat('Suspicious GPS Jitter', {
+                    logSecurityEvent('anti_cheat_flag', 'Suspicious GPS Jitter', {
                         action: 'Continuous-Monitor',
                         reason
                     });
@@ -340,7 +385,7 @@ const StudentDashboard: React.FC = () => {
                     setDriftWarning(
                         ` VPN/Proxy detected: ${details.reason || 'IP location mismatch'}. Your IP geolocates ${details.distanceKm}km from your location position.`
                     );
-                    logAntiCheat('VPN / Proxy Detected', {
+                    logSecurityEvent('anti_cheat_flag', 'VPN / Proxy Detected', {
                         action: 'Continuous-Monitor',
                         ipLat: details.ipLat,
                         ipLng: details.ipLng,
@@ -357,7 +402,7 @@ const StudentDashboard: React.FC = () => {
                     if (!result.inBounds && driftCountRef.current === 0) {
                         driftCountRef.current = 1;
                         setDriftWarning(
-                            `You are ${Math.round(result.distance)}m away from company premises (Limit: ${radius}m).`
+                            `You are ${(result.distance / 1000).toFixed(2)} km away from company premises (Limit: ${(radius / 1000).toFixed(2)} km).`
                         );
                     }
                 } catch { /* fallback — non-critical */ }
@@ -389,10 +434,10 @@ const StudentDashboard: React.FC = () => {
                 const result = await runFullAntiCheatSuite(profile, 'Clock-In', todaySessions);
 
                 if (!result.passed) {
-                    logAntiCheat(result.antiCheatReason || 'Unknown', {
+                    logSecurityEvent('anti_cheat_flag', result.antiCheatReason || 'Unknown', {
                         action: 'Clock-In',
                         ...result.antiCheatDetails
-                    });
+                    }, result);
                     setErrorModalTitle('Clock In Denied');
                     setErrorModalMsg(result.userMessage || 'Security check failed.');
                     return;
@@ -400,13 +445,15 @@ const StudentDashboard: React.FC = () => {
 
                 // Passed all checks — clock in with validated coordinates
                 const newSession = await timeTrackingService.clockIn(result.latitude, result.longitude);
+                await logSecurityEvent('successful_clock_in', 'Successful Clock In', { action: 'Clock-In' }, result);
                 setSession(newSession);
                 await loadTodaySessions();
 
-                // Write to DTR: first clock-in = morning, second = afternoon
+                // Write to DTR: use shiftOverride to determine correct column
                 const completedBefore = todaySessions.filter(s => s.status === 'completed').length;
-                let dtrField = completedBefore === 0 ? 'morning_in' : 'afternoon_in';
-                if (shiftOverride) dtrField = `${shiftOverride}_in`;
+                const resolvedShift = shiftOverride || (completedBefore === 0 ? 'morning' : 'afternoon');
+                setActiveShift(resolvedShift);
+                const dtrField = `${resolvedShift}_in`;
                 try { await dtrService.upsertDTRField(dtrField as any, new Date().toISOString()); }
                 catch (dtrErr) { console.warn('[DTR] Write failed (non-blocking):', dtrErr); }
             } else {
@@ -416,8 +463,9 @@ const StudentDashboard: React.FC = () => {
                 await loadTodaySessions();
 
                 const completedBefore = todaySessions.filter(s => s.status === 'completed').length;
-                let dtrField = completedBefore === 0 ? 'morning_in' : 'afternoon_in';
-                if (shiftOverride) dtrField = `${shiftOverride}_in`;
+                const resolvedShift = shiftOverride || (completedBefore === 0 ? 'morning' : 'afternoon');
+                setActiveShift(resolvedShift);
+                const dtrField = `${resolvedShift}_in`;
                 try { await dtrService.upsertDTRField(dtrField as any, new Date().toISOString()); }
                 catch (dtrErr) { console.warn('[DTR] Write failed (non-blocking):', dtrErr); }
             }
@@ -439,27 +487,30 @@ const StudentDashboard: React.FC = () => {
                 const result = await runFullAntiCheatSuite(profile, 'Clock-Out');
 
                 if (!result.passed) {
-                    logAntiCheat(result.antiCheatReason || 'Unknown', {
+                    logSecurityEvent('anti_cheat_flag', result.antiCheatReason || 'Unknown', {
                         action: 'Clock-Out',
                         ...result.antiCheatDetails
-                    });
+                    }, result);
                     setErrorModalTitle('Clock Out Denied');
                     setErrorModalMsg(result.userMessage || 'Security check failed.');
                     return;
                 }
 
                 await timeTrackingService.clockOut(session.id, result.latitude, result.longitude);
+                await logSecurityEvent('successful_clock_out', 'Successful Clock Out', { action: 'Clock-Out' }, result);
             } else {
                 await timeTrackingService.clockOut(session.id);
             }
 
-            // Write to DTR: first clock-out = morning, second = afternoon
+            // Write to DTR: use activeShift set during clock-in to pick the correct column
             const completedBefore = todaySessions.filter(s => s.status === 'completed').length;
-            const dtrField = completedBefore === 0 ? 'morning_out' : 'afternoon_out';
+            const resolvedShift = activeShift || (completedBefore === 0 ? 'morning' : 'afternoon');
+            const dtrField = `${resolvedShift}_out`;
             try { await dtrService.upsertDTRField(dtrField as any, new Date().toISOString()); }
             catch (dtrErr) { console.warn('[DTR] Write failed (non-blocking):', dtrErr); }
 
             setSession(null);
+            setActiveShift(null);
             setDriftWarning(null);
             driftCountRef.current = 0;
             await loadTodaySessions();
@@ -483,10 +534,10 @@ const StudentDashboard: React.FC = () => {
                 const result = await runFullAntiCheatSuite(profile, breakAction as any);
 
                 if (!result.passed) {
-                    logAntiCheat(result.antiCheatReason || 'Unknown', {
+                    logSecurityEvent('anti_cheat_flag', result.antiCheatReason || 'Unknown', {
                         action: breakAction,
                         ...result.antiCheatDetails
-                    });
+                    }, result);
                     setErrorModalTitle('Break Denied');
                     setErrorModalMsg(result.userMessage || 'Security check failed.');
                     return;

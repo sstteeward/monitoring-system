@@ -49,6 +49,12 @@ export interface CompanyRequest {
     geofence_polygon?: GeoJSONPolygon | null;
 }
 
+const defaultPermissions: Record<string, boolean> = {
+    can_approve_journals: true,
+    can_export_reports: true,
+    can_delete_students: false
+};
+
 async function checkPermission(permissionKey: string): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
@@ -65,7 +71,17 @@ async function checkPermission(permissionKey: string): Promise<boolean> {
     if (profile.account_type === 'admin') return true;
 
     // Check specific permission for coordinators
-    return profile.permissions ? !!profile.permissions[permissionKey] : true; // Default true if no permissions set
+    if (!profile.permissions) return defaultPermissions[permissionKey] ?? true;
+    
+    // Parse if it's a string somehow
+    let perms = profile.permissions;
+    if (typeof perms === 'string') {
+        try { perms = JSON.parse(perms); } catch (e) { perms = {}; }
+    }
+    
+    return perms[permissionKey] !== undefined && perms[permissionKey] !== null
+        ? !!perms[permissionKey] 
+        : (defaultPermissions[permissionKey] ?? true);
 }
 
 export const coordinatorService = {

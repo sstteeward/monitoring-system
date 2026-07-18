@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { adminService } from '../services/adminService';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import LocationMapModal from './LocationMapModal';
 
 // Inline SVG Icons (matching codebase pattern — no external icon library)
 const SvgIcon = {
@@ -13,6 +14,7 @@ const SvgIcon = {
     monitor: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>,
     activity: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
     refreshLarge: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>,
+    copy: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>,
 };
 
 interface SecurityAlertsViewProps {
@@ -23,6 +25,7 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
     const [alerts, setAlerts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedAlert, setSelectedAlert] = useState<any>(null);
 
     const fetchAlerts = async () => {
         try {
@@ -113,6 +116,9 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                                     <th style={{ textAlign: 'left', padding: '16px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 500 }}>Timestamp</th>
                                     <th style={{ textAlign: 'left', padding: '16px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 500 }}>Student</th>
                                     <th style={{ textAlign: 'left', padding: '16px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 500 }}>Event</th>
+                                    <th style={{ textAlign: 'left', padding: '16px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 500 }}>Device ID</th>
+                                    <th style={{ textAlign: 'left', padding: '16px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 500 }}>Location</th>
+                                    <th style={{ textAlign: 'left', padding: '16px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 500 }}>Distance</th>
                                     <th style={{ textAlign: 'left', padding: '16px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 500 }}>Reason / Details</th>
                                 </tr>
                             </thead>
@@ -128,6 +134,19 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                                         profile = profile.length > 0 ? profile[0] : null;
                                     }
                                     
+                                    let badgeColor = '#ef4444';
+                                    let badgeBg = 'rgba(239, 68, 68, 0.1)';
+                                    let icon = getFlagIcon(reason);
+                                    if (log.action === 'successful_clock_in' || log.action === 'successful_clock_out') {
+                                        badgeColor = '#10b981';
+                                        badgeBg = 'rgba(16, 185, 129, 0.1)';
+                                        icon = <span style={{ color: badgeColor }}>{SvgIcon.shield}</span>;
+                                    } else if (event.toLowerCase().includes('warning') || reason.toLowerCase().includes('warning')) {
+                                        badgeColor = '#f59e0b';
+                                        badgeBg = 'rgba(245, 158, 11, 0.1)';
+                                        icon = <span style={{ color: badgeColor }}>{SvgIcon.alertTriangle}</span>;
+                                    }
+
                                     return (
                                         <tr key={log.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s ease' }} className="cd-table-row-hover">
                                             <td style={{ padding: '16px', color: 'var(--text-primary)', verticalAlign: 'top' }}>
@@ -166,13 +185,75 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                                                         borderRadius: '20px', 
                                                         fontSize: '0.8rem', 
                                                         fontWeight: 500,
-                                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                                        color: '#ef4444'
+                                                        backgroundColor: badgeBg,
+                                                        color: badgeColor
                                                     }}
                                                 >
-                                                    {getFlagIcon(reason)}
+                                                    {icon}
                                                     {event}
                                                 </span>
+                                            </td>
+                                            <td style={{ padding: '16px', verticalAlign: 'top' }}>
+                                                {log.device_fingerprint ? (
+                                                    <button 
+                                                        title="Click to copy full Device ID"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(log.device_fingerprint);
+                                                        }}
+                                                        style={{
+                                                            fontFamily: 'monospace',
+                                                            fontSize: '0.85rem',
+                                                            color: 'var(--text-secondary)',
+                                                            backgroundColor: 'var(--bg-card-hover)',
+                                                            padding: '4px 8px',
+                                                            borderRadius: '4px',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px',
+                                                            border: '1px solid transparent',
+                                                            cursor: 'pointer',
+                                                            transition: 'border-color 0.2s ease, color 0.2s ease'
+                                                        }}
+                                                        onMouseOver={(e) => {
+                                                            e.currentTarget.style.borderColor = 'var(--accent-color)';
+                                                            e.currentTarget.style.color = 'var(--text-primary)';
+                                                        }}
+                                                        onMouseOut={(e) => {
+                                                            e.currentTarget.style.borderColor = 'transparent';
+                                                            e.currentTarget.style.color = 'var(--text-secondary)';
+                                                        }}
+                                                    >
+                                                        {log.device_fingerprint.substring(0, 12)}...
+                                                        {SvgIcon.copy}
+                                                    </button>
+                                                ) : (
+                                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Unknown</span>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '16px', verticalAlign: 'top' }}>
+                                                {log.latitude && log.longitude ? (
+                                                    <button 
+                                                        className="cd-button outline" 
+                                                        style={{ padding: '4px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                        onClick={() => setSelectedAlert(log)}
+                                                    >
+                                                        {SvgIcon.mapPin} View Map
+                                                    </button>
+                                                ) : (
+                                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No GPS Data</span>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '16px', verticalAlign: 'top' }}>
+                                                {log.distance_from_geofence !== null && log.distance_from_geofence !== undefined ? (
+                                                    <span style={{ 
+                                                        color: log.distance_from_geofence <= 100 ? '#10b981' : log.distance_from_geofence <= 150 ? '#f59e0b' : '#ef4444',
+                                                        fontWeight: 500
+                                                    }}>
+                                                        {(log.distance_from_geofence / 1000).toFixed(2)} km
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>-</span>
+                                                )}
                                             </td>
                                             <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '0.9rem', verticalAlign: 'top', maxWidth: '300px' }}>
                                                 <div style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>{reason}</div>
@@ -180,17 +261,17 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                                                 {/* Additional Details specifically for anomalies */}
                                                 {log.details?.speed && (
                                                     <div style={{ display: 'inline-block', background: 'var(--bg-panel)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '4px' }}>
-                                                        Speed: {Math.round(log.details.speed)} m/s
+                                                        Speed: {(log.details.speed * 3.6).toFixed(1)} km/h
                                                     </div>
                                                 )}
                                                 {log.details?.distFromLastOut && (
                                                     <div style={{ display: 'inline-block', background: 'var(--bg-panel)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '4px', marginLeft: '8px' }}>
-                                                        Dist: {Math.round(log.details.distFromLastOut)} m
+                                                        Dist: {(log.details.distFromLastOut / 1000).toFixed(2)} km
                                                     </div>
                                                 )}
                                                 {log.details?.distance && (
                                                     <div style={{ display: 'inline-block', background: 'var(--bg-panel)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '4px' }}>
-                                                        Off-Site Dist: {Math.round(log.details.distance)} m
+                                                        Off-Site Dist: {(log.details.distance / 1000).toFixed(2)} km
                                                     </div>
                                                 )}
                                             </td>
@@ -212,6 +293,12 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                     </div>
                 )}
             </div>
+            
+            <LocationMapModal 
+                isOpen={!!selectedAlert} 
+                onClose={() => setSelectedAlert(null)} 
+                alert={selectedAlert} 
+            />
         </div>
     );
 };

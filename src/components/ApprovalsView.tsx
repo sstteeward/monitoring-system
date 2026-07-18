@@ -34,6 +34,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
     const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
     const [remarks, setRemarks] = useState('');
     const [pendingAction, setPendingAction] = useState<'approved' | 'rejected' | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
 
     const {
         currentPage: docPage,
@@ -166,9 +167,9 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                 setDeptRequests(prev => prev.filter(d => d.id !== id));
             }
             if (onActionComplete) onActionComplete();
-        } catch (err) {
+        } catch (err: any) {
             console.error(`Failed to mark item as ${status}:`, err);
-            alert(`Error: Could not mark item as ${status}`);
+            setActionError(`Could not mark item as ${status} - ${err.message || JSON.stringify(err)}`);
         } finally {
             setActionLoading(null);
         }
@@ -187,9 +188,9 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
             setPreviewUrl(data.signedUrl);
             setPreviewFileName(fileName);
             setPreviewType(mimeType);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error previewing file:', error);
-            alert('Could not preview file.');
+            setActionError(`Could not preview file - ${error?.message || ''}`);
         }
     };
 
@@ -509,6 +510,39 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                         <div style={{ padding: '1.25rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                             <button className="btn btn-secondary" onClick={() => setShowRemarksModal(false)}>Cancel</button>
                             <button className={`btn ${pendingAction === 'approved' ? 'btn-approve' : 'btn-reject'}`} onClick={() => { if (selectedRequestId && pendingAction) handleAction(selectedRequestId, pendingAction); setShowRemarksModal(false); }}>Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {actionError && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 1200,
+                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }} onClick={() => setActionError(null)}>
+                    <div className="glass-card" style={{
+                        border: '1px solid rgba(239,68,68,0.3)',
+                        borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        animation: 'fadeIn 0.2s ease',
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        <h3 style={{ textAlign: 'center', color: 'var(--text-primary)', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Action Failed</h3>
+                        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.75rem' }}>
+                            {actionError}
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => setActionError(null)}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(239,68,68,0.35)' }}
+                            >
+                                Okay
+                            </button>
                         </div>
                     </div>
                 </div>
