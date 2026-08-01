@@ -114,7 +114,7 @@ export default function AuthSignup() {
         if (!firstName.trim()) e.firstName = "First name is required";
         if (!lastName.trim()) e.lastName = "Last name is required";
         if (!signupEmail.trim()) e.signupEmail = "Email is required";
-        else if (!isEduPh(signupEmail)) e.signupEmail = "Email must end with .edu.ph";
+        else if (roleState !== 'company' && !isEduPh(signupEmail)) e.signupEmail = "Email must end with .edu.ph";
         if (!signupPassword) e.signupPassword = "Password is required";
         else if (signupPassword.length < 8) e.signupPassword = "Password must be at least 8 characters";
         if (!signupConfirm) e.signupConfirm = "Please confirm your password";
@@ -126,7 +126,7 @@ export default function AuthSignup() {
     const validateLogin = () => {
         const e: Record<string, string> = {};
         if (!loginEmail.trim()) e.loginEmail = "Email is required";
-        else if (!isEduPh(loginEmail) && loginEmail.trim().toLowerCase() !== "admin@asiancollege.edu.ph") {
+        else if (roleState !== 'company' && !isEduPh(loginEmail) && loginEmail.trim().toLowerCase() !== "admin@asiancollege.edu.ph") {
             e.loginEmail = "Email must end with .edu.ph";
         }
         if (!password.trim()) e.password = "Password is required";
@@ -135,7 +135,7 @@ export default function AuthSignup() {
     };
 
     const handleSendVerification = async () => {
-        if (!isEduPh(signupEmail)) {
+        if (roleState !== 'company' && !isEduPh(signupEmail)) {
             setErrors(prev => ({ ...prev, signupEmail: "Enter a valid .edu.ph email before verifying" }));
             return;
         }
@@ -304,7 +304,7 @@ export default function AuthSignup() {
         if (!forgotEmail.trim()) {
             setErrors({ forgotEmail: "Email is required" });
             return;
-        } else if (!isEduPh(forgotEmail)) {
+        } else if (roleState !== 'company' && !isEduPh(forgotEmail)) {
             setErrors({ forgotEmail: "Email must end with .edu.ph" });
             return;
         }
@@ -337,7 +337,7 @@ export default function AuthSignup() {
                         <div className="auth-form-wrapper">
                             <div className="auth-card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h1>{displayRole ? `Create Account as ${displayRole}` : "Create Your Account"}</h1>
-                                <p className="subtitle">Sign up using your <strong>.edu.ph</strong> email.</p>
+                                <p className="subtitle">Sign up using your {roleState === 'company' ? 'company' : <strong>.edu.ph</strong>} email.</p>
                             </div>
 
                             <form className="auth-form" onSubmit={handleSignup} noValidate>
@@ -373,7 +373,7 @@ export default function AuthSignup() {
                                                     setEmailVerified(false);
                                                     setErrors(prev => ({ ...prev, signupEmail: "" }));
                                                 }}
-                                                placeholder="name@school.edu.ph"
+                                                placeholder={roleState === 'company' ? "name@company.com" : "name@school.edu.ph"}
                                                 aria-describedby="email-note"
                                             />
                                             <button
@@ -391,7 +391,9 @@ export default function AuthSignup() {
                                                             : "Send code"}
                                             </button>
                                         </div>
-                                        <div id="email-note" className="muted" style={{ marginTop: '-0.3rem' }}>Only emails ending with <code>.edu.ph</code> are accepted.</div>
+                                        <div id="email-note" className="muted" style={{ marginTop: '-0.3rem' }}>
+                                            {roleState === 'company' ? "Please use your work or company email address." : <span>Only emails ending with <code>.edu.ph</code> are accepted.</span>}
+                                        </div>
                                         {errors.signupEmail && <span className="error">{errors.signupEmail}</span>}
                                     </label>
 
@@ -501,7 +503,7 @@ export default function AuthSignup() {
                                 </div>
 
                                 <div className="auth-footer">
-                                    <p className="foot muted">Secure .edu.ph portal • Trusted by Asian College Dumaguete</p>
+                                    <p className="foot muted">Secure {roleState === 'company' ? 'company' : '.edu.ph'} portal • Trusted by Asian College Dumaguete</p>
                                     <button type="button" className="muted switch-btn" onClick={() => { setMode("login"); setErrors({}); }}>
                                         Already have an account? Sign in
                                     </button>
@@ -512,7 +514,7 @@ export default function AuthSignup() {
                         <div className="auth-form-wrapper">
                             <div className="auth-card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h2>{displayRole ? `Login as ${displayRole}` : "Login"}</h2>
-                                <p className="subtitle">SIL Monitoring System — sign in using your <strong>.edu.ph</strong> email.</p>
+                                <p className="subtitle">SIL Monitoring System — sign in using your {roleState === 'company' ? 'company' : <strong>.edu.ph</strong>} email.</p>
                             </div>
 
                             <form className="auth-form" onSubmit={handleLogin} noValidate>
@@ -524,13 +526,15 @@ export default function AuthSignup() {
                                             value={loginEmail}
                                             onChange={e => {
                                                 setLoginEmail(e.target.value);
-                                                setErrors(prev => ({ ...prev, loginEmail: "" }));
-                                            }}
-                                            placeholder="name@school.edu.ph"
-                                            aria-describedby="email-note"
-                                        />
-                                        <div id="email-note" className="muted">Only emails ending with <code>.edu.ph</code> are accepted.</div>
-                                        {errors.loginEmail && <span className="error">{errors.loginEmail}</span>}
+                                            setErrors(prev => ({ ...prev, loginEmail: "" }));
+                                        }}
+                                        placeholder={roleState === 'company' ? "name@company.com" : "name@school.edu.ph"}
+                                        aria-describedby="email-note"
+                                    />
+                                    <div id="email-note" className="muted">
+                                        {roleState === 'company' ? "Use your work or company email address." : <span>Only emails ending with <code>.edu.ph</code> are accepted.</span>}
+                                    </div>
+                                    {errors.loginEmail && <span className="error">{errors.loginEmail}</span>}
                                     </label>
 
                                     <label className="full-width">
@@ -574,7 +578,7 @@ export default function AuthSignup() {
                                 </div>
 
                                 <div className="auth-footer">
-                                    <p className="foot muted">Secure .edu.ph portal • Trusted by Asian College Dumaguete.</p>
+                                    <p className="foot muted">Secure {roleState === 'company' ? 'company' : '.edu.ph'} portal • Trusted by Asian College Dumaguete.</p>
                                     {roleState !== 'admin' && (
                                         <button type="button" className="muted switch-btn" onClick={() => { setMode("signup"); setErrors({}); setInfoMessage(null); }}>
                                             Create an account
@@ -587,7 +591,7 @@ export default function AuthSignup() {
                         <div className="auth-form-wrapper">
                             <div className="auth-card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h2>{displayRole ? `Reset ${displayRole} Password` : "Reset Password"}</h2>
-                                <p className="subtitle">Enter your <strong>.edu.ph</strong> email to receive a password reset link.</p>
+                                <p className="subtitle">Enter your {roleState === 'company' ? 'company' : <strong>.edu.ph</strong>} email to receive a password reset link.</p>
                             </div>
 
                             <form className="auth-form" onSubmit={handleForgotPassword} noValidate>
@@ -601,9 +605,11 @@ export default function AuthSignup() {
                                                 setForgotEmail(e.target.value);
                                                 setErrors(prev => ({ ...prev, forgotEmail: "" }));
                                             }}
-                                            placeholder="name@school.edu.ph"
+                                            placeholder={roleState === 'company' ? "name@company.com" : "name@school.edu.ph"}
                                         />
-                                        <div id="email-note" className="muted">Only emails ending with <code>.edu.ph</code> are accepted.</div>
+                                        <div id="email-note" className="muted">
+                                            {roleState === 'company' ? "Use your work or company email address." : <span>Only emails ending with <code>.edu.ph</code> are accepted.</span>}
+                                        </div>
                                         {errors.forgotEmail && <span className="error">{errors.forgotEmail}</span>}
                                     </label>
 

@@ -7,7 +7,7 @@ export interface Profile {
     first_name: string | null;
     middle_name?: string | null;
     last_name: string | null;
-    account_type: 'student' | 'coordinator' | 'admin';
+    account_type: 'student' | 'coordinator' | 'admin' | 'company';
     required_ojt_hours: number;
     absences: number;
     company_id: string | null;

@@ -5,6 +5,7 @@ import AuthSignup from "./components/AuthSignup";
 import StudentDashboard from "./components/StudentDashboard";
 import CoordinatorDashboard from "./components/CoordinatorDashboard";
 import AdminDashboard from "./components/AdminDashboard";
+import CompanyDashboard from "./components/CompanyDashboard";
 import PendingApprovalView from "./components/PendingApprovalView";
 
 import UpdatePasswordView from "./components/UpdatePasswordView";
@@ -140,9 +141,11 @@ function AppContent() {
     <Routes>
       <Route path="/admin/*" element={profile?.account_type === 'admin' ? <AdminDashboard /> : <Navigate to="/" />} />
       <Route path="/coordinator/*" element={profile?.account_type === 'coordinator' ? <CoordinatorDashboard /> : <Navigate to="/" />} />
+      <Route path="/company/*" element={profile?.account_type === 'company' ? <CompanyDashboard /> : <Navigate to="/" />} />
       <Route path="/*" element={
         profile?.account_type === 'admin' ? <Navigate to="/admin" /> :
         profile?.account_type === 'coordinator' ? <Navigate to="/coordinator" /> :
+        profile?.account_type === 'company' ? <Navigate to="/company" /> :
         <StudentDashboard />
       } />
     </Routes>

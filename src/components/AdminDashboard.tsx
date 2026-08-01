@@ -56,6 +56,9 @@ const AdminDashboard: React.FC = () => {
     const [showAccountMenu, setShowAccountMenu] = useState(false);
     const [settingsExpanded, setSettingsExpanded] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [companies, setCompanies] = useState<{id: string; name: string}[]>([]);
+    const [companyPickerTarget, setCompanyPickerTarget] = useState<{userId: string; userName: string} | null>(null);
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
 
     useTheme();
 
@@ -124,17 +127,53 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const handleRoleUpdate = async (userId: string, newRole: 'student' | 'coordinator' | 'admin') => {
+    const handleRoleUpdate = async (userId: string, newRole: 'student' | 'coordinator' | 'admin' | 'company') => {
+        if (newRole === 'company') {
+            // Show company picker modal instead of immediate update
+            const user = allProfiles.find(p => p.auth_user_id === userId);
+            setCompanyPickerTarget({ userId, userName: user ? `${user.first_name} ${user.last_name}` : 'User' });
+            setSelectedCompanyId('');
+            // Load companies if not already loaded
+            if (companies.length === 0) {
+                const companyList = await adminService.getAllCompanies();
+                setCompanies(companyList);
+            }
+            return;
+        }
         setUpdatingUserId(userId);
         try {
             await adminService.updateUserRole(userId, newRole);
+            // Clear company_id when switching away from company role
+            await adminService.setUserCompany(userId, null);
             setAllProfiles(allProfiles.map(p =>
-                p.auth_user_id === userId ? { ...p, account_type: newRole } : p
+                p.auth_user_id === userId ? { ...p, account_type: newRole, company_id: null } : p
             ));
             const newStats = await adminService.getSystemStats();
             setStats(newStats as any);
         } catch {
             alert('Failed to update user role');
+        } finally {
+            setUpdatingUserId(null);
+        }
+    };
+
+    const handleConfirmCompanyRole = async () => {
+        if (!companyPickerTarget || !selectedCompanyId) {
+            alert('Please select a company.');
+            return;
+        }
+        setUpdatingUserId(companyPickerTarget.userId);
+        try {
+            await adminService.updateUserRole(companyPickerTarget.userId, 'company');
+            await adminService.setUserCompany(companyPickerTarget.userId, selectedCompanyId);
+            setAllProfiles(allProfiles.map(p =>
+                p.auth_user_id === companyPickerTarget.userId ? { ...p, account_type: 'company', company_id: selectedCompanyId } : p
+            ));
+            const newStats = await adminService.getSystemStats();
+            setStats(newStats as any);
+            setCompanyPickerTarget(null);
+        } catch {
+            alert('Failed to assign company role');
         } finally {
             setUpdatingUserId(null);
         }
@@ -537,11 +576,12 @@ const AdminDashboard: React.FC = () => {
                                                             <CustomSelect
                                                                 value={p.account_type}
                                                                 disabled={updatingUserId === p.auth_user_id}
-                                                                onChange={(val) => handleRoleUpdate(p.auth_user_id, val as 'student' | 'coordinator' | 'admin')}
+                                                                onChange={(val) => handleRoleUpdate(p.auth_user_id, val as 'student' | 'coordinator' | 'admin' | 'company')}
                                                                 options={[
                                                                     { value: 'student', label: 'Student' },
                                                                     { value: 'coordinator', label: 'Coordinator' },
                                                                     { value: 'admin', label: 'Admin' },
+                                                                    { value: 'company', label: 'Company' },
                                                                 ]}
                                                             />
                                                         </td>
@@ -800,6 +840,55 @@ const AdminDashboard: React.FC = () => {
                                 style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(239,68,68,0.35)' }}
                             >
                                 Yes, Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Company Picker Modal */}
+            {companyPickerTarget && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="glass-card fade-in" style={{ width: '100%', maxWidth: '450px', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Assign Company Role</h3>
+                            <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                Assigning <strong>{companyPickerTarget.userName}</strong> as a company supervisor.
+                                Select which company they belong to:
+                            </p>
+                        </div>
+                        <div style={{ padding: '1.5rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Company</label>
+                            <select
+                                className="form-input"
+                                style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                                value={selectedCompanyId}
+                                onChange={e => setSelectedCompanyId(e.target.value)}
+                            >
+                                <option value="" disabled>Select a company...</option>
+                                {companies.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                            {companies.length === 0 && (
+                                <p style={{ marginTop: '0.75rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                    No companies found. Please create a company first.
+                                </p>
+                            )}
+                        </div>
+                        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', background: 'var(--bg-elevated)' }}>
+                            <button
+                                onClick={() => setCompanyPickerTarget(null)}
+                                style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmCompanyRole}
+                                disabled={!selectedCompanyId || updatingUserId === companyPickerTarget.userId}
+                                style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontWeight: 600, opacity: !selectedCompanyId ? 0.5 : 1 }}
+                            >
+                                {updatingUserId === companyPickerTarget.userId ? 'Assigning...' : 'Confirm'}
                             </button>
                         </div>
                     </div>

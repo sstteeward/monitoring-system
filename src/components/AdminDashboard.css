@@ -632,6 +632,11 @@ html[data-theme="light"] .admin-welcome-banner {
   color: var(--badge-admin-text, #f59e0b);
 }
 
+.badge-company {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
 .role-select {
   background: var(--bg-elevated);
   border: 1px solid var(--border);

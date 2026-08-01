@@ -183,7 +183,8 @@
 /* Animation delays */
 .portal-card.student { animation-delay: 0.2s; }
 .portal-card.coordinator { animation-delay: 0.35s; }
-.portal-card.admin { animation-delay: 0.5s; }
+.portal-card.company { animation-delay: 0.5s; }
+.portal-card.admin { animation-delay: 0.65s; }
 
 /* Footer */
 .landing-footer {

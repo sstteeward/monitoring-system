@@ -19,11 +19,20 @@ const CoordinatorIcon = () => (
   </svg>
 );
 
+const CompanyIcon = () => (
+  <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+  </svg>
+);
+
+
 export default function LandingPage() {
   const navigate = useNavigate();
 
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showCompanyInfo, setShowCompanyInfo] = useState(false);
 
   useEffect(() => {
     document.title = "Asian College | SIL Monitoring System";
@@ -59,6 +68,22 @@ export default function LandingPage() {
             </div>
             <h3>Coordinator Portal <span className="arrow">→</span></h3>
             <p>Manage student applications, verify records, and approvals.</p>
+          </div>
+
+          <div className="portal-card company" onClick={() => handlePortalSelect('company')} role="button" tabIndex={0}>
+            <div className="portal-card-icon-wrap">
+              <CompanyIcon />
+            </div>
+            <h3>Company Portal <span className="arrow">→</span></h3>
+            <p>Monitor assigned interns, review journals, and evaluate performance.</p>
+            <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+                <span 
+                    onClick={(e) => { e.stopPropagation(); setShowCompanyInfo(true); }}
+                    style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                    Why is this portal optional?
+                </span>
+            </div>
           </div>
 
         </div>
@@ -102,6 +127,22 @@ export default function LandingPage() {
                   </div>
                   <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
                       <button className="btn btn-primary" onClick={() => setShowPrivacy(false)}>Close</button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {showCompanyInfo && (
+          <div className="modal-overlay fade-in" onClick={() => setShowCompanyInfo(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+              <div className="modal-content glass-card" onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-panel)', padding: '2rem', borderRadius: 16, maxWidth: 500, width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
+                  <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', color: 'var(--text-bright)' }}>Company Portal is Optional</h3>
+                  <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <p>The Company Portal is designed to make it easier for supervisors to monitor interns, review daily journals, and submit performance evaluations online.</p>
+                      <p>However, we understand that not all partner companies may want or be able to adopt this system. If you prefer traditional methods, you can still opt to sign physical DTRs and paper evaluation forms instead of creating an account.</p>
+                      <p>Talk to the school coordinator to learn more about the best option for your company.</p>
+                  </div>
+                  <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+                      <button className="btn btn-primary" onClick={() => setShowCompanyInfo(false)}>Close</button>
                   </div>
               </div>
           </div>

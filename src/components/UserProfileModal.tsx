@@ -48,6 +48,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
         student: '#3b82f6',
         coordinator: '#10b981',
         admin: '#f59e0b',
+        company: '#8b5cf6',
     };
     const roleColor = roleColors[profile?.account_type ?? 'student'] ?? '#10b981';
 

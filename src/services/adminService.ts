@@ -101,7 +101,7 @@ export const adminService = {
     /**
      * Update a user's role/account_type
      */
-    async updateUserRole(userId: string, role: 'student' | 'coordinator' | 'admin') {
+    async updateUserRole(userId: string, role: 'student' | 'coordinator' | 'admin' | 'company') {
         const { error } = await supabase
             .rpc('admin_update_user_role', { target_user_id: userId, new_role: role });
 
@@ -111,6 +111,38 @@ export const adminService = {
         }
 
         return true;
+    },
+
+    /**
+     * Set or clear a user's company_id association
+     */
+    async setUserCompany(userId: string, companyId: string | null) {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ company_id: companyId })
+            .eq('auth_user_id', userId);
+
+        if (error) {
+            console.error("Error setting user company:", error);
+            throw error;
+        }
+        return true;
+    },
+
+    /**
+     * Get all companies for dropdown
+     */
+    async getAllCompanies() {
+        const { data, error } = await supabase
+            .from('companies')
+            .select('id, name')
+            .order('name');
+
+        if (error) {
+            console.error("Error fetching companies:", error);
+            return [];
+        }
+        return data;
     },
 
     /**
