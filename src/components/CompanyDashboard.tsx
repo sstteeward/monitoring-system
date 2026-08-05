@@ -104,7 +104,7 @@ const CompanyDashboard: React.FC = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [settingsExpanded, setSettingsExpanded] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
-    const [notifications, setNotifications] = useState<any[]>([]);
+    const [notifications, _setNotifications] = useState<any[]>([]);
     useTheme();
 
     useEffect(() => {
