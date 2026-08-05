@@ -25,29 +25,28 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP POLICY IF EXISTS "Coordinators can manage their department students" ON public.profiles;
 
+CREATE OR REPLACE FUNCTION public.get_user_department_id()
+RETURNS uuid
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT department_id
+  FROM public.profiles
+  WHERE auth_user_id = auth.uid()
+    AND account_type = 'coordinator'
+  LIMIT 1;
+$$;
+
 CREATE POLICY "Coordinators can manage their department students"
   ON public.profiles FOR UPDATE
   USING (
     account_type = 'student'
-    AND EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.auth_user_id = auth.uid()
-        AND p.account_type = 'coordinator'
-    )
+    AND public.is_coordinator()
   )
   WITH CHECK (
     account_type = 'student'
-    AND EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.auth_user_id = auth.uid()
-        AND p.account_type = 'coordinator'
-    )
+    AND public.is_coordinator()
     AND (
       department_id IS NULL
-      OR department_id = (
-        SELECT p.department_id FROM public.profiles p
-        WHERE p.auth_user_id = auth.uid()
-      )
+      OR department_id = public.get_user_department_id()
     )
   );
 

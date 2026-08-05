@@ -21,8 +21,11 @@ export interface Company {
     name: string;
     address: string | null;
     contact_person: string | null;
+    contact_position?: string | null;
     contact_email: string | null;
     industry: string | null;
+    website?: string | null;
+    logo_url?: string | null;
     department_id: string | null;
     latitude: number | null;
     longitude: number | null;
@@ -41,6 +44,15 @@ export interface CompanyRequest {
     name: string;
     requested_by: string | null;
     student_name: string | null;
+    request_type?: 'student_company' | 'company_account';
+    contact_email?: string | null;
+    contact_phone?: string | null;
+    address?: string | null;
+    industry?: string | null;
+    website?: string | null;
+    description?: string | null;
+    position?: string | null;
+    logo_url?: string | null;
     status: 'pending' | 'approved' | 'rejected';
     created_at: string;
     latitude?: number | null;
@@ -697,6 +709,106 @@ export const coordinatorService = {
         return company;
     },
 
+    /**
+     * Approve a company self-registration, create the partner record, and
+     * connect the applicant's supervisor account to it.
+     */
+    async approveCompanyAccountRequest(requestId: string, options?: { department_id?: string, handle_company?: boolean }) {
+        const { data: request, error: requestError } = await supabase
+            .from('company_requests')
+            .select('*')
+            .eq('id', requestId)
+            .single();
+
+        if (requestError) throw requestError;
+        if (!request?.requested_by) throw new Error('This company application is missing its account owner.');
+
+        const { data: existing } = await supabase
+            .from('companies')
+            .select('*')
+            .ilike('name', request.name)
+            .limit(1)
+            .maybeSingle();
+
+        let company: Company;
+        if (existing) {
+            company = existing as Company;
+            const companyUpdates: Partial<Company> = {};
+            if (options?.department_id) companyUpdates.department_id = options.department_id;
+            if (request.position) companyUpdates.contact_position = request.position;
+            if (request.logo_url) companyUpdates.logo_url = request.logo_url;
+            if (Object.keys(companyUpdates).length > 0) {
+                const { error } = await supabase
+                    .from('companies')
+                    .update(companyUpdates)
+                    .eq('id', company.id);
+                if (error) throw error;
+                company = { ...company, ...companyUpdates };
+            }
+        } else {
+            const { data: created, error: createError } = await supabase
+                .from('companies')
+                .insert({
+                    name: request.name,
+                    address: request.address || null,
+                    contact_person: request.student_name || null,
+                    contact_position: request.position || null,
+                    contact_email: request.contact_email || null,
+                    industry: request.industry || null,
+                    website: request.website || null,
+                    logo_url: request.logo_url || null,
+                    department_id: options?.department_id || null,
+                })
+                .select()
+                .single();
+
+            if (createError) throw createError;
+            company = created as Company;
+        }
+
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ company_id: company.id, account_type: 'company', is_active: true })
+            .eq('auth_user_id', request.requested_by);
+        if (profileError) throw profileError;
+
+        const { error: requestUpdateError } = await supabase
+            .from('company_requests')
+            .update({ status: 'approved' })
+            .eq('id', requestId);
+        if (requestUpdateError) throw requestUpdateError;
+
+        if (options?.handle_company) {
+            await this.toggleCompanyHandling(company.id, true);
+            company = { ...company, is_handled: true };
+        }
+
+        // 4. Notify the applicant that their company account has been verified
+        const { data: applicantProfile } = await supabase
+            .from('profiles')
+            .select('email, first_name, last_name')
+            .eq('auth_user_id', request.requested_by)
+            .single();
+
+        if (applicantProfile) {
+            const applicantName = `${applicantProfile.first_name || ''} ${applicantProfile.last_name || ''}`.trim() || 'Supervisor';
+
+            await notificationService.createNotification(
+                request.requested_by,
+                'Company Account Verified',
+                `Your company application for ${company.name} has been reviewed and approved by the coordinator. You can now access the Company Portal.`,
+                'success'
+            ).catch(err => console.error('Error sending verification notification:', err));
+
+            if (applicantProfile.email) {
+                await emailService.sendCompanyAccountVerifiedEmail(applicantProfile.email, applicantName, company.name)
+                    .catch(err => console.error('Error sending verification email:', err));
+            }
+        }
+
+        return company;
+    },
+
     async rejectCompanyRequest(requestId: string) {
         // Fetch the request first to know who requested it
         const { data: request } = await supabase
@@ -715,16 +827,20 @@ export const coordinatorService = {
             throw error;
         }
 
-        // Send a notification to the student so they know to try again
+        // Send a notification so the requester knows to try again
         if (request?.requested_by) {
+            const isCompanyAccount = request.request_type === 'company_account';
+
             await notificationService.createNotification(
                 request.requested_by,
-                'Company Request Rejected',
-                `Your request to add the company ${request.name} was rejected. Please select or request a different company.`,
+                isCompanyAccount ? 'Company Application Not Verified' : 'Company Request Rejected',
+                isCompanyAccount
+                    ? `Your company application for ${request.name} was reviewed but not approved. Please contact a coordinator for details or submit a new application.`
+                    : `Your request to add the company ${request.name} was rejected. Please select or request a different company.`,
                 'warning'
             ).catch(err => console.error('Error sending rejection notification:', err));
 
-            // Fetch the requesting student's profile to get their email
+            // Fetch the requesting profile to get their email
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('email, first_name, last_name')
@@ -732,9 +848,14 @@ export const coordinatorService = {
                 .single();
 
             if (profile && profile.email) {
-                const studentName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Student';
-                await emailService.sendCompanyRejectionEmail(profile.email, studentName, request.name)
-                    .catch(err => console.error('Error sending rejection email:', err));
+                const requesterName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Student';
+                if (isCompanyAccount) {
+                    await emailService.sendCompanyAccountRejectedEmail(profile.email, requesterName, request.name)
+                        .catch(err => console.error('Error sending rejection email:', err));
+                } else {
+                    await emailService.sendCompanyRejectionEmail(profile.email, requesterName, request.name)
+                        .catch(err => console.error('Error sending rejection email:', err));
+                }
             }
         }
 

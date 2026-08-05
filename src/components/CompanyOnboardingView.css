@@ -1,0 +1,551 @@
+.company-onboarding-page {
+  min-height: 100vh;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 1 0 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  color: var(--text-primary, #f8fafc);
+  background: var(--bg-page, #050505);
+  font-family: 'Inter', sans-serif;
+}
+
+.company-onboarding-container {
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+}
+
+.company-onboarding-intro {
+  margin-bottom: 1.65rem;
+  text-align: center;
+}
+
+.company-onboarding-icon {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.35);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.company-onboarding-icon-rejected {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.35);
+}
+
+.company-onboarding-status-card-rejected {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.company-onboarding-status-card-rejected .company-onboarding-status-meta div,
+.company-onboarding-status-card-rejected .company-onboarding-next-steps {
+  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.company-onboarding-intro h1 {
+  margin: 0;
+  color: var(--text-bright, #fff);
+  font-size: clamp(1.3rem, 6vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.company-onboarding-intro p {
+  margin: 0.4rem 0 0;
+  color: var(--text-muted, #a3a3a3);
+  font-size: 0.9rem;
+}
+
+.company-onboarding-progress-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.6rem;
+}
+
+.company-onboarding-progress-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg-elevated, #1f2937);
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.company-onboarding-progress-dots span.active {
+  width: 28px;
+  background: #10b981;
+}
+
+.company-onboarding-card,
+.company-onboarding-status-card {
+  padding: 1.5rem 2rem;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 20px;
+  background: var(--bg-card, #111111);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+}
+
+.company-onboarding-error {
+  margin-bottom: 1.15rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  font-size: 0.85rem;
+}
+
+.company-onboarding-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.company-onboarding-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.25rem;
+}
+
+.company-onboarding-section-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.company-onboarding-section-heading h3 {
+  margin: 0;
+  color: var(--text-bright, #fff);
+  font-size: 1rem;
+}
+
+.company-onboarding-section-heading p {
+  margin: 0.15rem 0 0;
+  color: var(--text-muted, #a3a3a3);
+  font-size: 0.78rem;
+}
+
+.company-onboarding-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  color: var(--text-muted, #a3a3a3);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.company-onboarding-form input,
+.company-onboarding-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  outline: none;
+  color: var(--text-primary, #f8fafc);
+  background: var(--bg-elevated, #181818);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.company-onboarding-form textarea {
+  min-height: 94px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.company-onboarding-form input::placeholder,
+.company-onboarding-form textarea::placeholder {
+  color: var(--text-dim, #737373);
+}
+
+.company-onboarding-form input:focus,
+.company-onboarding-form textarea:focus {
+  border-color: rgba(16, 185, 129, 0.7);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+.company-onboarding-company-field {
+  position: relative;
+}
+
+.company-onboarding-dropdown-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+.company-onboarding-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  margin-top: 6px;
+  max-height: 216px;
+  overflow-y: auto;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 14px;
+  background: var(--bg-card, #111111);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(16, 185, 129, 0.08), 0 0 24px rgba(16, 185, 129, 0.08);
+  animation: company-dropdown-in 0.16s ease;
+  padding: 6px;
+}
+
+@keyframes company-dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.company-onboarding-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.company-onboarding-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.company-onboarding-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.company-onboarding-dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.55);
+  background-clip: padding-box;
+}
+
+.company-onboarding-dropdown-item {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.company-onboarding-dropdown-item + .company-onboarding-dropdown-item {
+  margin-top: 2px;
+}
+
+.company-onboarding-dropdown-item:hover {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.company-onboarding-dropdown-item.selected {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.company-onboarding-dropdown-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.company-onboarding-dropdown-item.selected .company-onboarding-dropdown-name {
+  color: #34d399;
+}
+
+.company-onboarding-dropdown-sub {
+  margin-top: 2px;
+  color: var(--text-muted, #a3a3a3);
+  font-size: 0.73rem;
+}
+
+.company-onboarding-dropdown-meta {
+  margin-top: 2px;
+  color: var(--text-dim, #737373);
+  font-size: 0.7rem;
+}
+
+.company-onboarding-dropdown-badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 999px;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.1);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.company-onboarding-dropdown-empty {
+  pointer-events: none;
+  padding: 0.85rem 0.6rem 0.75rem;
+}
+
+.company-onboarding-field-grid,
+.company-onboarding-review-grid,
+.company-onboarding-status-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.company-onboarding-info-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 10px;
+  color: #a7f3d0;
+  background: rgba(16, 185, 129, 0.07);
+}
+
+.company-onboarding-info-callout span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #10b981;
+  border-radius: 50%;
+  color: #10b981;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.company-onboarding-info-callout p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.company-onboarding-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.3rem;
+}
+
+.company-onboarding-actions-split {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.company-onboarding-primary,
+.company-onboarding-back {
+  border-radius: 12px;
+  padding: 0.85rem 1.5rem;
+  font: inherit;
+  font-size: 0.93rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.company-onboarding-primary {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+}
+
+.company-onboarding-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  opacity: 0.94;
+}
+
+.company-onboarding-primary:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.company-onboarding-primary span { margin-left: 0.45rem; }
+
+.company-onboarding-back {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary, #f8fafc);
+  background: var(--bg-elevated, #181818);
+}
+
+.company-onboarding-review-grid {
+  padding: 0.9rem;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  background: var(--bg-elevated, #181818);
+}
+
+.company-onboarding-review-grid div { min-width: 0; }
+
+.company-onboarding-review-grid span,
+.company-onboarding-status-meta span {
+  display: block;
+  margin-bottom: 0.28rem;
+  color: var(--text-dim, #737373);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.company-onboarding-review-grid strong,
+.company-onboarding-status-meta strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.83rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company-onboarding-logo-upload { display: flex; }
+
+.company-onboarding-logo-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 132px;
+  padding: 1rem;
+  border: 1.5px dashed var(--border, rgba(255, 255, 255, 0.14));
+  border-radius: 12px;
+  background: var(--bg-elevated, #181818);
+  color: var(--text-muted, #a3a3a3);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.company-onboarding-logo-box:hover {
+  border-color: rgba(16, 185, 129, 0.7);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.company-onboarding-logo-box img {
+  max-width: 96px;
+  max-height: 96px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.company-onboarding-logo-box small {
+  color: var(--text-dim, #737373);
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.company-onboarding-logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.company-onboarding-review-logo {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  background: var(--bg-elevated, #181818);
+}
+
+.company-onboarding-review-logo img {
+  max-width: 96px;
+  max-height: 96px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.company-onboarding-checkbox {
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 0.65rem !important;
+  color: var(--text-muted, #a3a3a3) !important;
+  font-size: 0.77rem !important;
+  font-weight: 500 !important;
+  line-height: 1.5;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+.company-onboarding-checkbox input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 0.15rem;
+  accent-color: #10b981;
+}
+
+.company-onboarding-footnote {
+  margin: 1.25rem 0 0;
+  color: var(--text-dim, #737373);
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.company-onboarding-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #a3a3a3);
+  background: var(--bg-page, #050505);
+  font-family: 'Inter', sans-serif;
+}
+
+.company-onboarding-status-card { text-align: center; }
+.company-onboarding-status-card h1 { margin: 0; color: var(--text-bright, #fff); font-size: 1.35rem; }
+.company-onboarding-status-copy { margin: 0.75rem 0 1.25rem; color: var(--text-muted, #a3a3a3); font-size: 0.9rem; line-height: 1.6; }
+.company-onboarding-status-copy strong { color: var(--text-bright, #fff); }
+.company-onboarding-status-meta { margin-bottom: 1rem; text-align: left; }
+.company-onboarding-status-meta div,
+.company-onboarding-next-steps { padding: 0.85rem; border: 1px solid rgba(16, 185, 129, 0.18); border-radius: 10px; background: rgba(16, 185, 129, 0.06); }
+.company-onboarding-next-steps { color: var(--text-muted, #a3a3a3); text-align: left; font-size: 0.8rem; }
+.company-onboarding-next-steps p { margin: 0 0 0.7rem; color: var(--text-bright, #fff); font-weight: 700; }
+.company-onboarding-next-steps div { display: flex; align-items: center; gap: 0.55rem; margin-top: 0.48rem; }
+.company-onboarding-next-steps span { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 20px; width: 20px; height: 20px; border-radius: 50%; color: #fff; background: #10b981; font-size: 0.68rem; font-weight: 800; }
+
+@media (max-width: 560px) {
+  .company-onboarding-page { padding: 1rem 0.75rem; }
+  .company-onboarding-card,
+  .company-onboarding-status-card { padding: 1.25rem; }
+  .company-onboarding-field-grid,
+  .company-onboarding-review-grid,
+  .company-onboarding-status-meta { grid-template-columns: 1fr; }
+}

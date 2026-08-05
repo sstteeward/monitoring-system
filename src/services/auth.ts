@@ -16,7 +16,7 @@ export async function signUp({ email, password, firstName, middleName, lastName,
   firstName?: string;
   middleName?: string;
   lastName?: string;
-  accountType?: 'student' | 'coordinator' | 'admin';
+  accountType?: 'student' | 'coordinator' | 'admin' | 'company';
 }) {
   const supabase = await getClient();
 
@@ -41,7 +41,7 @@ export async function signUp({ email, password, firstName, middleName, lastName,
   // the profile has the correct value, regardless of trigger timing.
   if (signUpData?.user) {
     const isCoordinator = accountType === 'coordinator';
-    await supabase
+    const { error: profileError } = await supabase
       .from('profiles')
       .upsert(
         {
@@ -55,12 +55,19 @@ export async function signUp({ email, password, firstName, middleName, lastName,
         },
         { onConflict: 'auth_user_id', ignoreDuplicates: false }
       );
+
+    if (profileError) {
+      if (accountType === 'company') {
+        throw new Error('Company onboarding is not enabled in the database yet. Please ask an administrator to apply the Company Portal migration, then try again.');
+      }
+      throw profileError;
+    }
   }
 
   return signUpData;
 }
 
-export async function signIn({ email, password, role }: { email: string; password: string; role?: string }) {
+export async function signIn({ email, password, role }: { email: string; password: string; role?: 'student' | 'coordinator' | 'admin' | 'company' }) {
   const supabase = await getClient();
 
   // 1. Attempt login first (bypassing RLS until authenticated)

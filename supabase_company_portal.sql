@@ -36,6 +36,7 @@ ALTER TABLE public.daily_journals
   ADD COLUMN IF NOT EXISTS reviewed_by UUID REFERENCES auth.users(id);
 
 -- Add company RLS to daily_journals
+DROP POLICY IF EXISTS "Company can view their students journals" ON public.daily_journals;
 CREATE POLICY "Company can view their students journals"
   ON public.daily_journals FOR SELECT
   USING (
@@ -48,6 +49,7 @@ CREATE POLICY "Company can view their students journals"
     )
   );
 
+DROP POLICY IF EXISTS "Company can update their students journals" ON public.daily_journals;
 CREATE POLICY "Company can update their students journals"
   ON public.daily_journals FOR UPDATE
   USING (
@@ -78,10 +80,12 @@ CREATE TABLE IF NOT EXISTS public.schedules (
 
 ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own schedule" ON public.schedules;
 CREATE POLICY "Users can view their own schedule"
   ON public.schedules FOR SELECT
   USING (auth.uid() = student_id);
 
+DROP POLICY IF EXISTS "Company can manage schedules for their students" ON public.schedules;
 CREATE POLICY "Company can manage schedules for their students"
   ON public.schedules FOR ALL
   USING (
@@ -93,6 +97,7 @@ CREATE POLICY "Company can manage schedules for their students"
     )
   );
 
+DROP TRIGGER IF EXISTS on_schedules_updated ON public.schedules;
 CREATE TRIGGER on_schedules_updated
   BEFORE UPDATE ON public.schedules
   FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
@@ -129,10 +134,12 @@ CREATE TABLE IF NOT EXISTS public.evaluations (
 
 ALTER TABLE public.evaluations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Students can view their own evaluations" ON public.evaluations;
 CREATE POLICY "Students can view their own evaluations"
   ON public.evaluations FOR SELECT
   USING (auth.uid() = student_id);
 
+DROP POLICY IF EXISTS "Company can manage evaluations for their students" ON public.evaluations;
 CREATE POLICY "Company can manage evaluations for their students"
   ON public.evaluations FOR ALL
   USING (
@@ -144,6 +151,7 @@ CREATE POLICY "Company can manage evaluations for their students"
     )
   );
 
+DROP POLICY IF EXISTS "Coordinators and Admins can view evaluations" ON public.evaluations;
 CREATE POLICY "Coordinators and Admins can view evaluations"
   ON public.evaluations FOR SELECT
   USING (
@@ -154,6 +162,7 @@ CREATE POLICY "Coordinators and Admins can view evaluations"
     )
   );
 
+DROP TRIGGER IF EXISTS on_evaluations_updated ON public.evaluations;
 CREATE TRIGGER on_evaluations_updated
   BEFORE UPDATE ON public.evaluations
   FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
@@ -174,6 +183,7 @@ ALTER TABLE public.announcements
 
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Students can view their company announcements" ON public.announcements;
 CREATE POLICY "Students can view their company announcements"
   ON public.announcements FOR SELECT
   USING (
@@ -184,6 +194,7 @@ CREATE POLICY "Students can view their company announcements"
     )
   );
 
+DROP POLICY IF EXISTS "Company can manage their own announcements" ON public.announcements;
 CREATE POLICY "Company can manage their own announcements"
   ON public.announcements FOR ALL
   USING (
@@ -195,6 +206,7 @@ CREATE POLICY "Company can manage their own announcements"
     )
   );
 
+DROP TRIGGER IF EXISTS on_announcements_updated ON public.announcements;
 CREATE TRIGGER on_announcements_updated
   BEFORE UPDATE ON public.announcements
   FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
@@ -215,6 +227,7 @@ CREATE TABLE IF NOT EXISTS public.company_documents (
 
 ALTER TABLE public.company_documents ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Students can view their company documents" ON public.company_documents;
 CREATE POLICY "Students can view their company documents"
   ON public.company_documents FOR SELECT
   USING (
@@ -225,6 +238,7 @@ CREATE POLICY "Students can view their company documents"
     )
   );
 
+DROP POLICY IF EXISTS "Company can manage their own documents" ON public.company_documents;
 CREATE POLICY "Company can manage their own documents"
   ON public.company_documents FOR ALL
   USING (
@@ -236,6 +250,7 @@ CREATE POLICY "Company can manage their own documents"
     )
   );
 
+DROP TRIGGER IF EXISTS on_company_documents_updated ON public.company_documents;
 CREATE TRIGGER on_company_documents_updated
   BEFORE UPDATE ON public.company_documents
   FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
@@ -245,6 +260,7 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('company_documents', 'company_documents', false)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Company can upload documents" ON storage.objects;
 CREATE POLICY "Company can upload documents"
 ON storage.objects FOR INSERT
 TO authenticated
@@ -258,6 +274,7 @@ WITH CHECK (
     )
 );
 
+DROP POLICY IF EXISTS "Students and Company can view documents" ON storage.objects;
 CREATE POLICY "Students and Company can view documents"
 ON storage.objects FOR SELECT
 TO authenticated
@@ -270,6 +287,7 @@ USING (
     )
 );
 
+DROP POLICY IF EXISTS "Company can delete documents" ON storage.objects;
 CREATE POLICY "Company can delete documents"
 ON storage.objects FOR DELETE
 TO authenticated
@@ -284,17 +302,25 @@ USING (
 );
 
 -- 8. Additional RLS for Company to view profiles and timesheets
+CREATE OR REPLACE FUNCTION public.get_user_company_id()
+RETURNS uuid
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT company_id
+  FROM public.profiles
+  WHERE auth_user_id = auth.uid()
+    AND account_type = 'company'
+  LIMIT 1;
+$$;
+
+DROP POLICY IF EXISTS "Company can view their assigned student profiles" ON public.profiles;
 CREATE POLICY "Company can view their assigned student profiles"
   ON public.profiles FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles my_profile
-      WHERE my_profile.auth_user_id = auth.uid()
-        AND my_profile.account_type = 'company'
-        AND my_profile.company_id = profiles.company_id
-    )
+    public.get_user_company_id() IS NOT NULL AND
+    company_id = public.get_user_company_id()
   );
 
+DROP POLICY IF EXISTS "Company can view their students timesheets" ON public.timesheets;
 CREATE POLICY "Company can view their students timesheets"
   ON public.timesheets FOR SELECT
   USING (
@@ -308,6 +334,7 @@ CREATE POLICY "Company can view their students timesheets"
   );
 
 -- Company can update their own company profile
+DROP POLICY IF EXISTS "Company can update their own company info" ON public.companies;
 CREATE POLICY "Company can update their own company info"
   ON public.companies FOR UPDATE
   USING (

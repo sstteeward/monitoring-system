@@ -34,6 +34,34 @@ export const emailService = {
   },
 
   /**
+   * Sends an email to a company applicant when the coordinator verifies (approves)
+   * their company portal account application.
+   */
+  async sendCompanyAccountVerifiedEmail(toEmail: string, applicantName: string, companyName: string): Promise<boolean> {
+    return this.sendAccountEmail({
+      to_email: toEmail,
+      recipient_name: applicantName,
+      company_name: companyName,
+      subject: `Company Portal Access Verified: ${companyName}`,
+      message: `Good news! Your company application for "${companyName}" has been reviewed and verified by the coordinator. Your Company Portal access is now active — sign in at any time to manage your partnership with Asian College Dumaguete.`
+    });
+  },
+
+  /**
+   * Sends an email to a company applicant when the coordinator rejects their
+   * company portal account application.
+   */
+  async sendCompanyAccountRejectedEmail(toEmail: string, applicantName: string, companyName: string): Promise<boolean> {
+    return this.sendAccountEmail({
+      to_email: toEmail,
+      recipient_name: applicantName,
+      company_name: companyName,
+      subject: `Company Application Update: ${companyName}`,
+      message: `Your company application for "${companyName}" was reviewed but not approved by the coordinator. If you believe this is a mistake, please contact the coordinator for clarification or submit a new application.`
+    });
+  },
+
+  /**
    * Dispatch engine supporting EmailJS REST API and console simulation fallback.
    */
   async sendEmail(params: EmailParams): Promise<boolean> {
@@ -112,6 +140,74 @@ export const emailService = {
     console.log(`To:      ${to_email}`);
     console.log(`Subject: ${subject}`);
     console.log(`Body:\n${body}`);
+    console.groupEnd();
+
+    return true;
+  },
+
+  /**
+   * Dispatch engine for company account verification/rejection emails.
+   * Supports EmailJS REST API and console simulation fallback.
+   */
+  async sendAccountEmail(params: { to_email: string; recipient_name: string; company_name: string; subject: string; message: string }): Promise<boolean> {
+    const emailJsServiceId = (import.meta.env.VITE_EMAILJS_SERVICE_ID as string) || '';
+    const emailJsTemplateId = (import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string) || '';
+    const emailJsPublicKey = (import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string) || '';
+
+    console.log('[EmailService] Account email config check:', {
+      hasServiceId: !!emailJsServiceId,
+      hasTemplateId: !!emailJsTemplateId,
+      hasPublicKey: !!emailJsPublicKey,
+      ...params
+    });
+
+    if (emailJsServiceId && emailJsTemplateId && emailJsPublicKey) {
+      const payload = {
+        service_id: emailJsServiceId,
+        template_id: emailJsTemplateId,
+        user_id: emailJsPublicKey,
+        template_params: {
+          to_email: params.to_email,
+          student_name: params.recipient_name,
+          company_name: params.company_name,
+          status_text: '',
+          message: params.message
+        }
+      };
+
+      console.log('[EmailService] Sending account email via EmailJS with payload:', JSON.stringify(payload, null, 2));
+
+      try {
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const responseText = await response.text();
+        console.log(`[EmailService] EmailJS response: status=${response.status}, body="${responseText}"`);
+
+        if (!response.ok) {
+          console.error(`[EmailService] EmailJS API error: HTTP ${response.status} - ${responseText}`);
+          return false;
+        }
+
+        console.log(`[EmailService] ✅ Account email sent successfully to ${params.to_email}`);
+        return true;
+      } catch (error) {
+        console.error(`[EmailService] ❌ Network error sending account email:`, error);
+        return false;
+      }
+    }
+
+    // Fallback: Mock simulation (no EmailJS keys configured)
+    console.warn('[EmailService] ⚠️ EmailJS not configured — using console simulation.');
+    console.group(`[Email Simulation] Sent Email to ${params.to_email}`);
+    console.log(`To:      ${params.to_email}`);
+    console.log(`Subject: ${params.subject}`);
+    console.log(`Body:\n${params.message}`);
     console.groupEnd();
 
     return true;

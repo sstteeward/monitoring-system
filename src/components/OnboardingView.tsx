@@ -112,6 +112,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             return;
         }
         setError(null);
+        setShowDropdown(false);
         setStep(2);
     };
 
@@ -515,12 +516,12 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                             <div style={{ display: 'flex', gap: '0.75rem' }}>
                                 <button
                                     type="button"
-                                    onClick={() => setStep(1)}
-                                    style={{ ...btnPrimary, background: 'var(--bg-elevated)', color: 'var(--text-secondary)', flex: '0 0 auto', width: 'auto', padding: '0.75rem 1.25rem' }}
+                                    onClick={() => { setShowDropdown(false); setStep(1); }}
+                                    style={{ ...btnPrimary, background: 'var(--bg-elevated)', color: 'var(--text-secondary)', flex: '0 0 auto', width: 'auto', padding: '0.75rem 1.25rem', position: 'relative', zIndex: 60 }}
                                 >
                                     ← Back
                                 </button>
-                                <button type="submit" style={{ ...btnPrimary, flex: 1 }} disabled={saving || (!selectedCompanyId && !showNewCompanyForm)}>
+                                <button type="submit" style={{ ...btnPrimary, flex: 1, position: 'relative', zIndex: 60 }} disabled={saving || (!selectedCompanyId && !showNewCompanyForm)}>
                                     {saving ? 'Submitting...' : showNewCompanyForm ? 'Submit Request' : 'Complete Profile'}
                                 </button>
                             </div>

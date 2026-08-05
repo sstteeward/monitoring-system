@@ -1,7 +1,7 @@
 :root {
-  --company-primary: #3b82f6; /* Blue for company */
-  --company-primary-glow: rgba(59, 130, 246, 0.2);
-  --company-secondary: #2563eb;
+  --company-primary: #10b981;
+  --company-primary-glow: rgba(16, 185, 129, 0.2);
+  --company-secondary: #059669;
 }
 
 /* Theme-specific company variables */
@@ -322,7 +322,7 @@ html[data-theme="light"] {
 
 .company-welcome-banner {
   position: relative;
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 60%, #1e1b4b 100%);
+  background: linear-gradient(135deg, #059669 0%, #047857 60%, #052e24 100%);
   border-radius: 18px;
   padding: 2rem 2.5rem;
   overflow: hidden;
@@ -330,7 +330,7 @@ html[data-theme="light"] {
 }
 
 html[data-theme="light"] .company-welcome-banner {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%);
 }
 
 .company-welcome-bg {

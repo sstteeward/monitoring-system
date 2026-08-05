@@ -92,6 +92,13 @@ export default function AuthSignup() {
     const strengthLabel = getStrengthLabel(passwordScore);
     const strengthColor = getStrengthColor(passwordScore);
 
+    const resolveAccountType = (): 'student' | 'coordinator' | 'admin' | 'company' => {
+        if (roleState === 'company') return 'company';
+        if (roleState === 'coordinator') return 'coordinator';
+        if (roleState === 'admin') return 'admin';
+        return signupEmail.trim().toLowerCase() === 'admin@asiancollege.edu.ph' ? 'admin' : 'student';
+    };
+
     // Recover portal access-denied errors that were saved before sign-out redirect
     useEffect(() => {
         const savedError = sessionStorage.getItem('portal_login_error');
@@ -145,7 +152,12 @@ export default function AuthSignup() {
         try {
             const { error } = await supabase.auth.signInWithOtp({
                 email: signupEmail.trim(),
-                options: { shouldCreateUser: true },
+                options: {
+                    shouldCreateUser: true,
+                    // The profile row is created as soon as this email-code account is made.
+                    // Include the portal role now so it is never created as a student first.
+                    data: { account_type: resolveAccountType() },
+                },
             });
             if (error) throw error;
             setOtpSent(true);
@@ -194,6 +206,9 @@ export default function AuthSignup() {
                 throw verifyError;
             }
 
+            const targetAccountType = resolveAccountType();
+            const targetIsActive = targetAccountType === 'coordinator' ? false : true;
+
             // Step 2: Use the live session to set the password and user metadata
             const { error: updateError } = await supabase.auth.updateUser({
                 password: signupPassword,
@@ -201,17 +216,15 @@ export default function AuthSignup() {
                     first_name: firstName.trim(),
                     middle_name: middleName.trim() || null,
                     last_name: lastName.trim(),
+                    account_type: targetAccountType,
                 },
             });
             if (updateError) throw updateError;
 
             // Step 3: Upsert the full profile info based on the chosen portal
-            const targetAccountType = roleState === 'coordinator' ? 'coordinator' : roleState === 'admin' ? 'admin' : (signupEmail.trim().toLowerCase() === "admin@asiancollege.edu.ph" ? "admin" : "student");
-            const targetIsActive = targetAccountType === 'coordinator' ? false : true;
-
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                await supabase.from('profiles').upsert(
+                const { error: profileError } = await supabase.from('profiles').upsert(
                     {
                         auth_user_id: user.id,
                         email: signupEmail.trim().toLowerCase(),
@@ -223,12 +236,18 @@ export default function AuthSignup() {
                     },
                     { onConflict: 'auth_user_id', ignoreDuplicates: false }
                 );
+                if (profileError) {
+                    if (targetAccountType === 'company') {
+                        throw new Error('Company onboarding is not enabled in the database yet. Please ask an administrator to apply the Company Portal migration, then try again.');
+                    }
+                    throw profileError;
+                }
             }
 
             // Session is now live
             setInfoMessage("✅ Account created! Redirecting...");
             setEmailVerified(true);
-            window.location.href = '/';
+            window.location.href = targetAccountType === 'company' ? '/company' : '/';
         } catch (err: any) {
             setErrors(prev => ({ ...prev, otp: err.message || "Invalid or expired code. Try again." }));
         } finally {
@@ -244,7 +263,7 @@ export default function AuthSignup() {
         setIsSubmitting(true);
         setErrors({});
 
-        const targetAccountType = roleState === 'coordinator' ? 'coordinator' : roleState === 'admin' ? 'admin' : (signupEmail.trim().toLowerCase() === "admin@asiancollege.edu.ph" ? "admin" : "student");
+        const targetAccountType = resolveAccountType();
 
         signUp({
             email: signupEmail,
@@ -268,8 +287,8 @@ export default function AuthSignup() {
         setErrors({});
 
         try {
-            await signIn({ email: loginEmail, password, role: roleState as "student" | "coordinator" | "admin" | undefined });
-            window.location.href = '/';
+            await signIn({ email: loginEmail, password, role: roleState as "student" | "coordinator" | "admin" | "company" | undefined });
+            window.location.href = roleState === 'company' ? '/company' : '/';
         } catch (err: any) {
             let errorMsg = err.message || String(err);
             if (errorMsg.includes('ACCOUNT_PENDING')) {

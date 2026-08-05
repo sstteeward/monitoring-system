@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { coordinatorService, type Company, type CompanyRequest } from '../services/coordinatorService';
 import { CardGridSkeleton, TableSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
@@ -13,6 +14,7 @@ import './CoordinatorDashboard.css';
 type CompanyViewMode = 'list' | 'detail';
 
 const CompaniesView: React.FC = () => {
+    const navigate = useNavigate();
     const [mode, setMode] = useState<CompanyViewMode>('list');
     const [companies, setCompanies] = useState<Company[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -34,6 +36,8 @@ const CompaniesView: React.FC = () => {
     const [detailLoading, setDetailLoading] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
     const [pendingRequests, setPendingRequests] = useState<CompanyRequest[]>([]);
+    const companyAccountRequests = pendingRequests.filter(r => r.request_type === 'company_account');
+    const studentCompanyRequests = pendingRequests.filter(r => r.request_type !== 'company_account');
     const [selectedPendingRequest, setSelectedPendingRequest] = useState<CompanyRequest | null>(null);
     const [reviewDepartmentId, setReviewDepartmentId] = useState<string>('');
     const [reviewHandleCompany, setReviewHandleCompany] = useState<boolean>(true);
@@ -133,11 +137,15 @@ const CompaniesView: React.FC = () => {
     const handleApproveRequest = async (req: CompanyRequest, options?: { department_id?: string, handle_company?: boolean }) => {
         setRequestActionId(req.id);
         try {
-            const newCompany = await coordinatorService.approveCompanyRequest(req.name, options);
+            const newCompany = req.request_type === 'company_account'
+                ? await coordinatorService.approveCompanyAccountRequest(req.id, options)
+                : await coordinatorService.approveCompanyRequest(req.name, options);
             const updatedDeptName = departments.find(d => d.id === newCompany.department_id)?.name || 'Uncategorized';
-            setCompanies(prev => [...prev, { ...newCompany, department_name: updatedDeptName, intern_count: 0 }].sort((a, b) => a.name.localeCompare(b.name)));
+            setCompanies(prev => prev.some(company => company.id === newCompany.id)
+                ? prev.map(company => company.id === newCompany.id ? { ...company, ...newCompany, department_name: updatedDeptName } : company)
+                : [...prev, { ...newCompany, department_name: updatedDeptName, intern_count: 0 }].sort((a, b) => a.name.localeCompare(b.name)));
             // Remove ALL pending requests with the same name (case-insensitive)
-            setPendingRequests(prev => prev.filter(r => r.name.toLowerCase() !== req.name.toLowerCase()));
+            setPendingRequests(prev => prev.filter(r => req.request_type === 'company_account' ? r.id !== req.id : r.name.toLowerCase() !== req.name.toLowerCase()));
         } catch (err) {
             console.error('Failed to approve company request:', err);
         } finally {
@@ -602,6 +610,19 @@ const CompaniesView: React.FC = () => {
                     <p className="view-subtitle">Manage partner companies and view assigned interns</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    {companyAccountRequests.length > 0 && (
+                        <button
+                            onClick={() => navigate('/coordinator/company-accounts')}
+                            className="btn btn-primary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
+                            Company Account Request
+                            <span style={{ background: '#fff', color: 'var(--primary)', borderRadius: 999, padding: '0.1rem 0.55rem', fontSize: '0.75rem', fontWeight: 700 }}>
+                                {companyAccountRequests.length}
+                            </span>
+                        </button>
+                    )}
                     <div style={{ position: 'relative', minWidth: '240px' }}>
                         <input
                             type="text"
@@ -767,15 +788,15 @@ const CompaniesView: React.FC = () => {
                 </div>
             )}
 
-            {/* ── Pending Company Requests ── */}
-            {!loading && pendingRequests.length > 0 && (
+            {/* ── Pending Company Requests (student company requests only) ── */}
+            {!loading && studentCompanyRequests.length > 0 && (
                 <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 14, padding: '1.25rem 1.5rem', marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f59e0b' }}>Pending Company Requests ({pendingRequests.length})</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f59e0b' }}>Pending Company Requests ({studentCompanyRequests.length})</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                        {pendingRequests.map(req => (
+                        {studentCompanyRequests.map(req => (
                             <div key={req.id} className="glass-card" style={{
                                 borderRadius: 10, padding: '0.85rem 1rem',
                                 display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap',
@@ -786,7 +807,7 @@ const CompaniesView: React.FC = () => {
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{req.name}</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginTop: '0.15rem' }}>
-                                        Requested by <strong>{req.student_name ?? 'a student'}</strong> &bull; {new Date(req.created_at).toLocaleDateString()}
+                                        {req.request_type === 'company_account' ? 'New company portal account' : <>Requested by <strong>{req.student_name ?? 'a student'}</strong></>} &bull; {new Date(req.created_at).toLocaleDateString()}
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
@@ -838,7 +859,7 @@ const CompaniesView: React.FC = () => {
                         maxHeight: '90vh', overflowY: 'auto'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 700 }}>Review Company Request</h3>
+                            <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 700 }}>{selectedPendingRequest.request_type === 'company_account' ? 'Review Company Application' : 'Review Company Request'}</h3>
                             <button onClick={() => setSelectedPendingRequest(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </button>
@@ -847,9 +868,28 @@ const CompaniesView: React.FC = () => {
                         <div style={{ marginBottom: '1.5rem' }}>
                             <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--admin-text-primary)' }}>{selectedPendingRequest.name}</div>
                             <div style={{ fontSize: '0.9rem', color: 'var(--admin-text-secondary)', marginTop: '0.2rem' }}>
-                                Requested by <strong>{selectedPendingRequest.student_name ?? 'a student'}</strong>
+                                {selectedPendingRequest.request_type === 'company_account'
+                                    ? <>Supervisor <strong>{selectedPendingRequest.student_name ?? 'Not provided'}</strong></>
+                                    : <>Requested by <strong>{selectedPendingRequest.student_name ?? 'a student'}</strong></>}
                             </div>
                         </div>
+
+                        {selectedPendingRequest.request_type === 'company_account' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                                {[['Industry', selectedPendingRequest.industry], ['Email', selectedPendingRequest.contact_email], ['Phone', selectedPendingRequest.contact_phone], ['Address', selectedPendingRequest.address], ['Website', selectedPendingRequest.website]].filter(([, value]) => value).map(([label, value]) => (
+                                    <div key={label} style={{ padding: '0.75rem', border: '1px solid var(--admin-border)', borderRadius: 10, background: 'var(--admin-bg)' }}>
+                                        <div style={{ fontSize: '0.68rem', color: 'var(--admin-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>{label}</div>
+                                        <div style={{ fontSize: '0.82rem', color: 'var(--admin-text-primary)', wordBreak: 'break-word' }}>{value}</div>
+                                    </div>
+                                ))}
+                                {selectedPendingRequest.description && (
+                                    <div style={{ gridColumn: '1 / -1', padding: '0.75rem', border: '1px solid var(--admin-border)', borderRadius: 10, background: 'var(--admin-bg)' }}>
+                                        <div style={{ fontSize: '0.68rem', color: 'var(--admin-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>About the company</div>
+                                        <div style={{ fontSize: '0.82rem', color: 'var(--admin-text-primary)', lineHeight: 1.5 }}>{selectedPendingRequest.description}</div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {(selectedPendingRequest.latitude || selectedPendingRequest.geofence_polygon) ? (
                             <div style={{ marginBottom: '1.5rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
@@ -929,7 +969,7 @@ const CompaniesView: React.FC = () => {
                                 className="btn btn-approve"
                                 style={{ padding: '0.75rem 1.25rem' }}
                             >
-                                {requestActionId === selectedPendingRequest.id ? 'Approving...' : 'Approve Company'}
+                                {requestActionId === selectedPendingRequest.id ? 'Approving...' : selectedPendingRequest.request_type === 'company_account' ? 'Approve Application' : 'Approve Company'}
                             </button>
                         </div>
                     </div>

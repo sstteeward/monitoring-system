@@ -36,6 +36,33 @@ export interface Profile {
 }
 
 export const profileService = {
+    async submitCompanyRequest(name: string, address?: string) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("No user logged in");
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('auth_user_id', user.id)
+            .single();
+
+        const { error } = await supabase
+            .from('company_requests')
+            .insert({
+                name,
+                address,
+                requested_by: user.id,
+                student_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim()
+            });
+
+        if (error) {
+            console.error('Error submitting company request:', error);
+            throw error;
+        }
+
+        return true;
+    },
+
     async getCurrentProfile() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;

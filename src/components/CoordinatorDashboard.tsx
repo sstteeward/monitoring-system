@@ -8,6 +8,7 @@ import GradesView from './GradesView';
 import ApprovalsView from './ApprovalsView';
 import AnnouncementsView from './AnnouncementsView';
 import CompaniesView from './CompaniesView';
+import CompanyAccountRequestsView from './CompanyAccountRequestsView';
 import CoordinatorProfileView from './CoordinatorProfileView';
 import CoordinatorDepartmentView from './CoordinatorDepartmentView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
@@ -37,7 +38,7 @@ const Icon = {
     clock: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
 };
 
-type View = 'overview' | 'companies' | 'students' | 'grades' | 'approvals' | 'announcement' | 'departments' | 'security' | 'profile' | 'settings';
+type View = 'overview' | 'companies' | 'company-accounts' | 'students' | 'grades' | 'approvals' | 'announcement' | 'departments' | 'security' | 'profile' | 'settings';
 
 interface NavItem { id: View; label: string; icon: React.ReactNode; badge?: number; }
 
@@ -77,6 +78,7 @@ const CoordinatorDashboard: React.FC = () => {
         const titles: Record<string, string> = {
             overview: 'Overview',
             companies: 'OJT Companies',
+            'company-accounts': 'Company Account Requests',
             departments: 'My Department',
             students: 'Students',
             approvals: 'Approvals',
@@ -192,6 +194,7 @@ const CoordinatorDashboard: React.FC = () => {
     const viewTitles: Record<View, string> = {
         overview: 'Coordinator Overview',
         companies: 'OJT Companies',
+        'company-accounts': 'Company Account Requests',
         departments: 'My Department',
         students: 'Student Management',
         grades: 'Student Grades by Section',
@@ -380,6 +383,7 @@ const CoordinatorDashboard: React.FC = () => {
                         />
                     )}
                     {currentView === 'companies' && <CompaniesView />}
+                    {currentView === 'company-accounts' && <CompanyAccountRequestsView />}
                     {currentView === 'departments' && <CoordinatorDepartmentView />}
                     {currentView === 'students' && <StudentsView initialFilter={studentFilter} />}
                     {currentView === 'grades' && <GradesView />}

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
 import { profileService, type Profile } from '../services/profileService';
 import { supabase } from '../lib/supabaseClient';
 import { FormSkeleton } from './Skeletons';
 import { departmentRequestService, type DepartmentChangeRequest } from '../services/departmentRequestService';
 import { adminService, type Department } from '../services/adminService';
+import { useState, useEffect } from 'react';
 
 interface Company { id: string; name: string; address?: string; }
 
@@ -44,6 +44,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
     const [showDeptModal, setShowDeptModal] = useState(false);
     const [deptSearch, setDeptSearch] = useState('');
     const [showDeptDropdownModal, setShowDeptDropdownModal] = useState(false);
+
+    // Company Request Modal
+    const [showCompanyRequestModal, setShowCompanyRequestModal] = useState(false);
+    const [newCompanyName, setNewCompanyName] = useState('');
+    const [newCompanyAddress, setNewCompanyAddress] = useState('');
+    const [requestCompanyLoading, setRequestCompanyLoading] = useState(false);
 
     useEffect(() => { loadProfile(); loadCompanies(); loadDepartmentInfo(); }, []);
 
@@ -157,6 +163,23 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
             setError(err.message ?? "Failed to submit request.");
         } finally {
             setRequestLoading(false);
+        }
+    };
+
+    const handleSubmitCompanyRequest = async () => {
+        if (!newCompanyName.trim()) return;
+        setRequestCompanyLoading(true);
+        try {
+            await profileService.submitCompanyRequest(newCompanyName.trim(), newCompanyAddress.trim() || undefined);
+            setSuccess(true);
+            setShowCompanyRequestModal(false);
+            setNewCompanyName('');
+            setNewCompanyAddress('');
+            setTimeout(() => setSuccess(false), 3000);
+        } catch (err: any) {
+            setError(err.message ?? 'Failed to submit company request.');
+        } finally {
+            setRequestCompanyLoading(false);
         }
     };
 
@@ -385,7 +408,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
                                         borderRadius: 12, padding: '0.75rem 1rem', color: 'var(--text-muted)',
                                         fontSize: '0.85rem', zIndex: 1000, marginTop: 4,
                                     }}>
-                                        No companies found. Ask your coordinator to add it.
+                                        No companies found matching "<strong>{companySearch}</strong>".
+                                        <button
+                                            onClick={() => { setShowCompanyDropdown(false); setShowCompanyRequestModal(true); setNewCompanyName(companySearch); }}
+                                            style={{ marginLeft: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                                        >
+                                            Request to Add
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -582,6 +611,61 @@ const ProfileView: React.FC<ProfileViewProps> = ({ onProfileUpdated }) => {
             {/* Click outside to close company dropdown */}
             {showCompanyDropdown && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={() => setShowCompanyDropdown(false)} />
+            )}
+
+            {/* Company Request Modal */}
+            {showCompanyRequestModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 1000,
+                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <div className="glass-card" style={{
+                        borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 460,
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        animation: 'fadeIn 0.2s ease',
+                    }}>
+                        <h3 style={{ color: 'var(--text-bright)', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 700 }}>Request New Company</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 1.5rem' }}>
+                            Your company isn't in the system yet. Submit a request and your coordinator will review it.
+                        </p>
+                        <div style={{ marginBottom: '1.25rem' }}>
+                            <label style={labelStyle}>Company Name *</label>
+                            <input
+                                style={inputStyle}
+                                value={newCompanyName}
+                                onChange={e => setNewCompanyName(e.target.value)}
+                                placeholder="Enter company name"
+                                autoFocus
+                            />
+                        </div>
+                        <div style={{ marginBottom: '1.75rem' }}>
+                            <label style={labelStyle}>Company Address (optional)</label>
+                            <input
+                                style={inputStyle}
+                                value={newCompanyAddress}
+                                onChange={e => setNewCompanyAddress(e.target.value)}
+                                placeholder="Enter company address"
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => { setShowCompanyRequestModal(false); setNewCompanyName(''); setNewCompanyAddress(''); }}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmitCompanyRequest}
+                                disabled={!newCompanyName.trim() || requestCompanyLoading}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                            >
+                                {requestCompanyLoading ? 'Submitting...' : 'Submit Request'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Logout Confirmation Modal */}

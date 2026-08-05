@@ -762,6 +762,31 @@ html[data-theme="light"] .cd-welcome-banner {
     background: var(--bg-elevated);
 }
 
+.company-review-modal {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(16, 185, 129, 0.35) transparent;
+}
+
+.company-review-modal::-webkit-scrollbar {
+    width: 8px;
+}
+
+.company-review-modal::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.company-review-modal::-webkit-scrollbar-thumb {
+    background: rgba(16, 185, 129, 0.35);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.company-review-modal::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.55);
+    background-clip: padding-box;
+}
+
 /* ═══════════════════════════════════════════════════
    NOTIFICATION BADGE & DOTS
 ═══════════════════════════════════════════════════ */
