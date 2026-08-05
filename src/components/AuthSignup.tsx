@@ -96,7 +96,7 @@ export default function AuthSignup() {
         if (roleState === 'company') return 'company';
         if (roleState === 'coordinator') return 'coordinator';
         if (roleState === 'admin') return 'admin';
-        return signupEmail.trim().toLowerCase() === 'admin@asiancollege.edu.ph' ? 'admin' : 'student';
+        return 'student';
     };
 
     // Recover portal access-denied errors that were saved before sign-out redirect
@@ -121,7 +121,7 @@ export default function AuthSignup() {
         if (!firstName.trim()) e.firstName = "First name is required";
         if (!lastName.trim()) e.lastName = "Last name is required";
         if (!signupEmail.trim()) e.signupEmail = "Email is required";
-        else if (roleState !== 'company' && !isEduPh(signupEmail)) e.signupEmail = "Email must end with .edu.ph";
+        else if (roleState !== 'company' && roleState !== 'admin' && !isEduPh(signupEmail)) e.signupEmail = "Email must end with .edu.ph";
         if (!signupPassword) e.signupPassword = "Password is required";
         else if (signupPassword.length < 8) e.signupPassword = "Password must be at least 8 characters";
         if (!signupConfirm) e.signupConfirm = "Please confirm your password";
@@ -133,7 +133,7 @@ export default function AuthSignup() {
     const validateLogin = () => {
         const e: Record<string, string> = {};
         if (!loginEmail.trim()) e.loginEmail = "Email is required";
-        else if (roleState !== 'company' && !isEduPh(loginEmail) && loginEmail.trim().toLowerCase() !== "admin@asiancollege.edu.ph") {
+        else if (roleState !== 'company' && roleState !== 'admin' && roleState !== 'coordinator' && !isEduPh(loginEmail)) {
             e.loginEmail = "Email must end with .edu.ph";
         }
         if (!password.trim()) e.password = "Password is required";
@@ -142,7 +142,7 @@ export default function AuthSignup() {
     };
 
     const handleSendVerification = async () => {
-        if (roleState !== 'company' && !isEduPh(signupEmail)) {
+        if (roleState !== 'company' && roleState !== 'admin' && !isEduPh(signupEmail)) {
             setErrors(prev => ({ ...prev, signupEmail: "Enter a valid .edu.ph email before verifying" }));
             return;
         }
@@ -323,7 +323,7 @@ export default function AuthSignup() {
         if (!forgotEmail.trim()) {
             setErrors({ forgotEmail: "Email is required" });
             return;
-        } else if (roleState !== 'company' && !isEduPh(forgotEmail)) {
+        } else if (roleState !== 'company' && roleState !== 'admin' && roleState !== 'coordinator' && !isEduPh(forgotEmail)) {
             setErrors({ forgotEmail: "Email must end with .edu.ph" });
             return;
         }

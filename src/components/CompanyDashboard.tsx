@@ -103,7 +103,8 @@ const CompanyDashboard: React.FC = () => {
     const [showAccountMenu, setShowAccountMenu] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [settingsExpanded, setSettingsExpanded] = useState(false);
-
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [notifications, setNotifications] = useState<any[]>([]);
     useTheme();
 
     useEffect(() => {
@@ -229,17 +230,94 @@ const CompanyDashboard: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="company-topbar-right">
-                        <div style={{ position: 'relative' }}>
-                            <button className="company-topbar-user-btn" onClick={() => setShowAccountMenu(!showAccountMenu)}>
-                                <div className="company-topbar-user-info">
-                                    <div className="company-topbar-user-name">{profile?.first_name} {profile?.last_name}</div>
-                                    <div className="company-topbar-user-role">SUPERVISOR</div>
-                                </div>
-                                <div className="company-topbar-avatar">
-                                    {initials}
-                                </div>
-                            </button>
+                    <div className="company-topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ position: 'relative' }}>
+                                <button
+                                    className="topbar-user-btn"
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    style={{ padding: '0.5rem', background: 'var(--bg-elevated)', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                    {notifications.filter(n => !n.is_read).length > 0 && (
+                                        <span style={{ position: 'absolute', top: -2, right: -2, background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 700, width: 16, height: 16, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {notifications.filter(n => !n.is_read).length}
+                                        </span>
+                                    )}
+                                </button>
+
+                                {showNotifications && (
+                                    <>
+                                        <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setShowNotifications(false)} />
+                                        <div style={{
+                                            position: 'absolute', top: 'calc(100% + 10px)', right: 0,
+                                            width: 320, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                                            borderRadius: 16, zIndex: 999, boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
+                                            overflow: 'hidden', animation: 'fadeIn 0.2s ease'
+                                        }}>
+                                            <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-bright)' }}>Notifications</h4>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>{notifications.filter(n => !n.is_read).length} new</span>
+                                            </div>
+                                            <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                                                {notifications.length === 0 ? (
+                                                    <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                                        No notifications yet.
+                                                    </div>
+                                                ) : (
+                                                    notifications.map(n => (
+                                                        <div
+                                                            key={n.id}
+                                                            onClick={() => {}}
+                                                            style={{
+                                                                padding: '1rem', borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                                                                background: n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)',
+                                                                borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--primary)',
+                                                                transition: 'background 0.2s'
+                                                            }}
+                                                            onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                                            onMouseOut={e => e.currentTarget.style.background = n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)'}
+                                                        >
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                                                                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: n.is_read ? 'var(--text-primary)' : 'var(--text-bright)' }}>
+                                                                    {n.title}
+                                                                </div>
+                                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                                                                    {new Date(n.created_at).toLocaleDateString()}
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                                                {n.message}
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="topbar-divider" style={{ width: 1, height: 24, background: 'var(--border)' }} />
+                            
+                            <div style={{ position: 'relative' }}>
+                                <button className="company-topbar-user-btn" onClick={() => setShowAccountMenu(!showAccountMenu)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'right' }}>
+                                    <div className="company-topbar-user-info" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                        <div className="company-topbar-user-name" style={{ fontWeight: 600, color: 'var(--text-bright)', fontSize: '0.95rem' }}>{profile?.first_name} {profile?.last_name}</div>
+                                        <div className="company-topbar-user-role" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.05em' }}>SUPERVISOR</div>
+                                    </div>
+                                    <div className="company-topbar-avatar" style={{ 
+                                        width: 40, height: 40, borderRadius: '12px', 
+                                        background: profile?.avatar_url ? `url(${profile.avatar_url}) center/cover no-repeat` : 'linear-gradient(135deg, #10b981, #059669)',
+                                        color: profile?.avatar_url ? 'transparent' : '#fff',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontWeight: 700, fontSize: '1rem',
+                                        boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+                                    }}>
+                                        {profile?.avatar_url ? '' : initials}
+                                    </div>
+                                    <svg className={`topbar-dropdown-caret${showAccountMenu ? ' open' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', transition: 'transform 0.2s', transform: showAccountMenu ? 'rotate(180deg)' : 'none', marginLeft: '2px' }}><polyline points="6 9 12 15 18 9" /></svg>
+                                </button>
 
                             {showAccountMenu && (
                                 <>
@@ -303,7 +381,8 @@ const CompanyDashboard: React.FC = () => {
                             )}
                         </div>
                     </div>
-                </header>
+                </div>
+            </header>
 
                 <div className="company-page-content">
                     <Routes>
@@ -322,13 +401,41 @@ const CompanyDashboard: React.FC = () => {
                 </div>
                 
                 {showLogoutConfirm && (
-                    <div className="modal-overlay">
-                        <div className="modal-content glass-card" style={{ maxWidth: 400 }}>
-                            <h3>Log Out</h3>
-                            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Are you sure you want to log out of the Company Portal?</p>
-                            <div className="modal-actions">
-                                <button className="btn-secondary" onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
-                                <button className="btn-danger" onClick={handleLogout}>Log Out</button>
+                    <div style={{
+                        position: 'fixed', inset: 0, zIndex: 1000,
+                        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <div className="glass-card" style={{
+                            border: '1px solid rgba(239,68,68,0.3)',
+                            borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
+                            boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                            animation: 'fadeIn 0.2s ease',
+                        }}>
+                            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                    <polyline points="16 17 21 12 16 7" />
+                                    <line x1="21" y1="12" x2="9" y2="12" />
+                                </svg>
+                            </div>
+                            <h3 style={{ textAlign: 'center', color: 'var(--text-primary)', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Log Out?</h3>
+                            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.75rem' }}>
+                                Are you sure you want to log out of the Company Portal? You will need to log in again to access the dashboard.
+                            </p>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <button
+                                    onClick={() => setShowLogoutConfirm(false)}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(239,68,68,0.35)' }}
+                                >
+                                    Log Out
+                                </button>
                             </div>
                         </div>
                     </div>
