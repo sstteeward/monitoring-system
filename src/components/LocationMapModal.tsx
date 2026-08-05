@@ -12,12 +12,14 @@ L.Icon.Default.mergeOptions({
 });
 
 interface LocationMapModalProps {
-    isOpen: boolean;
+    isOpen?: boolean;
     onClose: () => void;
-    alert: any; // The selected audit log object
+    alert?: any; // The selected audit log object
+    latitude?: number;
+    longitude?: number;
 }
 
-const LocationMapModal: React.FC<LocationMapModalProps> = ({ isOpen, onClose, alert }) => {
+const LocationMapModal: React.FC<LocationMapModalProps> = ({ isOpen = true, onClose, alert, latitude, longitude }) => {
     // Prevent background scrolling when modal is open
     useEffect(() => {
         if (isOpen) {
@@ -30,10 +32,10 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({ isOpen, onClose, al
         };
     }, [isOpen]);
 
-    if (!isOpen || !alert) return null;
+    if (!isOpen) return null;
 
-    const lat = alert.latitude;
-    const lng = alert.longitude;
+    const lat = alert?.latitude ?? latitude;
+    const lng = alert?.longitude ?? longitude;
 
     if (!lat || !lng) {
         return (
@@ -69,16 +71,18 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({ isOpen, onClose, al
         );
     }
 
-    const eventName = alert.details?.event || alert.action || '';
-    const reason = alert.details?.reason || 'Unknown Reason';
-    const studentName = alert.profile_first_name 
-        ? `${alert.profile_first_name} ${alert.profile_last_name}` 
-        : (alert.details?.studentName || 'Unknown User');
+    const eventName = alert?.details?.event || alert?.action || 'Attendance Location';
+    const reason = alert?.details?.reason || '';
+    const studentName = alert 
+        ? (alert.profile_first_name 
+            ? `${alert.profile_first_name} ${alert.profile_last_name}` 
+            : (alert.details?.studentName || 'Unknown User'))
+        : 'User';
 
     // Determine badge color
     let badgeColor = '#ef4444'; // Red
     let badgeBg = 'rgba(239, 68, 68, 0.1)';
-    if (alert.action === 'successful_clock_in' || alert.action === 'successful_clock_out') {
+    if (alert?.action === 'successful_clock_in' || alert?.action === 'successful_clock_out') {
         badgeColor = '#10b981'; // Green
         badgeBg = 'rgba(16, 185, 129, 0.1)';
     } else if (eventName?.toLowerCase().includes('warning')) {
@@ -86,7 +90,7 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({ isOpen, onClose, al
         badgeBg = 'rgba(245, 158, 11, 0.1)';
     }
 
-    const userAgent = alert.details?.userAgent || '';
+    const userAgent = alert?.details?.userAgent || '';
     let browserName = 'Unknown';
     let deviceType = 'Desktop';
     if (userAgent) {

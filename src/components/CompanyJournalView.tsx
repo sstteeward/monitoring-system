@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { companyService } from '../services/companyService';
-import { profileService, type Profile } from '../services/profileService';
+import { profileService } from '../services/profileService';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
 import UserProfileModal from './UserProfileModal';

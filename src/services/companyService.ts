@@ -86,7 +86,7 @@ export const companyService = {
       query = query.lte('clock_in', endDate);
     }
 
-    const { data, error } = query.order('clock_in', { ascending: false });
+    const { data, error } = await query.order('clock_in', { ascending: false });
 
     if (error) {
       console.error("Error fetching attendance:", error);

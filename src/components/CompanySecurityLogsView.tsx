@@ -197,7 +197,7 @@ const CompanySecurityLogsView: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {paginatedLogs.map((log, i) => {
+                                {paginatedLogs.map((log) => {
                                     const colors = getActionColor(log.action);
                                     return (
                                         <tr key={log.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }} className="hoverable-row">

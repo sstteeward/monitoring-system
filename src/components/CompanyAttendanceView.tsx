@@ -281,6 +281,7 @@ const CompanyAttendanceView: React.FC = () => {
 
             {locationModal.isOpen && (
                 <LocationMapModal
+                    isOpen={locationModal.isOpen}
                     latitude={locationModal.lat}
                     longitude={locationModal.lng}
                     onClose={() => setLocationModal({ isOpen: false, lat: 0, lng: 0 })}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { companyService } from '../services/companyService';
-import { profileService, type Profile } from '../services/profileService';
+import { profileService } from '../services/profileService';
 
 const CompanyProfileView: React.FC = () => {
     const [companyData, setCompanyData] = useState<any>(null);
