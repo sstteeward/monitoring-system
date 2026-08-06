@@ -51,28 +51,41 @@ const CompanySecurityLogsView: React.FC = () => {
                 throw new Error("You are not associated with any company.");
             }
 
-            // Get all users associated with this company
+            // Get all users associated with this company (only assigned students)
             const assignedStudents = await companyService.getAssignedStudents(profile.company_id);
-            const relatedUserIds = [profile.id, ...assignedStudents.map(s => s.id)];
+            const relatedUserIds = assignedStudents.map(s => s.id);
 
-            // Fetch audit logs for all related users
+            if (relatedUserIds.length === 0) {
+                setLogs([]);
+                setLoading(false);
+                return;
+            }
+
+            // Fetch audit logs for all related users directly to avoid schema relation cache errors
             const { data, error: fetchError } = await supabase
                 .from('audit_logs')
-                .select(`
-                    *,
-                    profiles (
-                        first_name,
-                        last_name,
-                        email,
-                        account_type
-                    )
-                `)
+                .select('*')
                 .in('user_id', relatedUserIds)
                 .order('created_at', { ascending: false })
                 .limit(200);
 
             if (fetchError) throw fetchError;
-            setLogs(data as AuditLog[]);
+            
+            // Manually map the profiles data
+            const logsWithProfiles = (data || []).map((log: any) => {
+                const student = assignedStudents.find(s => s.id === log.user_id);
+                return {
+                    ...log,
+                    profiles: student ? {
+                        first_name: student.first_name,
+                        last_name: student.last_name,
+                        email: student.email,
+                        account_type: student.account_type || 'student'
+                    } : null
+                };
+            });
+
+            setLogs(logsWithProfiles as AuditLog[]);
         } catch (err: any) {
             console.error('Failed to load security logs:', err);
             setError(err?.message || JSON.stringify(err));
