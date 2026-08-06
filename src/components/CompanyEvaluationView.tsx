@@ -431,10 +431,10 @@ const CompanyEvaluationView: React.FC = () => {
                                         </div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ fontWeight: isSelected ? 700 : 500, fontSize: '0.95rem', color: isSelected ? '#fff' : 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {student.first_name} {student.last_name}
-                                            </div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {student.department_info?.name || student.department || 'No department'}
+                                                <UserClickableName
+                                                    userId={student.id}
+                                                    userName={`${student.first_name} ${student.last_name}`}
+                                                />
                                             </div>
                                         </div>
                                     </div>

@@ -445,3 +445,39 @@ html[data-theme="light"] .company-welcome-banner {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Keep attendance filters together so the search uses the space beside the date. */
+.company-attendance-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(100%, 32rem);
+  margin-left: auto;
+}
+
+.company-attendance-date {
+  flex: 0 0 auto;
+}
+
+.company-attendance-date .form-input {
+  box-sizing: border-box;
+  width: 9.25rem;
+}
+
+.company-attendance-search {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.company-attendance-search .form-input {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .company-attendance-filters {
+    width: 100%;
+    margin-left: 0;
+  }
+}

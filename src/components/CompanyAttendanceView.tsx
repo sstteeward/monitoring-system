@@ -165,8 +165,8 @@ const CompanyAttendanceView: React.FC = () => {
                         Track DTR records for your assigned interns
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
-                    <div style={{ position: 'relative' }}>
+                <div className="company-attendance-filters">
+                    <div className="company-attendance-date">
                         <input
                             type="date"
                             className="form-input"
@@ -175,7 +175,7 @@ const CompanyAttendanceView: React.FC = () => {
                             style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem 0.75rem', color: 'var(--text-primary)' }}
                         />
                     </div>
-                    <div style={{ position: 'relative', width: 'min(320px, 100%)' }}>
+                    <div className="company-attendance-search">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                             <circle cx="11" cy="11" r="8" stroke="var(--text-muted)" />
                             <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="var(--text-muted)" />
