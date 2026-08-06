@@ -170,9 +170,6 @@ const CompanyEvaluationView: React.FC = () => {
 
     const evaluatorName = evaluatorProfile ? `${evaluatorProfile.first_name} ${evaluatorProfile.last_name}` : 'Evaluator';
 
-    const getInitials = (firstName?: string, lastName?: string) => {
-        return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase() || '?';
-    };
 
     return (
         <div className="view-container fade-in">
