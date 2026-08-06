@@ -95,13 +95,21 @@ export const companyService = {
     return data;
   },
 
-  async getPendingJournals(studentIds: string[]) {
-    const { data, error } = await supabase
+  async getPendingJournals(studentIds: string[], startDate?: string, endDate?: string) {
+    let query = supabase
       .from('daily_journals')
       .select('*, profiles:user_id(first_name, last_name, avatar_url)')
       .in('user_id', studentIds)
-      .eq('status', 'pending')
-      .order('entry_date', { ascending: false });
+      .eq('status', 'pending');
+
+    if (startDate) {
+      query = query.gte('entry_date', startDate);
+    }
+    if (endDate) {
+      query = query.lte('entry_date', endDate);
+    }
+
+    const { data, error } = await query.order('entry_date', { ascending: false });
 
     if (error) {
       console.error("Error fetching journals:", error);
@@ -110,12 +118,20 @@ export const companyService = {
     return data;
   },
   
-  async getAllJournals(studentIds: string[]) {
-    const { data, error } = await supabase
+  async getAllJournals(studentIds: string[], startDate?: string, endDate?: string) {
+    let query = supabase
       .from('daily_journals')
       .select('*, profiles:user_id(first_name, last_name, avatar_url)')
-      .in('user_id', studentIds)
-      .order('entry_date', { ascending: false });
+      .in('user_id', studentIds);
+
+    if (startDate) {
+      query = query.gte('entry_date', startDate);
+    }
+    if (endDate) {
+      query = query.lte('entry_date', endDate);
+    }
+
+    const { data, error } = await query.order('entry_date', { ascending: false });
 
     if (error) {
       console.error("Error fetching all journals:", error);
@@ -158,6 +174,19 @@ export const companyService = {
       .order('created_at', { ascending: false });
     if (error) {
       console.error("Error fetching evaluations:", error);
+      return [];
+    }
+    return data;
+  },
+
+  async getCompanyEvaluations(companyId: string) {
+    const { data, error } = await supabase
+      .from('evaluations')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error("Error fetching company evaluations:", error);
       return [];
     }
     return data;

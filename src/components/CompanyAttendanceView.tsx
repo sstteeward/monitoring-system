@@ -30,7 +30,12 @@ const CompanyAttendanceView: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [viewProfileId, setViewProfileId] = useState<string | null>(null);
     const [locationModal, setLocationModal] = useState<{ isOpen: boolean, lat: number, lng: number }>({ isOpen: false, lat: 0, lng: 0 });
-    const [dateFilter, setDateFilter] = useState('');
+    const getTodayDateString = () => {
+        const now = new Date();
+        return now.toISOString().split('T')[0];
+    };
+
+    const [dateFilter, setDateFilter] = useState(getTodayDateString());
 
     useEffect(() => { loadAttendance(); }, [dateFilter]);
 
@@ -56,9 +61,21 @@ const CompanyAttendanceView: React.FC = () => {
 
             let startDate, endDate;
             if (dateFilter) {
-                const date = new Date(dateFilter);
-                startDate = new Date(date.setHours(0, 0, 0, 0)).toISOString();
-                endDate = new Date(date.setHours(23, 59, 59, 999)).toISOString();
+                const selectedDate = new Date(dateFilter);
+                
+                // Get Monday of the selected date's week
+                const day = selectedDate.getDay() || 7; // 1-7, where Monday is 1
+                const monday = new Date(selectedDate);
+                monday.setDate(selectedDate.getDate() - day + 1);
+                monday.setHours(0, 0, 0, 0);
+                
+                // Get Sunday of the selected date's week
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                sunday.setHours(23, 59, 59, 999);
+                
+                startDate = monday.toISOString();
+                endDate = sunday.toISOString();
             }
 
             const data = await companyService.getStudentAttendance(studentIds, startDate, endDate);

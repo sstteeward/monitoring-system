@@ -29,6 +29,12 @@ const CompanyJournalView: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'reviewed'>('pending');
     
+    const getTodayDateString = () => {
+        const now = new Date();
+        return now.toISOString().split('T')[0];
+    };
+    const [dateFilter, setDateFilter] = useState(getTodayDateString());
+    
     // Review Modal State
     const [reviewingJournal, setReviewingJournal] = useState<DailyJournal | null>(null);
     const [reviewComments, setReviewComments] = useState('');
@@ -44,7 +50,7 @@ const CompanyJournalView: React.FC = () => {
         itemsPerPage
     } = usePagination(journals, 10);
 
-    useEffect(() => { loadJournals(); }, [filterStatus]);
+    useEffect(() => { loadJournals(); }, [filterStatus, dateFilter]);
 
     const loadJournals = async () => {
         setLoading(true);
@@ -63,11 +69,27 @@ const CompanyJournalView: React.FC = () => {
                 return;
             }
 
+            let startDate, endDate;
+            if (dateFilter) {
+                const selectedDate = new Date(dateFilter);
+                const day = selectedDate.getDay() || 7;
+                const monday = new Date(selectedDate);
+                monday.setDate(selectedDate.getDate() - day + 1);
+                monday.setHours(0, 0, 0, 0);
+                
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                sunday.setHours(23, 59, 59, 999);
+                
+                startDate = monday.toISOString();
+                endDate = sunday.toISOString();
+            }
+
             let data;
             if (filterStatus === 'pending') {
-                data = await companyService.getPendingJournals(studentIds);
+                data = await companyService.getPendingJournals(studentIds, startDate, endDate);
             } else {
-                data = await companyService.getAllJournals(studentIds);
+                data = await companyService.getAllJournals(studentIds, startDate, endDate);
                 if (filterStatus === 'reviewed') {
                     data = data.filter((j: DailyJournal) => j.status !== 'pending');
                 }
@@ -298,6 +320,16 @@ const CompanyJournalView: React.FC = () => {
                                 Approve
                             </button>
                         </div>
+                    </div>
+                    
+                    <div style={{ position: 'relative', marginLeft: '0.5rem' }}>
+                        <input
+                            type="date"
+                            className="form-input"
+                            value={dateFilter}
+                            onChange={e => setDateFilter(e.target.value)}
+                            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem 0.75rem', color: 'var(--text-primary)' }}
+                        />
                     </div>
                 </div>
             )}

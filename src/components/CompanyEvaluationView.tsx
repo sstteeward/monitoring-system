@@ -24,10 +24,13 @@ const CompanyEvaluationView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [loadingEvaluations, setLoadingEvaluations] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [evaluatorProfile, setEvaluatorProfile] = useState<Profile | null>(null);
     
     const [showForm, setShowForm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [formData, setFormData] = useState<any>({});
+    const [expandedEvalId, setExpandedEvalId] = useState<string | null>(null);
 
     useEffect(() => { loadStudents(); }, []);
 
@@ -39,23 +42,38 @@ const CompanyEvaluationView: React.FC = () => {
             if (!profile?.company_id) {
                 throw new Error("You are not associated with any company.");
             }
+            setEvaluatorProfile(profile);
             const data = await companyService.getAssignedStudents(profile.company_id);
             setStudents(data);
+            
+            // Load all company evaluations initially
+            setLoadingEvaluations(true);
+            const allEvals = await companyService.getCompanyEvaluations(profile.company_id);
+            setEvaluations(allEvals as Evaluation[]);
+            setLoadingEvaluations(false);
+            
         } catch (err: any) {
             console.error('Failed to load students:', err);
             setError(err?.message || JSON.stringify(err));
+            setLoadingEvaluations(false);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSelectStudent = async (student: Profile) => {
+    const handleSelectStudent = async (student: Profile | null) => {
         setSelectedStudent(student);
         setShowForm(false);
+        setExpandedEvalId(null);
         setLoadingEvaluations(true);
         try {
-            const data = await companyService.getStudentEvaluations(student.id);
-            setEvaluations(data as Evaluation[]);
+            if (student) {
+                const data = await companyService.getStudentEvaluations(student.id);
+                setEvaluations(data as Evaluation[]);
+            } else if (evaluatorProfile?.company_id) {
+                const data = await companyService.getCompanyEvaluations(evaluatorProfile.company_id);
+                setEvaluations(data as Evaluation[]);
+            }
         } catch (err) {
             console.error('Failed to load evaluations:', err);
         } finally {
@@ -73,13 +91,13 @@ const CompanyEvaluationView: React.FC = () => {
         initialData.recommendations = '';
         setFormData(initialData);
         setShowForm(true);
+        setExpandedEvalId(null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedStudent) return;
         
-        // Validate all scores are > 0
         const unrated = EvaluationCriteria.filter(c => formData[c.key] === 0);
         if (unrated.length > 0 || formData.overall_rating === 0) {
             alert('Please rate all criteria, including the overall rating.');
@@ -99,7 +117,6 @@ const CompanyEvaluationView: React.FC = () => {
             });
             
             setShowForm(false);
-            // Refresh evaluations
             handleSelectStudent(selectedStudent);
         } catch (err: any) {
             console.error('Failed to submit evaluation:', err);
@@ -109,28 +126,34 @@ const CompanyEvaluationView: React.FC = () => {
         }
     };
 
-    const renderStars = (key: string, value: number) => {
-        return (
-            <div style={{ display: 'flex', gap: '0.25rem' }}>
-                {[1, 2, 3, 4, 5].map(star => (
-                    <button
-                        key={star}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, [key]: star })}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: 0,
-                            cursor: 'pointer',
-                            color: star <= value ? '#f59e0b' : 'var(--border)'
-                        }}
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill={star <= value ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                    </button>
-                ))}
-            </div>
-        );
-    };
+    const renderStars = (key: string, value: number) => (
+        <div style={{ display: 'flex', gap: '0.25rem' }}>
+            {[1, 2, 3, 4, 5].map(star => (
+                <button
+                    key={star}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, [key]: star })}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: star <= value ? '#f59e0b' : 'var(--border)'
+                    }}
+                >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill={star <= value ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                </button>
+            ))}
+        </div>
+    );
+
+    const renderReadonlyStars = (value: number, size: number = 16) => (
+        <div style={{ display: 'flex', gap: '0.1rem', color: '#f59e0b' }}>
+            {[...Array(value)].map((_, i) => (
+                <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+            ))}
+        </div>
+    );
 
     if (error) return (
         <div className="view-container fade-in">
@@ -140,164 +163,467 @@ const CompanyEvaluationView: React.FC = () => {
         </div>
     );
 
+    const filteredStudents = students.filter(student => 
+        `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    ).sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
+
+    const evaluatorName = evaluatorProfile ? `${evaluatorProfile.first_name} ${evaluatorProfile.last_name}` : 'Evaluator';
+
+    const getInitials = (firstName?: string, lastName?: string) => {
+        return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase() || '?';
+    };
+
     return (
-        <div className="view-container fade-in" style={{ display: 'flex', gap: '2rem', height: '100%' }}>
-            {/* Left Sidebar - Student List */}
-            <div className="glass-card" style={{ width: '300px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                    <h3 style={{ margin: 0 }}>Interns</h3>
-                </div>
-                <div style={{ flex: 1, overflowY: 'auto' }}>
-                    {loading ? (
-                        <div style={{ padding: '1.5rem', color: 'var(--text-muted)' }}>Loading interns...</div>
-                    ) : students.length === 0 ? (
-                        <div style={{ padding: '1.5rem', color: 'var(--text-muted)' }}>No interns assigned.</div>
-                    ) : (
-                        students.map(student => (
-                            <div 
-                                key={student.id}
-                                onClick={() => handleSelectStudent(student)}
-                                style={{ 
-                                    padding: '1rem 1.5rem', 
-                                    borderBottom: '1px solid var(--border)',
-                                    cursor: 'pointer',
-                                    background: selectedStudent?.id === student.id ? 'var(--bg-elevated)' : 'transparent',
-                                    transition: 'background 0.2s'
-                                }}
-                                className="hoverable-row"
-                            >
-                                <div style={{ fontWeight: 600 }}>{student.first_name} {student.last_name}</div>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{student.department_info?.name || student.department || 'No department'}</div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
+        <div className="view-container fade-in">
+            <style dangerouslySetInnerHTML={{__html: `
+                .evaluation-layout {
+                    display: flex;
+                    gap: 24px;
+                    height: 100%;
+                    flex-direction: row;
+                }
+                .left-panel {
+                    width: 30%;
+                    min-width: 250px;
+                }
+                .right-panel {
+                    width: 70%;
+                }
+                @media (max-width: 1024px) {
+                    .left-panel {
+                        width: 35%;
+                    }
+                    .right-panel {
+                        width: 65%;
+                    }
+                }
+                @media (max-width: 768px) {
+                    .evaluation-layout {
+                        flex-direction: column;
+                    }
+                    .left-panel, .right-panel {
+                        width: 100%;
+                        height: auto;
+                        min-height: 400px;
+                    }
+                }
+                
+                .panel {
+                    background: var(--bg-card);
+                    border-radius: 16px;
+                    border: 1px solid var(--border);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                    padding: 24px;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+                }
+                .panel:hover {
+                    border-color: var(--primary-glow);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 0 16px var(--primary-glow);
+                }
 
-            {/* Right Content - Evaluations */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: 'auto' }}>
-                {!selectedStudent ? (
-                    <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: '1rem', opacity: 0.5 }}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                        <h3>Select an intern</h3>
-                        <p>Select an intern from the list to view or submit evaluations.</p>
+                .scrollable-content {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding-right: 8px;
+                }
+                /* Custom Scrollbar */
+                .scrollable-content::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .scrollable-content::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .scrollable-content::-webkit-scrollbar-thumb {
+                    background-color: var(--border);
+                    border-radius: 10px;
+                }
+                .scrollable-content::-webkit-scrollbar-thumb:hover {
+                    background-color: rgba(255, 255, 255, 0.2);
+                }
+                
+                .intern-card {
+                    padding: 8px 4px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                }
+                .intern-card:hover {
+                    opacity: 0.8;
+                }
+                .intern-card.selected {
+                    /* Selected styling handled inline via text weight/color */
+                }
+                
+                .intern-number {
+                    width: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-end;
+                    font-weight: 600;
+                    color: rgba(255, 255, 255, 0.4);
+                    font-size: 0.95rem;
+                    flex-shrink: 0;
+                }
+
+                .intern-search-wrapper {
+                    position: relative;
+                    margin-bottom: 1.5rem;
+                }
+                .intern-search-icon {
+                    position: absolute;
+                    left: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: var(--text-muted);
+                }
+                .intern-search {
+                    width: 100%;
+                    padding: 10px 16px 10px 38px;
+                    border-radius: 8px;
+                    background-color: var(--bg-elevated);
+                    border: 1px solid var(--border);
+                    color: var(--text-primary);
+                    outline: none;
+                    transition: border-color 0.2s;
+                    box-sizing: border-box;
+                    font-size: 0.9rem;
+                }
+                .intern-search:focus {
+                    border-color: var(--primary);
+                }
+                
+                .eval-card {
+                    padding: 16px 20px;
+                    margin-bottom: 16px;
+                }
+                .eval-card-header {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 16px;
+                }
+
+                .btn-new-eval {
+                    background-color: var(--primary);
+                    color: white;
+                    border-radius: 12px;
+                    padding: 10px 16px;
+                    border: none;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    font-size: 0.9rem;
+                }
+                .btn-new-eval:hover {
+                    opacity: 0.9;
+                    transform: translateY(-1px);
+                }
+                
+                .btn-outline {
+                    border: 1px solid var(--border);
+                    background: transparent;
+                    color: var(--text-primary);
+                    border-radius: 8px;
+                    padding: 6px 16px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .btn-outline:hover {
+                    background: var(--bg-elevated);
+                }
+
+                .status-icon-circle {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 50%;
+                    background: rgba(16,185,129,0.15);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    color: #10b981;
+                }
+                
+                .status-badge {
+                    padding: 4px 10px;
+                    border-radius: 6px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    background: rgba(16,185,129,0.15);
+                    color: #10b981;
+                    border: 1px solid rgba(16,185,129,0.3);
+                    display: inline-block;
+                }
+                
+                .empty-state {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    flex: 1;
+                    text-align: center;
+                    padding: 40px;
+                }
+                .empty-icon {
+                    width: 64px;
+                    height: 64px;
+                    background: var(--bg-elevated);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-bottom: 16px;
+                    color: var(--text-muted);
+                }
+            `}} />
+
+            <div className="evaluation-layout">
+                {/* Left Panel - Intern List */}
+                <div className="panel left-panel">
+                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', fontWeight: 600 }}>Interns</h3>
+                    
+                    <div className="intern-search-wrapper">
+                        <span className="intern-search-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </span>
+                        <input 
+                            type="text" 
+                            className="intern-search"
+                            placeholder="Search interns..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
-                ) : (
-                    <>
-                        <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <h2 style={{ margin: '0 0 0.25rem 0' }}><UserClickableName userId={selectedStudent.id} userName={`${selectedStudent.first_name} ${selectedStudent.last_name}`} /></h2>
-                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>{selectedStudent.email}</p>
-                            </div>
-                            {!showForm && (
-                                <button className="btn-primary" onClick={handleOpenForm}>
-                                    New Evaluation
-                                </button>
-                            )}
-                        </div>
-
-                        {showForm ? (
-                            <form className="glass-card fade-in" style={{ padding: '2rem' }} onSubmit={handleSubmit}>
-                                <h3 style={{ margin: '0 0 1.5rem 0', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>New Performance Evaluation</h3>
-                                
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                                    {EvaluationCriteria.map(criteria => (
-                                        <div key={criteria.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                            <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{criteria.label}</label>
-                                            {renderStars(criteria.key, formData[criteria.key])}
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'var(--bg-elevated)', borderRadius: '12px' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0' }}>Overall Rating</h4>
-                                    <div style={{ transform: 'scale(1.2)', transformOrigin: 'left center' }}>
-                                        {renderStars('overall_rating', formData.overall_rating)}
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Strengths</label>
-                                        <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical' }} value={formData.strengths} onChange={e => setFormData({...formData, strengths: e.target.value})} placeholder="What does this intern do well?" required />
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Areas for Improvement (Weaknesses)</label>
-                                        <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical' }} value={formData.weaknesses} onChange={e => setFormData({...formData, weaknesses: e.target.value})} placeholder="Where can this intern improve?" required />
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Recommendations / Additional Comments</label>
-                                        <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical' }} value={formData.recommendations} onChange={e => setFormData({...formData, recommendations: e.target.value})} placeholder="Any other feedback?" />
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-                                    <button type="button" className="btn-secondary" onClick={() => setShowForm(false)} disabled={submitting}>Cancel</button>
-                                    <button type="submit" className="btn-primary" disabled={submitting}>
-                                        {submitting ? 'Submitting...' : 'Submit Evaluation'}
-                                    </button>
-                                </div>
-                            </form>
-                        ) : loadingEvaluations ? (
-                            <div className="glass-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading evaluations...</div>
-                        ) : evaluations.length === 0 ? (
-                            <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                <p>No evaluations submitted for this intern yet.</p>
+                    
+                    <div className="scrollable-content">
+                        {loading ? (
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', marginTop: '2rem' }}>Loading interns...</div>
+                        ) : filteredStudents.length === 0 ? (
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', marginTop: '2rem' }}>
+                                {students.length === 0 ? 'No interns assigned.' : 'No interns match your search.'}
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                {evaluations.map(evaluation => (
-                                    <div key={evaluation.id} className="glass-card" style={{ padding: '1.5rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-                                            <h3 style={{ margin: 0 }}>Evaluation Report</h3>
-                                            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                                Submitted on {new Date(evaluation.created_at).toLocaleDateString()}
-                                            </div>
+                            filteredStudents.map((student, index) => {
+                                const isSelected = selectedStudent?.id === student.id;
+                                return (
+                                    <div 
+                                        key={student.id} 
+                                        className={`intern-card ${selectedStudent?.id === student.id ? 'selected' : ''}`}
+                                        onClick={() => handleSelectStudent(selectedStudent?.id === student.id ? null : student)}
+                                        style={{
+                                            color: selectedStudent?.id === student.id ? 'var(--primary)' : 'var(--text-primary)',
+                                            fontWeight: selectedStudent?.id === student.id ? 600 : 400
+                                        }}
+                                    >
+                                        <div className="intern-number">
+                                            {index + 1}.
                                         </div>
-
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                                            {EvaluationCriteria.map(c => (
-                                                <div key={c.key}>
-                                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{c.label}</div>
-                                                    <div style={{ display: 'flex', gap: '0.1rem', color: '#f59e0b' }}>
-                                                        {[...Array((evaluation as any)[c.key])].map((_, i) => (
-                                                            <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                                                <div style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: 600, marginBottom: '0.25rem' }}>Overall Rating</div>
-                                                <div style={{ display: 'flex', gap: '0.25rem', color: '#f59e0b' }}>
-                                                    {[...Array(evaluation.overall_rating)].map((_, i) => (
-                                                        <svg key={i} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                                                    ))}
-                                                </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontWeight: isSelected ? 700 : 500, fontSize: '0.95rem', color: isSelected ? '#fff' : 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {student.first_name} {student.last_name}
                                             </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                            <div>
-                                                <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)' }}>Strengths</h4>
-                                                <p style={{ margin: 0, background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>{evaluation.strengths}</p>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {student.department_info?.name || student.department || 'No department'}
                                             </div>
-                                            <div>
-                                                <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)' }}>Areas for Improvement</h4>
-                                                <p style={{ margin: 0, background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>{evaluation.weaknesses}</p>
-                                            </div>
-                                            {evaluation.recommendations && (
-                                                <div>
-                                                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)' }}>Recommendations / Comments</h4>
-                                                    <p style={{ margin: 0, background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>{evaluation.recommendations}</p>
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
+                                );
+                            })
                         )}
-                    </>
-                )}
+                    </div>
+                </div>
+
+                {/* Right Panel - Evaluation Details */}
+                <div className="panel right-panel">
+                    {!selectedStudent ? (
+                        <div className="empty-state fade-in">
+                            <div className="empty-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            </div>
+                            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.2rem' }}>Select an intern</h3>
+                            <p style={{ margin: 0, color: 'var(--text-muted)' }}>Choose an intern from the list to view or submit evaluations.</p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Header Bar */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
+                                    {selectedStudent 
+                                        ? <>Evaluations for <UserClickableName userId={selectedStudent.id} userName={`${selectedStudent.first_name} ${selectedStudent.last_name}`} /></>
+                                        : "All Recent Evaluations"
+                                    }
+                                </h3>
+                                {!showForm && selectedStudent && (
+                                    <button 
+                                        className="btn-new-eval"
+                                        onClick={handleOpenForm}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                                        New Evaluation
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="scrollable-content">
+                                {showForm ? (
+                                    <form className="fade-in" style={{ padding: '0 8px 24px 8px' }} onSubmit={handleSubmit}>
+                                        <h3 style={{ margin: '0 0 1.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>New Performance Evaluation</h3>
+                                        
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                                            {EvaluationCriteria.map(criteria => (
+                                                <div key={criteria.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                    <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{criteria.label}</label>
+                                                    {renderStars(criteria.key, formData[criteria.key])}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <h4 style={{ margin: '0 0 1rem 0' }}>Overall Rating</h4>
+                                            <div style={{ transform: 'scale(1.2)', transformOrigin: 'left center' }}>
+                                                {renderStars('overall_rating', formData.overall_rating)}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Strengths</label>
+                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', padding: '12px' }} value={formData.strengths} onChange={e => setFormData({...formData, strengths: e.target.value})} placeholder="What does this intern do well?" required />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Areas for Improvement (Weaknesses)</label>
+                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', padding: '12px' }} value={formData.weaknesses} onChange={e => setFormData({...formData, weaknesses: e.target.value})} placeholder="Where can this intern improve?" required />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Recommendations / Additional Comments</label>
+                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', padding: '12px' }} value={formData.recommendations} onChange={e => setFormData({...formData, recommendations: e.target.value})} placeholder="Any other feedback?" />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+                                            <button type="button" className="btn-outline" onClick={() => setShowForm(false)} disabled={submitting}>Cancel</button>
+                                            <button type="submit" className="btn-new-eval" disabled={submitting}>
+                                                {submitting ? 'Submitting...' : 'Submit Evaluation'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                ) : loadingEvaluations ? (
+                                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading evaluations...</div>
+                                ) : evaluations.length === 0 ? (
+                                    <div className="empty-state fade-in">
+                                        <div className="empty-icon">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                        </div>
+                                        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.2rem' }}>No evaluations found</h3>
+                                        <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+                                            {selectedStudent ? "Click 'New Evaluation' above to create one." : "No evaluations have been submitted yet."}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        {evaluations.map(evaluation => {
+                                            const isExpanded = expandedEvalId === evaluation.id;
+                                            const evalDate = new Date(evaluation.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+                                            return (
+                                                <div key={evaluation.id} className="eval-card glass-card">
+                                                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                                                        <div className="eval-card-header">
+                                                            {/* Status Icon */}
+                                                            <div className="status-icon-circle">
+                                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+                                                            </div>
+                                                            
+                                                            {/* Center Info */}
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.4rem', color: '#fff' }}>
+                                                                    Performance Evaluation
+                                                                </div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
+                                                                    <span>{evalDate}</span>
+                                                                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }}></span>
+                                                                    <span>Evaluator: {evaluatorName}</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* Right Actions */}
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', flexShrink: 0 }}>
+                                                                <div className="status-badge">Completed</div>
+                                                                <button 
+                                                                    className="btn-outline"
+                                                                    onClick={(e) => { e.stopPropagation(); setExpandedEvalId(isExpanded ? null : evaluation.id); }}
+                                                                >
+                                                                    {isExpanded ? 'Close' : 'View'}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Expanded Content */}
+                                                        {isExpanded && (
+                                                            <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }} className="fade-in">
+                                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                                                                    {/* Scores Grid */}
+                                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                                                                        {EvaluationCriteria.map(c => (
+                                                                            <div key={c.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>{c.label}</span>
+                                                                                {renderReadonlyStars((evaluation as any)[c.key])}
+                                                                            </div>
+                                                                        ))}
+                                                                        <div style={{ padding: '8px 12px', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                            <span style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: 600 }}>Overall Rating</span>
+                                                                            {renderReadonlyStars(evaluation.overall_rating, 18)}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Text Feedback */}
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                                        {evaluation.strengths && (
+                                                                            <div>
+                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Strengths</h4>
+                                                                                <p style={{ margin: 0, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.strengths}</p>
+                                                                            </div>
+                                                                        )}
+                                                                        {evaluation.weaknesses && (
+                                                                            <div>
+                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Areas for Improvement</h4>
+                                                                                <p style={{ margin: 0, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.weaknesses}</p>
+                                                                            </div>
+                                                                        )}
+                                                                        {evaluation.recommendations && (
+                                                                            <div>
+                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Recommendations / Comments</h4>
+                                                                                <p style={{ margin: 0, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.recommendations}</p>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );
