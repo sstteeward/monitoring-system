@@ -13,6 +13,7 @@ import { supabase } from "./lib/supabaseClient";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { DTRCard } from "./components/DTRCard";
 import LandingPage from "./components/LandingPage";
+import { pushNotificationService } from "./services/pushNotificationService";
 
 function AppContent() {
   const [session, setSession] = useState<any>(null);
@@ -164,6 +165,14 @@ function App() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    void pushNotificationService.syncExistingSubscription(userId).catch((error) => {
+      console.warn('Unable to refresh browser push subscription:', error);
+    });
+  }, [userId]);
 
   return (
     <ThemeProvider userId={userId}>

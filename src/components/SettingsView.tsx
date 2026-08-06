@@ -3,6 +3,7 @@ import { usePasteBlocker } from '../hooks/usePasteBlocker';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 import PasswordField from './PasswordField';
+import BrowserPushNotificationToggle from './BrowserPushNotificationToggle';
 
 interface SettingsViewProps {
     sidebarMode?: 'expanded' | 'collapsed' | 'hover';
@@ -20,7 +21,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode
     const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
 
     const [emailNotifications, setEmailNotifications] = useState(true);
-    const [browserNotifications, setBrowserNotifications] = useState(false);
     const [notifSaved, setNotifSaved] = useState(false);
 
     const [changingPassword, setChangingPassword] = useState(false);
@@ -173,13 +173,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode
                                 </div>
                                 <Toggle checked={emailNotifications} onChange={() => setEmailNotifications(v => !v)} />
                             </div>
-                            <div style={row}>
-                                <div>
-                                    <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-bright)', marginBottom: '0.2rem' }}>Browser Alerts</div>
-                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Get desktop alerts when you forget to clock out.</div>
-                                </div>
-                                <Toggle checked={browserNotifications} onChange={() => setBrowserNotifications(v => !v)} />
-                            </div>
+                            <BrowserPushNotificationToggle rowStyle={row} description="Receive alerts even when the SIL website is closed." />
                             <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
                                 <button className="btn btn-secondary" onClick={handleSaveNotifications}>
                                     {notifSaved ? '✓ Saved' : 'Save Preferences'}

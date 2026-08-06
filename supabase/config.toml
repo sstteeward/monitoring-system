@@ -9,3 +9,11 @@ entrypoint = "./functions/corbado-auth/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/corbado-auth/*.html" ]
+
+[functions.web-push-notification]
+enabled = true
+# The database webhook authenticates with the project service-role key. The
+# function checks that header itself so it can accept both legacy JWT and new
+# opaque service keys.
+verify_jwt = false
+entrypoint = "./functions/web-push-notification/index.ts"
