@@ -145,7 +145,6 @@ const DocumentsView: React.FC = () => {
     return (
         <div className="documents-container">
             <header className="view-header">
-                <h2 className="view-title">Documents</h2>
                 <p className="view-subtitle">Upload and manage your OJT requirements and certifications.</p>
             </header>
 

@@ -3,6 +3,7 @@ import { usePasteBlocker } from '../hooks/usePasteBlocker';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 import { adminService } from '../services/adminService';
+import PasswordField from './PasswordField';
 
 type AdminSettingsTab = 'system' | 'appearance' | 'layout' | 'security' | 'about';
 
@@ -30,6 +31,8 @@ const AdminSettingsView: React.FC<{
     const [changingPassword, setChangingPassword] = useState(false);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [pwSaving, setPwSaving] = useState(false);
     const [pwSuccess, setPwSuccess] = useState(false);
     const [pwError, setPwError] = useState<string | null>(null);
@@ -80,6 +83,8 @@ const AdminSettingsView: React.FC<{
             setPwSuccess(true);
             setNewPassword('');
             setConfirmPassword('');
+            setShowNewPassword(false);
+            setShowConfirmPassword(false);
             setChangingPassword(false);
             setTimeout(() => setPwSuccess(false), 3000);
         } catch (err: any) {
@@ -242,12 +247,12 @@ const AdminSettingsView: React.FC<{
                                 <button className="role-select" style={{ width: '100%' }} onClick={() => setChangingPassword(true)}>Change Password</button>
                             ) : (
                                 <form onSubmit={handleChangePassword}>
-                                    <input style={inputStyle} type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} onPaste={blockPaste} />
-                                    <input style={inputStyle} type="password" placeholder="Confirm password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} onPaste={blockPaste} />
+                                    <PasswordField value={newPassword} onChange={setNewPassword} onPaste={blockPaste} placeholder="New password" visible={showNewPassword} onVisibilityChange={() => setShowNewPassword(value => !value)} inputStyle={inputStyle} />
+                                    <PasswordField value={confirmPassword} onChange={setConfirmPassword} onPaste={blockPaste} placeholder="Confirm password" visible={showConfirmPassword} onVisibilityChange={() => setShowConfirmPassword(value => !value)} inputStyle={inputStyle} />
                                     {pwError && <div style={{ color: '#f87171', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{pwError}</div>}
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <button type="submit" className="role-select" style={{ flex: 1, background: 'var(--admin-primary)', color: 'white' }} disabled={pwSaving}>{pwSaving ? '…' : 'Save'}</button>
-                                        <button type="button" className="role-select" style={{ flex: 1 }} onClick={() => { setChangingPassword(false); setPwError(null); }}>Cancel</button>
+                                        <button type="button" className="role-select" style={{ flex: 1 }} onClick={() => { setChangingPassword(false); setPwError(null); setNewPassword(''); setConfirmPassword(''); setShowNewPassword(false); setShowConfirmPassword(false); }}>Cancel</button>
                                     </div>
                                 </form>
                             )}

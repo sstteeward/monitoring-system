@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePasteBlocker } from '../hooks/usePasteBlocker';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
+import PasswordField from './PasswordField';
 
 interface CompanySettingsViewProps {
     sidebarMode?: 'expanded' | 'collapsed' | 'hover';
@@ -25,6 +26,8 @@ const CompanySettingsView: React.FC<CompanySettingsViewProps> = ({ sidebarMode, 
     const [changingPassword, setChangingPassword] = useState(false);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [pwSaving, setPwSaving] = useState(false);
     const [pwSuccess, setPwSuccess] = useState(false);
     const [pwError, setPwError] = useState<string | null>(null);
@@ -49,6 +52,8 @@ const CompanySettingsView: React.FC<CompanySettingsViewProps> = ({ sidebarMode, 
             setPwSuccess(true);
             setNewPassword('');
             setConfirmPassword('');
+            setShowNewPassword(false);
+            setShowConfirmPassword(false);
             setChangingPassword(false);
             setTimeout(() => setPwSuccess(false), 3000);
         } catch (err: any) {
@@ -245,12 +250,12 @@ const CompanySettingsView: React.FC<CompanySettingsViewProps> = ({ sidebarMode, 
                                 <button className="btn btn-secondary" onClick={() => setChangingPassword(true)}>Change Password</button>
                             ) : (
                                 <form onSubmit={handleChangePassword}>
-                                    <input style={inputStyle} type="password" placeholder="New password (min. 8 chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} onPaste={blockPaste} />
-                                    <input style={inputStyle} type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} onPaste={blockPaste} />
+                                    <PasswordField value={newPassword} onChange={setNewPassword} onPaste={blockPaste} placeholder="New password (min. 8 chars)" visible={showNewPassword} onVisibilityChange={() => setShowNewPassword(value => !value)} inputStyle={inputStyle} />
+                                    <PasswordField value={confirmPassword} onChange={setConfirmPassword} onPaste={blockPaste} placeholder="Confirm new password" visible={showConfirmPassword} onVisibilityChange={() => setShowConfirmPassword(value => !value)} inputStyle={inputStyle} />
                                     {pwError && <div style={{ color: '#f87171', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{pwError}</div>}
                                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                                         <button type="submit" className="btn btn-primary" disabled={pwSaving}>{pwSaving ? 'Updating…' : 'Update Password'}</button>
-                                        <button type="button" className="btn btn-secondary" onClick={() => { setChangingPassword(false); setPwError(null); setNewPassword(''); setConfirmPassword(''); }}>Cancel</button>
+                                        <button type="button" className="btn btn-secondary" onClick={() => { setChangingPassword(false); setPwError(null); setNewPassword(''); setConfirmPassword(''); setShowNewPassword(false); setShowConfirmPassword(false); }}>Cancel</button>
                                     </div>
                                 </form>
                             )}
