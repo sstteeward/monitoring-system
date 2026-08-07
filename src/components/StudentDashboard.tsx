@@ -90,6 +90,18 @@ const StudentDashboard: React.FC = () => {
         }
     };
 
+    useEffect(() => {
+        if (!user?.id) return;
+
+        return notificationService.subscribeToUserNotifications(user.id, (notification) => {
+            setNotifications(previous => (
+                previous.some(item => item.id === notification.id)
+                    ? previous
+                    : [notification, ...previous]
+            ));
+        });
+    }, [user?.id]);
+
     const markNotificationAsRead = async (id: string) => {
         try {
             await notificationService.markAsRead(id);

@@ -56,6 +56,26 @@ export const notificationService = {
         return data as UserNotification[];
     },
 
+    subscribeToUserNotifications(userId: string, onInsert: (notification: UserNotification) => void) {
+        const channel = supabase
+            .channel(`user-notifications-${userId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'user_notifications',
+                    filter: `user_id=eq.${userId}`,
+                },
+                (payload) => onInsert(payload.new as UserNotification),
+            )
+            .subscribe();
+
+        return () => {
+            void supabase.removeChannel(channel);
+        };
+    },
+
     async markAsRead(id: string) {
         const { error } = await supabase
             .from('user_notifications')

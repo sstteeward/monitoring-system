@@ -54,6 +54,10 @@ In **Supabase Dashboard → Integrations → Database Webhooks**, create a webho
 
 The function checks that service-key header itself. This is important because the database webhook, not an arbitrary browser request, is allowed to send alerts.
 
+## 7. Send announcements to the notification bell and browser push
+
+Run [supabase_announcement_notifications.sql](supabase_announcement_notifications.sql) in the Supabase SQL Editor. Each newly posted school announcement will then create a personal `user_notifications` record for every account. Those records appear in the notification bell and trigger browser push for users who have enabled Browser Alerts.
+
 ## Test
 
 1. Deploy the web app over HTTPS.
