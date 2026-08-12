@@ -3,7 +3,7 @@
     flex-direction: column;
     gap: 2rem;
     animation: fadeIn 0.3s ease-out;
-    color: #e2e8f0;
+    color: var(--text-secondary);
     max-width: 1200px;
     margin: 0 auto;
     padding-bottom: 2rem;
@@ -11,32 +11,32 @@
 
 /* Header Section */
 .journal-header {
-    display: flex;
+display: flex;
     justify-content: space-between;
     align-items: flex-start;
 }
 .journal-title {
-    font-size: 2rem;
+font-size: 2rem;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--text-primary);
     letter-spacing: -0.02em;
     margin: 0;
     text-align: left;
 }
 .journal-subtitle {
     font-size: 0.95rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     margin-top: 0.25rem;
 }
 .journal-header-actions {
-    display: flex;
+display: flex;
     gap: 1rem;
     align-items: center;
 }
 .btn-filter {
-    background: #1a1d27;
-    border: 1px solid #2d3748;
-    color: #ffffff;
+background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
     padding: 0.6rem 1.2rem;
     border-radius: 8px;
     font-size: 0.9rem;
@@ -48,11 +48,11 @@
     transition: background 0.2s;
 }
 .btn-filter:hover {
-    background: #2d3748;
+background: var(--border);
 }
 .btn-new-entry {
     background: #34d399;
-    color: #0f111a;
+    color: #ffffff;
     border: none;
     padding: 0.6rem 1.2rem;
     border-radius: 8px;
@@ -100,14 +100,14 @@
     gap: 0.75rem;
 }
 .history-title-group h3 {
-    font-size: 1.25rem;
+font-size: 1.25rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0;
 }
 .badge-count {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
     padding: 0.2rem 0.6rem;
     border-radius: 6px;
     font-size: 0.75rem;
@@ -120,7 +120,7 @@
     gap: 1.5rem;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #cbd5e1;
+    color: var(--text-secondary);
 }
 .legend-item {
     display: flex;
@@ -142,13 +142,13 @@
     gap: 1.25rem;
 }
 .journal-card {
-    padding: 1.5rem;
+padding: 1.5rem;
     display: flex;
     gap: 1.5rem;
     cursor: pointer;
 }
 .card-date-box {
-    background: #064e3b;
+background: rgba(16, 185, 129, 0.1);
     border: 1px solid rgba(52, 211, 153, 0.3);
     border-radius: 12px;
     width: 64px;
@@ -158,18 +158,19 @@
     justify-content: center;
     align-items: center;
     flex-shrink: 0;
-}
+
+    border-color: rgba(16, 185, 129, 0.25);}
 .date-month {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #34d399;
+    color: #059669;
     letter-spacing: 0.05em;
     text-transform: uppercase;
 }
 .date-day {
     font-size: 1.25rem;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 .card-content {
     flex: 1;
@@ -189,7 +190,7 @@
 .card-title {
     font-size: 1.15rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0;
     text-align: left;
 }
@@ -207,7 +208,7 @@
     gap: 1rem;
 }
 .status-badge {
-    padding: 0.3rem 0.6rem;
+padding: 0.3rem 0.6rem;
     border-radius: 6px;
     font-size: 0.65rem;
     font-weight: 800;
@@ -215,23 +216,25 @@
     text-transform: uppercase;
 }
 .status-badge.approved {
-    background: rgba(6, 78, 59, 0.4);
-    color: #34d399;
+background: rgba(16, 185, 129, 0.1);
+    color: #059669;
     border: 1px solid rgba(52, 211, 153, 0.1);
-}
+
+    border-color: rgba(16, 185, 129, 0.2);}
 .status-badge.draft {
-    background: rgba(30, 58, 138, 0.4);
-    color: #60a5fa;
+background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
     border: 1px solid rgba(96, 165, 250, 0.1);
-}
+
+    border-color: rgba(59, 130, 246, 0.2);}
 .card-icons {
-    display: flex;
+display: flex;
     gap: 0.75rem;
-    color: #475569;
+    color: var(--text-dim);
 }
 .card-snippet {
-    font-size: 0.9rem;
-    color: #cbd5e1;
+font-size: 0.9rem;
+    color: var(--text-secondary);
     line-height: 1.6;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -242,7 +245,7 @@
 
 /* Reflective Prompt Card */
 .reflective-card {
-    background: #1e2230;
+background: var(--bg-elevated);
     border-radius: 16px;
     padding: 1.5rem;
     display: flex;
@@ -251,7 +254,7 @@
 }
 .reflection-icon {
     background: #10b981;
-    color: #0f111a;
+    color: #ffffff;
     width: 64px;
     height: 64px;
     border-radius: 12px;
@@ -263,19 +266,19 @@
 .reflection-title {
     font-size: 1.15rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0 0 0.5rem 0;
 }
 .reflection-quote {
     font-size: 0.95rem;
-    color: #e2e8f0;
+    color: var(--text-secondary);
     font-style: italic;
     line-height: 1.6;
     margin: 0 0 1rem 0;
 }
 .reflection-tip {
     font-size: 0.85rem;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 .tip-label {
     color: #34d399;
@@ -300,9 +303,9 @@
     margin-bottom: 1.5rem;
 }
 .widget-title {
-    font-size: 1.15rem;
+font-size: 1.15rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0;
     display: flex;
     align-items: center;
@@ -311,7 +314,7 @@
 .cal-nav {
     display: flex;
     gap: 0.75rem;
-    color: #ffffff;
+    color: var(--text-primary);
     cursor: pointer;
 }
 
@@ -326,29 +329,30 @@
 .cal-day-name {
     font-size: 0.7rem;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--text-secondary);
     text-transform: uppercase;
     margin-bottom: 0.5rem;
 }
 .cal-date {
-    font-size: 0.9rem;
+font-size: 0.9rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
     padding: 0.4rem;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
 }
 .cal-date:hover {
-    background: rgba(255,255,255,0.05);
+background: rgba(0, 0, 0, 0.04);
 }
 .cal-date.active {
-    background: transparent;
+background: transparent;
     border: 1px solid #34d399;
-    color: #34d399;
-}
+    color: #059669;
+
+    border-color: #059669;}
 .cal-date.muted {
-    color: #475569;
+    color: var(--text-dim);
 }
 .completion-rate {
     margin-top: 2rem;
@@ -361,12 +365,10 @@
     margin-bottom: 0.5rem;
     letter-spacing: 0.05em;
 }
-.rate-label { color: #94a3b8; }
-.rate-value { color: #34d399; }
-.progress-bar-bg {
+.rate-label { color: var(--text-muted); }.rate-value { color: var(--primary); }.progress-bar-bg {
     width: 100%;
     height: 8px;
-    background: #2d3748;
+    background: var(--bg-elevated);
     border-radius: 4px;
     overflow: hidden;
 }
@@ -404,7 +406,7 @@
 .stat-label {
     font-size: 0.75rem;
     font-weight: 800;
-    color: #94a3b8;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.2rem;
@@ -412,14 +414,14 @@
 .stat-value {
     font-size: 1.4rem;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--text-primary);
     display: flex;
     align-items: baseline;
     gap: 0.3rem;
 }
 .stat-sub {
     font-size: 0.8rem;
-    color: #64748b;
+    color: var(--text-secondary);
     font-weight: 600;
 }
 
@@ -446,7 +448,7 @@
 }
 .feedback-quote {
     font-size: 0.95rem;
-    color: #cbd5e1;
+    color: var(--text-secondary);
     font-style: italic;
     line-height: 1.6;
     margin: 0 0 1.25rem 0;
@@ -472,18 +474,18 @@
     object-fit: cover;
 }
 .author-name {
-    font-size: 0.85rem;
+font-size: 0.85rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 
 
 /* Custom Editor Modal Overlay */
 .journal-modal-overlay {
-    position: fixed;
+position: fixed;
     inset: 0;
-    background: rgba(15, 17, 26, 0.9);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
@@ -494,8 +496,8 @@
 }
 
 .journal-modal-content {
-    background: #1e2230;
-    border: 1px solid rgba(255,255,255,0.05);
+background: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: 16px;
     width: 100%;
     max-width: 800px;
@@ -507,32 +509,31 @@
 
 .journal-modal-header {
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-
 .journal-modal-header h3 {
     margin: 0;
     font-size: 1.25rem;
-    color: white;
+    color: var(--text-primary);
 }
 
 .journal-modal-close {
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: var(--text-muted);
     cursor: pointer;
     transition: color 0.2s;
 }
 .journal-modal-close:hover {
-    color: white;
+    color: var(--text-primary);
 }
 
 /* Old components being reused inside modal */
 .journal-sections {
-    display: flex;
+display: flex;
     flex-direction: column;
     gap: 1.5rem;
     padding: 1.5rem;
@@ -540,36 +541,36 @@
 .journal-textarea-wrapper .journal-textarea {
     width: 100%;
     min-height: 180px;
-    background: #0f111a;
-    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 1.25rem;
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 0.95rem;
     resize: vertical;
     outline: none;
 }
 .journal-textarea:focus {
-    border-color: #34d399;
+    border-color: var(--primary);
 }
 .section-title {
-    font-size: 0.85rem;
+font-size: 0.85rem;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--text-secondary);
     margin-bottom: 0.5rem;
     display: block;
     text-align: left;
 }
 .journal-actions {
-    padding: 1.5rem;
-    border-top: 1px solid rgba(255,255,255,0.05);
+padding: 1.5rem;
+    border-top: 1px solid var(--border);
     display: flex;
     gap: 1rem;
     justify-content: flex-end;
 }
 .btn-primary {
-    background: #34d399;
-    color: #0f111a;
+background: var(--primary);
+    color: #ffffff;
     border: none;
     padding: 0.6rem 1.2rem;
     border-radius: 8px;
@@ -578,8 +579,8 @@
 }
 .btn-secondary {
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #fff;
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
     padding: 0.6rem 1.2rem;
     border-radius: 8px;
     font-weight: 600;
@@ -602,26 +603,33 @@
 
 /* Tablet (≤900px) */
 @media (max-width: 900px) {
-    .journal-container {
+ .journal-container {
         padding-bottom: 2rem;
-    }
+    
+    color: var(--text-secondary);}
 
     .journal-header {
-        flex-direction: column;
+flex-direction: column;
         gap: 1rem;
         align-items: flex-start;
     }
 
     .journal-title {
         font-size: 1.6rem;
-    }
+    
+    color: var(--text-primary);}
 
     .journal-header-actions {
-        width: 100%;
+width: 100%;
         flex-wrap: wrap;
     }
 
-    .btn-filter,
+    .btn-filter {
+        flex: 1;
+        justify-content: center;
+        background: var(--bg-elevated);
+        border-color: var(--border);
+    }
     .btn-new-entry {
         flex: 1;
         justify-content: center;
@@ -633,48 +641,55 @@
     }
 
     .journal-card {
-        gap: 1rem;
+gap: 1rem;
     }
 
     .reflective-card {
         gap: 1rem;
-    }
+    
+    background: var(--bg-elevated);}
 }
 
 /* Mobile (≤640px) */
 @media (max-width: 640px) {
-    .journal-container {
-        gap: 1.25rem;
+ .journal-container {
+gap: 1.25rem;
         padding-bottom: 2rem;
-    }
+    
+    color: var(--text-secondary);}
 
     .journal-title {
-        font-size: 1.35rem;
-    }
+font-size: 1.35rem;
+    
+    color: var(--text-primary);}
 
     .journal-subtitle {
         font-size: 0.85rem;
-    }
+    
+    color: var(--text-muted);}
 
     .journal-card {
-        flex-direction: column;
+flex-direction: column;
         gap: 0.75rem;
         padding: 1rem;
     }
 
     .card-date-box {
-        width: 100%;
+width: 100%;
         height: auto;
         flex-direction: row;
         gap: 0.5rem;
         padding: 0.5rem 0.75rem;
         border-radius: 8px;
-    }
+    
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.25);}
 
     .date-month,
     .date-day {
         font-size: 0.9rem;
-    }
+    
+    color: #059669;}
 
     .card-header {
         flex-direction: column;
@@ -689,24 +704,27 @@
     }
 
     .card-title {
-        font-size: 1rem;
+font-size: 1rem;
     }
 
     .card-snippet {
-        font-size: 0.82rem;
-    }
+font-size: 0.82rem;
+    
+    color: var(--text-secondary);}
 
     .reflective-card {
-        flex-direction: column;
+flex-direction: column;
         gap: 0.75rem;
         padding: 1rem;
-    }
+    
+    background: var(--bg-elevated);}
 
     .reflection-icon {
         width: 48px;
         height: 48px;
         border-radius: 10px;
-    }
+    
+    color: #ffffff;}
 
     .reflection-title {
         font-size: 1rem;
@@ -740,36 +758,40 @@
     }
 
     .cal-date {
-        font-size: 0.78rem;
+font-size: 0.78rem;
         padding: 0.3rem;
     }
 
     /* Modal full-screen on mobile */
     .journal-modal-overlay {
-        padding: 0;
+padding: 0;
         align-items: flex-end;
-    }
+    
+    background: rgba(0, 0, 0, 0.5);}
 
     .journal-modal-content {
-        max-height: 95vh;
+max-height: 95vh;
         border-radius: 16px 16px 0 0;
-    }
+    
+    background: var(--bg-card);
+    border-color: var(--border);}
 
     .journal-modal-header {
         padding: 1rem;
-    }
+    
+    border-bottom-color: var(--border);}
 
     .journal-sections {
-        padding: 1rem;
+padding: 1rem;
     }
 
     .journal-actions {
-        padding: 1rem;
+padding: 1rem;
         flex-direction: column-reverse;
         gap: 0.5rem;
-    }
-
-    .journal-actions .btn-primary,
+    
+    border-top-color: var(--border);}
+.journal-actions .btn-primary,
     .journal-actions .btn-secondary {
         width: 100%;
         text-align: center;
@@ -797,14 +819,19 @@
 
 /* Small phones (≤400px) */
 @media (max-width: 400px) {
-    .journal-title {
-        font-size: 1.15rem;
-    }
+ .journal-title {
+font-size: 1.15rem;
+    
+    color: var(--text-primary);}
 
     .btn-filter,
     .btn-new-entry {
         font-size: 0.82rem;
         padding: 0.5rem 0.75rem;
+    }
+    .btn-filter {
+        background: var(--bg-elevated);
+        border-color: var(--border);
     }
 
     .journal-card {
@@ -849,150 +876,4 @@
 
 .lightbox-close:hover {
     color: #ef4444;
-}
-
-/* ══════════════════════════════════════════
-   LIGHT MODE OVERRIDES
-   ══════════════════════════════════════════ */
-html[data-theme="light"] .journal-container {
-    color: var(--text-secondary);
-}
-
-html[data-theme="light"] .journal-title,
-html[data-theme="light"] .history-title-group h3,
-html[data-theme="light"] .widget-title,
-html[data-theme="light"] .card-title,
-html[data-theme="light"] .date-day,
-html[data-theme="light"] .reflection-title,
-html[data-theme="light"] .author-name,
-html[data-theme="light"] .cal-date,
-html[data-theme="light"] .stat-value,
-html[data-theme="light"] .journal-modal-header h3 {
-    color: var(--text-primary);
-}
-
-html[data-theme="light"] .journal-subtitle,
-html[data-theme="light"] .cal-day-name,
-html[data-theme="light"] .stat-label,
-html[data-theme="light"] .rate-label,
-html[data-theme="light"] .reflection-tip,
-html[data-theme="light"] .section-title,
-html[data-theme="light"] .journal-modal-close {
-    color: var(--text-muted);
-}
-
-html[data-theme="light"] .card-snippet,
-html[data-theme="light"] .history-legend,
-html[data-theme="light"] .reflection-quote,
-html[data-theme="light"] .feedback-quote {
-    color: var(--text-secondary);
-}
-
-html[data-theme="light"] .card-icons {
-    color: var(--text-dim);
-}
-
-html[data-theme="light"] .btn-filter {
-    background: var(--bg-elevated);
-    border-color: var(--border);
-    color: var(--text-primary);
-}
-
-html[data-theme="light"] .btn-filter:hover {
-    background: var(--border);
-}
-
-html[data-theme="light"] .btn-new-entry {
-    color: #ffffff;
-}
-
-html[data-theme="light"] .reflective-card {
-    background: var(--bg-elevated);
-}
-
-html[data-theme="light"] .reflection-icon {
-    color: #ffffff;
-}
-
-html[data-theme="light"] .card-date-box {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.25);
-}
-
-html[data-theme="light"] .date-month {
-    color: #059669;
-}
-
-html[data-theme="light"] .cal-date:hover {
-    background: rgba(0, 0, 0, 0.04);
-}
-
-html[data-theme="light"] .cal-date.active {
-    border-color: #059669;
-    color: #059669;
-}
-
-html[data-theme="light"] .cal-date.muted {
-    color: var(--text-dim);
-}
-
-html[data-theme="light"] .progress-bar-bg {
-    background: var(--bg-elevated);
-}
-
-html[data-theme="light"] .rate-value {
-    color: #059669;
-}
-
-html[data-theme="light"] .journal-modal-overlay {
-    background: rgba(0, 0, 0, 0.5);
-}
-
-html[data-theme="light"] .journal-modal-content {
-    background: var(--bg-card);
-    border-color: var(--border);
-}
-
-html[data-theme="light"] .journal-modal-header {
-    border-bottom-color: var(--border);
-}
-
-html[data-theme="light"] .journal-textarea-wrapper .journal-textarea {
-    background: var(--bg-elevated);
-    border-color: var(--border);
-    color: var(--text-primary);
-}
-
-html[data-theme="light"] .journal-actions {
-    border-top-color: var(--border);
-}
-
-html[data-theme="light"] .btn-secondary {
-    border-color: var(--border);
-    color: var(--text-primary);
-}
-
-html[data-theme="light"] .btn-primary {
-    color: #ffffff;
-}
-
-html[data-theme="light"] .cal-nav {
-    color: var(--text-primary);
-}
-
-html[data-theme="light"] .badge-count {
-    background: rgba(16, 185, 129, 0.1);
-    color: #059669;
-}
-
-html[data-theme="light"] .status-badge.approved {
-    background: rgba(16, 185, 129, 0.1);
-    color: #059669;
-    border-color: rgba(16, 185, 129, 0.2);
-}
-
-html[data-theme="light"] .status-badge.draft {
-    background: rgba(59, 130, 246, 0.1);
-    color: #2563eb;
-    border-color: rgba(59, 130, 246, 0.2);
 }

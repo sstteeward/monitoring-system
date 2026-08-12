@@ -12,17 +12,17 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ userId?: string; children: React.ReactNode }> = ({ userId, children }) => {
     const [theme, setThemeState] = useState<Theme>(() => {
-        if (!userId) return 'dark';
+        if (!userId) return 'light';
         const saved = localStorage.getItem(`cd-theme-${userId}`);
-        return saved === 'light' ? 'light' : 'dark'; // default: dark
+        return saved === 'dark' ? 'dark' : 'light'; // default: light
     });
 
     // When the userId changes (different user logs in), reload their saved theme preference
     useEffect(() => {
-        let resolved: Theme = 'dark';
+        let resolved: Theme = 'light';
         if (userId) {
             const saved = localStorage.getItem(`cd-theme-${userId}`);
-            if (saved === 'light') resolved = 'light';
+            if (saved === 'dark') resolved = 'dark';
         }
         setThemeState(resolved);
         document.documentElement.setAttribute('data-theme', resolved);

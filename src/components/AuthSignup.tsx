@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { useLocation } from "react-router-dom";
 import "./AuthSignup.css";
@@ -49,6 +49,13 @@ const getStrengthColor = (score: number) => {
     return 'var(--success)';
 };
 
+const PortalBack = () => (
+    <a className="portal-back" href="/">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
+        Choose portal
+    </a>
+);
+
 export default function AuthSignup() {
     const location = useLocation();
     const blockPaste = usePasteBlocker();
@@ -91,6 +98,15 @@ export default function AuthSignup() {
     const passwordScore = getPasswordStrength(signupPassword);
     const strengthLabel = getStrengthLabel(passwordScore);
     const strengthColor = getStrengthColor(passwordScore);
+
+    const authPageRef = useRef<HTMLDivElement>(null);
+    const handleAuthMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const el = authPageRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        el.style.setProperty('--spot-x', `${e.clientX - rect.left}px`);
+        el.style.setProperty('--spot-y', `${e.clientY - rect.top}px`);
+    };
 
     const resolveAccountType = (): 'student' | 'coordinator' | 'admin' | 'company' => {
         if (roleState === 'company') return 'company';
@@ -341,8 +357,9 @@ export default function AuthSignup() {
     };
 
     return (
-        <div className="auth-page">
-            <div className={`auth-card ${mode}`}>
+        <div className="auth-page" ref={authPageRef} onMouseMove={handleAuthMouseMove}>
+            <div className="auth-card-shell">
+                <div className={`auth-card ${mode}`}>
                 <div className="auth-card-left">
                     <img src={leftPhoto} className="left-img" alt="Asian College campus" />
                     <div className="auth-left-overlay">
@@ -354,6 +371,7 @@ export default function AuthSignup() {
                 <div className="auth-card-right">
                     {mode === "signup" ? (
                         <div className="auth-form-wrapper">
+                            {displayRole && <PortalBack />}
                             <div className="auth-card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h1>{displayRole ? `Create Account as ${displayRole}` : "Create Your Account"}</h1>
                                 <p className="subtitle">Sign up using your {roleState === 'company' ? 'company' : <strong>.edu.ph</strong>} email.</p>
@@ -531,6 +549,7 @@ export default function AuthSignup() {
                         </div>
                     ) : mode === "login" ? (
                         <div className="auth-form-wrapper">
+                            {displayRole && <PortalBack />}
                             <div className="auth-card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h2>{displayRole ? `Login as ${displayRole}` : "Login"}</h2>
                                 <p className="subtitle">SIL Monitoring System — sign in using your {roleState === 'company' ? 'company' : <strong>.edu.ph</strong>} email.</p>
@@ -608,6 +627,7 @@ export default function AuthSignup() {
                         </div>
                     ) : (
                         <div className="auth-form-wrapper">
+                            {displayRole && <PortalBack />}
                             <div className="auth-card-header" style={{ marginBottom: '1.25rem' }}>
                                 <h2>{displayRole ? `Reset ${displayRole} Password` : "Reset Password"}</h2>
                                 <p className="subtitle">Enter your {roleState === 'company' ? 'company' : <strong>.edu.ph</strong>} email to receive a password reset link.</p>
@@ -651,6 +671,7 @@ export default function AuthSignup() {
                         </div>
                     )}
                 </div>
+            </div>
             </div>
         </div>
     );

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { companyService, type Schedule } from '../services/companyService';
 import { profileService, type Profile } from '../services/profileService';
 import UserClickableName from './UserClickableName';
+import { CardGridSkeleton } from './Skeletons';
 
 const SHIFT_TYPES = ['morning', 'afternoon', 'night', 'flexible'] as const;
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -269,9 +270,7 @@ const CompanyScheduleView: React.FC = () => {
             )}
 
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>Loading schedules...</div>
-                </div>
+                <CardGridSkeleton cards={6} height={180} />
             ) : schedules.length === 0 ? (
                 <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                     No schedules defined. Click "Add Schedule" to create one.

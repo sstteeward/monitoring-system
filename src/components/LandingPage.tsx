@@ -100,7 +100,7 @@ export default function LandingPage() {
       {/* Legal Modals */}
       {showTerms && (
           <div className="modal-overlay fade-in" onClick={() => setShowTerms(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-              <div className="modal-content glass-card" onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-panel)', padding: '2rem', borderRadius: 16, maxWidth: 500, width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
+              <div className="modal-content glass-card" onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: 16, maxWidth: 500, width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
                   <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', color: 'var(--text-bright)' }}>Terms & Conditions</h3>
                   <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       <p><strong>1. Acceptance of Terms</strong><br/>By accessing and using the SIL Monitoring System, you agree to be bound by these Terms and Conditions.</p>
@@ -117,7 +117,7 @@ export default function LandingPage() {
 
       {showPrivacy && (
           <div className="modal-overlay fade-in" onClick={() => setShowPrivacy(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-              <div className="modal-content glass-card" onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-panel)', padding: '2rem', borderRadius: 16, maxWidth: 500, width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
+              <div className="modal-content glass-card" onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: 16, maxWidth: 500, width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
                   <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', color: 'var(--text-bright)' }}>Privacy Policy</h3>
                   <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       <p><strong>1. Data Collection</strong><br/>We collect personal information (such as name and email) and location data (for geofenced clock-ins) strictly to facilitate the SIL program.</p>
@@ -134,7 +134,7 @@ export default function LandingPage() {
 
       {showCompanyInfo && (
           <div className="modal-overlay fade-in" onClick={() => setShowCompanyInfo(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-              <div className="modal-content glass-card" onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-panel)', padding: '2rem', borderRadius: 16, maxWidth: 500, width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
+              <div className="modal-content glass-card" onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: 16, maxWidth: 500, width: '90%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
                   <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', color: 'var(--text-bright)' }}>Company Portal is Optional</h3>
                   <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       <p>The Company Portal is designed to make it easier for supervisors to monitor interns, review daily journals, and submit performance evaluations online.</p>

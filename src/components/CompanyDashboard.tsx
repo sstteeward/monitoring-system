@@ -199,9 +199,6 @@ const CompanyDashboard: React.FC = () => {
                     <div className={`company-nav-item ${currentView === 'documents' ? 'active' : ''}`} onClick={() => navigateTo('documents')}>
                         <span className="nav-icon">{Icon.folder}</span> <span className="nav-text">Documents</span>
                     </div>
-                    <div className={`company-nav-item ${currentView === 'profile' ? 'active' : ''}`} onClick={() => navigateTo('profile')}>
-                        <span className="nav-icon">{Icon.building}</span> <span className="nav-text">Company Profile</span>
-                    </div>
                     <div className={`company-nav-item ${currentView === 'security' ? 'active' : ''}`} onClick={() => navigateTo('security')}>
                         <span className="nav-icon">{Icon.shield}</span> <span className="nav-text">Security Logs</span>
                     </div>
@@ -252,7 +249,7 @@ const CompanyDashboard: React.FC = () => {
                                         <div style={{
                                             position: 'absolute', top: 'calc(100% + 10px)', right: 0,
                                             width: 320, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                                            borderRadius: 16, zIndex: 999, boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
+                                            borderRadius: 16, zIndex: 999, boxShadow: '0 12px 48px rgba(0,0,0,0.18)',
                                             overflow: 'hidden', animation: 'fadeIn 0.2s ease'
                                         }}>
                                             <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -275,7 +272,7 @@ const CompanyDashboard: React.FC = () => {
                                                                 borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--primary)',
                                                                 transition: 'background 0.2s'
                                                             }}
-                                                            onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                                            onMouseOver={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                                                             onMouseOut={e => e.currentTarget.style.background = n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)'}
                                                         >
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
@@ -409,7 +406,7 @@ const CompanyDashboard: React.FC = () => {
                         <div className="glass-card" style={{
                             border: '1px solid rgba(239,68,68,0.3)',
                             borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
-                            boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                            boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
                             animation: 'fadeIn 0.2s ease',
                         }}>
                             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>

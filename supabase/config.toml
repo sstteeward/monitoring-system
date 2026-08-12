@@ -17,3 +17,10 @@ enabled = true
 # opaque service keys.
 verify_jwt = false
 entrypoint = "./functions/web-push-notification/index.ts"
+
+[functions.notification-email]
+enabled = true
+# This function accepts only database-webhook requests authenticated with the
+# project's legacy service-role key, which it verifies inside the handler.
+verify_jwt = false
+entrypoint = "./functions/notification-email/index.ts"

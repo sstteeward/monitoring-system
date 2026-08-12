@@ -23,12 +23,11 @@
 
 .dtr-main-heading {
   margin: 0;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 42px;
   font-weight: 850;
   text-transform: uppercase;
   letter-spacing: 2px;
-  text-shadow: 0 4px 15px rgba(0,0,0,0.4);
 }
 
 .dtr-card-container {
@@ -61,7 +60,7 @@
   color: #1a1a1a; /* Darker text for readability */
   font-family: 'Inter', 'Outfit', system-ui, -apple-system, sans-serif;
   padding: 0;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.22);
   border: 1px solid rgba(139, 115, 85, 0.3);
   border-radius: 8px;
   -webkit-backface-visibility: hidden;
@@ -173,7 +172,7 @@
   margin-bottom: 20px;
   color: var(--text-secondary);
   font-size: 14px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   animation: fadeInDown 0.6s ease-out;
 }
 
@@ -183,7 +182,7 @@
 }
 
 .banner-divider {
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--text-dim);
   font-weight: 200;
 }
 
@@ -367,7 +366,7 @@
 }
 
 .tc-right-table tr:hover td {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .tc-right-table thead th {
@@ -426,7 +425,7 @@
 }
 
 .tc-grid tr:hover td {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .tc-grid thead th {
@@ -567,7 +566,7 @@
   background: var(--bg-elevated);
   padding: 14px 28px;
   border-radius: 24px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
   z-index: 100;
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -578,7 +577,7 @@
 .dtr-actions:hover {
   transform: translateY(-5px);
   border-color: var(--primary-glow);
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5), 0 0 20px var(--primary-glow);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15), 0 0 20px var(--primary-glow);
 }
 
 .tc-card-header-actions {
@@ -600,13 +599,13 @@
   padding: 8px 18px;
   border-radius: 12px;
   gap: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
 }
 
 .badge-label {
   font-size: 10px;
   font-weight: 900;
-  color: rgba(255,255,255, 0.7);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 1.5px;
 }
@@ -614,7 +613,7 @@
 .badge-value {
   font-size: 18px;
   font-weight: 900;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .dtr-btn-flip-tab {
@@ -668,13 +667,13 @@
 }
 
 .dtr-btn-secondary {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
 }
 
 .dtr-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--bg-elevated);
   transform: translateY(-2px);
 }
 

@@ -259,7 +259,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 <div className="glass-card" style={{
                     borderRadius: 20,
                     padding: '1.5rem 2rem',
-                    boxShadow: '0 8px 40px rgba(0,0,0,0.25)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                     position: 'relative',
                     zIndex: 60,
                 }}>
@@ -400,7 +400,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                         position: 'absolute', top: '100%', left: 0, right: 0,
                                         background: 'var(--bg-elevated)', border: '1px solid var(--border)',
                                         borderRadius: 12, zIndex: 100, maxHeight: 220, overflowY: 'auto',
-                                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)', marginTop: 4,
+                                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4,
                                     }}>
                                         {filtered.map(c => (
                                             <div
@@ -426,7 +426,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                         position: 'absolute', top: '100%', left: 0, right: 0,
                                         background: 'var(--bg-elevated)', border: '1px solid var(--border)',
                                         borderRadius: 12, zIndex: 100, marginTop: 4,
-                                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden',
+                                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden',
                                     }}>
                                         <div style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
                                             No companies match &ldquo;{search}&rdquo;

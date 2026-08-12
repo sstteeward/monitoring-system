@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { companyService, type Evaluation } from '../services/companyService';
 import { profileService, type Profile } from '../services/profileService';
 import UserClickableName from './UserClickableName';
+import { ListSkeleton } from './Skeletons';
 
 const EvaluationCriteria = [
     { key: 'attendance_score', label: 'Attendance' },
@@ -239,7 +240,7 @@ const CompanyEvaluationView: React.FC = () => {
                     border-radius: 10px;
                 }
                 .scrollable-content::-webkit-scrollbar-thumb:hover {
-                    background-color: rgba(255, 255, 255, 0.2);
+                    background-color: var(--border);
                 }
                 
                 .intern-card {
@@ -264,7 +265,7 @@ const CompanyEvaluationView: React.FC = () => {
                     align-items: center;
                     justify-content: flex-end;
                     font-weight: 600;
-                    color: rgba(255, 255, 255, 0.4);
+                    color: var(--text-muted);
                     font-size: 0.95rem;
                     flex-shrink: 0;
                 }
@@ -408,7 +409,7 @@ const CompanyEvaluationView: React.FC = () => {
                     
                     <div className="scrollable-content">
                         {loading ? (
-                            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', marginTop: '2rem' }}>Loading interns...</div>
+                            <ListSkeleton items={4} />
                         ) : filteredStudents.length === 0 ? (
                             <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', marginTop: '2rem' }}>
                                 {students.length === 0 ? 'No interns assigned.' : 'No interns match your search.'}
@@ -430,7 +431,7 @@ const CompanyEvaluationView: React.FC = () => {
                                             {index + 1}.
                                         </div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontWeight: isSelected ? 700 : 500, fontSize: '0.95rem', color: isSelected ? '#fff' : 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            <div style={{ fontWeight: isSelected ? 700 : 500, fontSize: '0.95rem', color: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 <UserClickableName
                                                     userId={student.id}
                                                     userName={`${student.first_name} ${student.last_name}`}
@@ -478,18 +479,18 @@ const CompanyEvaluationView: React.FC = () => {
                             <div className="scrollable-content">
                                 {showForm ? (
                                     <form className="fade-in" style={{ padding: '0 8px 24px 8px' }} onSubmit={handleSubmit}>
-                                        <h3 style={{ margin: '0 0 1.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>New Performance Evaluation</h3>
+                                        <h3 style={{ margin: '0 0 1.5rem 0', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>New Performance Evaluation</h3>
                                         
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                                             {EvaluationCriteria.map(criteria => (
                                                 <div key={criteria.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                    <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{criteria.label}</label>
+                                                    <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{criteria.label}</label>
                                                     {renderStars(criteria.key, formData[criteria.key])}
                                                 </div>
                                             ))}
                                         </div>
 
-                                        <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                                             <h4 style={{ margin: '0 0 1rem 0' }}>Overall Rating</h4>
                                             <div style={{ transform: 'scale(1.2)', transformOrigin: 'left center' }}>
                                                 {renderStars('overall_rating', formData.overall_rating)}
@@ -499,19 +500,19 @@ const CompanyEvaluationView: React.FC = () => {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Strengths</label>
-                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', padding: '12px' }} value={formData.strengths} onChange={e => setFormData({...formData, strengths: e.target.value})} placeholder="What does this intern do well?" required />
+                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '8px', padding: '12px' }} value={formData.strengths} onChange={e => setFormData({...formData, strengths: e.target.value})} placeholder="What does this intern do well?" required />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Areas for Improvement (Weaknesses)</label>
-                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', padding: '12px' }} value={formData.weaknesses} onChange={e => setFormData({...formData, weaknesses: e.target.value})} placeholder="Where can this intern improve?" required />
+                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '8px', padding: '12px' }} value={formData.weaknesses} onChange={e => setFormData({...formData, weaknesses: e.target.value})} placeholder="Where can this intern improve?" required />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Recommendations / Additional Comments</label>
-                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px', padding: '12px' }} value={formData.recommendations} onChange={e => setFormData({...formData, recommendations: e.target.value})} placeholder="Any other feedback?" />
+                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '8px', padding: '12px' }} value={formData.recommendations} onChange={e => setFormData({...formData, recommendations: e.target.value})} placeholder="Any other feedback?" />
                                             </div>
                                         </div>
 
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                                             <button type="button" className="btn-outline" onClick={() => setShowForm(false)} disabled={submitting}>Cancel</button>
                                             <button type="submit" className="btn-new-eval" disabled={submitting}>
                                                 {submitting ? 'Submitting...' : 'Submit Evaluation'}
@@ -519,7 +520,7 @@ const CompanyEvaluationView: React.FC = () => {
                                         </div>
                                     </form>
                                 ) : loadingEvaluations ? (
-                                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading evaluations...</div>
+                                    <ListSkeleton items={4} />
                                 ) : evaluations.length === 0 ? (
                                     <div className="empty-state fade-in">
                                         <div className="empty-icon">
@@ -547,12 +548,12 @@ const CompanyEvaluationView: React.FC = () => {
                                                             
                                                             {/* Center Info */}
                                                             <div style={{ flex: 1, minWidth: 0 }}>
-                                                                <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.4rem', color: '#fff' }}>
+                                                                <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
                                                                     Performance Evaluation
                                                                 </div>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                                                     <span>{evalDate}</span>
-                                                                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }}></span>
+                                                                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--border)' }}></span>
                                                                     <span>Evaluator: {evaluatorName}</span>
                                                                 </div>
                                                             </div>
@@ -571,13 +572,13 @@ const CompanyEvaluationView: React.FC = () => {
                                                         
                                                         {/* Expanded Content */}
                                                         {isExpanded && (
-                                                            <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }} className="fade-in">
+                                                            <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border)' }} className="fade-in">
                                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                                                                     {/* Scores Grid */}
                                                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                                                                         {EvaluationCriteria.map(c => (
-                                                                            <div key={c.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                                                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>{c.label}</span>
+                                                                            <div key={c.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{c.label}</span>
                                                                                 {renderReadonlyStars((evaluation as any)[c.key])}
                                                                             </div>
                                                                         ))}
@@ -591,20 +592,20 @@ const CompanyEvaluationView: React.FC = () => {
                                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                                                         {evaluation.strengths && (
                                                                             <div>
-                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Strengths</h4>
-                                                                                <p style={{ margin: 0, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.strengths}</p>
+                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Strengths</h4>
+                                                                                <p style={{ margin: 0, background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.strengths}</p>
                                                                             </div>
                                                                         )}
                                                                         {evaluation.weaknesses && (
                                                                             <div>
-                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Areas for Improvement</h4>
-                                                                                <p style={{ margin: 0, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.weaknesses}</p>
+                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Areas for Improvement</h4>
+                                                                                <p style={{ margin: 0, background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.weaknesses}</p>
                                                                             </div>
                                                                         )}
                                                                         {evaluation.recommendations && (
                                                                             <div>
-                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Recommendations / Comments</h4>
-                                                                                <p style={{ margin: 0, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.recommendations}</p>
+                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Recommendations / Comments</h4>
+                                                                                <p style={{ margin: 0, background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.recommendations}</p>
                                                                             </div>
                                                                         )}
                                                                     </div>

@@ -365,7 +365,7 @@ const AdminDepartmentsView: React.FC = () => {
                             </div>
                         )}
                         {coordinators.length === 0 && (
-                            <div style={{ padding: '2rem 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No coordinators found in the system.</div>
+                            <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No coordinators found in the system.</div>
                         )}
                     </div>
                 </div>

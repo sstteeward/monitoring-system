@@ -68,22 +68,22 @@
 }
 
 .btn-reject {
-    background: rgba(239, 68, 68, 0.1) !important;
+    background: #fee2e2 !important;
     color: #ef4444 !important;
-    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+    border: 1px solid #fecaca !important;
 }
 
 .btn-reject:hover {
-    background: rgba(239, 68, 68, 0.2) !important;
-}
-
-html[data-theme="light"] .btn-reject {
-    background: #fee2e2 !important;
-    border-color: #fecaca !important;
-}
-
-html[data-theme="light"] .btn-reject:hover {
     background: #fecaca !important;
+}
+
+html[data-theme="dark"] .btn-reject {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+html[data-theme="dark"] .btn-reject:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -206,15 +206,15 @@ html[data-theme="light"] .btn-reject:hover {
 ═══════════════════════════════════════════════════ */
 .cd-welcome-banner {
     position: relative;
-    background: linear-gradient(135deg, #0d9488 0%, #065f46 60%, #1e1b4b 100%);
+    background: linear-gradient(135deg, #10b981 0%, #0d9488 60%, #059669 100%);
     border-radius: 18px;
     padding: 2rem 2.5rem;
     overflow: hidden;
     margin-bottom: 0.5rem;
 }
 
-html[data-theme="light"] .cd-welcome-banner {
-    background: linear-gradient(135deg, #10b981 0%, #0d9488 60%, #059669 100%);
+html[data-theme="dark"] .cd-welcome-banner {
+    background: linear-gradient(135deg, #0d9488 0%, #065f46 60%, #1e1b4b 100%);
 }
 
 .cd-welcome-bg {

@@ -260,17 +260,17 @@ const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({ departmentId })
                                                 
                                                 {/* Additional Details specifically for anomalies */}
                                                 {log.details?.speed && (
-                                                    <div style={{ display: 'inline-block', background: 'var(--bg-panel)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '4px' }}>
+                                                    <div style={{ display: 'inline-block', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '4px' }}>
                                                         Speed: {(log.details.speed * 3.6).toFixed(1)} km/h
                                                     </div>
                                                 )}
                                                 {log.details?.distFromLastOut && (
-                                                    <div style={{ display: 'inline-block', background: 'var(--bg-panel)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '4px', marginLeft: '8px' }}>
+                                                    <div style={{ display: 'inline-block', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '4px', marginLeft: '8px' }}>
                                                         Dist: {(log.details.distFromLastOut / 1000).toFixed(2)} km
                                                     </div>
                                                 )}
                                                 {log.details?.distance && (
-                                                    <div style={{ display: 'inline-block', background: 'var(--bg-panel)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '4px' }}>
+                                                    <div style={{ display: 'inline-block', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '4px' }}>
                                                         Off-Site Dist: {(log.details.distance / 1000).toFixed(2)} km
                                                     </div>
                                                 )}

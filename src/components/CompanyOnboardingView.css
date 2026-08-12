@@ -215,7 +215,7 @@
   border: 1px solid rgba(16, 185, 129, 0.25);
   border-radius: 14px;
   background: var(--bg-card, #111111);
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(16, 185, 129, 0.08), 0 0 24px rgba(16, 185, 129, 0.08);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(16, 185, 129, 0.08), 0 0 24px rgba(16, 185, 129, 0.08);
   animation: company-dropdown-in 0.16s ease;
   padding: 6px;
 }

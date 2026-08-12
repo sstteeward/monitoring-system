@@ -95,10 +95,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                     maxHeight: '90vh',
                     overflowY: 'auto',
                     overflowX: 'hidden',
-                    background: 'rgba(18, 18, 18, 0.95)',
+                    background: 'var(--bg-card)',
                     backdropFilter: 'blur(20px)',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                    border: '1px solid var(--border)',
                     animation: 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
                     boxSizing: 'border-box',
                     position: 'relative',
@@ -120,8 +120,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                         position: 'absolute',
                         top: '1.5rem',
                         right: '1.5rem',
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'var(--bg-elevated)',
+                        border: '1px solid var(--border)',
                         borderRadius: '14px', 
                         width: 40, 
                         height: 40,
@@ -393,13 +393,13 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                     background: transparent;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.1);
+                    background: var(--scrollbar);
                     border-radius: 20px;
                     border: 2px solid transparent;
                     background-clip: content-box;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: rgba(255, 255, 255, 0.2);
+                    background: var(--border-strong);
                     background-clip: content-box;
                 }
                 
@@ -412,7 +412,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                 /* For Firefox */
                 .custom-scrollbar {
                     scrollbar-width: thin;
-                    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+                    scrollbar-color: var(--scrollbar) transparent;
                 }
 
                 .upm-overlay {
@@ -430,7 +430,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                     overflow-y: auto !important;
                     overflow-x: hidden !important;
                     transform: none !important;
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
                 }
                 .upm-card::before,
                 .upm-card::after {
@@ -438,7 +438,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                 }
                 .upm-card:hover {
                     transform: none !important;
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
                 }
 
                 .upm-content-grid {

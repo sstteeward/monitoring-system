@@ -122,7 +122,7 @@ const AdminSettingsView: React.FC<{
         },
     ];
 
-    if (loading) return <div style={{ padding: '2rem', color: '#94a3b8' }}>Loading settings...</div>;
+    if (loading) return <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Loading settings...</div>;
 
     return (
         <div className="fade-in">

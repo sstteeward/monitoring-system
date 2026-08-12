@@ -3,7 +3,6 @@ import type { GeoJSONPolygon } from '../utils/geoUtils';
 import type { Profile } from './profileService';
 import type { Timesheet } from './timeTracking';
 import { notificationService } from './notificationService';
-import { emailService } from './emailService';
 
 // Define a type for Daily Journals since it might not be exported from journalService
 export interface DailyJournal {
@@ -680,14 +679,6 @@ export const coordinatorService = {
                     console.error('Error auto-assigning students to company:', profileErr);
                 }
 
-                // Send notifications (both in-app and email)
-                const { data: studentProfiles } = await supabase
-                    .from('profiles')
-                    .select('email, first_name, last_name, auth_user_id')
-                    .in('auth_user_id', studentIds);
-
-                const profileMap = new Map((studentProfiles ?? []).map(p => [p.auth_user_id, p]));
-
                 for (const studentId of studentIds) {
                     await notificationService.createNotification(
                         studentId,
@@ -696,12 +687,6 @@ export const coordinatorService = {
                         'success'
                     ).catch(err => console.error('Error sending approval notification:', err));
 
-                    const profile = profileMap.get(studentId);
-                    if (profile && profile.email) {
-                        const studentName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Student';
-                        await emailService.sendCompanyApprovalEmail(profile.email, studentName, name)
-                            .catch(err => console.error('Error sending approval email:', err));
-                    }
                 }
             }
         }
@@ -784,15 +769,7 @@ export const coordinatorService = {
         }
 
         // 4. Notify the applicant that their company account has been verified
-        const { data: applicantProfile } = await supabase
-            .from('profiles')
-            .select('email, first_name, last_name')
-            .eq('auth_user_id', request.requested_by)
-            .single();
-
-        if (applicantProfile) {
-            const applicantName = `${applicantProfile.first_name || ''} ${applicantProfile.last_name || ''}`.trim() || 'Supervisor';
-
+        if (request?.requested_by) {
             await notificationService.createNotification(
                 request.requested_by,
                 'Company Account Verified',
@@ -800,10 +777,6 @@ export const coordinatorService = {
                 'success'
             ).catch(err => console.error('Error sending verification notification:', err));
 
-            if (applicantProfile.email) {
-                await emailService.sendCompanyAccountVerifiedEmail(applicantProfile.email, applicantName, company.name)
-                    .catch(err => console.error('Error sending verification email:', err));
-            }
         }
 
         return company;
@@ -840,23 +813,6 @@ export const coordinatorService = {
                 'warning'
             ).catch(err => console.error('Error sending rejection notification:', err));
 
-            // Fetch the requesting profile to get their email
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('email, first_name, last_name')
-                .eq('auth_user_id', request.requested_by)
-                .single();
-
-            if (profile && profile.email) {
-                const requesterName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Student';
-                if (isCompanyAccount) {
-                    await emailService.sendCompanyAccountRejectedEmail(profile.email, requesterName, request.name)
-                        .catch(err => console.error('Error sending rejection email:', err));
-                } else {
-                    await emailService.sendCompanyRejectionEmail(profile.email, requesterName, request.name)
-                        .catch(err => console.error('Error sending rejection email:', err));
-                }
-            }
         }
 
         return true;

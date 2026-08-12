@@ -3,6 +3,7 @@ import { companyService, type CompanyDocument } from '../services/companyService
 import { profileService } from '../services/profileService';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import { TableSkeleton } from './Skeletons';
 
 const CompanyDocumentsView: React.FC = () => {
     const [documents, setDocuments] = useState<CompanyDocument[]>([]);
@@ -223,9 +224,7 @@ const CompanyDocumentsView: React.FC = () => {
             )}
 
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>Loading documents...</div>
-                </div>
+                <TableSkeleton rows={6} cols={4} />
             ) : documents.length === 0 ? (
                 <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                     No documents uploaded yet.

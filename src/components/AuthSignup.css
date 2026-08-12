@@ -10,18 +10,19 @@
 }
 
 .auth-page {
-    --bg: #050505;
-    --surface: #0d0d0d;
-    --border: rgba(255, 255, 255, 0.03);
+    --bg: var(--bg-app);
+    --surface: var(--bg-card);
+    --border: var(--border);
     --border-focus: var(--primary);
     --accent: var(--primary);
     --accent-2: #2563eb;
-    --text: #ffffff;
-    --muted: #a3a3a3;
-    --muted-light: #737373;
+    --text: var(--text-primary);
+    --muted: var(--text-muted);
+    --muted-light: var(--text-dim);
     --error: #ef4444;
     font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
 
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -36,6 +37,32 @@
     overflow-y: auto;
 }
 
+/* Mouse-following spotlight */
+.auth-page::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(560px circle at var(--spot-x, 50%) var(--spot-y, -10%), rgba(16, 185, 129, 0.07), transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+html[data-theme="dark"] .auth-page::before {
+    background: radial-gradient(560px circle at var(--spot-x, 50%) var(--spot-y, -10%), rgba(52, 211, 153, 0.12), transparent 65%);
+}
+
+.auth-card-shell {
+    position: relative;
+    z-index: 1;
+    margin: auto;
+    animation: cardEntrance 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.auth-card-shell:hover {
+    transform: translateY(-4px);
+}
+
 .auth-card {
     display: flex;
     margin: auto;
@@ -46,7 +73,36 @@
     border: 1px solid var(--border);
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 12px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transition: box-shadow 0.35s ease, border-color 0.35s ease;
+    animation: cardFloat 7s ease-in-out infinite;
+}
+
+/* Gentle idle float — stops while hovering the form */
+.auth-card-shell:hover .auth-card {
+    animation-play-state: paused;
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+@keyframes cardEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(28px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes cardFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-6px);
+    }
 }
 
 /* ══════════════════════════════════════════
@@ -139,6 +195,35 @@
     max-width: 380px;
     display: flex;
     flex-direction: column;
+    animation: formFade 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes formFade {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.portal-back {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted-light);
+    text-decoration: none;
+    margin-bottom: 0.75rem;
+    transition: color 0.2s;
+}
+
+.portal-back:hover {
+    color: var(--text);
 }
 
 .auth-form {
@@ -193,12 +278,12 @@
     color: var(--muted-light);
 }
 
-input {
+.auth-page input {
     padding: 0.55rem 0.8rem; /* Reduced from 0.65rem */
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(0, 0, 0, 0.3);
-    color: #ffffff;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
     font-size: 0.85rem;
     font-family: inherit;
     outline: none;
@@ -207,9 +292,13 @@ input {
     min-width: 0;
 }
 
-input:focus {
-    border-color: rgba(16, 185, 129, 0.6);
-    background: rgba(0, 0, 0, 0.5);
+.auth-page input::placeholder {
+    color: var(--text-dim);
+}
+
+.auth-page input:focus {
+    border-color: var(--primary);
+    background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
@@ -241,7 +330,7 @@ input:focus {
 
 .password-toggle-btn:hover {
     color: var(--text);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--bg-hover);
 }
 
 .password-toggle-btn svg.eye-icon {
@@ -275,18 +364,24 @@ input:focus {
     padding: 0 1rem;
     border-radius: 9px;
     border: 1px solid rgba(16, 185, 129, 0.35);
-    background: rgba(16, 185, 129, 0.12);
-    color: #34d399;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--primary);
     font-weight: 600;
     font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
-.verify-btn:hover {
-    background: rgba(16, 185, 129, 0.22);
-    border-color: rgba(16, 185, 129, 0.55);
-    color: #6ee7b7;
+.verify-btn:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: var(--primary);
+    color: var(--primary-hover);
+}
+
+.verify-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .verification-line {
@@ -303,8 +398,8 @@ input:focus {
     border-radius: 99px;
     font-size: 0.75rem;
     font-weight: 500;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
     color: var(--muted-light);
 }
 
@@ -478,5 +573,17 @@ input:focus {
     .account-type {
         flex-direction: column;
         gap: 0.6rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-card-shell,
+    .auth-card,
+    .auth-form-wrapper {
+        animation: none;
+    }
+
+    .auth-card-shell {
+        transition: none;
     }
 }

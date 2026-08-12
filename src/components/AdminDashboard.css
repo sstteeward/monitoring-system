@@ -6,15 +6,6 @@
 
 /* Theme-specific admin variables */
 html,
-html[data-theme="dark"] {
-  --admin-bg: var(--bg-app);
-  --admin-card-bg: rgba(20, 20, 20, 0.8);
-  --admin-border: rgba(255, 255, 255, 0.04);
-  --admin-text-primary: #e5e5e5;
-  --admin-text-secondary: #737373;
-  --admin-sidebar-bg: #0a0a0a;
-}
-
 html[data-theme="light"] {
   --admin-bg: var(--bg-app);
   --admin-card-bg: var(--bg-card);
@@ -22,6 +13,15 @@ html[data-theme="light"] {
   --admin-text-primary: var(--text-primary);
   --admin-text-secondary: var(--text-secondary);
   --admin-sidebar-bg: var(--bg-sidebar);
+}
+
+html[data-theme="dark"] {
+  --admin-bg: var(--bg-app);
+  --admin-card-bg: rgba(20, 20, 20, 0.8);
+  --admin-border: rgba(255, 255, 255, 0.04);
+  --admin-text-primary: #e5e5e5;
+  --admin-text-secondary: #737373;
+  --admin-sidebar-bg: #0a0a0a;
 }
 
 .admin-dashboard-container {
@@ -464,15 +464,15 @@ html[data-theme="light"] {
 /* Welcome Banner */
 .admin-welcome-banner {
   position: relative;
-  background: linear-gradient(135deg, #0d9488 0%, #065f46 60%, #1e1b4b 100%);
+  background: linear-gradient(135deg, #10b981 0%, #0d9488 60%, #059669 100%);
   border-radius: 18px;
   padding: 2rem 2.5rem;
   overflow: hidden;
   margin-bottom: 0.5rem;
 }
 
-html[data-theme="light"] .admin-welcome-banner {
-  background: linear-gradient(135deg, #10b981 0%, #0d9488 60%, #059669 100%);
+html[data-theme="dark"] .admin-welcome-banner {
+  background: linear-gradient(135deg, #0d9488 0%, #065f46 60%, #1e1b4b 100%);
 }
 
 .admin-welcome-bg {

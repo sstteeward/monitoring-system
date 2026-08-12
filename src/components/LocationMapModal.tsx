@@ -218,7 +218,7 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({ isOpen = true, onCl
                 </div>
 
                 {alert.location_address && (
-                    <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: 'var(--bg-panel)', borderRadius: '8px' }}>
+                    <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: 'var(--bg-elevated)', borderRadius: '8px' }}>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Approximate Address</div>
                         <div style={{ fontSize: '0.95rem' }}>{alert.location_address}</div>
                     </div>

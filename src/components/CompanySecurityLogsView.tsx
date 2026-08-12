@@ -4,6 +4,7 @@ import { profileService } from '../services/profileService';
 import { companyService } from '../services/companyService';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import { TableSkeleton } from './Skeletons';
 
 interface AuditLog {
     id: string;
@@ -162,10 +163,10 @@ const CompanySecurityLogsView: React.FC = () => {
                         Monitor login activity, data changes, and actions by your company users and interns
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto', flexWrap: 'nowrap' }}>
                     <select 
                         className="form-input"
-                        style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                        style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.85rem', minWidth: 0 }}
                         value={filterAction}
                         onChange={e => { setFilterAction(e.target.value); setCurrentPage(1); }}
                     >
@@ -178,7 +179,7 @@ const CompanySecurityLogsView: React.FC = () => {
                     <button 
                         className="btn-secondary"
                         onClick={loadLogs}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.9rem', borderRadius: '8px', whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
                         Refresh
@@ -187,9 +188,7 @@ const CompanySecurityLogsView: React.FC = () => {
             </div>
 
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>Loading security logs...</div>
-                </div>
+                <TableSkeleton rows={8} cols={6} />
             ) : filteredLogs.length === 0 ? (
                 <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: '1rem', opacity: 0.5 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>

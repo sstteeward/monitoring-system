@@ -16,6 +16,8 @@ export interface UserNotification {
     type: 'info' | 'warning' | 'success' | 'danger';
     is_read: boolean;
     created_at: string;
+    source_type?: 'announcement' | null;
+    source_id?: string | null;
 }
 
 export interface AnnouncementReaction {

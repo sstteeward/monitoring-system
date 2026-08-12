@@ -426,7 +426,7 @@ const CoordinatorDashboard: React.FC = () => {
                     <div className="glass-card" style={{
                         border: '1px solid rgba(239,68,68,0.3)',
                         borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
-                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
                         animation: 'fadeIn 0.2s ease',
                     }}>
                         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
@@ -593,7 +593,7 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, totalPen
                         {stats?.progressData && stats.progressData.length > 0 ? stats.progressData.map((p: any) => (
                             <div key={p.id} className="cd-progress-item" style={{ padding: '0 1.5rem', paddingBottom: '1.5rem', cursor: 'pointer', borderRadius: 8, transition: 'background 0.15s' }}
                                 onClick={() => setViewProfileId(p.id)}
-                                onMouseOver={e => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)')}
+                                onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                                 onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '1rem' }}>

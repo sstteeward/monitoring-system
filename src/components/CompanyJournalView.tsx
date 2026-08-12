@@ -3,6 +3,7 @@ import { companyService } from '../services/companyService';
 import { profileService } from '../services/profileService';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import { ListSkeleton } from './Skeletons';
 import UserProfileModal from './UserProfileModal';
 import UserClickableName from './UserClickableName';
 
@@ -175,9 +176,7 @@ const CompanyJournalView: React.FC = () => {
             </div>
 
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
-                    <div style={{ color: 'var(--text-muted)' }}>Loading journals...</div>
-                </div>
+                <ListSkeleton items={5} />
             ) : journals.length === 0 ? (
                 <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                     No {filterStatus !== 'all' ? filterStatus : ''} journals found.

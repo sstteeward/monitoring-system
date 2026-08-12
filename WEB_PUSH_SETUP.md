@@ -56,7 +56,7 @@ The function checks that service-key header itself. This is important because th
 
 ## 7. Send announcements to the notification bell and browser push
 
-Run [supabase_announcement_notifications.sql](supabase_announcement_notifications.sql) in the Supabase SQL Editor. Each newly posted school announcement will then create a personal `user_notifications` record for every account. Those records appear in the notification bell and trigger browser push for users who have enabled Browser Alerts.
+Run [supabase_announcement_notifications.sql](supabase_announcement_notifications.sql) in the Supabase SQL Editor. Each newly posted school announcement will then create a personal `user_notifications` record for every account. Those records appear in the notification bell, open the Announcements page when clicked, and trigger browser push for users who have enabled Browser Alerts.
 
 ## Test
 
@@ -68,3 +68,39 @@ Run [supabase_announcement_notifications.sql](supabase_announcement_notification
 If a device has no network connection, the browser push service normally delivers the alert after it reconnects. On iPhone/iPad, browser push support requires a supported browser and the site may need to be installed as a Home Screen web app.
 
 For shared devices, users should turn Browser Alerts off before signing out so the next person does not continue receiving their alerts on that device.
+
+# Brevo email notifications
+
+The email sender uses the same `user_notifications` records as the browser-push sender. This means account-approval notifications and newly posted announcements can also be delivered by email.
+
+## 1. Set Brevo secrets
+
+The sender email must be verified in Brevo. Add these as Supabase Edge Function secrets; do not put the API key in the frontend environment file.
+
+```powershell
+supabase secrets set BREVO_API_KEY=<your-brevo-api-key>
+supabase secrets set BREVO_SENDER_EMAIL=<your-verified-brevo-sender-email>
+supabase secrets set BREVO_SENDER_NAME="SIL Monitoring System"
+```
+
+## 2. Deploy the email function
+
+```powershell
+supabase functions deploy notification-email
+```
+
+## 3. Create a second database webhook
+
+In **Supabase Dashboard → Integrations → Database Webhooks**, create another webhook:
+
+| Setting | Value |
+| --- | --- |
+| Table | `public.user_notifications` |
+| Event | `INSERT` |
+| Type | Supabase Edge Function |
+| Function | `notification-email` |
+| Method | `POST` |
+| Timeout | `1000` ms |
+| Headers | `Content-type: application/json` and the service-key `Authorization` header |
+
+Once this webhook is enabled, a new `user_notifications` record sends an in-app notification, browser push (when enabled), and email. Existing records are not sent retrospectively.

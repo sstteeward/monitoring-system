@@ -524,7 +524,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                     <div className="glass-card" style={{
                         border: '1px solid rgba(239,68,68,0.3)',
                         borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
-                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
                         animation: 'fadeIn 0.2s ease',
                     }} onClick={e => e.stopPropagation()}>
                         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>

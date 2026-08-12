@@ -249,7 +249,7 @@ const AdminProfileView: React.FC<AdminProfileViewProps> = ({ initialProfile, onP
             {/* Danger zone */}
             <div style={{ background: 'var(--admin-card-bg)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '16px', padding: '1.5rem 2rem' }}>
                 <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#f87171' }}>Sign Out?</h3>
-                <p style={{ fontSize: '0.82rem', color: '#94a3b8', marginBottom: '1rem' }}>Signing out will end your current session. You'll need to log in again to access the admin dashboard.</p>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Signing out will end your current session. You'll need to log in again to access the admin dashboard.</p>
                 <button
                     style={{
                         color: '#f87171', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)',
@@ -274,7 +274,7 @@ const AdminProfileView: React.FC<AdminProfileViewProps> = ({ initialProfile, onP
                     <div style={{
                         background: 'var(--admin-bg)', border: '1px solid rgba(239,68,68,0.3)',
                         borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420,
-                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
                         animation: 'fadeIn 0.2s ease',
                     }}>
                         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
@@ -284,16 +284,16 @@ const AdminProfileView: React.FC<AdminProfileViewProps> = ({ initialProfile, onP
                                 <line x1="21" y1="12" x2="9" y2="12" />
                             </svg>
                         </div>
-                        <h3 style={{ textAlign: 'center', color: '#f8fafc', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Sign Out?</h3>
-                        <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem', margin: '0 0 1.75rem' }}>
+                        <h3 style={{ textAlign: 'center', color: 'var(--text-primary)', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Sign Out?</h3>
+                        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.75rem' }}>
                             Are you sure you want to sign out of your account? You will need to log in again to access the dashboard.
                         </p>
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
                             <button
                                 onClick={() => setShowLogoutConfirm(false)}
-                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--admin-border)', background: 'rgba(30, 41, 59, 0.5)', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
-                                onMouseOver={e => e.currentTarget.style.background = 'rgba(30, 41, 59, 0.8)'}
-                                onMouseOut={e => e.currentTarget.style.background = 'rgba(30, 41, 59, 0.5)'}
+                                style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
+                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                onMouseOut={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                             >
                                 Cancel
                             </button>

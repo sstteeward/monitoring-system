@@ -13,50 +13,16 @@
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Default Theme (Dark) */
+/* Default Theme (Light) */
 html,
-html[data-theme="dark"] {
-  --bg-page: #050505;
-  --bg-app: radial-gradient(ellipse at 50% 0%, rgba(30, 30, 30, 1) 0%, rgba(5, 5, 5, 1) 100%), #050505;
-  --bg-sidebar: #050505;
-  --bg-card: linear-gradient(145deg, #0d0d0d, #0a0a0a);
-  --bg-elevated: linear-gradient(145deg, #141414, #0f0f0f);
-  --bg-hero: linear-gradient(180deg, rgba(16, 185, 129, 0.03) 0%, rgba(5, 5, 5, 0.95) 100%);
-
-  --text-primary: #ffffff;
-  --text-secondary: #e5e5e5;
-  --text-muted: #a3a3a3;
-  --text-dim: #737373;
-  --text-bright: #ffffff;
-  --text-inverse: #050505;
-
-  --nav-active-bg: rgba(16, 185, 129, 0.15);
-  --nav-active-text: #34d399;
-
-  --border: rgba(255, 255, 255, 0.04);
-  --border-strong: rgba(255, 255, 255, 0.08);
-  --scrollbar: rgba(255, 255, 255, 0.1);
-
-  /* Badge Semantic Colors */
-  --badge-student-bg: rgba(16, 185, 129, 0.15);
-  --badge-student-text: #34d399;
-  --badge-coordinator-bg: rgba(13, 148, 136, 0.15);
-  --badge-coordinator-text: #0d9488;
-  --badge-admin-bg: rgba(245, 158, 11, 0.15);
-  --badge-admin-text: #fbbf24;
-
-  color-scheme: dark;
-  color: var(--text-secondary);
-  background-color: var(--bg-page);
-}
-
-/* Light Theme */
 html[data-theme="light"] {
   --bg-page: #f8fafc;
   --bg-app: #f8fafc;
   --bg-sidebar: #ffffff;
   --bg-card: #ffffff;
   --bg-elevated: #f1f5f9;
+  --bg-secondary: #eef2f7;
+  --bg-hover: #e2e8f0;
   --bg-hero: linear-gradient(135deg, rgba(16, 185, 129, 0.07) 0%, rgba(13, 148, 136, 0.04) 100%);
 
   --text-primary: #0f172a;
@@ -71,6 +37,7 @@ html[data-theme="light"] {
 
   --border: #e2e8f0;
   --border-strong: #cbd5e1;
+  --border-hover: #94a3b8;
   --scrollbar: #cbd5e1;
 
   /* Badge Semantic Colors - Light Mode (higher contrast) */
@@ -86,14 +53,62 @@ html[data-theme="light"] {
   background-color: var(--bg-page);
 }
 
+/* Dark Theme */
+html[data-theme="dark"] {
+  --bg-page: #050505;
+  --bg-app: radial-gradient(ellipse at 50% 0%, rgba(30, 30, 30, 1) 0%, rgba(5, 5, 5, 1) 100%), #050505;
+  --bg-sidebar: #050505;
+  --bg-card: linear-gradient(145deg, #0d0d0d, #0a0a0a);
+  --bg-elevated: linear-gradient(145deg, #141414, #0f0f0f);
+  --bg-secondary: rgba(255, 255, 255, 0.05);
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --bg-hero: linear-gradient(180deg, rgba(16, 185, 129, 0.03) 0%, rgba(5, 5, 5, 0.95) 100%);
+
+  --text-primary: #ffffff;
+  --text-secondary: #e5e5e5;
+  --text-muted: #a3a3a3;
+  --text-dim: #737373;
+  --text-bright: #ffffff;
+  --text-inverse: #050505;
+
+  --nav-active-bg: rgba(16, 185, 129, 0.15);
+  --nav-active-text: #34d399;
+
+  --border: rgba(255, 255, 255, 0.04);
+  --border-strong: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  --scrollbar: rgba(255, 255, 255, 0.1);
+
+  /* Badge Semantic Colors */
+  --badge-student-bg: rgba(16, 185, 129, 0.15);
+  --badge-student-text: #34d399;
+  --badge-coordinator-bg: rgba(13, 148, 136, 0.15);
+  --badge-coordinator-text: #0d9488;
+  --badge-admin-bg: rgba(245, 158, 11, 0.15);
+  --badge-admin-text: #fbbf24;
+
+  color-scheme: dark;
+  color: var(--text-secondary);
+  background-color: var(--bg-page);
+}
+
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--primary);
   text-decoration: inherit;
+  transition: color 0.2s ease;
 }
 
 a:hover {
-  color: #535bf2;
+  color: var(--primary-hover);
+}
+
+html[data-theme="dark"] a {
+  color: #34d399; /* Lighter emerald for dark mode */
+}
+
+html[data-theme="dark"] a:hover {
+  color: #6ee7b7; /* Even lighter on hover in dark mode */
 }
 
 body {
@@ -114,31 +129,31 @@ h1 {
 
 button {
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #e2e8f0;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background: linear-gradient(145deg, #1a1a1a, #141414);
+  background: linear-gradient(145deg, #ffffff, #f1f5f9);
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-html[data-theme="light"] button {
-  background: linear-gradient(145deg, #ffffff, #f1f5f9);
-  border: 1px solid #e2e8f0;
+html[data-theme="dark"] button {
+  background: linear-gradient(145deg, #1a1a1a, #141414);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
 }
 
 button:hover {
-  border-color: rgba(16, 185, 129, 0.4);
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
-}
-
-html[data-theme="light"] button:hover {
   border-color: rgba(16, 185, 129, 0.5);
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+}
+
+html[data-theme="dark"] button:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
 }
 
 button:focus {
@@ -217,20 +232,20 @@ button:focus-visible {
   left: 0;
   transform: translateX(-100%);
   background: linear-gradient(90deg,
-      rgba(255, 255, 255, 0) 0,
-      rgba(255, 255, 255, 0.03) 20%,
-      rgba(255, 255, 255, 0.06) 60%,
-      rgba(255, 255, 255, 0));
-  animation: shimmer 1.8s infinite;
-}
-
-/* Light mode adjustments for shimmer */
-html[data-theme="light"] .skeleton::after {
-  background: linear-gradient(90deg,
       rgba(0, 0, 0, 0) 0,
       rgba(0, 0, 0, 0.03) 20%,
       rgba(0, 0, 0, 0.05) 60%,
       rgba(0, 0, 0, 0));
+  animation: shimmer 1.8s infinite;
+}
+
+/* Dark mode adjustments for shimmer */
+html[data-theme="dark"] .skeleton::after {
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.03) 20%,
+      rgba(255, 255, 255, 0.06) 60%,
+      rgba(255, 255, 255, 0));
 }
 
 @keyframes shimmer {
@@ -378,12 +393,12 @@ html[data-theme="light"] .skeleton::after {
   border-radius: 16px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-html[data-theme="light"] .glass-card {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+html[data-theme="dark"] .glass-card {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .glass-card::before {
@@ -410,14 +425,14 @@ html[data-theme="light"] .glass-card {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(0,0,0,0.02) 0%, transparent 60%);
   opacity: 0;
   transition: opacity 0.4s;
   pointer-events: none;
 }
 
-html[data-theme="light"] .glass-card::after {
-  background: radial-gradient(circle, rgba(0,0,0,0.02) 0%, transparent 60%);
+html[data-theme="dark"] .glass-card::after {
+  background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
 }
 
 .glass-card:hover::after {
@@ -442,15 +457,15 @@ html[data-theme="light"] .glass-card::after {
   border: 1px solid var(--border);
   border-radius: 12px;
   z-index: 999;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
   overflow-y: auto;
   max-height: 80vh;
   animation: accountDropdownIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 0.5rem;
 }
 
-html[data-theme="light"] .account-dropdown {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+html[data-theme="dark"] .account-dropdown {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 @keyframes accountDropdownIn {

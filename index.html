@@ -10,7 +10,7 @@
     // Apply theme before React mounts to prevent flash of wrong theme
     (function () {
       try {
-        var theme = 'dark';
+        var theme = 'light';
         var authKeys = Object.keys(localStorage).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
         if (authKeys.length > 0) {
           var authData = JSON.parse(localStorage.getItem(authKeys[0]));
@@ -24,7 +24,7 @@
         }
         document.documentElement.setAttribute('data-theme', theme);
       } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.setAttribute('data-theme', 'light');
       }
     })();
   </script>

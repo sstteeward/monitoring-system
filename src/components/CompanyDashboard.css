@@ -6,15 +6,6 @@
 
 /* Theme-specific company variables */
 html,
-html[data-theme="dark"] {
-  --company-bg: var(--bg-app);
-  --company-card-bg: rgba(20, 20, 20, 0.8);
-  --company-border: rgba(255, 255, 255, 0.04);
-  --company-text-primary: #e5e5e5;
-  --company-text-secondary: #737373;
-  --company-sidebar-bg: #0a0a0a;
-}
-
 html[data-theme="light"] {
   --company-bg: var(--bg-app);
   --company-card-bg: var(--bg-card);
@@ -22,6 +13,15 @@ html[data-theme="light"] {
   --company-text-primary: var(--text-primary);
   --company-text-secondary: var(--text-secondary);
   --company-sidebar-bg: var(--bg-sidebar);
+}
+
+html[data-theme="dark"] {
+  --company-bg: var(--bg-app);
+  --company-card-bg: rgba(20, 20, 20, 0.8);
+  --company-border: rgba(255, 255, 255, 0.04);
+  --company-text-primary: #e5e5e5;
+  --company-text-secondary: #737373;
+  --company-sidebar-bg: #0a0a0a;
 }
 
 .company-dashboard-container {
@@ -322,15 +322,15 @@ html[data-theme="light"] {
 
 .company-welcome-banner {
   position: relative;
-  background: linear-gradient(135deg, #059669 0%, #047857 60%, #052e24 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%);
   border-radius: 18px;
   padding: 2rem 2.5rem;
   overflow: hidden;
   margin-bottom: 0.5rem;
 }
 
-html[data-theme="light"] .company-welcome-banner {
-  background: linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%);
+html[data-theme="dark"] .company-welcome-banner {
+  background: linear-gradient(135deg, #059669 0%, #047857 60%, #052e24 100%);
 }
 
 .company-welcome-bg {

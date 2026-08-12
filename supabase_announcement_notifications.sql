@@ -2,6 +2,14 @@
 -- Every new school announcement becomes a personal notification for every
 -- account. That feeds both the notification bell and the browser-push webhook.
 
+ALTER TABLE public.user_notifications
+  ADD COLUMN IF NOT EXISTS source_type text,
+  ADD COLUMN IF NOT EXISTS source_id uuid;
+
+CREATE INDEX IF NOT EXISTS user_notifications_source_id_idx
+  ON public.user_notifications (source_id)
+  WHERE source_id IS NOT NULL;
+
 CREATE OR REPLACE FUNCTION public.create_announcement_notifications()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -9,13 +17,15 @@ SECURITY DEFINER
 SET search_path = public, pg_catalog
 AS $$
 BEGIN
-  INSERT INTO public.user_notifications (user_id, title, message, type, is_read)
+  INSERT INTO public.user_notifications (user_id, title, message, type, is_read, source_type, source_id)
   SELECT
     profiles.auth_user_id,
     NEW.title,
     NEW.content,
     'info',
-    false
+    false,
+    'announcement',
+    NEW.id
   FROM public.profiles AS profiles
   WHERE profiles.auth_user_id IS NOT NULL;
 

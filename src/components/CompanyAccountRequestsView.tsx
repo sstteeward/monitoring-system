@@ -195,7 +195,7 @@ const CompanyAccountRequestsView: React.FC = () => {
                 }}>
                     <div className="glass-card fade-in company-review-modal" style={{
                         borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 600,
-                        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                        boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
                         maxHeight: '90vh', overflowY: 'auto',
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -267,9 +267,9 @@ const CompanyAccountRequestsView: React.FC = () => {
                                     value={reviewDepartmentId}
                                     onChange={e => setReviewDepartmentId(e.target.value)}
                                 >
-                                    <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Uncategorized</option>
+                                    <option value="" style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>Uncategorized</option>
                                     {departments.map(d => (
-                                        <option key={d.id} value={d.id} style={{ background: '#1a1a1a', color: '#fff' }}>{d.name}</option>
+                                        <option key={d.id} value={d.id} style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>{d.name}</option>
                                     ))}
                                 </select>
                             </div>

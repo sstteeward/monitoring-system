@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { notificationService } from '../services/notificationService';
+import { notificationService, type UserNotification } from '../services/notificationService';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { profileService, type Profile } from '../services/profileService';
 import { runFullAntiCheatSuite, quickGeofenceCheck, startContinuousMonitor } from '../services/geofenceService';
@@ -108,6 +108,16 @@ const StudentDashboard: React.FC = () => {
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
         } catch (err) {
             console.error('Failed to mark notification as read:', err);
+        }
+    };
+
+    const handleNotificationClick = (notification: UserNotification) => {
+        if (!notification.is_read) void markNotificationAsRead(notification.id);
+
+        if (notification.source_type === 'announcement') {
+            setShowNotifications(false);
+            navigateTo('announcement');
+            markAnnouncementsSeen();
         }
     };
 
@@ -854,7 +864,7 @@ const StudentDashboard: React.FC = () => {
                                             <div style={{
                                                 position: 'absolute', top: 'calc(100% + 10px)', right: 0,
                                                 width: 320, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                                                borderRadius: 16, zIndex: 999, boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
+                                                borderRadius: 16, zIndex: 999, boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
                                                 overflow: 'hidden', animation: 'fadeIn 0.2s ease'
                                             }}>
                                                 <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -870,14 +880,14 @@ const StudentDashboard: React.FC = () => {
                                                         notifications.map(n => (
                                                             <div
                                                                 key={n.id}
-                                                                onClick={() => { if (!n.is_read) markNotificationAsRead(n.id); }}
+                                                                onClick={() => handleNotificationClick(n)}
                                                                 style={{
                                                                     padding: '1rem', borderBottom: '1px solid var(--border)', cursor: 'pointer',
                                                                     background: n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)',
                                                                     borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--primary)',
                                                                     transition: 'background 0.2s'
                                                                 }}
-                                                                onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                                                                 onMouseOut={e => e.currentTarget.style.background = n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)'}
                                                             >
                                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>

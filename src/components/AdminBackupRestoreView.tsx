@@ -89,10 +89,10 @@ const AdminBackupRestoreView: React.FC = () => {
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                             Restore from Backup
                         </h3>
-                        <p style={{ color: '#fca5a5', fontSize: '0.85rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+                        <p style={{ color: '#f43f5e', fontSize: '0.85rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
                             Restoring data from a JSON backup is a destructive operation that drops current data. It is highly recommended to perform this operation directly via Supabase CLI.
                         </p>
-                        <button className="role-select" onClick={handleRestoreClick} style={{ width: '100%', borderColor: 'rgba(244, 63, 94, 0.5)', color: '#fca5a5' }}>
+                        <button className="role-select" onClick={handleRestoreClick} style={{ width: '100%', borderColor: 'rgba(244, 63, 94, 0.5)', color: '#f43f5e' }}>
                             Upload Backup File
                         </button>
                     </div>
@@ -100,7 +100,7 @@ const AdminBackupRestoreView: React.FC = () => {
 
                 {/* Log Output */}
                 {exportLog.length > 0 && (
-                    <div style={{ margin: '0 1.5rem 1.5rem', padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: 8, border: '1px solid var(--admin-border)' }}>
+                    <div style={{ margin: '0 1.5rem 1.5rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--admin-border)' }}>
                         <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'var(--admin-text-secondary)' }}>Export Process Log</h4>
                         <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#10b981', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             {exportLog.map((log, i) => (
