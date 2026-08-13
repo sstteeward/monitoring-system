@@ -582,7 +582,8 @@ html[data-theme="dark"] .cd-welcome-banner {
 .table-container {
     border: 1px solid var(--border);
     border-radius: 14px;
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .data-table {

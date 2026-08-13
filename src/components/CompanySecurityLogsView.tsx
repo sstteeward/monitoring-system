@@ -163,10 +163,10 @@ const CompanySecurityLogsView: React.FC = () => {
                         Monitor login activity, data changes, and actions by your company users and interns
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto', flexWrap: 'nowrap' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <select 
                         className="form-input"
-                        style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.85rem', minWidth: 0 }}
+                        style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.85rem', minWidth: 0, width: 'auto' }}
                         value={filterAction}
                         onChange={e => { setFilterAction(e.target.value); setCurrentPage(1); }}
                     >

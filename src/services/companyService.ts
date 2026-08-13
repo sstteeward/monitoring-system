@@ -40,11 +40,30 @@ export interface Evaluation {
 
 export interface Announcement {
   id: string;
+  company_id: string | null;
+  created_by: string | null;
+  created_by_role: 'company' | 'coordinator' | 'admin' | 'student' | null;
+  category: 'company' | 'coordinator' | null;
+  status: string;
+  title: string;
+  content: string;
+  author: string | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
+  created_at: string;
+  updated_at: string;
+  company_name?: string | null;
+  creator_name?: string | null;
+  student_count?: number;
+}
+
+export interface AnnouncementInput {
   company_id: string;
   title: string;
   content: string;
-  type: 'general' | 'meeting' | 'reminder' | 'holiday' | 'schedule_change' | 'training';
-  created_at: string;
+  category: 'company';
+  attachment_url?: string | null;
+  attachment_name?: string | null;
 }
 
 export interface CompanyDocument {
@@ -194,31 +213,84 @@ export const companyService = {
 
   async getAnnouncements(companyId: string) {
     const { data, error } = await supabase
-      .from('announcements')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false });
+      .rpc('get_company_announcements', { p_company_id: companyId });
+
     if (error) {
       console.error("Error fetching announcements:", error);
-      return [];
+      throw error;
     }
-    return data;
+    return (data || []) as Announcement[];
   },
 
-  async createAnnouncement(announcementData: Omit<Announcement, 'id' | 'created_at'>) {
+  async createAnnouncement(announcementData: AnnouncementInput) {
     const { error } = await supabase
       .from('announcements')
-      .insert(announcementData);
+      .insert({
+        company_id: announcementData.company_id,
+        title: announcementData.title,
+        content: announcementData.content,
+        category: announcementData.category,
+        attachment_url: announcementData.attachment_url || null,
+        attachment_name: announcementData.attachment_name || null
+      });
     if (error) throw error;
     return true;
   },
-  
+
+  async updateAnnouncement(id: string, updates: {
+    title?: string;
+    content?: string;
+    attachment_url?: string | null;
+    attachment_name?: string | null;
+  }) {
+    const { error } = await supabase
+      .from('announcements')
+      .update({
+        title: updates.title,
+        content: updates.content,
+        attachment_url: updates.attachment_url ?? null,
+        attachment_name: updates.attachment_name ?? null
+      })
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
   async deleteAnnouncement(id: string) {
     const { error } = await supabase
       .from('announcements')
       .delete()
       .eq('id', id);
     if (error) throw error;
+    return true;
+  },
+
+  async getAnnouncementAttachmentUrl(filePath: string) {
+    const { data, error } = await supabase.storage
+      .from('company_documents')
+      .createSignedUrl(filePath, 3600);
+    if (error) throw error;
+    return data.signedUrl;
+  },
+
+  async uploadAnnouncementAttachment(companyId: string, file: File) {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `${companyId}/announcements/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('company_documents')
+      .upload(filePath, file, { upsert: false });
+    if (uploadError) throw uploadError;
+
+    return {
+      file_path: filePath,
+      file_name: file.name
+    };
+  },
+
+  async deleteAnnouncementAttachment(filePath: string) {
+    await supabase.storage.from('company_documents').remove([filePath]);
     return true;
   },
 

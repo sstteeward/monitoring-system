@@ -17,6 +17,7 @@ import AdminSystemHealthView from './AdminSystemHealthView';
 import ApprovalsView from './ApprovalsView';
 import StudentsView from './StudentsView';
 import SecurityAlertsView from './SecurityAlertsView';
+import CoordinatorAttendanceView from './CoordinatorAttendanceView';
 import UserProfileModal from './UserProfileModal';
 import UserClickableName from './UserClickableName';
 import CustomSelect from './CustomSelect';
@@ -35,7 +36,7 @@ const Icon = {
     security: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>,
 };
 
-type View = 'overview' | 'users' | 'roles' | 'companies' | 'profile' | 'settings' | 'feedback' | 'audit' | 'security' | 'departments' | 'courses' | 'backup' | 'health' | 'approvals' | 'students';
+type View = 'overview' | 'users' | 'roles' | 'companies' | 'profile' | 'settings' | 'feedback' | 'audit' | 'security' | 'departments' | 'courses' | 'backup' | 'health' | 'approvals' | 'students' | 'attendance';
 
 const AdminDashboard: React.FC = () => {
     const location = useLocation();
@@ -234,6 +235,10 @@ const AdminDashboard: React.FC = () => {
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
                             <span className="nav-text">All Students</span>
                         </div>
+                        <div className={`admin-nav-item ${currentView === 'attendance' ? 'active' : ''}`} onClick={() => navigateTo('attendance')}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
+                            <span className="nav-text">Attendance</span>
+                        </div>
                         <div className={`admin-nav-item ${currentView === 'departments' ? 'active' : ''}`} onClick={() => navigateTo('departments')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg></span>
                             <span className="nav-text">Departments</span>
@@ -285,6 +290,7 @@ const AdminDashboard: React.FC = () => {
                                     {currentView === 'feedback' && 'User Feedback'}
                                     {currentView === 'approvals' && 'Approvals'}
                                     {currentView === 'students' && 'All Students'}
+                                    {currentView === 'attendance' && 'Attendance Monitoring'}
                                     {currentView === 'departments' && 'Departments'}
                                     {currentView === 'courses' && 'Courses'}
                                     {currentView === 'audit' && 'Audit Logs'}
@@ -728,6 +734,12 @@ const AdminDashboard: React.FC = () => {
                         {currentView === 'students' && (
                             <div className="fade-in">
                                 <StudentsView isAdmin={true} />
+                            </div>
+                        )}
+
+                        {currentView === 'attendance' && (
+                            <div className="fade-in">
+                                <CoordinatorAttendanceView />
                             </div>
                         )}
                     </div>

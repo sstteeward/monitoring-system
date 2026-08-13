@@ -116,7 +116,7 @@ const StudentDashboard: React.FC = () => {
 
         if (notification.source_type === 'announcement') {
             setShowNotifications(false);
-            navigateTo('announcement');
+            navigateTo('announcement', notification.source_id ? { id: notification.source_id } : undefined);
             markAnnouncementsSeen();
         }
     };
@@ -579,8 +579,10 @@ const StudentDashboard: React.FC = () => {
         }
     };
 
-    const navigateTo = (view: View) => {
-        routerNavigate(view === 'dashboard' ? '/' : `/${view}`);
+    const navigateTo = (view: View, query?: Record<string, string>) => {
+        const base = view === 'dashboard' ? '/' : `/${view}`;
+        const params = query ? '?' + new URLSearchParams(query).toString() : '';
+        routerNavigate(base + params);
         setIsMobileMenuOpen(false);
     };
 

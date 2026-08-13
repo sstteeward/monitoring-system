@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { attendanceService, type AttendanceStatus, type CompanyAttendanceRow } from '../services/attendanceService';
-import { profileService } from '../services/profileService';
+import { attendanceService, type AttendanceStatus, type AllAttendanceRow } from '../services/attendanceService';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
 import { TableRowSkeleton } from './Skeletons';
-import UserProfileModal from './UserProfileModal';
 import AttendanceRecordModal from './AttendanceRecordModal';
 import AttendanceDetailModal from './AttendanceDetailModal';
 import { ATTENDANCE_STATUS_CONFIG, formatTime } from './attendanceConstants';
@@ -12,37 +10,33 @@ import './AttendanceView.css';
 
 type StatusFilter = 'all' | AttendanceStatus | 'not_recorded';
 
-const CompanyAttendanceView: React.FC = () => {
+const CoordinatorAttendanceView: React.FC = () => {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const [date, setDate] = useState(todayStr);
-  const [rows, setRows] = useState<CompanyAttendanceRow[]>([]);
+  const [rows, setRows] = useState<AllAttendanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [companyFilter, setCompanyFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
 
   const [recordTarget, setRecordTarget] = useState<{
-    row: CompanyAttendanceRow;
+    row: AllAttendanceRow;
     defaultStatus: AttendanceStatus;
     isEditing: boolean;
   } | null>(null);
   const [recordModalKey, setRecordModalKey] = useState(0);
-  const [detailTarget, setDetailTarget] = useState<CompanyAttendanceRow | null>(null);
+  const [detailTarget, setDetailTarget] = useState<AllAttendanceRow | null>(null);
   const [detailModalKey, setDetailModalKey] = useState(0);
-  const [viewProfileId, setViewProfileId] = useState<string | null>(null);
 
   const load = async (selectedDate: string) => {
     setLoading(true);
     setError(null);
     try {
-      const profile = await profileService.getCurrentProfile();
-      if (!profile || (profile.account_type !== 'company' && !profile.company_id)) {
-        throw new Error('You are not associated with any company.');
-      }
-      const data = await attendanceService.getCompanyAttendance(selectedDate);
+      const data = await attendanceService.getAllAttendance(selectedDate);
       setRows(data);
     } catch (err) {
       console.error('Failed to load attendance:', err);
@@ -65,6 +59,12 @@ const CompanyAttendanceView: React.FC = () => {
     return { total: rows.length, present, absent, late };
   }, [rows]);
 
+  const companies = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach(r => { if (r.company_name) set.add(r.company_name); });
+    return Array.from(set).sort();
+  }, [rows]);
+
   const departments = useMemo(() => {
     const set = new Set<string>();
     rows.forEach(r => { if (r.department) set.add(r.department); });
@@ -78,13 +78,14 @@ const CompanyAttendanceView: React.FC = () => {
       const matchesSearch = !term
         || name.includes(term)
         || (r.email ?? '').toLowerCase().includes(term)
-        || (r.program ?? '').toLowerCase().includes(term);
+        || (r.company_name ?? '').toLowerCase().includes(term);
       const matchesStatus = statusFilter === 'all'
         || (statusFilter === 'not_recorded' ? !r.status : r.status === statusFilter);
+      const matchesCompany = companyFilter === 'all' || r.company_name === companyFilter;
       const matchesDept = departmentFilter === 'all' || r.department === departmentFilter;
-      return matchesSearch && matchesStatus && matchesDept;
+      return matchesSearch && matchesStatus && matchesCompany && matchesDept;
     });
-  }, [rows, search, statusFilter, departmentFilter]);
+  }, [rows, search, statusFilter, companyFilter, departmentFilter]);
 
   const {
     currentPage,
@@ -95,14 +96,18 @@ const CompanyAttendanceView: React.FC = () => {
     itemsPerPage
   } = usePagination(filtered, 10);
 
-  const openRecord = (row: CompanyAttendanceRow, defaultStatus: AttendanceStatus, isEditing: boolean) => {
-    setRecordModalKey(k => k + 1);
-    setRecordTarget({ row, defaultStatus, isEditing });
-  };
-
-  const openDetail = (row: CompanyAttendanceRow) => {
+  const openDetail = (row: AllAttendanceRow) => {
     setDetailModalKey(k => k + 1);
     setDetailTarget(row);
+  };
+
+  const openRecord = (row: AllAttendanceRow) => {
+    setRecordModalKey(k => k + 1);
+    setRecordTarget({
+      row,
+      defaultStatus: row.status ?? 'absent',
+      isEditing: !!row.attendance_id
+    });
   };
 
   const handleSubmit = async (status: AttendanceStatus, reason: string | null, remarks: string | null) => {
@@ -133,45 +138,13 @@ const CompanyAttendanceView: React.FC = () => {
     );
   };
 
-  const renderActions = (row: CompanyAttendanceRow) => {
-    if (!row.attendance_id) {
-      return (
-        <div className="attendance-actions">
-          <button className="attendance-btn attendance-btn-danger attendance-btn-sm" onClick={() => openRecord(row, 'absent', false)} type="button">
-            Mark Absent
-          </button>
-          <button className="attendance-btn attendance-btn-ghost attendance-btn-sm" onClick={() => openRecord(row, 'present', false)} type="button">
-            Record
-          </button>
-          <button className="attendance-btn attendance-btn-ghost attendance-btn-sm" onClick={() => openDetail(row)} type="button">
-            View
-          </button>
-        </div>
-      );
-    }
-    return (
-      <div className="attendance-actions">
-        <button className="attendance-btn attendance-btn-sm" onClick={() => openDetail(row)} type="button">
-          View
-        </button>
-        <button className="attendance-btn attendance-btn-sm" onClick={() => openRecord(row, row.status ?? 'absent', true)} type="button">
-          Edit
-        </button>
-      </div>
-    );
-  };
-
-  const emptyMessage = search || statusFilter !== 'all' || departmentFilter !== 'all'
-    ? 'No records match your filters.'
-    : 'No assigned interns yet.';
-
   return (
     <div className="view-container fade-in">
       <div className="view-header" style={{ flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
           <h2 className="view-title" style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Attendance Monitoring</h2>
           <p className="view-subtitle" style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
-            Record and review your assigned interns' daily attendance
+            Monitor attendance records across all companies
           </p>
         </div>
       </div>
@@ -181,7 +154,7 @@ const CompanyAttendanceView: React.FC = () => {
           <div className="attendance-stat-icon-wrap" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)' }}>👥</div>
           <div>
             <div className="attendance-stat-value">{stats.total}</div>
-            <div className="attendance-stat-label">Total Students</div>
+            <div className="attendance-stat-label">Records</div>
           </div>
         </div>
         <div className="attendance-stat-card">
@@ -216,7 +189,7 @@ const CompanyAttendanceView: React.FC = () => {
           <input
             type="text"
             className="form-input"
-            placeholder="Search by name, email or program…"
+            placeholder="Search by student, email or company…"
             value={search}
             onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
           />
@@ -230,6 +203,10 @@ const CompanyAttendanceView: React.FC = () => {
           <option value="on_leave">🔵 On Leave</option>
           <option value="incomplete">🟠 Incomplete</option>
         </select>
+        <select className="form-input" value={companyFilter} onChange={e => { setCompanyFilter(e.target.value); setCurrentPage(1); }}>
+          <option value="all">All Companies</option>
+          {companies.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
         <select className="form-input" value={departmentFilter} onChange={e => { setDepartmentFilter(e.target.value); setCurrentPage(1); }}>
           <option value="all">All Departments</option>
           {departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -242,11 +219,11 @@ const CompanyAttendanceView: React.FC = () => {
             <thead>
               <tr>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Student</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Company</th>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Program</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Schedule</th>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Status</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Time In</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Time Out</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Reason</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Recorded By</th>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Actions</th>
               </tr>
             </thead>
@@ -262,49 +239,52 @@ const CompanyAttendanceView: React.FC = () => {
               <thead>
                 <tr>
                   <th>Student</th>
+                  <th>Company</th>
                   <th>Program</th>
-                  <th>Schedule</th>
                   <th>Status</th>
-                  <th>Time In</th>
-                  <th>Time Out</th>
+                  <th>Reason</th>
+                  <th>Recorded By</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {paginated.map(row => (
-                  <tr key={row.student_auth_id}>
+                  <tr key={`${row.attendance_id ?? 'nr'}-${row.student_auth_id}`}>
                     <td>
                       <div className="attendance-student-cell">
                         <div
                           className="attendance-avatar"
-                          style={{ background: `linear-gradient(135deg, #3b82f6, #6366f1)` }}
+                          style={{ background: `linear-gradient(135deg, #10b981, #0d9488)` }}
                         >
                           {(row.first_name?.[0] ?? '?').toUpperCase()}
                         </div>
                         <div style={{ minWidth: 0 }}>
-                          <button
-                            type="button"
-                            className="attendance-name"
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
-                            onClick={() => setViewProfileId(row.student_profile_id)}
-                            title="View student profile"
-                          >
-                            {row.first_name} {row.last_name}
-                          </button>
+                          <div className="attendance-name">{row.first_name} {row.last_name}</div>
                           <div className="attendance-muted">{row.department || row.email || '—'}</div>
                         </div>
                       </div>
                     </td>
+                    <td className="attendance-muted">{row.company_name || '—'}</td>
                     <td className="attendance-muted">{row.program || '—'}</td>
-                    <td className="attendance-muted">
-                      {row.schedule_start || row.schedule_end
-                        ? `${formatTime(row.schedule_start)} – ${formatTime(row.schedule_end)}`
-                        : '—'}
-                    </td>
                     <td>{renderStatusBadge(row.status)}</td>
-                    <td className="attendance-muted">{formatTime(row.time_in)}</td>
-                    <td className="attendance-muted">{formatTime(row.time_out)}</td>
-                    <td>{renderActions(row)}</td>
+                    <td className="attendance-muted" style={{ maxWidth: 220 }}>
+                      <span style={{ overflowWrap: 'anywhere' }}>{row.reason || '—'}</span>
+                    </td>
+                    <td className="attendance-muted">{row.recorded_by_name || '—'}</td>
+                    <td>
+                      <div className="attendance-actions">
+                        <button className="attendance-btn attendance-btn-sm" onClick={() => openDetail(row)} type="button">
+                          View
+                        </button>
+                        <button
+                          className={`attendance-btn attendance-btn-sm ${!row.attendance_id ? 'attendance-btn-danger' : ''}`}
+                          onClick={() => openRecord(row)}
+                          type="button"
+                        >
+                          {row.attendance_id ? 'Edit' : 'Record'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -316,29 +296,43 @@ const CompanyAttendanceView: React.FC = () => {
               const key = (row.status ?? 'not_recorded') as AttendanceStatus | 'not_recorded';
               const cfg = ATTENDANCE_STATUS_CONFIG[key];
               return (
-                <div key={row.student_auth_id} className="attendance-mobile-card">
+                <div key={`${row.attendance_id ?? 'nr'}-${row.student_auth_id}`} className="attendance-mobile-card">
                   <div className="attendance-mobile-card-head">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', minWidth: 0 }}>
                       <div
                         className="attendance-avatar"
-                        style={{ background: `linear-gradient(135deg, #3b82f6, #6366f1)` }}
+                        style={{ background: `linear-gradient(135deg, #10b981, #0d9488)` }}
                       >
                         {(row.first_name?.[0] ?? '?').toUpperCase()}
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div className="attendance-name" style={{ overflowWrap: 'anywhere' }}>{row.first_name} {row.last_name}</div>
-                        <div className="attendance-muted" style={{ overflowWrap: 'anywhere' }}>{row.program || row.email || '—'}</div>
+                        <div className="attendance-muted" style={{ overflowWrap: 'anywhere' }}>{row.company_name || row.email || '—'}</div>
                       </div>
                     </div>
                     <span className={`attendance-badge ${cfg.className}`}><span>{cfg.emoji}</span> {cfg.label}</span>
                   </div>
                   <div className="attendance-mobile-meta">
+                    <div><span>Program</span><span>{row.program || '—'}</span></div>
                     <div><span>Department</span><span>{row.department || '—'}</span></div>
                     <div><span>Schedule</span><span>{row.schedule_start ? `${formatTime(row.schedule_start)} – ${formatTime(row.schedule_end)}` : '—'}</span></div>
-                    <div><span>Time In</span><span>{formatTime(row.time_in)}</span></div>
-                    <div><span>Time Out</span><span>{formatTime(row.time_out)}</span></div>
+                    <div><span>Recorded By</span><span>{row.recorded_by_name || '—'}</span></div>
                   </div>
-                  <div className="attendance-mobile-actions">{renderActions(row)}</div>
+                  {row.reason && (
+                    <div className="attendance-muted" style={{ marginBottom: '0.6rem', fontSize: '0.8rem', overflowWrap: 'anywhere' }}>
+                      <strong>Reason:</strong> {row.reason}
+                    </div>
+                  )}
+                  <div className="attendance-mobile-actions">
+                    <button className="attendance-btn attendance-btn-sm" onClick={() => openDetail(row)} type="button">View</button>
+                    <button
+                      className={`attendance-btn attendance-btn-sm ${!row.attendance_id ? 'attendance-btn-danger' : ''}`}
+                      onClick={() => openRecord(row)}
+                      type="button"
+                    >
+                      {row.attendance_id ? 'Edit' : 'Record'}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -350,13 +344,15 @@ const CompanyAttendanceView: React.FC = () => {
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
-            itemName="students"
+            itemName="records"
           />
         </>
       ) : (
         <div className="attendance-table-wrap">
           <div className="attendance-empty">
-            <p>{emptyMessage}</p>
+            <p>{search || statusFilter !== 'all' || companyFilter !== 'all' || departmentFilter !== 'all'
+              ? 'No records match your filters.'
+              : 'No attendance records found for this date.'}</p>
             <span>Select a different date or adjust your filters.</span>
           </div>
         </div>
@@ -382,21 +378,15 @@ const CompanyAttendanceView: React.FC = () => {
         open={!!detailTarget}
         row={detailTarget}
         date={date}
+        companyName={detailTarget?.company_name}
         canRecord
         onClose={() => setDetailTarget(null)}
         onRecord={() => {
-          if (detailTarget) {
-            openRecord(detailTarget, detailTarget.status ?? 'absent', !!detailTarget.attendance_id);
-          }
+          if (detailTarget) openRecord(detailTarget);
         }}
-      />
-
-      <UserProfileModal
-        profileId={viewProfileId}
-        onClose={() => setViewProfileId(null)}
       />
     </div>
   );
 };
 
-export default CompanyAttendanceView;
+export default CoordinatorAttendanceView;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { notificationService, type Announcement, type UserNotification, type AnnouncementReaction } from '../services/notificationService';
 import { supabase } from '../lib/supabaseClient';
 import { ListSkeleton } from './Skeletons';
@@ -16,6 +17,25 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
     const [notifications, setNotifications] = useState<UserNotification[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+    const [openingAnnouncement, setOpeningAnnouncement] = useState(false);
+    const [searchParams] = useSearchParams();
+    const location = useLocation();
+    const announcementIdParam = searchParams.get('id');
+
+    useEffect(() => {
+        if (announcementIdParam) {
+            setOpeningAnnouncement(true);
+            notificationService.getStudentAnnouncement(announcementIdParam)
+                .then(data => {
+                    setSelectedAnnouncement(data);
+                })
+                .catch(err => {
+                    console.error('Error opening announcement:', err);
+                })
+                .finally(() => setOpeningAnnouncement(false));
+        }
+        // Re-open when the ?id= query changes (e.g. a new notification click).
+    }, [announcementIdParam, location.pathname]);
 
     const {
         currentPage: annPage,
@@ -168,7 +188,9 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
             </header>
 
             {/* Selected Announcement Detail View */}
-            {selectedAnnouncement ? (
+            {openingAnnouncement ? (
+                <div className="empty-state">Loading announcement...</div>
+            ) : selectedAnnouncement ? (
                 <div className="announcement-detail glass-card fade-in" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
                     <button
                         onClick={() => setSelectedAnnouncement(null)}
@@ -178,20 +200,64 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                         Back to Announcements
                     </button>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-bright)' }}>{selectedAnnouncement.title}</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
+                        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-bright)', overflowWrap: 'anywhere' }}>{selectedAnnouncement.title}</h2>
                         <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', flexShrink: 0 }}>
                             {new Date(selectedAnnouncement.created_at).toLocaleDateString()}
                         </span>
                     </div>
 
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2rem' }}>
-                        FROM: {selectedAnnouncement.author.toUpperCase()}
+                    {selectedAnnouncement.category && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                            <span
+                                style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                    padding: '0.28rem 0.65rem', borderRadius: '8px',
+                                    fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                                    border: '1px solid',
+                                    background: selectedAnnouncement.category === 'company' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                                    color: selectedAnnouncement.category === 'company' ? '#10b981' : '#3b82f6',
+                                    borderColor: selectedAnnouncement.category === 'company' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)'
+                                }}
+                            >
+                                {selectedAnnouncement.category === 'company' ? '🟢 Company Announcement' : '🔵 Coordinator Announcement'}
+                            </span>
+                            {(selectedAnnouncement.company_name || selectedAnnouncement.company?.name) && (
+                                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                    {selectedAnnouncement.company_name || selectedAnnouncement.company?.name}
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2rem', overflowWrap: 'anywhere' }}>
+                        FROM: {(selectedAnnouncement.creator_name || selectedAnnouncement.author || 'SIL Coordinator').toUpperCase()}
                     </div>
 
                     <div style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
                         {selectedAnnouncement.content}
                     </div>
+
+                    {selectedAnnouncement.attachment_url && (
+                        <div style={{ marginTop: '1.25rem' }}>
+                            <button
+                                onClick={() => {
+                                    notificationService.getAnnouncementAttachmentUrl(selectedAnnouncement.attachment_url as string)
+                                        .then(url => window.open(url, '_blank'))
+                                        .catch(() => alert('Unable to open attachment.'));
+                                }}
+                                style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                                    padding: '0.5rem 0.9rem', borderRadius: '8px',
+                                    border: '1px dashed rgba(16, 185, 129, 0.4)', background: 'var(--bg-elevated)',
+                                    color: 'var(--primary)', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit'
+                                }}
+                            >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                                {selectedAnnouncement.attachment_name || 'View Attachment'}
+                            </button>
+                        </div>
+                    )}
 
                     <div className="reactions-container">
                         <div className="reactions-bar">
@@ -272,16 +338,37 @@ const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({ viewType = 'schoo
                                 announcements.length > 0 ? (
                                     <div>
                                         {paginatedAnnouncements.map(item => {
+                                            const isCompany = item.category === 'company';
                                             return (
                                                 <div
                                                     key={item.id}
                                                     className="announcement-card clickable glass-card"
                                                     onClick={() => setSelectedAnnouncement(item)}
                                                 >
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-bright)' }}>{item.title}</h3>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                                                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-bright)', overflowWrap: 'anywhere' }}>{item.title}</h3>
                                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', flexShrink: 0 }}>
                                                             {new Date(item.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        <span
+                                                            style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                                padding: '0.22rem 0.55rem', borderRadius: '6px',
+                                                                fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                                                                border: '1px solid',
+                                                                background: isCompany ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                                                                color: isCompany ? '#10b981' : '#3b82f6',
+                                                                borderColor: isCompany ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)'
+                                                            }}
+                                                        >
+                                                            {isCompany ? '🟢 Company' : '🔵 Coordinator'}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                                            {isCompany
+                                                                ? (item.company_name || item.company?.name || item.author || 'Company')
+                                                                : (item.creator_name || item.author || 'SIL Coordinator')}
                                                         </span>
                                                     </div>
                                                 </div>

@@ -153,25 +153,35 @@ const CompanyJournalView: React.FC = () => {
                         Review daily journals submitted by your interns
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
-                    <button 
-                        onClick={() => setFilterStatus('pending')}
-                        style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid var(--border)', background: filterStatus === 'pending' ? 'var(--primary)' : 'var(--bg-elevated)', color: filterStatus === 'pending' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}
-                    >
-                        Pending Review
-                    </button>
-                    <button 
-                        onClick={() => setFilterStatus('reviewed')}
-                        style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid var(--border)', background: filterStatus === 'reviewed' ? 'var(--primary)' : 'var(--bg-elevated)', color: filterStatus === 'reviewed' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}
-                    >
-                        Reviewed
-                    </button>
-                    <button 
-                        onClick={() => setFilterStatus('all')}
-                        style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid var(--border)', background: filterStatus === 'all' ? 'var(--primary)' : 'var(--bg-elevated)', color: filterStatus === 'all' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}
-                    >
-                        All
-                    </button>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                    <input
+                        type="date"
+                        className="form-input"
+                        value={dateFilter}
+                        onChange={e => setDateFilter(e.target.value)}
+                        title="Filter by week"
+                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem 0.75rem', color: 'var(--text-primary)', width: 'auto' }}
+                    />
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                            onClick={() => setFilterStatus('pending')}
+                            style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid var(--border)', background: filterStatus === 'pending' ? 'var(--primary)' : 'var(--bg-elevated)', color: filterStatus === 'pending' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}
+                        >
+                            Pending Review
+                        </button>
+                        <button 
+                            onClick={() => setFilterStatus('reviewed')}
+                            style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid var(--border)', background: filterStatus === 'reviewed' ? 'var(--primary)' : 'var(--bg-elevated)', color: filterStatus === 'reviewed' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}
+                        >
+                            Reviewed
+                        </button>
+                        <button 
+                            onClick={() => setFilterStatus('all')}
+                            style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid var(--border)', background: filterStatus === 'all' ? 'var(--primary)' : 'var(--bg-elevated)', color: filterStatus === 'all' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}
+                        >
+                            All
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -182,7 +192,7 @@ const CompanyJournalView: React.FC = () => {
                     No {filterStatus !== 'all' ? filterStatus : ''} journals found.
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem', alignItems: 'start' }}>
                     {paginatedJournals.map(journal => (
                         <div key={journal.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-card)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -219,14 +229,15 @@ const CompanyJournalView: React.FC = () => {
                                 </span>
                             </div>
                             
-                            <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px' }}>
-                                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Tasks</h4>
-                                <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.95rem', lineHeight: 1.5 }}>{journal.tasks}</p>
-                            </div>
-                            
-                            <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px' }}>
-                                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Learnings</h4>
-                                <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.95rem', lineHeight: 1.5 }}>{journal.learnings}</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                                <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px' }}>
+                                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Tasks</h4>
+                                    <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.95rem', lineHeight: 1.5 }}>{journal.tasks}</p>
+                                </div>
+                                <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px' }}>
+                                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Learnings</h4>
+                                    <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.95rem', lineHeight: 1.5 }}>{journal.learnings}</p>
+                                </div>
                             </div>
 
                             {journal.status === 'pending' && (
@@ -319,16 +330,6 @@ const CompanyJournalView: React.FC = () => {
                                 Approve
                             </button>
                         </div>
-                    </div>
-                    
-                    <div style={{ position: 'relative', marginLeft: '0.5rem' }}>
-                        <input
-                            type="date"
-                            className="form-input"
-                            value={dateFilter}
-                            onChange={e => setDateFilter(e.target.value)}
-                            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem 0.75rem', color: 'var(--text-primary)' }}
-                        />
                     </div>
                 </div>
             )}

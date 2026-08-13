@@ -312,7 +312,7 @@ html[data-theme="dark"] {
 .company-page-content {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem;
+  padding: 2rem 3rem;
   background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.05), transparent 40%),
     radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.05), transparent 40%);
   display: flex;
@@ -436,6 +436,9 @@ html[data-theme="dark"] .company-welcome-banner {
   .company-mobile-toggle {
     display: block;
   }
+  .company-page-content {
+    padding: 1.5rem;
+  }
 }
 @media (max-width: 640px) {
   .company-page-content {
@@ -443,6 +446,9 @@ html[data-theme="dark"] .company-welcome-banner {
   }
   .company-stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .company-topbar {
+    padding: 0 1rem;
   }
 }
 

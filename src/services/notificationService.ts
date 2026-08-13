@@ -4,8 +4,18 @@ export interface Announcement {
     id: string;
     title: string;
     content: string;
-    author: string;
+    author: string | null;
     created_at: string;
+    company_id?: string | null;
+    created_by?: string | null;
+    created_by_role?: 'company' | 'coordinator' | 'admin' | 'student' | null;
+    category?: 'company' | 'coordinator' | null;
+    status?: string;
+    attachment_url?: string | null;
+    attachment_name?: string | null;
+    company_name?: string | null;
+    creator_name?: string | null;
+    company?: { name: string } | null;
 }
 
 export interface UserNotification {
@@ -37,11 +47,34 @@ export const notificationService = {
     async getAnnouncements() {
         const { data, error } = await supabase
             .from('announcements')
-            .select('*')
+            .select('*, company:companies(name)')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
         return data as Announcement[];
+    },
+
+    /**
+     * Open a single announcement. Access is verified server-side via the
+     * get_student_announcement RPC — a student can only ever read an
+     * announcement for the company they are (or were) assigned to, or a
+     * school-wide coordinator announcement.
+     */
+    async getStudentAnnouncement(announcementId: string) {
+        const { data, error } = await supabase
+            .rpc('get_student_announcement', { p_announcement_id: announcementId });
+
+        if (error) throw error;
+        const rows = (data || []) as Announcement[];
+        return rows.length > 0 ? rows[0] : null;
+    },
+
+    async getAnnouncementAttachmentUrl(filePath: string) {
+        const { data, error } = await supabase.storage
+            .from('company_documents')
+            .createSignedUrl(filePath, 3600);
+        if (error) throw error;
+        return data.signedUrl;
     },
 
     async getUserNotifications() {

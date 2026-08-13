@@ -25,6 +25,7 @@ interface AdvancedLocationPickerMapProps {
     onLocationSelect: (lat: number, lng: number) => void;
     onPolygonChange: (polygon: GeoJSONPolygon | null) => void;
     geofenceRadius?: number;
+    showPolygonControls?: boolean;
 }
 
 interface PhotonResult {
@@ -41,17 +42,21 @@ interface PhotonResult {
 }
 
 // Handles click events for setting location marker (when not drawing polygon)
-const LocationMarker = ({ position, setPosition, onLocationSelect }: any) => {
+const LocationMarker = ({ position, setPosition, isEditing }: any) => {
     const map = useMapEvents({
         click(e) {
+            if (!isEditing) return;
             setPosition(e.latlng);
-            onLocationSelect(e.latlng.lat, e.latlng.lng);
             map.flyTo(e.latlng, map.getZoom());
         },
     });
 
     return position === null ? null : (
-        <Marker position={position}></Marker>
+        <Marker
+            position={position}
+            draggable={isEditing}
+            eventHandlers={isEditing ? { dragend: (e: any) => setPosition(e.target.getLatLng()) } : undefined}
+        ></Marker>
     );
 };
 
@@ -116,6 +121,7 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
     initialPolygon,
     onLocationSelect,
     onPolygonChange,
+    showPolygonControls = true,
 }) => {
     const defaultCenter: [number, number] = [12.8797, 121.7740];
     const startingPos = (initialLat && initialLng) ? { lat: initialLat, lng: initialLng } : null;
@@ -129,8 +135,10 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
     const [polygon, setPolygon] = useState<GeoJSONPolygon | null>(initialPolygon || null);
     const [polygonDrawn, setPolygonDrawn] = useState(!!initialPolygon);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const [drawingPoints, setDrawingPoints] = useState<L.LatLng[]>([]);
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const preDrawPolygonRef = useRef<GeoJSONPolygon | null>(initialPolygon || null);
 
     useEffect(() => {
         if (initialLat && initialLng) {
@@ -139,6 +147,11 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
             setPosition(null);
         }
     }, [initialLat, initialLng]);
+
+    useEffect(() => {
+        setPolygon(initialPolygon || null);
+        setPolygonDrawn(!!initialPolygon);
+    }, [initialPolygon]);
 
     useEffect(() => {
         return () => {
@@ -185,9 +198,10 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
         const [lng, lat] = result.geometry.coordinates;
         const newPos = L.latLng(lat, lng);
 
-        setPosition(newPos);
         setSearchCenter(newPos);
-        onLocationSelect(lat, lng);
+        if (isEditing) {
+            setPosition(newPos);
+        }
 
         // Format address for display
         const { name, city, state, country } = result.properties;
@@ -209,10 +223,10 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
     const startDrawing = () => {
         setIsDrawing(true);
         setDrawingPoints([]);
-        // Clear existing polygon when starting a new draw
+        // Remember the current polygon so "Cancel" can restore it
+        preDrawPolygonRef.current = polygon;
         setPolygon(null);
         setPolygonDrawn(false);
-        onPolygonChange(null);
     };
 
     const finishDrawing = () => {
@@ -223,7 +237,6 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
             const newPolygon = coordinatesToGeoJSON(coords);
             setPolygon(newPolygon);
             setPolygonDrawn(true);
-            onPolygonChange(newPolygon);
         }
         setIsDrawing(false);
         setDrawingPoints([]);
@@ -236,12 +249,41 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
     const cancelDrawing = () => {
         setIsDrawing(false);
         setDrawingPoints([]);
+        setPolygon(preDrawPolygonRef.current);
+        setPolygonDrawn(!!preDrawPolygonRef.current);
     };
 
     const clearPolygon = () => {
         setPolygon(null);
         setPolygonDrawn(false);
         onPolygonChange(null);
+    };
+
+    const startEditing = () => {
+        setIsEditing(true);
+    };
+
+    const finishEditing = () => {
+        setIsEditing(false);
+        setIsDrawing(false);
+        setDrawingPoints([]);
+        if (position) {
+            onLocationSelect(position.lat, position.lng);
+        }
+        onPolygonChange(polygon);
+    };
+
+    const cancelEditing = () => {
+        setIsEditing(false);
+        setIsDrawing(false);
+        setDrawingPoints([]);
+        if (initialLat && initialLng) {
+            setPosition(L.latLng(initialLat, initialLng));
+        } else {
+            setPosition(null);
+        }
+        setPolygon(initialPolygon || null);
+        setPolygonDrawn(!!initialPolygon);
     };
 
     const polygonCoords = polygon ? extractPolygonCoordinates(polygon) : [];
@@ -408,7 +450,7 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
 
                     {/* Location click handler (when NOT drawing polygon) */}
                     {!isDrawing && (
-                        <LocationMarker position={position} setPosition={setPosition} onLocationSelect={onLocationSelect} />
+                        <LocationMarker position={position} setPosition={setPosition} isEditing={isEditing} />
                     )}
 
                     {/* Polygon drawing click handler */}
@@ -479,17 +521,40 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
                             </button>
                         </div>
                     </>
-                ) : (
+                ) : isEditing ? (
                     <>
-                        <span>
-                            {polygonDrawn
-                                ? `✓ Polygon drawn (${polygonCoords.length} points) — click map to set location`
-                                : 'Click map to set location, or draw a geofence polygon'}
-                        </span>
+                        <span>✏️ Location editing enabled — click the map or drag the marker to select a new location.</span>
                         <div style={{ display: 'flex', gap: '6px' }}>
                             <button
                                 type="button"
                                 onClick={startDrawing}
+                                style={{ ...btnBase, background: '#1a73e8', color: '#fff' }}
+                            >
+                                {polygonDrawn ? '✏️ Redraw Polygon' : '✏️ Draw Polygon'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={finishEditing}
+                                style={{ ...btnBase, background: '#4CAF50', color: '#fff' }}
+                            >
+                                ✓ Save Location
+                            </button>
+                            <button
+                                type="button"
+                                onClick={cancelEditing}
+                                style={{ ...btnBase, background: '#ff5252', color: '#fff' }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </>
+                ) : showPolygonControls ? (
+                    <>
+                        <span>🔒 Location locked — current office location is protected. Click Redraw to change it.</span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                                type="button"
+                                onClick={startEditing}
                                 style={{ ...btnBase, background: '#1a73e8', color: '#fff' }}
                             >
                                 {polygonDrawn ? '✏️ Redraw' : '✏️ Draw Polygon'}
@@ -505,6 +570,8 @@ const AdvancedLocationPickerMap: React.FC<AdvancedLocationPickerMapProps> = ({
                             )}
                         </div>
                     </>
+                ) : (
+                    <span>🔒 Location locked</span>
                 )}
             </div>
         </div>
