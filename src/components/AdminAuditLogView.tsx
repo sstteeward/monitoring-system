@@ -5,6 +5,7 @@ import {
     getAuditLogStats,
     exportAuditLogs,
     downloadFile,
+    markAuditLogsAsSeen,
     AUDIT_ACTIONS,
     AUDIT_MODULES,
     type AuditLogEntry,
@@ -93,6 +94,7 @@ const AdminAuditLogView: React.FC = () => {
             setTotalCount(count);
             setStats(statsData);
             setNewEventsNotice(0);
+            markAuditLogsAsSeen().catch(() => {});
         } catch (e) {
             console.error('[AuditLogView] Error loading logs:', e);
         } finally {
@@ -422,6 +424,16 @@ const AdminAuditLogView: React.FC = () => {
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                             <div className="admin-table-title">Audit Trail &amp; Activity Logs</div>
+                            {newEventsNotice > 0 && (
+                                <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                    fontSize: '0.72rem', fontWeight: 700, color: '#10b981',
+                                    background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)',
+                                    padding: '0.15rem 0.55rem', borderRadius: '20px',
+                                }}>
+                                    • {newEventsNotice} New
+                                </span>
+                            )}
                             {realtimeActive && (
                                 <span style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '0.35rem',

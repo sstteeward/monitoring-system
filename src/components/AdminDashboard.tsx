@@ -9,6 +9,7 @@ import AdminSettingsView from './AdminSettingsView';
 import AdminProfileView from './AdminProfileView';
 import AdminFeedbackView from './AdminFeedbackView';
 import AdminAuditLogView from './AdminAuditLogView';
+import { getUnreadAuditLogsCount, markAuditLogsAsSeen, onUnreadAuditCountChange } from '../services/auditService';
 import AdminDepartmentsView from './AdminDepartmentsView';
 import AdminCoursesView from './AdminCoursesView';
 import AdminRoleManagementView from './AdminRoleManagementView';
@@ -50,6 +51,8 @@ const AdminDashboard: React.FC = () => {
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [newFeedbackCount, setNewFeedbackCount] = useState(0);
+    const [unreadAuditCount, setUnreadAuditCount] = useState(0);
+    const [isAuditBadgePulsing, setIsAuditBadgePulsing] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
     const [deletingUser, setDeletingUser] = useState(false);
     const [viewProfileId, setViewProfileId] = useState<string | null>(null);
@@ -98,6 +101,44 @@ const AdminDashboard: React.FC = () => {
         }
     }, [location]);
 
+    // Clear audit badge when entering audit view
+    useEffect(() => {
+        if (currentView === 'audit') {
+            markAuditLogsAsSeen().then(() => {
+                setUnreadAuditCount(0);
+            }).catch(console.error);
+        }
+    }, [currentView]);
+
+    // Realtime subscription for audit log badge
+    useEffect(() => {
+        const unsub = onUnreadAuditCountChange((cnt) => {
+            setUnreadAuditCount(cnt);
+        });
+
+        const channel = supabase
+            .channel('admin_audit_logs_badge_sub')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'audit_logs' },
+                () => {
+                    if (currentView === 'audit') {
+                        markAuditLogsAsSeen();
+                    } else {
+                        setUnreadAuditCount(prev => prev + 1);
+                        setIsAuditBadgePulsing(true);
+                        setTimeout(() => setIsAuditBadgePulsing(false), 1600);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            unsub();
+            supabase.removeChannel(channel);
+        };
+    }, [currentView]);
+
     const navigateTo = (view: View) => {
         navigate(view === 'overview' ? '/admin' : `/admin/${view}`);
         setIsMobileMenuOpen(false);
@@ -111,16 +152,18 @@ const AdminDashboard: React.FC = () => {
 
     const loadAdminData = async () => {
         try {
-            const [currentProfile, systemStats, profiles, feedbackCount] = await Promise.all([
+            const [currentProfile, systemStats, profiles, feedbackCount, auditUnread] = await Promise.all([
                 profileService.getCurrentProfile(),
                 adminService.getSystemStats(),
                 adminService.getAllProfiles(),
                 adminService.getNewFeedbackCount(),
+                getUnreadAuditLogsCount(),
             ]);
             setProfile(currentProfile);
             setStats(systemStats as any);
             setAllProfiles(profiles);
             setNewFeedbackCount(feedbackCount);
+            setUnreadAuditCount(auditUnread);
         } catch (err) {
             console.error('Error loading admin data:', err);
         } finally {
@@ -257,6 +300,14 @@ const AdminDashboard: React.FC = () => {
                         <div className={`admin-nav-item ${currentView === 'audit' ? 'active' : ''}`} onClick={() => navigateTo('audit')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
                             <span className="nav-text">Audit Logs</span>
+                            {unreadAuditCount > 0 && currentView !== 'audit' && (
+                                <span
+                                    className={`nav-badge nav-badge-audit ${isAuditBadgePulsing ? 'pulse-badge' : ''}`}
+                                    title={`${unreadAuditCount} unread audit ${unreadAuditCount === 1 ? 'activity' : 'activities'}`}
+                                >
+                                    {unreadAuditCount > 99 ? '99+' : unreadAuditCount}
+                                </span>
+                            )}
                         </div>
                         <div className={`admin-nav-item ${currentView === 'security' ? 'active' : ''}`} onClick={() => navigateTo('security')}>
                             <span className="nav-icon" style={{ color: 'var(--text-red)' }}>{Icon.security}</span>

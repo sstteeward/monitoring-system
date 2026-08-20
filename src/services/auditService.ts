@@ -434,6 +434,113 @@ export async function getAuditLogStats(): Promise<AuditLogStats> {
 }
 
 // ---------------------------------------------------------------------------
+// Unread / Seen state tracking
+// ---------------------------------------------------------------------------
+
+type UnreadCountListener = (count: number) => void;
+const unreadListeners = new Set<UnreadCountListener>();
+
+export function onUnreadAuditCountChange(listener: UnreadCountListener): () => void {
+    unreadListeners.add(listener);
+    return () => {
+        unreadListeners.delete(listener);
+    };
+}
+
+function notifyUnreadCount(count: number) {
+    unreadListeners.forEach(fn => {
+        try { fn(count); } catch {}
+    });
+}
+
+/**
+ * Get count of unseen audit logs for the current administrator
+ */
+export async function getUnreadAuditLogsCount(): Promise<number> {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return 0;
+        const userId = session.user.id;
+
+        // Try RPC first
+        const { data, error } = await supabase.rpc('get_unread_audit_logs_count');
+        if (!error && data !== null && data !== undefined) {
+            const count = Number(data) || 0;
+            return count;
+        }
+
+        // Direct Fallback: check audit_log_reads table or localStorage
+        let lastSeenIso: string | null = null;
+        try {
+            const { data: readRow } = await supabase
+                .from('audit_log_reads')
+                .select('last_seen_at')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (readRow?.last_seen_at) {
+                lastSeenIso = readRow.last_seen_at;
+            }
+        } catch {}
+
+        if (!lastSeenIso && typeof window !== 'undefined') {
+            lastSeenIso = localStorage.getItem(`audit_logs_last_seen_${userId}`);
+        }
+
+        // If never seen before, default to past 7 days
+        if (!lastSeenIso) {
+            lastSeenIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        }
+
+        const { count, error: countErr } = await supabase
+            .from('audit_logs')
+            .select('id', { count: 'exact', head: true })
+            .gt('created_at', lastSeenIso);
+
+        if (countErr) return 0;
+        return count || 0;
+    } catch (e) {
+        console.error('[AuditService] Error getting unread audit logs count:', e);
+        return 0;
+    }
+}
+
+/**
+ * Mark all current audit logs as seen for the current administrator
+ */
+export async function markAuditLogsAsSeen(): Promise<void> {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        const userId = session.user.id;
+        const nowIso = new Date().toISOString();
+
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(`audit_logs_last_seen_${userId}`, nowIso);
+        }
+
+        // Try RPC first
+        const { error: rpcErr } = await supabase.rpc('mark_audit_logs_as_seen');
+        if (rpcErr) {
+            // Direct table fallback
+            try {
+                await supabase
+                    .from('audit_log_reads')
+                    .upsert({
+                        user_id: userId,
+                        last_seen_at: nowIso,
+                        updated_at: nowIso
+                    }, { onConflict: 'user_id' });
+            } catch {}
+        }
+
+        notifyUnreadCount(0);
+    } catch (e) {
+        console.error('[AuditService] Error marking audit logs as seen:', e);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Export Helpers
 // ---------------------------------------------------------------------------
 

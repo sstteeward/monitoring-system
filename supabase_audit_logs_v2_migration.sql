@@ -1,7 +1,7 @@
 -- ============================================================
 -- AUDIT LOGS V2 MIGRATION
 -- Enhances the existing audit_logs table with richer metadata
--- for the Audit Trail & Activity Tracking system.
+-- and per-admin unread/seen notification indicators.
 --
 -- Run this in the Supabase SQL Editor.
 -- This migration is SAFE to re-run (all statements are idempotent).
@@ -166,5 +166,90 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 6. Refresh PostgREST schema cache
+-- 6. Table to track seen/read state of audit logs per administrator
+CREATE TABLE IF NOT EXISTS public.audit_log_reads (
+  user_id UUID PRIMARY KEY,
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS on audit_log_reads
+ALTER TABLE public.audit_log_reads ENABLE ROW LEVEL SECURITY;
+
+-- Policies: Admins can view and update their own read record
+DROP POLICY IF EXISTS "Admins can view own audit_log_reads" ON public.audit_log_reads;
+CREATE POLICY "Admins can view own audit_log_reads"
+  ON public.audit_log_reads
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admins can insert/update own audit_log_reads" ON public.audit_log_reads;
+CREATE POLICY "Admins can insert/update own audit_log_reads"
+  ON public.audit_log_reads
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- 7. RPC to get unread audit logs count for the current administrator
+DROP FUNCTION IF EXISTS public.get_unread_audit_logs_count();
+
+CREATE OR REPLACE FUNCTION public.get_unread_audit_logs_count()
+RETURNS BIGINT AS $$
+DECLARE
+  v_last_seen TIMESTAMPTZ;
+  v_unread_count BIGINT;
+BEGIN
+  -- Authorization check: only admins
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE auth_user_id = auth.uid()
+    AND account_type = 'admin'
+  ) THEN
+    RETURN 0;
+  END IF;
+
+  -- Get admin's last_seen timestamp
+  SELECT last_seen_at INTO v_last_seen
+  FROM public.audit_log_reads
+  WHERE user_id = auth.uid();
+
+  -- If admin has never viewed, default to 7 days ago
+  IF v_last_seen IS NULL THEN
+    v_last_seen := NOW() - INTERVAL '7 days';
+  END IF;
+
+  -- Count unseen logs
+  SELECT COUNT(*) INTO v_unread_count
+  FROM public.audit_logs
+  WHERE created_at > v_last_seen;
+
+  RETURN v_unread_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 8. RPC to mark audit logs as seen for the current administrator
+DROP FUNCTION IF EXISTS public.mark_audit_logs_as_seen();
+
+CREATE OR REPLACE FUNCTION public.mark_audit_logs_as_seen()
+RETURNS VOID AS $$
+BEGIN
+  -- Authorization check: only admins
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE auth_user_id = auth.uid()
+    AND account_type = 'admin'
+  ) THEN
+    RETURN;
+  END IF;
+
+  INSERT INTO public.audit_log_reads (user_id, last_seen_at, updated_at)
+  VALUES (auth.uid(), NOW(), NOW())
+  ON CONFLICT (user_id)
+  DO UPDATE SET
+    last_seen_at = NOW(),
+    updated_at = NOW();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 9. Refresh PostgREST schema cache
 NOTIFY pgrst, 'reload schema';

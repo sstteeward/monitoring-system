@@ -215,6 +215,28 @@ html[data-theme="dark"] {
   border: 2px solid var(--admin-sidebar-bg);
 }
 
+.nav-badge.nav-badge-audit {
+  background: #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes auditBadgePulse {
+  0% {
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    transform: translateY(-50%) scale(1.25);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
+  }
+  100% {
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+.nav-badge-audit.pulse-badge {
+  animation: auditBadgePulse 0.8s ease-in-out 2;
+}
+
 .sidebar-mode-collapsed .nav-badge,
 .sidebar-mode-hover:not(:hover) .nav-badge {
   right: 8px;
