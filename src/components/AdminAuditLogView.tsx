@@ -427,8 +427,8 @@ const AdminAuditLogView: React.FC = () => {
                             {newEventsNotice > 0 && (
                                 <span style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                    fontSize: '0.72rem', fontWeight: 700, color: '#10b981',
-                                    background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)',
+                                    fontSize: '0.72rem', fontWeight: 700, color: '#ef4444',
+                                    background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
                                     padding: '0.15rem 0.55rem', borderRadius: '20px',
                                 }}>
                                     • {newEventsNotice} New
