@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { companyService, type Evaluation } from '../services/companyService';
 import { profileService, type Profile } from '../services/profileService';
 import UserClickableName from './UserClickableName';
@@ -19,6 +20,7 @@ const EvaluationCriteria = [
 ];
 
 const CompanyEvaluationView: React.FC = () => {
+    const location = useLocation();
     const [students, setStudents] = useState<Profile[]>([]);
     const [selectedStudent, setSelectedStudent] = useState<Profile | null>(null);
     const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -47,7 +49,33 @@ const CompanyEvaluationView: React.FC = () => {
             const data = await companyService.getAssignedStudents(profile.company_id);
             setStudents(data);
             
-            // Load all company evaluations initially
+            // Check if a student ID was passed in navigation state
+            const stateStudentId = location.state?.studentId;
+            if (stateStudentId) {
+                const targetStudent = data.find(s => s.id === stateStudentId);
+                if (targetStudent) {
+                    setSelectedStudent(targetStudent);
+                    setLoadingEvaluations(true);
+                    const studentEvals = await companyService.getStudentEvaluations(stateStudentId);
+                    setEvaluations(studentEvals as Evaluation[]);
+                    setLoadingEvaluations(false);
+                    
+                    if (location.state?.openForm) {
+                        const initialData: any = {};
+                        EvaluationCriteria.forEach(c => initialData[c.key] = 0);
+                        initialData.overall_rating = 0;
+                        initialData.comments = '';
+                        initialData.strengths = '';
+                        initialData.weaknesses = '';
+                        initialData.recommendations = '';
+                        setFormData(initialData);
+                        setShowForm(true);
+                    }
+                    return;
+                }
+            }
+            
+            // Load all company evaluations initially if no student was selected via state
             setLoadingEvaluations(true);
             const allEvals = await companyService.getCompanyEvaluations(profile.company_id);
             setEvaluations(allEvals as Evaluation[]);
@@ -308,7 +336,7 @@ const CompanyEvaluationView: React.FC = () => {
                 }
 
                 .btn-new-eval {
-                    background-color: var(--primary);
+                    background: var(--primary) !important;
                     color: white;
                     border-radius: 12px;
                     padding: 10px 16px;
@@ -432,10 +460,7 @@ const CompanyEvaluationView: React.FC = () => {
                                         </div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ fontWeight: isSelected ? 700 : 500, fontSize: '0.95rem', color: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                <UserClickableName
-                                                    userId={student.id}
-                                                    userName={`${student.first_name} ${student.last_name}`}
-                                                />
+                                                {student.first_name} {student.last_name}
                                             </div>
                                         </div>
                                     </div>
@@ -527,9 +552,19 @@ const CompanyEvaluationView: React.FC = () => {
                                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
                                         </div>
                                         <h3 style={{ margin: '0 0 8px 0', fontSize: '1.2rem' }}>No evaluations found</h3>
-                                        <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-                                            {selectedStudent ? "Click 'New Evaluation' above to create one." : "No evaluations have been submitted yet."}
+                                        <p style={{ margin: '0 0 16px 0', color: 'var(--text-muted)' }}>
+                                            No evaluations have been submitted yet for this intern.
                                         </p>
+                                        {selectedStudent && (
+                                            <button 
+                                                className="btn-new-eval"
+                                                onClick={handleOpenForm}
+                                                style={{ marginTop: '0.5rem' }}
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                                                Add Evaluation
+                                            </button>
+                                        )}
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>

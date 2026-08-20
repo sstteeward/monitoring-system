@@ -91,7 +91,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
         try {
             await adminService.deleteUserAccount(deleteTarget.id);
             setStudents(prev => prev.filter(s => s.auth_user_id !== deleteTarget.id));
-            await adminService.logAction('delete_student_account', 'profiles', deleteTarget.id);
+            await adminService.logAction('delete_student_account', 'profiles', deleteTarget.id, { name: deleteTarget.name });
             setDeleteTarget(null);
         } catch (e: any) {
             const detail = e?.message || e?.details || JSON.stringify(e);

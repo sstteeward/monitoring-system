@@ -53,6 +53,17 @@ export default function UpdatePasswordView({ onComplete }: { onComplete: () => v
 
             if (updateError) throw updateError;
             
+            try {
+                const { createAuditLog } = await import('../services/auditService');
+                await createAuditLog({
+                    action: 'PASSWORD_CHANGE',
+                    module: 'Authentication',
+                    description: 'User successfully updated their password',
+                });
+            } catch (auditErr) {
+                console.warn('Failed to log password change:', auditErr);
+            }
+
             setMessage("Password updated successfully!");
             setTimeout(async () => {
                 await supabase.auth.signOut();
@@ -61,6 +72,15 @@ export default function UpdatePasswordView({ onComplete }: { onComplete: () => v
             }, 2000);
         } catch (err: any) {
             setError(err.message || String(err));
+            try {
+                const { createAuditLog } = await import('../services/auditService');
+                await createAuditLog({
+                    action: 'PASSWORD_CHANGE',
+                    module: 'Authentication',
+                    description: `Failed password update attempt: ${err.message || String(err)}`,
+                    status: 'failed'
+                });
+            } catch {}
         } finally {
             setIsSubmitting(false);
         }

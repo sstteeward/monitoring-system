@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import type { Profile } from './profileService';
+import { createAuditLog } from './auditService';
 
 export interface Schedule {
   id: string;
@@ -182,6 +183,18 @@ export const companyService = {
       .from('evaluations')
       .insert(evaluationData);
     if (error) throw error;
+
+    try {
+      await createAuditLog({
+        action: 'SUBMIT',
+        module: 'Evaluations',
+        description: `Submitted performance evaluation for student ${evaluationData.student_id}`,
+        targetType: 'student',
+        targetId: evaluationData.student_id,
+        newValues: { overall_rating: evaluationData.overall_rating },
+      });
+    } catch {}
+
     return true;
   },
   
@@ -234,6 +247,17 @@ export const companyService = {
         attachment_name: announcementData.attachment_name || null
       });
     if (error) throw error;
+
+    try {
+      await createAuditLog({
+        action: 'CREATE',
+        module: 'Announcements',
+        description: `Created announcement: ${announcementData.title}`,
+        targetType: 'announcement',
+        targetName: announcementData.title,
+      });
+    } catch {}
+
     return true;
   },
 
@@ -262,6 +286,17 @@ export const companyService = {
       .delete()
       .eq('id', id);
     if (error) throw error;
+
+    try {
+      await createAuditLog({
+        action: 'DELETE',
+        module: 'Announcements',
+        description: `Deleted announcement: ${id}`,
+        targetType: 'announcement',
+        targetId: id,
+      });
+    } catch {}
+
     return true;
   },
 

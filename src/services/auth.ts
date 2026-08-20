@@ -1,5 +1,6 @@
 // Lazy-load the Supabase client to avoid module import-time crashes when env vars are missing.
 import { generateDeviceFingerprint, getDeviceLabel } from '../utils/deviceFingerprint';
+
 async function getClient() {
   try {
     const mod = await import('../lib/supabaseClient');
@@ -34,7 +35,19 @@ export async function signUp({ email, password, firstName, middleName, lastName,
       },
     },
   });
-  if (signUpError) throw signUpError;
+  if (signUpError) {
+    try {
+      const { createAuditLog } = await import('./auditService');
+      await createAuditLog({
+        action: 'CREATE',
+        module: 'User Management',
+        description: `Failed registration attempt for ${email}: ${signUpError.message}`,
+        overrideUser: { userId: '', userName: email, userRole: accountType || 'guest' },
+        status: 'failed'
+      });
+    } catch {}
+    throw signUpError;
+  }
 
   // Supabase triggers sometimes fire before user_metadata is available (e.g. when
   // email confirmation is enabled). Explicitly upsert the account_type to guarantee
@@ -62,6 +75,24 @@ export async function signUp({ email, password, firstName, middleName, lastName,
       }
       throw profileError;
     }
+
+    try {
+      const fullName = `${firstName || ''} ${lastName || ''}`.trim() || email;
+      const { createAuditLog } = await import('./auditService');
+      await createAuditLog({
+        action: 'CREATE',
+        module: 'User Management',
+        description: `New user registration for ${email} (${accountType || 'student'})`,
+        targetType: 'user',
+        targetId: signUpData.user.id,
+        targetName: fullName,
+        overrideUser: {
+          userId: signUpData.user.id,
+          userName: fullName,
+          userRole: accountType || 'student'
+        }
+      });
+    } catch {}
   }
 
   return signUpData;
@@ -77,6 +108,20 @@ export async function signIn({ email, password, role }: { email: string; passwor
     if (error.message.includes('Invalid login credentials')) {
       await supabase.rpc('increment_failed_login', { user_email: email.toLowerCase() });
     }
+    try {
+      const { createAuditLog } = await import('./auditService');
+      await createAuditLog({
+        action: 'LOGIN_FAILED',
+        module: 'Authentication',
+        description: `Failed login attempt for ${email}: ${error.message}`,
+        overrideUser: {
+          userId: '',
+          userName: email,
+          userRole: 'guest'
+        },
+        status: 'failed'
+      });
+    } catch {}
     throw error;
   }
 
@@ -117,6 +162,20 @@ export async function signIn({ email, password, role }: { email: string; passwor
     // 4. On absolute success, reset failed attempts
     await supabase.rpc('reset_failed_login', { user_email: email.toLowerCase() });
 
+    try {
+      const { createAuditLog } = await import('./auditService');
+      await createAuditLog({
+        action: 'LOGIN',
+        module: 'Authentication',
+        description: `Successfully signed in as ${email}`,
+        overrideUser: {
+          userId: data.user.id,
+          userName: email,
+          userRole: profile.account_type || 'unknown'
+        }
+      });
+    } catch {}
+
     // 5. Register Device Fingerprint (non-blocking)
     try {
       const fingerprint = await generateDeviceFingerprint();
@@ -149,6 +208,21 @@ export async function signIn({ email, password, role }: { email: string; passwor
     const errorMsg = checkError.message || String(checkError);
     sessionStorage.setItem('portal_login_error', errorMsg);
     
+    try {
+      const { createAuditLog } = await import('./auditService');
+      await createAuditLog({
+        action: 'LOGIN_FAILED',
+        module: 'Authentication',
+        description: `Failed login check for ${email}: ${errorMsg}`,
+        overrideUser: {
+          userId: data.user.id,
+          userName: email,
+          userRole: profile.account_type || 'unknown'
+        },
+        status: 'failed'
+      });
+    } catch {}
+
     // Sign the user out immediately before returning
     await supabase.auth.signOut();
     throw checkError;
@@ -157,10 +231,46 @@ export async function signIn({ email, password, role }: { email: string; passwor
   return data;
 }
 
+export async function signOut() {
+  const supabase = await getClient();
+  try {
+    const { createAuditLog, clearAuditUserCache } = await import('./auditService');
+    await createAuditLog({
+      action: 'LOGOUT',
+      module: 'Authentication',
+      description: 'User signed out'
+    });
+    clearAuditUserCache();
+  } catch {}
+  return await supabase.auth.signOut();
+}
+
 export async function resetPasswordForEmail(email: string) {
   const supabase = await getClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/change-password`,
   });
-  if (error) throw error;
+  if (error) {
+    try {
+      const { createAuditLog } = await import('./auditService');
+      await createAuditLog({
+        action: 'PASSWORD_RESET',
+        module: 'Authentication',
+        description: `Failed to request password reset for ${email}: ${error.message}`,
+        overrideUser: { userId: '', userName: email, userRole: 'guest' },
+        status: 'failed'
+      });
+    } catch {}
+    throw error;
+  }
+
+  try {
+    const { createAuditLog } = await import('./auditService');
+    await createAuditLog({
+      action: 'PASSWORD_RESET',
+      module: 'Authentication',
+      description: `Requested password reset link for ${email}`,
+      overrideUser: { userId: '', userName: email, userRole: 'guest' }
+    });
+  } catch {}
 }

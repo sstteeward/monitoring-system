@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { profileService, type Profile } from '../services/profileService';
 import { DTRCard } from './DTRCard';
 import { SignaturePad } from './SignaturePad';
@@ -10,6 +11,7 @@ interface UserProfileModalProps {
 }
 
 const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose }) => {
+    const navigate = useNavigate();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(false);
     const [showDTR, setShowDTR] = useState(false);
@@ -261,6 +263,41 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                                             {field('Requirements', profile.required_ojt_hours ? `${profile.required_ojt_hours} Hours` : 'Not Set')}
                                         </div>
                                     </section>
+
+                                    {currentUser?.account_type === 'company' && (
+                                        <section>
+                                            <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <span style={{ width: 20, height: 2, background: 'var(--primary)', opacity: 0.3 }} />
+                                                Actions
+                                            </h3>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onClose();
+                                                    navigate('/company/evaluations', { state: { studentId: profile.id, openForm: true } });
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    background: 'var(--primary)',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '12px',
+                                                    padding: '0.75rem 1rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem',
+                                                    fontSize: '0.9rem',
+                                                    boxShadow: '0 4px 12px rgba(16,185,129,0.2)'
+                                                }}
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                                                Add Evaluation
+                                            </button>
+                                        </section>
+                                    )}
 
                                     <section>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>

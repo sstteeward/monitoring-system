@@ -51,7 +51,10 @@ const AdminRoleManagementView: React.FC = () => {
         setSaving(true);
         try {
             await adminService.updateUserPermissions(selectedUser.auth_user_id, selectedUser.permissions || defaultPermissions);
-            await adminService.logAction('update_permissions', 'profiles', selectedUser.auth_user_id, { permissions: selectedUser.permissions });
+            await adminService.logAction('update_permissions', 'profiles', selectedUser.auth_user_id, { 
+                permissions: selectedUser.permissions, 
+                target_name: `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim() 
+            });
             // Update local state
             setCoordinators(coordinators.map(c => c.id === selectedUser.id ? selectedUser : c));
             alert('Permissions updated successfully.');

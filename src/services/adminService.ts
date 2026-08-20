@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import type { Profile } from './profileService';
+import { createAuditLog } from './auditService';
 
 export interface Feedback {
     id: string;
@@ -428,16 +429,98 @@ export const adminService = {
     // --- Enterprise Features: Audit Logging ---
     async logAction(action: string, table_name: string, record_id: string | null = null, details: any = null) {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
+            // Map old params to new AuditAction and AuditModule
+            let newAction: any = 'UPDATE';
+            let newModule: any = 'User Management';
+            let targetType = table_name;
+            let description = `${action} on ${table_name}`;
 
-            await supabase.from('audit_logs').insert([{
-                user_id: session.user.id,
-                action,
-                table_name,
-                record_id,
-                details
-            }]);
+            const actUpper = action.toUpperCase();
+            if (actUpper.includes('CREATE')) {
+                newAction = 'CREATE';
+            } else if (actUpper.includes('DELETE')) {
+                newAction = 'DELETE';
+            } else if (actUpper.includes('LOGIN')) {
+                newAction = 'LOGIN';
+            } else if (actUpper.includes('LOGOUT')) {
+                newAction = 'LOGOUT';
+            } else if (actUpper.includes('FAILED')) {
+                newAction = 'LOGIN_FAILED';
+            } else if (actUpper.includes('APPROVE')) {
+                newAction = 'APPROVE';
+            } else if (actUpper.includes('REJECT')) {
+                newAction = 'REJECT';
+            } else if (actUpper.includes('ASSIGN')) {
+                newAction = 'ASSIGN';
+            } else if (actUpper.includes('UNASSIGN')) {
+                newAction = 'UNASSIGN';
+            } else if (actUpper.includes('PASSWORD')) {
+                newAction = 'PASSWORD_CHANGE';
+            } else if (actUpper.includes('ROLE')) {
+                newAction = 'ROLE_CHANGE';
+            } else if (actUpper.includes('PERMISSION')) {
+                newAction = 'PERMISSION_CHANGE';
+            } else if (actUpper.includes('STATUS') || actUpper.includes('ACTIVATE') || actUpper.includes('DEACTIVATE') || actUpper.includes('LOCK') || actUpper.includes('UNLOCK')) {
+                newAction = 'STATUS_CHANGE';
+            } else if (actUpper.includes('UPLOAD')) {
+                newAction = 'UPLOAD';
+            } else if (actUpper.includes('DOWNLOAD')) {
+                newAction = 'DOWNLOAD';
+            } else if (actUpper.includes('BACKUP')) {
+                newAction = 'BACKUP';
+            } else if (actUpper.includes('RESTORE')) {
+                newAction = 'RESTORE';
+            }
+
+            // Map table_name / action to Module
+            if (table_name === 'system_settings') {
+                newModule = 'System Settings';
+                description = `Updated system setting: ${record_id}`;
+            } else if (table_name === 'departments') {
+                newModule = 'Departments';
+                if (newAction === 'CREATE') description = `Created department: ${details?.name || record_id}`;
+                else if (newAction === 'UPDATE') description = `Updated department: ${details?.name || record_id}`;
+                else if (newAction === 'DELETE') description = `Deleted department: ${details?.name || record_id}`;
+            } else if (table_name === 'courses') {
+                newModule = 'Courses';
+                if (newAction === 'CREATE') description = `Created course: ${details?.name || record_id}`;
+                else if (newAction === 'DELETE') description = `Deleted course: ${details?.name || record_id}`;
+            } else if (table_name === 'profiles') {
+                if (actUpper.includes('PERMISSION')) {
+                    newModule = 'Role Permissions';
+                    description = `Updated permissions for user: ${record_id}`;
+                } else if (actUpper.includes('ROLE')) {
+                    newModule = 'Role Permissions';
+                    description = `Updated role for user: ${record_id} to ${details?.account_type || ''}`;
+                } else if (actUpper.includes('DELETE_STUDENT') || actUpper.includes('DELETE_ACCOUNT')) {
+                    newModule = 'User Management';
+                    description = `Deleted user account: ${record_id}`;
+                } else if (actUpper.includes('ACTIVATE') || actUpper.includes('DEACTIVATE') || actUpper.includes('STATUS')) {
+                    newModule = 'User Management';
+                    description = `${actUpper.includes('ACTIVATE') && !actUpper.includes('DEACTIVATE') ? 'Activated' : 'Deactivated'} user account: ${record_id}`;
+                } else if (actUpper.includes('UNLOCK')) {
+                    newModule = 'User Management';
+                    description = `Unlocked user account: ${record_id}`;
+                } else if (actUpper.includes('ASSIGN_DEPARTMENT')) {
+                    newModule = 'User Management';
+                    description = `Assigned department to user ${record_id}: ${details?.department_id || ''}`;
+                } else {
+                    newModule = 'User Management';
+                }
+            } else if (table_name === 'multiple' && actUpper.includes('BACKUP')) {
+                newModule = 'Backup & Restore';
+                description = `Performed system backup of tables: ${details?.tables?.join(', ') || ''}`;
+            }
+
+            await createAuditLog({
+                action: newAction,
+                module: newModule,
+                description,
+                targetType,
+                targetId: record_id || undefined,
+                targetName: details?.name || details?.userName || details?.target_name || undefined,
+                newValues: details || undefined,
+            });
         } catch (e) {
             console.error("Failed to insert audit log", e);
         }

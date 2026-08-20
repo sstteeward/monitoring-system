@@ -3,6 +3,7 @@ import type { GeoJSONPolygon } from '../utils/geoUtils';
 import type { Profile } from './profileService';
 import type { Timesheet } from './timeTracking';
 import { notificationService } from './notificationService';
+import { createAuditLog } from './auditService';
 
 // Define a type for Daily Journals since it might not be exported from journalService
 export interface DailyJournal {
@@ -208,6 +209,16 @@ export const coordinatorService = {
             throw error;
         }
 
+        try {
+            await createAuditLog({
+                action: status === 'approved' ? 'APPROVE' : 'REJECT',
+                module: 'Documents',
+                description: `${status === 'approved' ? 'Approved' : 'Rejected'} student document`,
+                targetType: 'student_document',
+                targetId: documentId,
+            });
+        } catch {}
+
         return true;
     },
 
@@ -275,6 +286,16 @@ export const coordinatorService = {
             throw error;
         }
 
+        try {
+            await createAuditLog({
+                action: status === 'approved' ? 'APPROVE' : 'REJECT',
+                module: 'Journals',
+                description: `${status === 'approved' ? 'Approved' : 'Rejected'} daily journal entry`,
+                targetType: 'daily_journal',
+                targetId: journalId,
+            });
+        } catch {}
+
         return true;
     },
 
@@ -339,6 +360,16 @@ export const coordinatorService = {
             console.error(`Error updating timesheet to ${status}:`, error);
             throw error;
         }
+
+        try {
+            await createAuditLog({
+                action: status === 'approved' ? 'APPROVE' : 'REJECT',
+                module: 'Attendance',
+                description: `${status === 'approved' ? 'Approved' : 'Rejected'} student timesheet`,
+                targetType: 'timesheet',
+                targetId: timesheetId,
+            });
+        } catch {}
 
         return true;
     },
@@ -499,6 +530,16 @@ export const coordinatorService = {
             throw error;
         }
 
+        try {
+            await createAuditLog({
+                action: companyId ? 'ASSIGN' : 'UNASSIGN',
+                module: 'Students',
+                description: companyId ? `Assigned student to company: ${companyId}` : 'Unassigned student from company',
+                targetType: 'student',
+                targetId: studentId,
+            });
+        } catch {}
+
         return true;
     },
 
@@ -516,6 +557,18 @@ export const coordinatorService = {
             console.error("Error creating company:", error);
             throw error;
         }
+
+        try {
+            await createAuditLog({
+                action: 'CREATE',
+                module: 'Companies',
+                description: `Created new company: ${data.name}`,
+                targetType: 'company',
+                targetId: data.id,
+                targetName: data.name,
+                newValues: data,
+            });
+        } catch {}
 
         return data as Company;
     },
@@ -536,6 +589,18 @@ export const coordinatorService = {
             throw error;
         }
 
+        try {
+            await createAuditLog({
+                action: 'UPDATE',
+                module: 'Companies',
+                description: `Updated company details for ${data.name || companyId}`,
+                targetType: 'company',
+                targetId: companyId,
+                targetName: data.name,
+                newValues: updates,
+            });
+        } catch {}
+
         return data as Company;
     },
 
@@ -555,6 +620,16 @@ export const coordinatorService = {
             console.error("Error deleting student:", error);
             throw error;
         }
+
+        try {
+            await createAuditLog({
+                action: 'DELETE',
+                module: 'Students',
+                description: `Deleted student: ${studentId}`,
+                targetType: 'student',
+                targetId: studentId,
+            });
+        } catch {}
 
         return true;
     },
