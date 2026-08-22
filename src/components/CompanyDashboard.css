@@ -2,6 +2,8 @@
   --company-primary: #10b981;
   --company-primary-glow: rgba(16, 185, 129, 0.2);
   --company-secondary: #059669;
+  --company-sidebar-width: 240px;
+  --company-sidebar-width-collapsed: 72px;
 }
 
 /* Theme-specific company variables */
@@ -50,7 +52,7 @@ html[data-theme="dark"] {
 
 /* Sidebar Styling */
 .company-sidebar {
-  width: 240px;
+  width: var(--company-sidebar-width);
   height: 100vh;
   background: var(--company-sidebar-bg);
   border-right: 1px solid var(--company-border);
@@ -66,7 +68,7 @@ html[data-theme="dark"] {
 
 @media (min-width: 1025px) {
   .sidebar-mode-hover:not(:hover) {
-    width: 72px;
+    width: var(--company-sidebar-width-collapsed);
   }
 
   .sidebar-mode-hover:not(:hover) .company-logo-text-group,
@@ -75,7 +77,7 @@ html[data-theme="dark"] {
   }
 
   .sidebar-mode-collapsed {
-    width: 72px;
+    width: var(--company-sidebar-width-collapsed);
   }
 
   .sidebar-mode-collapsed .nav-icon {
@@ -211,14 +213,17 @@ html[data-theme="dark"] {
   flex-direction: column;
   min-width: 0;
   height: 100vh;
-  margin-left: 240px;
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (min-width: 1025px) {
+  .company-main {
+    margin-left: var(--company-sidebar-width);
+  }
+
   .sidebar-mode-collapsed~.company-main,
   .sidebar-mode-hover:not(:hover)~.company-main {
-    margin-left: 72px;
+    margin-left: var(--company-sidebar-width-collapsed);
   }
 }
 
@@ -424,7 +429,7 @@ html[data-theme="dark"] .company-welcome-banner {
 @media (max-width: 1024px) {
   .company-sidebar {
     left: -240px;
-    width: 240px !important;
+    width: var(--company-sidebar-width) !important;
   }
   .company-sidebar.mobile-open {
     left: 0;
