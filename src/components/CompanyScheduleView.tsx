@@ -10,10 +10,27 @@ const time = (value: string | null) => { if (!value) return '—'; const [hour, 
 const name = (student: { first_name: string | null; last_name: string | null }) => [student.first_name, student.last_name].filter(Boolean).join(' ') || 'Unnamed student';
 
 const CompanyScheduleView: React.FC = () => {
-  const [schedules, setSchedules] = useState<Schedule[]>([]); const [students, setStudents] = useState<Profile[]>([]); const [calendar, setCalendar] = useState<CalendarIntegration | null>(null); const [loading, setLoading] = useState(true); const [notice, setNotice] = useState<string | null>(null);
+  const [schedules, setSchedules] = useState<Schedule[]>([]); const [students, setStudents] = useState<Profile[]>([]); const [calendar, setCalendar] = useState<CalendarIntegration | null>(null); const [loading, setLoading] = useState(true); const [notice, setNotice] = useState<string | null>(null); const [pendingCalendarAuthorizationUrl, setPendingCalendarAuthorizationUrl] = useState<string | null>(null);
   const [filter, setFilter] = useState<'today'|'week'|'upcoming'|'completed'|'all'>('all'); const [search, setSearch] = useState(''); const [form, setForm] = useState<ScheduleInput>(freshForm()); const [editing, setEditing] = useState<Schedule | null>(null); const [details, setDetails] = useState<Schedule | null>(null); const [history, setHistory] = useState<ScheduleAuditEntry[]>([]); const [studentSearch, setStudentSearch] = useState(''); const [saving, setSaving] = useState(false);
   const load = async () => { setLoading(true); try { const profile = await profileService.getCurrentProfile(); if (!profile?.company_id) throw new Error('You are not associated with a company.'); const [nextStudents, nextSchedules, nextCalendar] = await Promise.all([companyService.getAssignedStudents(profile.company_id), companyService.getSchedules(profile.company_id), companyService.getCalendarIntegration()]); setStudents(nextStudents); setSchedules(nextSchedules); setCalendar(nextCalendar); } catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to load schedules.'); } finally { setLoading(false); } };
   useEffect(() => { void load(); }, []);
+  const refreshCalendarConnection = async () => {
+    try {
+      const integration = await companyService.getCalendarIntegration();
+      setCalendar(integration);
+      setNotice(integration?.connected ? 'Google Calendar connected.' : 'Google Calendar connection was not saved. Please reconnect and check the server logs.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Unable to refresh the Google Calendar connection.');
+    }
+  };
+  useEffect(() => {
+    const receiveCalendarResult = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'google-calendar-connected' || event.data?.type === 'google-calendar-error') void refreshCalendarConnection();
+    };
+    window.addEventListener('message', receiveCalendarResult);
+    return () => window.removeEventListener('message', receiveCalendarResult);
+  }, []);
   const visible = useMemo(() => schedules.filter(schedule => { const needle = search.toLowerCase(); if (needle && !schedule.name.toLowerCase().includes(needle) && !schedule.assigned_students.some(student => name(student).toLowerCase().includes(needle))) return false; if (filter === 'all') return true; if (filter === 'completed' || filter === 'upcoming') return schedule.status === filter; const start = schedule.start_date ? new Date(`${schedule.start_date}T00:00:00`) : null; const today = new Date(); today.setHours(0,0,0,0); if (filter === 'today') return start?.toDateString() === today.toDateString(); const week = new Date(today); week.setDate(today.getDate() + 7); return !!start && start >= today && start <= week; }), [filter, schedules, search]);
   const closeForm = () => { setEditing(null); setNotice(null); };
   const edit = (schedule: Schedule) => { setEditing(schedule); setForm({ id: schedule.id, name: schedule.name, start_date: schedule.start_date || new Date().toISOString().slice(0, 10), end_date: schedule.end_date, start_time: schedule.start_time || '08:00', end_time: schedule.end_time || '17:00', break_duration_minutes: schedule.break_duration_minutes ?? 0, location: schedule.location, supervisor_name: schedule.supervisor_name, notes: schedule.notes, recurrence: schedule.recurrence || 'custom_weekdays', working_days: schedule.working_days || [], student_ids: schedule.assigned_students.map(student => student.student_id) }); setStudentSearch(''); };
@@ -26,7 +43,16 @@ const CompanyScheduleView: React.FC = () => {
     // named tab can make the browser refuse the completion page's close call.
     const popup = action === 'connect' ? window.open('about:blank', `google-calendar-oauth-${Date.now()}`, 'popup=yes,width=520,height=680,menubar=no,toolbar=no,status=no,resizable=yes,scrollbars=yes') : null;
     if (action === 'connect' && !popup) {
-      setNotice('Please allow popups for this site, then try connecting Google Calendar again.');
+      try {
+        // This URL is opened only after the user selects the fallback action,
+        // so that action is a fresh browser-recognized user gesture.
+        const result = await companyService.invokeCalendar('connect', scheduleId, true);
+        if (!result.authorizationUrl) throw new Error('Google Calendar did not provide an authorization URL.');
+        setPendingCalendarAuthorizationUrl(result.authorizationUrl);
+        setNotice('Your browser blocked the first popup. Select Continue to Google to open the secure sign-in window.');
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : 'Calendar request failed. Local schedules are unchanged.');
+      }
       return;
     }
     if (popup) {
@@ -41,7 +67,7 @@ const CompanyScheduleView: React.FC = () => {
         const watchPopup = window.setInterval(() => {
           if (!popup!.closed) return;
           window.clearInterval(watchPopup);
-          void load().then(() => setNotice('Calendar connection status refreshed.'));
+          void refreshCalendarConnection();
         }, 500);
         return;
       }
@@ -51,9 +77,21 @@ const CompanyScheduleView: React.FC = () => {
       setNotice(error instanceof Error ? error.message : 'Calendar request failed. Local schedules are unchanged.');
     }
   };
+  const continueCalendarConnection = () => {
+    if (!pendingCalendarAuthorizationUrl) return;
+    const popup = window.open('about:blank', `google-calendar-oauth-${Date.now()}`, 'popup=yes,width=520,height=680,menubar=no,toolbar=no,status=no,resizable=yes,scrollbars=yes');
+    if (!popup) return setNotice('Your browser is still blocking popups. Allow them for this site, then select Continue to Google again.');
+    setPendingCalendarAuthorizationUrl(null);
+    popup.location.replace(pendingCalendarAuthorizationUrl);
+    const watchPopup = window.setInterval(() => {
+      if (!popup.closed) return;
+      window.clearInterval(watchPopup);
+      void refreshCalendarConnection();
+    }, 500);
+  };
   const matches = students.filter(student => `${name(student)} ${student.course || ''} ${student.department || ''}`.toLowerCase().includes(studentSearch.toLowerCase()));
   return <div className="view-container fade-in schedule-management"><div className="schedule-header"><div><span className="schedule-eyebrow">COMPANY OPERATIONS</span><h2 className="view-title">Schedule Management</h2><p className="view-subtitle">Plan intern shifts, expected hours, and calendar delivery.</p></div><button className="btn-primary schedule-add-button" onClick={() => { setEditing({} as Schedule); setForm(freshForm()); }}><span>+</span> Add Schedule</button></div>
-    {notice && <div className="schedule-message" role="status">{notice}<button onClick={() => setNotice(null)}>×</button></div>}
+    {notice && <div className="schedule-message" role="status"><span>{notice}</span>{pendingCalendarAuthorizationUrl && <button className="schedule-message-action" onClick={continueCalendarConnection}>Continue to Google</button>}<button onClick={() => { setNotice(null); setPendingCalendarAuthorizationUrl(null); }}>×</button></div>}
     <section className="schedule-calendar-card"><div><span className={`calendar-dot ${calendar?.connected ? 'connected' : ''}`} /><strong>Google Calendar {calendar?.connected ? 'Connected' : 'Integration'}</strong><p>{calendar?.connected ? `${calendar.calendar_name || 'Selected calendar'} · ${calendar.automatic_sync ? 'Automatic sync on' : 'Manual sync'}` : 'Connect your company calendar to send schedules externally. Local scheduling always remains available.'}</p></div><div>{calendar?.connected ? <><button className="btn-secondary" onClick={() => void calendarAction('sync')}>Sync all</button><button className="btn-secondary" onClick={() => void calendarAction('disconnect')}>Disconnect</button></> : <button className="btn-primary" onClick={() => void calendarAction('connect')}>Connect Google Calendar</button>}</div></section>
     <div className="schedule-toolbar"><div className="schedule-filters">{(['today','week','upcoming','completed','all'] as const).map(value => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{value === 'week' ? 'This Week' : value[0].toUpperCase()+value.slice(1)}</button>)}</div><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search schedules or students…" /></div>
     {loading ? <CardGridSkeleton cards={3} /> : visible.length === 0 ? <div className="schedule-empty"><strong>No schedules found</strong><p>Create a schedule to define intern working hours and attendance expectations.</p></div> : <div className="schedule-list">{visible.map(schedule => <article key={schedule.id} className="schedule-card"><div className="schedule-card-top"><div><h3>{schedule.name}</h3><p>{schedule.start_date || 'No start date'}{schedule.end_date ? ` — ${schedule.end_date}` : ''}</p></div><span className={`schedule-status ${schedule.status}`}>{schedule.status}</span></div><div className="schedule-summary"><strong>{time(schedule.start_time)} – {time(schedule.end_time)}</strong><span>{schedule.recurrence === 'none' ? 'Does not repeat' : schedule.working_days.map(day => day.slice(0,3)).join(' · ')}</span><span>{schedule.location || 'No location'} · Supervisor: {schedule.supervisor_name || 'Not specified'}</span></div><div className="schedule-card-bottom"><span>{schedule.assigned_students.length} students assigned</span><span className={`sync-state ${schedule.calendar_sync_status}`}>{schedule.calendar_sync_status.replace('_',' ')}</span><div><button className="btn-secondary" onClick={() => void openDetails(schedule)}>View</button><button className="btn-secondary" onClick={() => edit(schedule)}>Edit</button>{calendar?.connected && <button className="btn-secondary" onClick={() => void calendarAction('sync', schedule.id)}>Sync</button>}</div></div></article>)}</div>}

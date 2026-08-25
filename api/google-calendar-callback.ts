@@ -80,6 +80,17 @@ export default async function handler(request: any, response: any) {
     return complete(response, 'error');
   }
 
+  // A 2xx response only confirms that PostgREST accepted the RPC call. Verify
+  // that the private token record is actually available before claiming success.
+  const verificationResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/service_get_google_calendar_connection`, {
+    method: 'POST', headers: rpcHeaders, body: JSON.stringify({ p_company_id: claim.companyId }),
+  });
+  const storedConnection = await verificationResponse.json().catch(() => null);
+  if (!verificationResponse.ok || storedConnection?.company_id !== claim.companyId) {
+    console.error('Google Calendar connection verification failed.', { status: verificationResponse.status });
+    return complete(response, 'error');
+  }
+
   await fetch(`${supabaseUrl}/rest/v1/schedule_audit_logs`, { method: 'POST', headers: { ...rpcHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: claim.companyId, actor_id: claim.userId, action: 'calendar_connected' }) });
   return claim.popup ? complete(response, 'connected') : redirect(response, '?calendar=connected');
 }
