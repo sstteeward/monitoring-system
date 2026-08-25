@@ -3,11 +3,16 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.97.0';
 
 const configuredAppUrl = Deno.env.get('APP_URL');
+const normalizedOrigin = (value: string | undefined) => {
+  if (!value) return undefined;
+  try { return new URL(value).origin; } catch { return undefined; }
+};
+const configuredAppOrigin = normalizedOrigin(configuredAppUrl);
 const allowedOrigins = new Set<string>([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ]);
-if (configuredAppUrl) allowedOrigins.add(configuredAppUrl);
+if (configuredAppOrigin) allowedOrigins.add(configuredAppOrigin);
 
 const isAllowedOrigin = (request: Request) => {
   const origin = request.headers.get('origin');
@@ -15,7 +20,7 @@ const isAllowedOrigin = (request: Request) => {
 };
 
 const corsHeaders = (request: Request) => ({
-  'access-control-allow-origin': request.headers.get('origin') || configuredAppUrl || '',
+  'access-control-allow-origin': request.headers.get('origin') || configuredAppOrigin || '',
   'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info',
   'access-control-allow-methods': 'POST, OPTIONS',
   'vary': 'Origin',
