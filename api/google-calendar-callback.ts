@@ -8,7 +8,13 @@ type OAuthState = {
   returnOrigin?: string;
 };
 
-const appUrl = () => (process.env.APP_URL || 'https://asiancollegesilmonitoringsystem.vercel.app').replace(/\/$/, '');
+const appUrl = () => {
+  let url = (process.env.APP_URL || process.env.VITE_APP_URL || 'https://asiancollegesilmonitoringsystem.vercel.app').trim().replace(/\/$/, '');
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
+  return url;
+};
 const redirect = (response: any, path: string) => response.redirect(302, `${appUrl()}${path}`);
 const complete = (response: any, status: 'connected' | 'error', reason?: string) => redirect(response, `/calendar-oauth-complete.html?status=${status}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`);
 const decodeState = (value: string) => JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as OAuthState;

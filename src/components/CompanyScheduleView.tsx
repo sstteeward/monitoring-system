@@ -14,6 +14,7 @@ const CompanyScheduleView: React.FC = () => {
   const [filter, setFilter] = useState<'today'|'week'|'upcoming'|'completed'|'all'>('all'); const [search, setSearch] = useState(''); const [form, setForm] = useState<ScheduleInput>(freshForm()); const [editing, setEditing] = useState<Schedule | null>(null); const [details, setDetails] = useState<Schedule | null>(null); const [history, setHistory] = useState<ScheduleAuditEntry[]>([]); const [studentSearch, setStudentSearch] = useState(''); const [saving, setSaving] = useState(false);
   const load = async () => { setLoading(true); try { const profile = await profileService.getCurrentProfile(); if (!profile?.company_id) throw new Error('You are not associated with a company.'); const [nextStudents, nextSchedules, nextCalendar] = await Promise.all([companyService.getAssignedStudents(profile.company_id), companyService.getSchedules(profile.company_id), companyService.getCalendarIntegration()]); setStudents(nextStudents); setSchedules(nextSchedules); setCalendar(nextCalendar); } catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to load schedules.'); } finally { setLoading(false); } };
   useEffect(() => { void load(); }, []);
+  const calendarResultReceivedRef = React.useRef(false);
   const refreshCalendarConnection = async (errorReason?: string) => {
     try {
       const integration = await companyService.getCalendarIntegration();
@@ -31,8 +32,14 @@ const CompanyScheduleView: React.FC = () => {
     const receiveCalendarResult = (event: MessageEvent) => {
       const allowedOrigins = [window.location.origin, 'https://asiancollegesilmonitoringsystem.vercel.app'];
       if (!allowedOrigins.includes(event.origin)) return;
-      if (event.data?.type === 'google-calendar-connected') void refreshCalendarConnection();
-      if (event.data?.type === 'google-calendar-error') void refreshCalendarConnection(event.data?.reason);
+      if (event.data?.type === 'google-calendar-connected') {
+        calendarResultReceivedRef.current = true;
+        void refreshCalendarConnection();
+      }
+      if (event.data?.type === 'google-calendar-error') {
+        calendarResultReceivedRef.current = true;
+        void refreshCalendarConnection(event.data?.reason);
+      }
     };
     window.addEventListener('message', receiveCalendarResult);
     return () => window.removeEventListener('message', receiveCalendarResult);
@@ -45,13 +52,9 @@ const CompanyScheduleView: React.FC = () => {
   const openDetails = async (schedule: Schedule) => { setDetails(schedule); try { setHistory(await companyService.getScheduleHistory(schedule.id)); } catch { setHistory([]); } };
   const remove = async (schedule: Schedule) => { if (!window.confirm(`Delete “${schedule.name}”?`)) return; try { await companyService.deleteSchedule(schedule.id); setDetails(null); await load(); setNotice('Schedule deleted.'); } catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to delete schedule.'); } };
   const calendarAction = async (action: 'connect'|'sync'|'disconnect', scheduleId?: string) => {
-    // Use a new, script-created window each time. Reusing a previously opened
-    // named tab can make the browser refuse the completion page's close call.
     const popup = action === 'connect' ? window.open('about:blank', `google-calendar-oauth-${Date.now()}`, 'popup=yes,width=520,height=680,menubar=no,toolbar=no,status=no,resizable=yes,scrollbars=yes') : null;
     if (action === 'connect' && !popup) {
       try {
-        // This URL is opened only after the user selects the fallback action,
-        // so that action is a fresh browser-recognized user gesture.
         const result = await companyService.invokeCalendar('connect', scheduleId, true);
         if (!result.authorizationUrl) throw new Error('Google Calendar did not provide an authorization URL.');
         setPendingCalendarAuthorizationUrl(result.authorizationUrl);
@@ -67,13 +70,16 @@ const CompanyScheduleView: React.FC = () => {
       popup.focus();
     }
     try {
+      calendarResultReceivedRef.current = false;
       const result = await companyService.invokeCalendar(action, scheduleId, Boolean(popup));
       if (result.authorizationUrl) {
         popup!.location.replace(result.authorizationUrl);
         const watchPopup = window.setInterval(() => {
           if (!popup!.closed) return;
           window.clearInterval(watchPopup);
-          void refreshCalendarConnection();
+          if (!calendarResultReceivedRef.current) {
+            void refreshCalendarConnection();
+          }
         }, 500);
         return;
       }
@@ -87,12 +93,15 @@ const CompanyScheduleView: React.FC = () => {
     if (!pendingCalendarAuthorizationUrl) return;
     const popup = window.open('about:blank', `google-calendar-oauth-${Date.now()}`, 'popup=yes,width=520,height=680,menubar=no,toolbar=no,status=no,resizable=yes,scrollbars=yes');
     if (!popup) return setNotice('Your browser is still blocking popups. Allow them for this site, then select Continue to Google again.');
+    calendarResultReceivedRef.current = false;
     setPendingCalendarAuthorizationUrl(null);
     popup.location.replace(pendingCalendarAuthorizationUrl);
     const watchPopup = window.setInterval(() => {
       if (!popup.closed) return;
       window.clearInterval(watchPopup);
-      void refreshCalendarConnection();
+      if (!calendarResultReceivedRef.current) {
+        void refreshCalendarConnection();
+      }
     }, 500);
   };
   const matches = students.filter(student => `${name(student)} ${student.course || ''} ${student.department || ''}`.toLowerCase().includes(studentSearch.toLowerCase()));

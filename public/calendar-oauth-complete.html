@@ -13,11 +13,18 @@
       const connected = params.get('status') !== 'error';
       const reason = params.get('reason');
       if (!connected) {
-        document.getElementById('title').textContent = 'Google Calendar connection was not completed';
-        document.getElementById('message').textContent = reason ? `Reason: ${reason}` : 'This window will close automatically.';
+        document.getElementById('title').textContent = 'Google Calendar Connection Failed';
+        document.getElementById('title').style.color = '#dc2626';
+        document.getElementById('message').innerHTML = (reason ? `<strong>Error Details:</strong><br><code>${reason}</code>` : 'Connection could not be saved.') + '<br><br><button onclick="window.close()" style="padding:8px 16px;background:#0f172a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Close Window</button>';
       }
-      if (window.opener) window.opener.postMessage({ type: connected ? 'google-calendar-connected' : 'google-calendar-error', reason }, '*');
-      window.setTimeout(() => window.close(), connected ? 700 : 2500);
+      try {
+        if (window.opener) window.opener.postMessage({ type: connected ? 'google-calendar-connected' : 'google-calendar-error', reason }, '*');
+      } catch (e) {
+        console.error('Failed to post message to opener', e);
+      }
+      if (connected) {
+        window.setTimeout(() => window.close(), 1000);
+      }
     </script>
   </body>
 </html>
