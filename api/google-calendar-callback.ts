@@ -83,7 +83,8 @@ export default async function handler(request: any, response: any) {
     body: JSON.stringify({ p_company_id: claim.companyId, p_calendar_id: 'primary', p_calendar_name: 'Primary calendar', p_access_token: token.access_token, p_refresh_token: token.refresh_token, p_expires_at: new Date(Date.now() + token.expires_in * 1000).toISOString(), p_created_by: claim.userId }),
   });
   if (!connectionResponse.ok) {
-    console.error('Google Calendar connection save failed.', { status: connectionResponse.status });
+    const errorText = await connectionResponse.text().catch(() => 'unknown error');
+    console.error('Google Calendar connection save failed.', { status: connectionResponse.status, errorText });
     return complete(response, 'error');
   }
 
@@ -95,7 +96,8 @@ export default async function handler(request: any, response: any) {
     body: JSON.stringify({ company_id: claim.companyId, calendar_id: 'primary', calendar_name: 'Primary calendar', connected_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
   });
   if (!statusResponse.ok) {
-    console.error('Google Calendar status save failed.', { status: statusResponse.status });
+    const errorText = await statusResponse.text().catch(() => 'unknown error');
+    console.error('Google Calendar status save failed.', { status: statusResponse.status, errorText });
     return complete(response, 'error');
   }
 

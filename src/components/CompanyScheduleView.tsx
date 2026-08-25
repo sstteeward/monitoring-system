@@ -25,7 +25,8 @@ const CompanyScheduleView: React.FC = () => {
   };
   useEffect(() => {
     const receiveCalendarResult = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+      const allowedOrigins = [window.location.origin, 'https://asiancollegesilmonitoringsystem.vercel.app'];
+      if (!allowedOrigins.includes(event.origin)) return;
       if (event.data?.type === 'google-calendar-connected' || event.data?.type === 'google-calendar-error') void refreshCalendarConnection();
     };
     window.addEventListener('message', receiveCalendarResult);
