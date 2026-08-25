@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.company_google_calendar_status (
 );
 
 ALTER TABLE public.company_google_calendar_status ENABLE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.company_google_calendar_status TO service_role;
 
 -- No browser policy is created: the dashboard gets this through the authorized
 -- get_company_calendar_integration() RPC below.

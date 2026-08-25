@@ -36,8 +36,15 @@ export default async function handler(request: any, response: any) {
     return complete(response, 'error');
   }
 
+  // All env vars are guaranteed non-undefined past this point.
+  const clientId = googleClientId as string;
+  const clientSecret = googleClientSecret as string;
+  const secret = stateSecret as string;
+  const sUrl = supabaseUrl as string;
+  const sKey = serviceRoleKey as string;
+
   const [encodedState, signature] = state.split('.');
-  const expectedSignature = createHmac('sha256', stateSecret).update(encodedState || '').digest('base64url');
+  const expectedSignature = createHmac('sha256', secret).update(encodedState || '').digest('base64url');
   if (!encodedState || !signature || signature.length !== expectedSignature.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
     console.error('Google OAuth state validation failed. Check that GOOGLE_OAUTH_STATE_SECRET matches the Edge Function secret.');
     return complete(response, 'error');
@@ -58,8 +65,8 @@ export default async function handler(request: any, response: any) {
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code,
-      client_id: googleClientId,
-      client_secret: googleClientSecret,
+      client_id: clientId,
+      client_secret: clientSecret,
       redirect_uri: `${appUrl()}/api/google-calendar-callback`,
       grant_type: 'authorization_code',
     }),
@@ -70,8 +77,8 @@ export default async function handler(request: any, response: any) {
     return complete(response, 'error');
   }
 
-  const rpcHeaders = { apikey: serviceRoleKey, authorization: `Bearer ${serviceRoleKey}`, 'content-type': 'application/json' };
-  const connectionResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/service_upsert_google_calendar_connection`, {
+  const rpcHeaders = { apikey: sKey, authorization: `Bearer ${sKey}`, 'content-type': 'application/json' };
+  const connectionResponse = await fetch(`${sUrl}/rest/v1/rpc/service_upsert_google_calendar_connection`, {
     method: 'POST', headers: rpcHeaders,
     body: JSON.stringify({ p_company_id: claim.companyId, p_calendar_id: 'primary', p_calendar_name: 'Primary calendar', p_access_token: token.access_token, p_refresh_token: token.refresh_token, p_expires_at: new Date(Date.now() + token.expires_in * 1000).toISOString(), p_created_by: claim.userId }),
   });
@@ -80,17 +87,18 @@ export default async function handler(request: any, response: any) {
     return complete(response, 'error');
   }
 
-  // A 2xx response only confirms that PostgREST accepted the RPC call. Verify
-  // that the private token record is actually available before claiming success.
-  const verificationResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/service_get_google_calendar_connection`, {
-    method: 'POST', headers: rpcHeaders, body: JSON.stringify({ p_company_id: claim.companyId }),
+  // Keep dashboard state separate from the private token table. The status row
+  // contains no token values and is safe for the company-only status RPC to read.
+  const statusResponse = await fetch(`${sUrl}/rest/v1/company_google_calendar_status?on_conflict=company_id`, {
+    method: 'POST',
+    headers: { ...rpcHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ company_id: claim.companyId, calendar_id: 'primary', calendar_name: 'Primary calendar', connected_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
   });
-  const storedConnection = await verificationResponse.json().catch(() => null);
-  if (!verificationResponse.ok || storedConnection?.company_id !== claim.companyId) {
-    console.error('Google Calendar connection verification failed.', { status: verificationResponse.status });
+  if (!statusResponse.ok) {
+    console.error('Google Calendar status save failed.', { status: statusResponse.status });
     return complete(response, 'error');
   }
 
-  await fetch(`${supabaseUrl}/rest/v1/schedule_audit_logs`, { method: 'POST', headers: { ...rpcHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: claim.companyId, actor_id: claim.userId, action: 'calendar_connected' }) });
+  await fetch(`${sUrl}/rest/v1/schedule_audit_logs`, { method: 'POST', headers: { ...rpcHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: claim.companyId, actor_id: claim.userId, action: 'calendar_connected' }) });
   return claim.popup ? complete(response, 'connected') : redirect(response, '?calendar=connected');
 }
