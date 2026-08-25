@@ -3,14 +3,19 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Google Calendar connected</title>
-    <style>body{margin:0;display:grid;min-height:100vh;place-items:center;background:#f8fafc;color:#0f172a;font:15px system-ui,sans-serif}main{text-align:center}strong{color:#059669}</style>
+    <title>Asian College SIL Monitoring System</title>
+    <style>body{margin:0;display:grid;min-height:100vh;place-items:center;background:#f8fafc;color:#0f172a;font:15px system-ui,sans-serif}main{text-align:center}strong{display:block;color:#059669;font-size:1.05rem}span{display:block;margin-bottom:.45rem;color:#64748b;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}</style>
   </head>
   <body>
-    <main><strong>Google Calendar connected</strong><p>This window will close automatically.</p></main>
+    <main><span>Asian College SIL Monitoring System</span><strong id="title">Google Calendar connected</strong><p id="message">This window will close automatically.</p></main>
     <script>
-      if (window.opener) window.opener.postMessage({ type: 'google-calendar-connected' }, '*');
-      window.setTimeout(() => window.close(), 250);
+      const connected = new URLSearchParams(window.location.search).get('status') !== 'error';
+      if (!connected) {
+        document.getElementById('title').textContent = 'Google Calendar connection was not completed';
+        document.getElementById('message').textContent = 'This window will close automatically.';
+      }
+      if (window.opener) window.opener.postMessage({ type: connected ? 'google-calendar-connected' : 'google-calendar-error' }, '*');
+      window.setTimeout(() => window.close(), 700);
     </script>
   </body>
 </html>
