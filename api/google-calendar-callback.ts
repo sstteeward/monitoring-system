@@ -10,19 +10,19 @@ type OAuthState = {
 
 const appUrl = () => (process.env.APP_URL || 'https://asiancollegesilmonitoringsystem.vercel.app').replace(/\/$/, '');
 const redirect = (response: any, path: string) => response.redirect(302, `${appUrl()}${path}`);
-const complete = (response: any, status: 'connected' | 'error') => redirect(response, `/calendar-oauth-complete.html?status=${status}`);
+const complete = (response: any, status: 'connected' | 'error', reason?: string) => redirect(response, `/calendar-oauth-complete.html?status=${status}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`);
 const decodeState = (value: string) => JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as OAuthState;
 
 export default async function handler(request: any, response: any) {
   if (request.method !== 'GET') return response.status(405).json({ error: 'Method not allowed.' });
 
-  const googleClientId = process.env.GOOGLE_CLIENT_ID;
-  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const stateSecret = process.env.GOOGLE_OAUTH_STATE_SECRET;
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const code = typeof request.query.code === 'string' ? request.query.code : '';
-  const state = typeof request.query.state === 'string' ? request.query.state : '';
+  const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.VITE_GOOGLE_CLIENT_SECRET;
+  const stateSecret = process.env.GOOGLE_OAUTH_STATE_SECRET || process.env.VITE_GOOGLE_OAUTH_STATE_SECRET;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  const code = typeof request.query?.code === 'string' ? request.query.code : '';
+  const state = typeof request.query?.state === 'string' ? request.query.state : '';
 
   const missing = [
     !googleClientId && 'GOOGLE_CLIENT_ID',
@@ -32,8 +32,9 @@ export default async function handler(request: any, response: any) {
     !serviceRoleKey && 'SUPABASE_SERVICE_ROLE_KEY',
   ].filter(Boolean);
   if (missing.length || !code || !state) {
+    const errorReason = `missing_${missing.join('_') || (!code ? 'code' : 'state')}`;
     console.error('Google Calendar callback could not start.', { missing, hasCode: Boolean(code), hasState: Boolean(state) });
-    return complete(response, 'error');
+    return complete(response, 'error', errorReason);
   }
 
   // All env vars are guaranteed non-undefined past this point.
@@ -47,17 +48,17 @@ export default async function handler(request: any, response: any) {
   const expectedSignature = createHmac('sha256', secret).update(encodedState || '').digest('base64url');
   if (!encodedState || !signature || signature.length !== expectedSignature.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
     console.error('Google OAuth state validation failed. Check that GOOGLE_OAUTH_STATE_SECRET matches the Edge Function secret.');
-    return complete(response, 'error');
+    return complete(response, 'error', 'state_secret_mismatch');
   }
 
   let claim: OAuthState;
   try { claim = decodeState(encodedState); } catch {
     console.error('Google OAuth state could not be decoded.');
-    return complete(response, 'error');
+    return complete(response, 'error', 'invalid_state_payload');
   }
   if (claim.exp < Date.now()) {
     console.error('Google OAuth state expired before the callback completed.');
-    return complete(response, 'error');
+    return complete(response, 'error', 'state_expired');
   }
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -73,8 +74,9 @@ export default async function handler(request: any, response: any) {
   });
   const token = await tokenResponse.json().catch(() => null);
   if (!tokenResponse.ok || !token?.access_token || !token?.refresh_token) {
-    console.error('Google token exchange failed.', { status: tokenResponse.status });
-    return complete(response, 'error');
+    const errorDetails = token?.error_description || token?.error || `status_${tokenResponse.status}`;
+    console.error('Google token exchange failed.', { status: tokenResponse.status, error: token });
+    return complete(response, 'error', `token_exchange_failed: ${errorDetails}`);
   }
 
   const rpcHeaders = { apikey: sKey, authorization: `Bearer ${sKey}`, 'content-type': 'application/json' };
@@ -85,7 +87,7 @@ export default async function handler(request: any, response: any) {
   if (!connectionResponse.ok) {
     const errorText = await connectionResponse.text().catch(() => 'unknown error');
     console.error('Google Calendar connection save failed.', { status: connectionResponse.status, errorText });
-    return complete(response, 'error');
+    return complete(response, 'error', `db_save_failed: ${errorText}`);
   }
 
   // Keep dashboard state separate from the private token table. The status row
@@ -98,7 +100,7 @@ export default async function handler(request: any, response: any) {
   if (!statusResponse.ok) {
     const errorText = await statusResponse.text().catch(() => 'unknown error');
     console.error('Google Calendar status save failed.', { status: statusResponse.status, errorText });
-    return complete(response, 'error');
+    return complete(response, 'error', `status_save_failed: ${errorText}`);
   }
 
   await fetch(`${sUrl}/rest/v1/schedule_audit_logs`, { method: 'POST', headers: { ...rpcHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: claim.companyId, actor_id: claim.userId, action: 'calendar_connected' }) });

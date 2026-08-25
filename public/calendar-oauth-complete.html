@@ -9,13 +9,15 @@
   <body>
     <main><span>Asian College SIL Monitoring System</span><strong id="title">Google Calendar connected</strong><p id="message">This window will close automatically.</p></main>
     <script>
-      const connected = new URLSearchParams(window.location.search).get('status') !== 'error';
+      const params = new URLSearchParams(window.location.search);
+      const connected = params.get('status') !== 'error';
+      const reason = params.get('reason');
       if (!connected) {
         document.getElementById('title').textContent = 'Google Calendar connection was not completed';
-        document.getElementById('message').textContent = 'This window will close automatically.';
+        document.getElementById('message').textContent = reason ? `Reason: ${reason}` : 'This window will close automatically.';
       }
-      if (window.opener) window.opener.postMessage({ type: connected ? 'google-calendar-connected' : 'google-calendar-error' }, '*');
-      window.setTimeout(() => window.close(), 700);
+      if (window.opener) window.opener.postMessage({ type: connected ? 'google-calendar-connected' : 'google-calendar-error', reason }, '*');
+      window.setTimeout(() => window.close(), connected ? 700 : 2500);
     </script>
   </body>
 </html>

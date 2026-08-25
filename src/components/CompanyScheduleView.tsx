@@ -14,11 +14,15 @@ const CompanyScheduleView: React.FC = () => {
   const [filter, setFilter] = useState<'today'|'week'|'upcoming'|'completed'|'all'>('all'); const [search, setSearch] = useState(''); const [form, setForm] = useState<ScheduleInput>(freshForm()); const [editing, setEditing] = useState<Schedule | null>(null); const [details, setDetails] = useState<Schedule | null>(null); const [history, setHistory] = useState<ScheduleAuditEntry[]>([]); const [studentSearch, setStudentSearch] = useState(''); const [saving, setSaving] = useState(false);
   const load = async () => { setLoading(true); try { const profile = await profileService.getCurrentProfile(); if (!profile?.company_id) throw new Error('You are not associated with a company.'); const [nextStudents, nextSchedules, nextCalendar] = await Promise.all([companyService.getAssignedStudents(profile.company_id), companyService.getSchedules(profile.company_id), companyService.getCalendarIntegration()]); setStudents(nextStudents); setSchedules(nextSchedules); setCalendar(nextCalendar); } catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to load schedules.'); } finally { setLoading(false); } };
   useEffect(() => { void load(); }, []);
-  const refreshCalendarConnection = async () => {
+  const refreshCalendarConnection = async (errorReason?: string) => {
     try {
       const integration = await companyService.getCalendarIntegration();
       setCalendar(integration);
-      setNotice(integration?.connected ? 'Google Calendar connected.' : 'Google Calendar connection was not saved. Please reconnect and check the server logs.');
+      if (integration?.connected) {
+        setNotice('Google Calendar connected.');
+      } else {
+        setNotice(errorReason ? `Google Calendar connection failed: ${errorReason}` : 'Google Calendar connection was not saved. Please reconnect and check the server logs.');
+      }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Unable to refresh the Google Calendar connection.');
     }
@@ -27,7 +31,8 @@ const CompanyScheduleView: React.FC = () => {
     const receiveCalendarResult = (event: MessageEvent) => {
       const allowedOrigins = [window.location.origin, 'https://asiancollegesilmonitoringsystem.vercel.app'];
       if (!allowedOrigins.includes(event.origin)) return;
-      if (event.data?.type === 'google-calendar-connected' || event.data?.type === 'google-calendar-error') void refreshCalendarConnection();
+      if (event.data?.type === 'google-calendar-connected') void refreshCalendarConnection();
+      if (event.data?.type === 'google-calendar-error') void refreshCalendarConnection(event.data?.reason);
     };
     window.addEventListener('message', receiveCalendarResult);
     return () => window.removeEventListener('message', receiveCalendarResult);
