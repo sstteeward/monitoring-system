@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { AttendanceStatus } from '../services/attendanceService';
+import { mapAttendanceSaveError } from '../services/attendanceService';
 import {
   ATTENDANCE_STATUS_CONFIG,
   ATTENDANCE_STATUS_ORDER,
@@ -66,8 +67,7 @@ const AttendanceRecordModal: React.FC<AttendanceRecordModalProps> = ({
       await onSubmit(status, finalReason, remarks.trim() || null);
     } catch (err) {
       console.error('Failed to save attendance:', err);
-      const message = err instanceof Error ? err.message : 'Failed to save attendance. Please try again.';
-      setError(message);
+      setError(mapAttendanceSaveError(err));
       setSubmitting(false);
     }
   };

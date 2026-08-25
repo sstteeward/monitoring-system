@@ -738,54 +738,12 @@ html[data-theme="dark"] .cd-welcome-banner {
     }
 }
 
-.cd-scroll-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-.cd-scroll-body::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.cd-scroll-body::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
-}
-
-.cd-scroll-body::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
-}
-
 .hover-row {
     transition: background 0.15s;
 }
 
 .hover-row:hover {
     background: var(--bg-elevated);
-}
-
-.company-review-modal {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(16, 185, 129, 0.35) transparent;
-}
-
-.company-review-modal::-webkit-scrollbar {
-    width: 8px;
-}
-
-.company-review-modal::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.company-review-modal::-webkit-scrollbar-thumb {
-    background: rgba(16, 185, 129, 0.35);
-    border-radius: 999px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-}
-
-.company-review-modal::-webkit-scrollbar-thumb:hover {
-    background: rgba(16, 185, 129, 0.55);
-    background-clip: padding-box;
 }
 
 /* ═══════════════════════════════════════════════════

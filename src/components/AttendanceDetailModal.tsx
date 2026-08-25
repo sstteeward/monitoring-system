@@ -52,7 +52,7 @@ const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
 
   return (
     <div className="attendance-modal-overlay" onClick={handleBackdropClick}>
-      <div className="attendance-modal attendance-modal-wide">
+      <div className="attendance-modal attendance-modal-wide attendance-details-modal">
         <div className="attendance-modal-header">
           <div>
             <h3>Attendance Details</h3>

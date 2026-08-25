@@ -166,11 +166,11 @@ const CompanyAttendanceView: React.FC = () => {
     : 'No assigned interns yet.';
 
   return (
-    <div className="view-container fade-in">
-      <div className="view-header" style={{ flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+    <div className="view-container fade-in attendance-page-compact">
+      <div className="view-header attendance-page-header">
         <div>
-          <h2 className="view-title" style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Attendance Monitoring</h2>
-          <p className="view-subtitle" style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
+          <h2 className="view-title">Attendance Monitoring</h2>
+          <p className="view-subtitle">
             Record and review your assigned interns' daily attendance
           </p>
         </div>
@@ -215,11 +215,11 @@ const CompanyAttendanceView: React.FC = () => {
         </div>
       </div>
 
-      <div className="attendance-toolbar">
-        <input type="date" className="form-input" value={date} max={todayStr} onChange={e => { if (e.target.value) { setDate(e.target.value); setCurrentPage(1); } }} />
+      <div className="attendance-toolbar attendance-toolbar-compact">
+        <input type="date" className="form-input attendance-filter-date" value={date} max={todayStr} onChange={e => { if (e.target.value) { setDate(e.target.value); setCurrentPage(1); } }} />
         <div className="attendance-search-wrap">
           <span className="attendance-search-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           </span>
           <input
             type="text"
@@ -229,7 +229,7 @@ const CompanyAttendanceView: React.FC = () => {
             onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
           />
         </div>
-        <select className="form-input" value={statusFilter} onChange={e => { setStatusFilter(e.target.value as StatusFilter); setCurrentPage(1); }}>
+        <select className="form-input attendance-filter-status" value={statusFilter} onChange={e => { setStatusFilter(e.target.value as StatusFilter); setCurrentPage(1); }}>
           <option value="all">All Statuses</option>
           <option value="not_recorded">⚪ Not Recorded</option>
           <option value="present">🟢 Present</option>
@@ -238,7 +238,7 @@ const CompanyAttendanceView: React.FC = () => {
           <option value="on_leave">🔵 On Leave</option>
           <option value="incomplete">🟠 Incomplete</option>
         </select>
-        <select className="form-input" value={departmentFilter} onChange={e => { setDepartmentFilter(e.target.value); setCurrentPage(1); }}>
+        <select className="form-input attendance-filter-dept" value={departmentFilter} onChange={e => { setDepartmentFilter(e.target.value); setCurrentPage(1); }}>
           <option value="all">All Departments</option>
           {departments.map(d => <option key={d} value={d}>{d}</option>)}
         </select>

@@ -266,7 +266,9 @@ BEGIN
         v_existing := v_result;
     END IF;
 
-    -- Notify the affected student only when they are marked absent.
+    -- source_id is uuid, so retain the attendance UUID rather than converting
+    -- it to text. The explicit text cast causes SQLSTATE 42804 and rolls back
+    -- this entire RPC for absent records.
     IF p_status = 'absent' THEN
         INSERT INTO public.user_notifications (
             user_id, title, message, type, is_read, source_type, source_id
@@ -277,7 +279,7 @@ BEGIN
             'danger',
             false,
             'company_attendance',
-            COALESCE(v_existing.id, v_result.id)::text
+            COALESCE(v_existing.id, v_result.id)
         );
     END IF;
 
@@ -288,6 +290,58 @@ $$;
 
 REVOKE ALL ON FUNCTION public.record_attendance(uuid, date, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.record_attendance(uuid, date, text, text, text) TO authenticated;
+
+-- -----------------------------------------------------------------------------
+-- get_student_attendance_stats(company supervisor / coordinator / admin / self)
+-- Counts from company_attendance rather than the legacy profiles.absences field.
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_student_attendance_stats(p_student_id uuid)
+RETURNS TABLE (absence_count bigint)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_actor_profile public.profiles%ROWTYPE;
+    v_student_company_id uuid;
+BEGIN
+    SELECT * INTO v_actor_profile
+    FROM public.profiles
+    WHERE auth_user_id = auth.uid();
+
+    IF v_actor_profile.id IS NULL THEN
+        RAISE EXCEPTION 'Not authorized';
+    END IF;
+
+    SELECT company_id INTO v_student_company_id
+    FROM public.profiles
+    WHERE auth_user_id = p_student_id
+      AND account_type = 'student';
+
+    IF v_student_company_id IS NULL THEN
+        RAISE EXCEPTION 'Student not found';
+    END IF;
+
+    IF v_actor_profile.account_type = 'company'
+       AND v_actor_profile.company_id <> v_student_company_id THEN
+        RAISE EXCEPTION 'Student is not assigned to your company';
+    ELSIF v_actor_profile.account_type NOT IN ('company', 'coordinator', 'admin')
+       AND auth.uid() <> p_student_id THEN
+        RAISE EXCEPTION 'Not authorized';
+    END IF;
+
+    RETURN QUERY
+    SELECT count(*)::bigint
+    FROM public.company_attendance ca
+    WHERE ca.student_id = p_student_id
+      AND ca.company_id = v_student_company_id
+      AND ca.status = 'absent';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_student_attendance_stats(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_student_attendance_stats(uuid) TO authenticated;
 
 -- -----------------------------------------------------------------------------
 -- get_company_attendance(company supervisor)
@@ -376,8 +430,13 @@ BEGIN
     LEFT JOIN LATERAL (
         SELECT s2.start_time AS schedule_start, s2.end_time AS schedule_end
         FROM public.schedules s2
-        WHERE s2.student_id = p.auth_user_id
+        LEFT JOIN public.schedule_students ss ON ss.schedule_id = s2.id
+        WHERE (ss.student_id = p.auth_user_id OR (ss.student_id IS NULL AND s2.student_id = p.auth_user_id))
           AND s2.company_id = v_company_id
+          AND s2.status <> 'cancelled'
+          AND (s2.start_date IS NULL OR s2.start_date <= p_attendance_date)
+          AND (s2.end_date IS NULL OR s2.end_date >= p_attendance_date)
+          AND (s2.recurrence IN ('none', 'daily') OR s2.working_days ? trim(to_char(p_attendance_date, 'Day')))
         ORDER BY s2.start_time NULLS LAST
         LIMIT 1
     ) s ON TRUE
@@ -477,8 +536,13 @@ BEGIN
     LEFT JOIN LATERAL (
         SELECT s2.start_time AS schedule_start, s2.end_time AS schedule_end
         FROM public.schedules s2
-        WHERE s2.student_id = p.auth_user_id
+        LEFT JOIN public.schedule_students ss ON ss.schedule_id = s2.id
+        WHERE (ss.student_id = p.auth_user_id OR (ss.student_id IS NULL AND s2.student_id = p.auth_user_id))
           AND s2.company_id = ar.company_id
+          AND s2.status <> 'cancelled'
+          AND (s2.start_date IS NULL OR s2.start_date <= p_attendance_date)
+          AND (s2.end_date IS NULL OR s2.end_date >= p_attendance_date)
+          AND (s2.recurrence IN ('none', 'daily') OR s2.working_days ? trim(to_char(p_attendance_date, 'Day')))
         ORDER BY s2.start_time NULLS LAST
         LIMIT 1
     ) s ON TRUE

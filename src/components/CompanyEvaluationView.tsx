@@ -256,21 +256,6 @@ const CompanyEvaluationView: React.FC = () => {
                     overflow-y: auto;
                     padding-right: 8px;
                 }
-                /* Custom Scrollbar */
-                .scrollable-content::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .scrollable-content::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .scrollable-content::-webkit-scrollbar-thumb {
-                    background-color: var(--border);
-                    border-radius: 10px;
-                }
-                .scrollable-content::-webkit-scrollbar-thumb:hover {
-                    background-color: var(--border);
-                }
-                
                 .intern-card {
                     padding: 8px 4px;
                     cursor: pointer;

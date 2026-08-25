@@ -5,14 +5,69 @@ import { createAuditLog } from './auditService';
 export interface Schedule {
   id: string;
   company_id: string;
-  student_id: string;
+  student_id: string | null;
+  name: string;
   shift_type: 'morning' | 'afternoon' | 'night' | 'flexible';
   working_days: string[];
   start_time: string | null;
   end_time: string | null;
   break_start: string | null;
   break_end: string | null;
+  break_duration_minutes: number;
+  start_date: string | null;
+  end_date: string | null;
+  location: string | null;
+  supervisor_name: string | null;
+  notes: string | null;
+  recurrence: 'none' | 'daily' | 'weekly' | 'custom_weekdays';
+  status: 'upcoming' | 'active' | 'completed' | 'cancelled';
+  calendar_sync_status: 'not_connected' | 'pending' | 'synced' | 'failed';
+  google_event_id: string | null;
+  assigned_students: ScheduleStudent[];
   created_at: string;
+  updated_at: string;
+}
+
+export interface ScheduleStudent {
+  student_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  course: string | null;
+  department: string | null;
+}
+
+export interface ScheduleInput {
+  id?: string;
+  name: string;
+  start_date: string;
+  end_date?: string | null;
+  start_time: string;
+  end_time: string;
+  break_duration_minutes: number;
+  location?: string | null;
+  supervisor_name?: string | null;
+  notes?: string | null;
+  recurrence: 'none' | 'daily' | 'weekly' | 'custom_weekdays';
+  working_days: string[];
+  student_ids: string[];
+}
+
+export interface ScheduleAuditEntry {
+  id: string;
+  action: string;
+  details: Record<string, unknown>;
+  created_at: string;
+  actor_name: string | null;
+}
+
+export interface CalendarIntegration {
+  connected: boolean;
+  calendar_id: string | null;
+  calendar_name: string | null;
+  automatic_sync: boolean;
+  cancel_behavior: 'mark_cancelled' | 'remove';
+  last_synced_at: string | null;
 }
 
 export interface Evaluation {
@@ -329,32 +384,73 @@ export const companyService = {
     return true;
   },
 
-  async getSchedules(companyId: string) {
-    const { data, error } = await supabase
-      .from('schedules')
-      .select('*, profiles:student_id(first_name, last_name)')
-      .eq('company_id', companyId);
-    if (error) {
-      console.error("Error fetching schedules:", error);
-      return [];
-    }
-    return data;
+  async getSchedules(_companyId: string): Promise<Schedule[]> {
+    const { data, error } = await supabase.rpc('get_company_schedules');
+    if (error) throw error;
+    return (data || []) as Schedule[];
   },
 
-  async saveSchedule(scheduleData: Partial<Schedule>) {
-    if (scheduleData.id) {
-        const { error } = await supabase
-        .from('schedules')
-        .update(scheduleData)
-        .eq('id', scheduleData.id);
-        if (error) throw error;
-    } else {
-        const { error } = await supabase
-        .from('schedules')
-        .insert(scheduleData);
-        if (error) throw error;
+  async saveSchedule(scheduleData: ScheduleInput): Promise<Schedule> {
+    const { data, error } = await supabase.rpc('save_company_schedule', {
+      p_schedule_id: scheduleData.id || null,
+      p_name: scheduleData.name,
+      p_start_date: scheduleData.start_date,
+      p_end_date: scheduleData.end_date || null,
+      p_start_time: scheduleData.start_time,
+      p_end_time: scheduleData.end_time,
+      p_break_duration_minutes: scheduleData.break_duration_minutes,
+      p_location: scheduleData.location || null,
+      p_supervisor_name: scheduleData.supervisor_name || null,
+      p_notes: scheduleData.notes || null,
+      p_recurrence: scheduleData.recurrence,
+      p_working_days: scheduleData.working_days,
+      p_student_ids: scheduleData.student_ids,
+    });
+    if (error) throw error;
+    return data as Schedule;
+  },
+
+  async deleteSchedule(scheduleId: string) {
+    const { error } = await supabase.rpc('delete_company_schedule', { p_schedule_id: scheduleId });
+    if (error) throw error;
+  },
+
+  async getScheduleHistory(scheduleId: string): Promise<ScheduleAuditEntry[]> {
+    const { data, error } = await supabase.rpc('get_company_schedule_audit', { p_schedule_id: scheduleId });
+    if (error) throw error;
+    return (data || []) as ScheduleAuditEntry[];
+  },
+
+  async getCalendarIntegration(): Promise<CalendarIntegration> {
+    const { data, error } = await supabase.rpc('get_company_calendar_integration');
+    if (error) throw error;
+    return data as CalendarIntegration;
+  },
+
+  async invokeCalendar(action: 'connect' | 'sync' | 'disconnect', scheduleId?: string, popup = false) {
+    if (import.meta.env.DEV) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Your session has expired. Please sign in again.');
+
+      const response = await fetch('/supabase-functions/google-calendar', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ action, scheduleId, popup }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Calendar request failed.');
+      return payload as { authorizationUrl?: string; message?: string };
     }
-    return true;
+
+    const { data, error } = await supabase.functions.invoke('google-calendar', {
+      body: { action, scheduleId, popup },
+    });
+    if (error) throw error;
+    return data as { authorizationUrl?: string; message?: string };
   },
 
   async getDocuments(companyId: string) {

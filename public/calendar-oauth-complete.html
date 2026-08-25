@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Google Calendar connected</title>
+    <style>body{margin:0;display:grid;min-height:100vh;place-items:center;background:#f8fafc;color:#0f172a;font:15px system-ui,sans-serif}main{text-align:center}strong{color:#059669}</style>
+  </head>
+  <body>
+    <main><strong>Google Calendar connected</strong><p>This window will close automatically.</p></main>
+    <script>
+      if (window.opener) window.opener.postMessage({ type: 'google-calendar-connected' }, '*');
+      window.setTimeout(() => window.close(), 250);
+    </script>
+  </body>
+</html>

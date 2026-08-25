@@ -46,6 +46,64 @@
     font-weight: 500;
 }
 
+/* Company attendance: compact header + stats so more of the list stays on screen */
+.attendance-page-compact {
+    gap: 0;
+}
+
+.company-page-content:has(.attendance-page-compact) {
+    padding-top: 1.15rem;
+}
+
+.attendance-page-compact .attendance-page-header {
+    display: flex;
+    align-items: flex-start;
+    margin: 0 0 0.5rem;
+    gap: 0;
+}
+
+.attendance-page-compact .view-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.attendance-page-compact .view-subtitle {
+    color: var(--text-muted);
+    margin: 0.12rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.3;
+}
+
+.attendance-page-compact .attendance-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 0.7rem;
+}
+
+.attendance-page-compact .attendance-stat-card {
+    padding: 0.55rem 0.85rem;
+    gap: 0.7rem;
+    align-items: center;
+    min-height: 0;
+}
+
+.attendance-page-compact .attendance-stat-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+}
+
+.attendance-page-compact .attendance-stat-value {
+    font-size: 1.45rem;
+    margin-bottom: 0.12rem;
+}
+
+.attendance-page-compact .attendance-stat-label {
+    line-height: 1.2;
+}
+
 /* ── Toolbar / filters ───────────────────────────────────────────────────── */
 .attendance-toolbar {
     display: flex;
@@ -84,6 +142,46 @@
     transform: translateY(-50%);
     pointer-events: none;
     display: flex;
+}
+
+/* Company attendance: compact single-row filters to maximize the student list */
+.attendance-toolbar-compact {
+    display: grid;
+    grid-template-columns: 10.75rem minmax(12rem, 1fr) 9.25rem 10.5rem;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+}
+
+.attendance-toolbar-compact .form-input {
+    width: 100%;
+    min-width: 0;
+    height: 2.15rem;
+    min-height: 2.15rem;
+    max-height: 2.15rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.82rem;
+    line-height: 1.2;
+    box-sizing: border-box;
+}
+
+.attendance-toolbar-compact .attendance-search-wrap {
+    flex: unset;
+    min-width: 0;
+    width: 100%;
+}
+
+.attendance-toolbar-compact .attendance-search-wrap .form-input {
+    padding-left: 2rem;
+}
+
+.attendance-toolbar-compact .attendance-search-icon {
+    left: 0.55rem;
+}
+
+.attendance-toolbar-compact select.form-input {
+    padding-right: 1.5rem;
+    cursor: pointer;
 }
 
 /* ── Status badge ─────────────────────────────────────────────────────────── */
@@ -352,6 +450,9 @@
     max-width: 680px;
 }
 
+/* Keep the details modal's scroll affordance visible without the heavy
+   browser-default gutter. This class is intentionally not shared by record
+   modals or page-level scroll containers. */
 .attendance-modal-header {
     display: flex;
     justify-content: space-between;
@@ -586,6 +687,17 @@
 }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .attendance-toolbar-compact {
+        grid-template-columns: minmax(10rem, 12rem) minmax(0, 1fr);
+        gap: 0.4rem;
+    }
+
+    .attendance-page-compact .attendance-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 768px) {
     .attendance-table-wrap {
         display: none;
@@ -593,6 +705,27 @@
 
     .attendance-mobile-cards {
         display: flex;
+    }
+}
+
+@media (max-width: 560px) {
+    .attendance-toolbar-compact {
+        grid-template-columns: 1fr;
+        gap: 0.35rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .attendance-page-compact .attendance-page-header {
+        margin-bottom: 0.4rem;
+    }
+
+    .attendance-page-compact .attendance-stats-grid {
+        gap: 0.45rem;
+        margin-bottom: 0.55rem;
+    }
+
+    .attendance-page-compact .attendance-stat-card {
+        padding: 0.5rem 0.7rem;
     }
 }
 

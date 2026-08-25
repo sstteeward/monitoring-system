@@ -13,6 +13,35 @@
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* One shared scrollbar treatment for every page and nested scroll container. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
 /* Default Theme (Light) */
 html,
 html[data-theme="light"] {

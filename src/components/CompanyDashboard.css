@@ -96,11 +96,11 @@ html[data-theme="dark"] {
 }
 
 .company-sidebar-header {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  height: 70px;
+  height: 64px;
   border-bottom: 1px solid var(--company-border);
 }
 
@@ -137,10 +137,10 @@ html[data-theme="dark"] {
 
 .company-nav {
   flex: 1;
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -149,7 +149,7 @@ html[data-theme="dark"] {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.65rem 0.85rem;
+  padding: 0.55rem 0.75rem;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
@@ -228,8 +228,8 @@ html[data-theme="dark"] {
 }
 
 .company-topbar {
-  height: 70px;
-  padding: 0 2rem;
+  height: 64px;
+  padding: 0 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -260,13 +260,13 @@ html[data-theme="dark"] {
 .company-topbar-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .company-topbar-user-btn {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.55rem;
   background: none;
   border: none;
   outline: none;
@@ -317,12 +317,11 @@ html[data-theme="dark"] {
 .company-page-content {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem 3rem;
-  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.05), transparent 40%),
-    radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.05), transparent 40%);
+  padding: 1.5rem 2.5rem;
+  background: var(--company-bg);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .company-welcome-banner {
@@ -409,20 +408,6 @@ html[data-theme="dark"] .company-welcome-banner {
   color: var(--company-text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
-}
-
-/* Glass effect for scrollbar */
-.company-page-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.company-page-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.company-page-content::-webkit-scrollbar-thumb {
-  background: var(--scrollbar);
-  border-radius: 10px;
 }
 
 /* Mobile Responsiveness */

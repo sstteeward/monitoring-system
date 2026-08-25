@@ -2,6 +2,60 @@ import { supabase } from '../lib/supabaseClient';
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'on_leave' | 'incomplete';
 
+type RpcErrorLike = {
+  message?: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+};
+
+function extractErrorText(err: unknown): string {
+  if (!err) return '';
+  if (err instanceof Error) return err.message || '';
+  if (typeof err === 'object') {
+    const e = err as RpcErrorLike;
+    return [e.message, e.details, e.hint].filter(Boolean).join(' ');
+  }
+  return String(err);
+}
+
+/** Maps PostgREST / Postgres errors to safe, actionable UI copy. */
+export function mapAttendanceSaveError(err: unknown): string {
+  const raw = extractErrorText(err);
+  const combined = raw.toLowerCase();
+
+  if (combined.includes('already exists') || combined.includes('duplicate') || combined.includes('unique')) {
+    return 'Attendance record already exists for this student and date.';
+  }
+  if (combined.includes('not assigned') || combined.includes('student not found') || combined.includes('no longer assigned')) {
+    return 'Unable to save because the student is no longer assigned to this company.';
+  }
+  if (combined.includes('not authorized') || combined.includes('row-level security') || combined.includes('permission denied') || combined.includes('42501')) {
+    return 'You are not authorized to record attendance for this student.';
+  }
+  if (combined.includes('required attendance') || combined.includes('invalid attendance status') || combined.includes('null value') || combined.includes('22p02')) {
+    return 'Required attendance information is missing.';
+  }
+  if (combined.includes('future date')) {
+    return 'Cannot record attendance for a future date.';
+  }
+  if (
+    combined.includes('column') ||
+    combined.includes('violates') ||
+    combined.includes('datatype') ||
+    combined.includes('uuid') ||
+    combined.includes('pgrst') ||
+    combined.includes('function') ||
+    combined.includes('sqlstate')
+  ) {
+    return 'Database error while saving attendance.';
+  }
+  if (raw && raw.length < 180 && !combined.includes('postgres')) {
+    return raw;
+  }
+  return 'Failed to save attendance. Please try again.';
+}
+
 export interface CompanyAttendanceRow {
   student_auth_id: string;
   student_profile_id: string;
@@ -56,6 +110,10 @@ export interface AttendanceResult {
   updated_at: string | null;
 }
 
+export interface StudentAttendanceStats {
+  absence_count: number;
+}
+
 export const attendanceService = {
   /**
    * Company supervisor / coordinator / admin records (or updates) a student's
@@ -69,6 +127,13 @@ export const attendanceService = {
     reason?: string | null,
     remarks?: string | null
   ): Promise<AttendanceResult> {
+    if (!studentAuthId) {
+      throw new Error('Required attendance information is missing.');
+    }
+    if (!date) {
+      throw new Error('Required attendance information is missing.');
+    }
+
     const { data, error } = await supabase.rpc('record_attendance', {
       p_student_id: studentAuthId,
       p_attendance_date: date,
@@ -77,7 +142,23 @@ export const attendanceService = {
       p_remarks: remarks ?? null
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('record_attendance failed:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        studentAuthId,
+        date,
+        status
+      });
+      // Keep PostgREST's diagnostic text on the thrown error. The modal maps
+      // it to safe UI copy, while this preserves the real response for logs
+      // and makes future database failures diagnosable.
+      const rpcError = new Error(extractErrorText(error) || 'Failed to save attendance.');
+      (rpcError as Error & { code?: string }).code = error.code;
+      throw rpcError;
+    }
     return data as AttendanceResult;
   },
 
@@ -118,5 +199,22 @@ export const attendanceService = {
       throw error;
     }
     return (data || []) as AttendanceAuditEntry[];
+  },
+
+  /**
+   * Live attendance statistics for one student. Authorization and the company
+   * scope are enforced by the RPC, so callers cannot count another company's
+   * records by changing a client-side filter.
+   */
+  async getStudentAttendanceStats(studentAuthId: string): Promise<StudentAttendanceStats> {
+    const { data, error } = await supabase.rpc('get_student_attendance_stats', {
+      p_student_id: studentAuthId
+    });
+
+    if (error) {
+      console.error('Error fetching student attendance statistics:', error);
+      throw error;
+    }
+    return (Array.isArray(data) ? data[0] : data) as StudentAttendanceStats;
   }
 };

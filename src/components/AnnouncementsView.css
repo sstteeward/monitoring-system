@@ -335,10 +335,6 @@
     overflow-x: auto;
 }
 
-.reactions-tabs::-webkit-scrollbar {
-    height: 0;
-}
-
 .tab-btn {
     padding: 1rem;
     border: none;

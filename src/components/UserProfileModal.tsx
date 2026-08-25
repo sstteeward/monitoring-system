@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { profileService, type Profile } from '../services/profileService';
+import { attendanceService } from '../services/attendanceService';
 import { DTRCard } from './DTRCard';
 import { SignaturePad } from './SignaturePad';
 
@@ -17,6 +18,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
     const [showDTR, setShowDTR] = useState(false);
     const [currentUser, setCurrentUser] = useState<Profile | null>(null);
     const [showSignaturePad, setShowSignaturePad] = useState(false);
+    const [absenceCount, setAbsenceCount] = useState<number | null>(null);
 
     useEffect(() => {
         profileService.getCurrentProfile().then(setCurrentUser);
@@ -31,6 +33,27 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
             setLoading(false);
         });
     }, [profileId]);
+
+    useEffect(() => {
+        if (!profile || profile.account_type !== 'student') {
+            setAbsenceCount(null);
+            return;
+        }
+
+        let cancelled = false;
+        setAbsenceCount(null);
+        attendanceService.getStudentAttendanceStats(profile.auth_user_id)
+            .then(stats => {
+                if (!cancelled) setAbsenceCount(Number(stats?.absence_count ?? 0));
+            })
+            .catch(error => {
+                console.error('Failed to load student attendance statistics:', error);
+                // Do not misrepresent an unavailable live count as zero.
+                if (!cancelled) setAbsenceCount(null);
+            });
+
+        return () => { cancelled = true; };
+    }, [profile]);
 
     if (!profileId) return null;
 
@@ -334,8 +357,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                                         }}>
                                             <div>
                                                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.15rem' }}>TOTAL ABSENCES</div>
-                                                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: (profile.absences || 0) > 3 ? '#ef4444' : '#f59e0b' }}>
-                                                    {profile.absences || 0}
+                                                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: (absenceCount ?? 0) > 3 ? '#ef4444' : '#f59e0b' }}>
+                                                    {absenceCount ?? '—'}
                                                 </div>
                                             </div>
                                             <div style={{ opacity: 0.4, fontSize: '1.5rem' }}>🕒</div>
@@ -423,35 +446,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                 }
                 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 8px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: var(--scrollbar);
-                    border-radius: 20px;
-                    border: 2px solid transparent;
-                    background-clip: content-box;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: var(--border-strong);
-                    background-clip: content-box;
-                }
-                
                 .close-modal-btn:hover {
                     background: rgba(239, 68, 68, 0.15) !important;
                     color: #ef4444 !important;
                     border-color: rgba(239, 68, 68, 0.2) !important;
                 }
                 
-                /* For Firefox */
-                .custom-scrollbar {
-                    scrollbar-width: thin;
-                    scrollbar-color: var(--scrollbar) transparent;
-                }
-
                 .upm-overlay {
                     display: flex !important;
                     align-items: center !important;

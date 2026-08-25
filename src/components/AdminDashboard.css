@@ -691,24 +691,6 @@ html[data-theme="dark"] .admin-welcome-banner {
   }
 }
 
-/* Glass effect for scrollbar */
-.admin-page-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.admin-page-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.admin-page-content::-webkit-scrollbar-thumb {
-  background: var(--scrollbar);
-  border-radius: 10px;
-}
-
-.admin-page-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
 /* Mobile Responsiveness */
 @media (max-width: 1024px) {
   .admin-sidebar {
