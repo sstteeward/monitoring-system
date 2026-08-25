@@ -22,14 +22,24 @@ const CompanyScheduleView: React.FC = () => {
   const openDetails = async (schedule: Schedule) => { setDetails(schedule); try { setHistory(await companyService.getScheduleHistory(schedule.id)); } catch { setHistory([]); } };
   const remove = async (schedule: Schedule) => { if (!window.confirm(`Delete “${schedule.name}”?`)) return; try { await companyService.deleteSchedule(schedule.id); setDetails(null); await load(); setNotice('Schedule deleted.'); } catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to delete schedule.'); } };
   const calendarAction = async (action: 'connect'|'sync'|'disconnect', scheduleId?: string) => {
-    const popup = action === 'connect' ? window.open('', 'google-calendar-oauth', 'popup=yes,width=520,height=680,menubar=no,toolbar=no,status=no') : null;
+    // Use a new, script-created window each time. Reusing a previously opened
+    // named tab can make the browser refuse the completion page's close call.
+    const popup = action === 'connect' ? window.open('about:blank', `google-calendar-oauth-${Date.now()}`, 'popup=yes,width=520,height=680,menubar=no,toolbar=no,status=no,resizable=yes,scrollbars=yes') : null;
+    if (action === 'connect' && !popup) {
+      setNotice('Please allow popups for this site, then try connecting Google Calendar again.');
+      return;
+    }
+    if (popup) {
+      popup.document.title = 'Connecting Google Calendar…';
+      popup.document.body.innerHTML = '<p style="font:15px system-ui,sans-serif;padding:24px">Opening Google account selection…</p>';
+      popup.focus();
+    }
     try {
       const result = await companyService.invokeCalendar(action, scheduleId, Boolean(popup));
       if (result.authorizationUrl) {
-        if (!popup) { window.location.assign(result.authorizationUrl); return; }
-        popup.location.replace(result.authorizationUrl);
+        popup!.location.replace(result.authorizationUrl);
         const watchPopup = window.setInterval(() => {
-          if (!popup.closed) return;
+          if (!popup!.closed) return;
           window.clearInterval(watchPopup);
           void load().then(() => setNotice('Calendar connection status refreshed.'));
         }, 500);
