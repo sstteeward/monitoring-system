@@ -8,6 +8,30 @@ type OAuthState = {
   returnOrigin?: string;
 };
 
+type GoogleOAuthToken = {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+};
+
+const isGoogleOAuthToken = (value: unknown): value is GoogleOAuthToken => {
+  if (!value || typeof value !== 'object') return false;
+  const token = value as Record<string, unknown>;
+  return typeof token.access_token === 'string'
+    && typeof token.refresh_token === 'string'
+    && typeof token.expires_in === 'number';
+};
+
+const googleTokenError = (value: unknown) => {
+  if (!value || typeof value !== 'object') return undefined;
+  const error = value as Record<string, unknown>;
+  return typeof error.error_description === 'string'
+    ? error.error_description
+    : typeof error.error === 'string'
+      ? error.error
+      : undefined;
+};
+
 const appUrl = () => {
   let url = (process.env.APP_URL || process.env.VITE_APP_URL || 'https://asiancollegesilmonitoringsystem.vercel.app').trim().replace(/\/$/, '');
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -78,12 +102,13 @@ export default async function handler(request: any, response: any) {
       grant_type: 'authorization_code',
     }),
   });
-  const token = await tokenResponse.json().catch(() => null);
-  if (!tokenResponse.ok || !token?.access_token || !token?.refresh_token) {
-    const errorDetails = token?.error_description || token?.error || `status_${tokenResponse.status}`;
-    console.error('Google token exchange failed.', { status: tokenResponse.status, error: token });
+  const tokenPayload: unknown = await tokenResponse.json().catch(() => null);
+  if (!tokenResponse.ok || !isGoogleOAuthToken(tokenPayload)) {
+    const errorDetails = googleTokenError(tokenPayload) || `status_${tokenResponse.status}`;
+    console.error('Google token exchange failed.', { status: tokenResponse.status, error: tokenPayload });
     return complete(response, 'error', `token_exchange_failed: ${errorDetails}`);
   }
+  const token = tokenPayload;
 
   const rpcHeaders = { apikey: sKey, authorization: `Bearer ${sKey}`, 'content-type': 'application/json' };
   const connectionResponse = await fetch(`${sUrl}/rest/v1/rpc/service_upsert_google_calendar_connection`, {
