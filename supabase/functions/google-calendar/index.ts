@@ -22,7 +22,7 @@ const isAllowedOrigin = (request: Request) => {
 const corsHeaders = (request: Request) => ({
   'access-control-allow-origin': request.headers.get('origin') || configuredAppOrigin || '',
   'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info',
-  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
   'vary': 'Origin',
 });
 const json = (request: Request, body: unknown, status = 200) => Response.json(body, { status, headers: corsHeaders(request) });
@@ -40,13 +40,15 @@ Deno.serve(async (request) => {
   const url = new URL(request.url); const supabaseUrl = Deno.env.get('SUPABASE_URL'); const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); const clientId = Deno.env.get('GOOGLE_CLIENT_ID'); const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET'); const stateSecret = Deno.env.get('GOOGLE_OAUTH_STATE_SECRET'); const appUrl = Deno.env.get('APP_URL');
   if (!supabaseUrl || !serviceKey || !clientId || !clientSecret || !stateSecret || !appUrl) return json(request, { error: 'Google Calendar integration is not configured.' }, 503);
   const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
-  const callback = url.searchParams.get('callback') === '1';
+  // Google returns the authorization result as a GET request. Using the plain
+  // function URL keeps the redirect URI identical to the Google Console entry.
+  const callback = request.method === 'GET';
   if (callback) {
     const state = url.searchParams.get('state') || ''; const [payload, signature] = state.split('.');
     if (!payload || !signature || signature !== await sign(payload, stateSecret)) return Response.redirect(`${appUrl}?calendar=error`, 302);
     let claim: { companyId: string; userId: string; exp: number; popup?: boolean; returnOrigin?: string }; try { claim = JSON.parse(unbase64url(payload)); } catch { return Response.redirect(`${appUrl}?calendar=error`, 302); }
     if (claim.exp < Date.now() || !url.searchParams.get('code')) return Response.redirect(`${appUrl}?calendar=error`, 302);
-    const redirectUri = `${supabaseUrl}/functions/v1/google-calendar?callback=1`;
+    const redirectUri = `${supabaseUrl}/functions/v1/google-calendar`;
     const response = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ code: url.searchParams.get('code')!, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: 'authorization_code' }) });
     if (!response.ok) return Response.redirect(`${appUrl}?calendar=error`, 302);
     const token = await response.json();
@@ -71,7 +73,7 @@ Deno.serve(async (request) => {
   const body = await request.json().catch(() => ({})); const action = body.action as string;
   // Google must return to this Edge Function: it validates the signed state and
   // exchanges the authorization code using the same redirect URI.
-  const redirectUri = `${supabaseUrl}/functions/v1/google-calendar?callback=1`;
+  const redirectUri = `${supabaseUrl}/functions/v1/google-calendar`;
   if (action === 'connect') { const requestOrigin = request.headers.get('origin'); const popup = Boolean(body.popup); const returnOrigin = requestOrigin && allowedOrigins.has(requestOrigin) ? requestOrigin : appUrl; const payload = base64url(JSON.stringify({ companyId: profile.company_id, userId: user.id, exp: Date.now() + 10 * 60 * 1000, popup, returnOrigin })); const state = `${payload}.${await sign(payload, stateSecret)}`; const query = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, response_type: 'code', access_type: 'offline', prompt: 'select_account consent', include_granted_scopes: 'true', scope: 'https://www.googleapis.com/auth/calendar.events', state }); return json(request, { authorizationUrl: `https://accounts.google.com/o/oauth2/v2/auth?${query}` }); }
   if (action === 'disconnect') { await admin.rpc('service_delete_google_calendar_connection', { p_company_id: profile.company_id }); await admin.from('company_google_calendar_status').delete().eq('company_id', profile.company_id); await admin.from('schedules').update({ calendar_sync_status: 'not_connected' }).eq('company_id', profile.company_id); await admin.from('schedule_audit_logs').insert({ company_id: profile.company_id, actor_id: user.id, action: 'calendar_disconnected' }); return json(request, { message: 'Google Calendar disconnected.' }); }
   if (action === 'sync') {
