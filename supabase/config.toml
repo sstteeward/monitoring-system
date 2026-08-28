@@ -24,3 +24,11 @@ enabled = true
 # project's legacy service-role key, which it verifies inside the handler.
 verify_jwt = false
 entrypoint = "./functions/notification-email/index.ts"
+
+[functions.google-calendar]
+enabled = true
+# Google redirects the browser here without a Supabase JWT. The function
+# verifies the signed OAuth state for GET callbacks and validates the caller's
+# JWT itself for every POST action.
+verify_jwt = false
+entrypoint = "./functions/google-calendar/index.ts"
