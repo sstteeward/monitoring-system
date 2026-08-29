@@ -261,6 +261,51 @@ html[data-theme="dark"] .auth-page::before {
     padding: 0 2px;
 }
 
+/* Signup follows the account-creation flow without changing shared form styles. */
+.signup-name-section { order: 1; }
+.signup-password-section { order: 2; }
+.signup-password-requirements { order: 3; }
+.signup-email-section { order: 4; }
+.signup-otp-section { order: 5; }
+.signup-status { order: 6; }
+.signup-create-section { order: 7; }
+
+/* OTP Input Boxes */
+.otp-inputs {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.otp-input {
+    flex: 1;
+    min-width: 40px;
+    height: 44px;
+    max-width: 50px;
+    padding: 0;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.otp-input:focus {
+    border-color: var(--primary);
+    background: var(--bg-card);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.otp-input::placeholder {
+    color: var(--text-dim);
+    opacity: 0.5;
+}
+
 /* Form Rows & Inputs */
 .form-row {
     display: grid;
@@ -339,6 +384,43 @@ html[data-theme="dark"] .auth-page::before {
 
 .password-toggle-btn:active svg.eye-icon {
     transform: scale(0.65);
+}
+
+.password-requirements {
+    grid-column: 1 / -1;
+    margin-top: -0.15rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-elevated);
+}
+
+.password-strength {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+    color: var(--muted-light);
+}
+
+.password-strength strong { font-size: 0.72rem; transition: color 0.2s ease; }
+.strength-weak { color: var(--error); }
+.strength-medium { color: var(--warning); }
+.strength-strong { color: var(--success); }
+
+.password-strength-bars { display: flex; gap: 3px; margin: 0.35rem 0 0.55rem; }
+.password-strength-bars span { height: 3px; flex: 1; border-radius: 999px; background: var(--border); transition: background-color 0.25s ease, transform 0.25s ease; }
+.password-strength-bars span.active { transform: scaleY(1.25); }
+
+.password-requirement-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.28rem 0.55rem; }
+.password-requirement-list span { display: flex; gap: 0.3rem; align-items: flex-start; font-size: 0.67rem; line-height: 1.25; color: var(--muted-light); transition: color 0.2s ease; }
+.password-requirement-list b { font-size: 0.75rem; line-height: 0.85; }
+.password-requirement-list .unmet b { color: var(--error); opacity: 0.7; }
+.password-requirement-list .met { color: var(--success); }
+.password-requirement-list .met b { color: var(--success); }
+
+@media (max-width: 560px) {
+    .password-requirement-list { grid-template-columns: 1fr; }
 }
 
 .eye-icon {
@@ -433,6 +515,12 @@ html[data-theme="dark"] .auth-page::before {
 .cta-row {
     margin-top: 0.5rem;
 }
+
+.passkey-divider { display: flex; align-items: center; gap: 0.6rem; color: var(--muted-light); font-size: 0.72rem; }
+.passkey-divider::before, .passkey-divider::after { content: ''; height: 1px; flex: 1; background: var(--border); }
+.passkey-signin { width: 100%; display: inline-flex; justify-content: center; align-items: center; gap: 0.45rem; padding: 0.65rem 0.9rem; border-radius: 9px; border: 1px solid rgba(16, 185, 129, 0.38); background: rgba(16, 185, 129, 0.08); color: var(--primary); font: inherit; font-size: 0.85rem; font-weight: 650; cursor: pointer; transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease; }
+.passkey-signin:hover:not(:disabled) { background: rgba(16, 185, 129, 0.14); border-color: var(--primary); transform: translateY(-1px); }
+.passkey-signin:disabled { cursor: not-allowed; opacity: 0.55; }
 
 
 
@@ -573,6 +661,17 @@ html[data-theme="dark"] .auth-page::before {
     .account-type {
         flex-direction: column;
         gap: 0.6rem;
+    }
+
+    .otp-inputs {
+        gap: 0.35rem;
+    }
+
+    .otp-input {
+        min-width: 32px;
+        height: 38px;
+        max-width: 40px;
+        font-size: 1.1rem;
     }
 }
 

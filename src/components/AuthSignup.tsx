@@ -3,8 +3,9 @@ import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { useLocation } from "react-router-dom";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
-import { signUp, signIn, resetPasswordForEmail } from "../services/auth";
+import { signUp, signIn, resetPasswordForEmail, validatePasskeyStudentSession } from "../services/auth";
 import { supabase } from "../lib/supabaseClient";
+import { passwordRequirementLabels, passwordRequirementsMessage, validatePassword } from "../utils/passwordRules";
 
 const EyeIcon = () => (
     <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="eye-icon">
@@ -21,33 +22,6 @@ const EyeOffIcon = () => (
         <line x1="2" y1="2" x2="22" y2="22" />
     </svg>
 );
-
-const getPasswordStrength = (password: string) => {
-    let score = 0;
-    if (!password) return 0;
-    if (password.length >= 8) score += 1;
-    if (/[a-z]/.test(password)) score += 1;
-    if (/[A-Z]/.test(password)) score += 1;
-    if (/\d/.test(password)) score += 1;
-    if (/[^A-Za-z0-9]/.test(password)) score += 1;
-    return Math.min(score, 4); // Max score is 4 for styling simplicity
-};
-
-const getStrengthLabel = (score: number) => {
-    if (score === 0) return '';
-    if (score <= 1) return 'Weak';
-    if (score === 2) return 'Fair';
-    if (score === 3) return 'Good';
-    return 'Strong';
-};
-
-const getStrengthColor = (score: number) => {
-    if (score === 0) return 'var(--border)';
-    if (score <= 1) return 'var(--error)';
-    if (score === 2) return 'var(--warning)';
-    if (score === 3) return '#3b82f6'; // Blue
-    return 'var(--success)';
-};
 
 const PortalBack = () => (
     <a className="portal-back" href="/">
@@ -75,9 +49,10 @@ export default function AuthSignup() {
     const [signupConfirm, setSignupConfirm] = useState("");
     const [emailVerified, setEmailVerified] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
-    const [otpValue, setOtpValue] = useState("");
+    const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
     const [sendingOtp, setSendingOtp] = useState(false);
     const [otpCooldown, setOtpCooldown] = useState(0);
+    const otpRefs = useRef<(HTMLInputElement | null)[]>(Array(6).fill(null));
 
     // Login state
     const [loginEmail, setLoginEmail] = useState("");
@@ -87,6 +62,8 @@ export default function AuthSignup() {
     const [showSignupPassword, setShowSignupPassword] = useState(false);
     const [showSignupConfirm, setShowSignupConfirm] = useState(false);
     const [showLoginPassword, setShowLoginPassword] = useState(false);
+    const [passkeySupported, setPasskeySupported] = useState(false);
+    const [passkeySigningIn, setPasskeySigningIn] = useState(false);
 
     // Forgot password state
     const [forgotEmail, setForgotEmail] = useState("");
@@ -95,9 +72,7 @@ export default function AuthSignup() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-    const passwordScore = getPasswordStrength(signupPassword);
-    const strengthLabel = getStrengthLabel(passwordScore);
-    const strengthColor = getStrengthColor(passwordScore);
+    const passwordValidation = validatePassword(signupPassword, signupConfirm);
 
     const authPageRef = useRef<HTMLDivElement>(null);
     const handleAuthMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -130,7 +105,34 @@ export default function AuthSignup() {
         document.title = mode === "signup" ? "Create Your Account | SIL Monitoring System" : mode === "login" ? "Login | SIL Monitoring System" : "Reset Password | SIL Monitoring System";
     }, [mode]);
 
+    useEffect(() => {
+        setPasskeySupported(typeof window !== 'undefined'
+            && window.isSecureContext
+            && 'PublicKeyCredential' in window
+            && 'credentials' in navigator);
+    }, []);
+
+    // Auto-verify when all 6 digits are entered
+    useEffect(() => {
+        if (otpSent && !sendingOtp && otpDigits.every(d => d !== "") && canVerifyAndCreateAccount) {
+            handleVerifyOtp();
+        }
+    }, [otpDigits, otpSent]);
+
+    // Auto-focus first OTP box when the verification section appears
+    useEffect(() => {
+        if (otpSent && !emailVerified) {
+            otpRefs.current[0]?.focus();
+        }
+    }, [otpSent, emailVerified]);
+
     const isEduPh = (value: string) => /\.edu\.ph$/i.test(value.trim());
+    const hasValidSignupEmail = Boolean(signupEmail.trim()) && (roleState === 'company' || roleState === 'admin' || isEduPh(signupEmail));
+    const canVerifyAndCreateAccount = Boolean(firstName.trim() && lastName.trim())
+        && hasValidSignupEmail
+        && passwordValidation.isValid
+        && otpSent
+        && otpDigits.every(d => d !== "");
 
     const validateSignup = () => {
         const e: Record<string, string> = {};
@@ -139,7 +141,7 @@ export default function AuthSignup() {
         if (!signupEmail.trim()) e.signupEmail = "Email is required";
         else if (roleState !== 'company' && roleState !== 'admin' && !isEduPh(signupEmail)) e.signupEmail = "Email must end with .edu.ph";
         if (!signupPassword) e.signupPassword = "Password is required";
-        else if (signupPassword.length < 8) e.signupPassword = "Password must be at least 8 characters";
+        else if (!passwordValidation.isValid) e.signupPassword = passwordRequirementsMessage;
         if (!signupConfirm) e.signupConfirm = "Please confirm your password";
         else if (signupPassword && signupConfirm && signupPassword !== signupConfirm) e.signupConfirm = "Passwords do not match";
         setErrors(e);
@@ -177,7 +179,7 @@ export default function AuthSignup() {
             });
             if (error) throw error;
             setOtpSent(true);
-            setOtpValue("");
+            setOtpDigits(["", "", "", "", "", ""]);
             setInfoMessage("A 6-digit code was sent to your email. Enter it.");
             setOtpCooldown(60);
             const timer = setInterval(() => {
@@ -193,15 +195,54 @@ export default function AuthSignup() {
         }
     };
 
+    const handleOtpChange = (index: number, value: string) => {
+        const digit = value.replace(/\D/g, '').slice(0, 1);
+        const newDigits = [...otpDigits];
+        newDigits[index] = digit;
+        setOtpDigits(newDigits);
+        setErrors(prev => ({ ...prev, otp: '' }));
+
+        if (digit && index < 5) {
+            otpRefs.current[index + 1]?.focus();
+        }
+    };
+
+    const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Backspace') {
+            if (otpDigits[index] !== "") {
+                const newDigits = [...otpDigits];
+                newDigits[index] = "";
+                setOtpDigits(newDigits);
+            } else if (index > 0) {
+                otpRefs.current[index - 1]?.focus();
+            }
+        }
+    };
+
+    const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+        if (pasted.length === 0) return;
+        const newDigits = [...otpDigits];
+        for (let i = 0; i < pasted.length; i++) {
+            newDigits[i] = pasted[i];
+        }
+        setOtpDigits(newDigits);
+        setErrors(prev => ({ ...prev, otp: '' }));
+        const nextIndex = Math.min(pasted.length, 5);
+        otpRefs.current[nextIndex]?.focus();
+    };
+
     const handleVerifyOtp = async () => {
-        if (otpValue.length < 6) return;
+        const combinedOtp = otpDigits.join("");
+        if (combinedOtp.length < 6) return;
 
         // Validate that password fields are filled before verifying
         const e: Record<string, string> = {};
         if (!firstName.trim()) e.firstName = "First name is required";
         if (!lastName.trim()) e.lastName = "Last name is required";
         if (!signupPassword) e.signupPassword = "Password is required";
-        else if (signupPassword.length < 8) e.signupPassword = "Password must be at least 8 characters";
+        else if (!passwordValidation.isValid) e.signupPassword = passwordRequirementsMessage;
         if (!signupConfirm) e.signupConfirm = "Please confirm your password";
         else if (signupPassword !== signupConfirm) e.signupConfirm = "Passwords do not match";
         if (Object.keys(e).length > 0) {
@@ -215,7 +256,7 @@ export default function AuthSignup() {
             // Step 1: Verify OTP — this logs the user in with a magic-link session
             const { error: verifyError } = await supabase.auth.verifyOtp({
                 email: signupEmail.trim(),
-                token: otpValue.trim(),
+                token: combinedOtp,
                 type: 'email',
             });
             if (verifyError) {
@@ -225,17 +266,11 @@ export default function AuthSignup() {
             const targetAccountType = resolveAccountType();
             const targetIsActive = targetAccountType === 'coordinator' ? false : true;
 
-            // Step 2: Use the live session to set the password and user metadata
-            const { error: updateError } = await supabase.auth.updateUser({
-                password: signupPassword,
-                data: {
-                    first_name: firstName.trim(),
-                    middle_name: middleName.trim() || null,
-                    last_name: lastName.trim(),
-                    account_type: targetAccountType,
-                },
+            // Step 2: The Edge Function validates the password server-side before setting it.
+            const { error: passwordError } = await supabase.functions.invoke('set-signup-password', {
+                body: { password: signupPassword },
             });
-            if (updateError) throw updateError;
+            if (passwordError) throw passwordError;
 
             // Step 3: Upsert the full profile info based on the chosen portal
             const { data: { user } } = await supabase.auth.getUser();
@@ -304,6 +339,7 @@ export default function AuthSignup() {
 
         try {
             await signIn({ email: loginEmail, password, role: roleState as "student" | "coordinator" | "admin" | "company" | undefined });
+            if (!roleState || roleState === 'student') sessionStorage.setItem('offer_passkey_enrollment', '1');
             window.location.href = roleState === 'company' ? '/company' : '/';
         } catch (err: any) {
             let errorMsg = err.message || String(err);
@@ -328,6 +364,25 @@ export default function AuthSignup() {
 
             setErrors(prev => ({ ...prev, general: errorMsg }));
             setIsSubmitting(false);
+        }
+    };
+
+    const handlePasskeyLogin = async () => {
+        if (!passkeySupported) return;
+        setPasskeySigningIn(true);
+        setErrors({});
+        setInfoMessage(null);
+        try {
+            const passkeyAuth = supabase.auth as any;
+            const { error } = await passkeyAuth.signInWithPasskey();
+            if (error) throw error;
+            await validatePasskeyStudentSession();
+            window.location.href = '/';
+        } catch (err: any) {
+            const message = err?.message || 'Passkey sign-in was not completed.';
+            if (!/abort|cancel/i.test(message)) setErrors(prev => ({ ...prev, general: message }));
+        } finally {
+            setPasskeySigningIn(false);
         }
     };
 
@@ -379,7 +434,7 @@ export default function AuthSignup() {
 
                             <form className="auth-form" onSubmit={handleSignup} noValidate>
                                 <div className="form-scrollable">
-                                    <div className="form-row">
+                                    <div className="form-row signup-name-section">
                                         <label>
                                             First Name *
                                             <input value={firstName} onChange={e => setFirstName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} />
@@ -396,7 +451,7 @@ export default function AuthSignup() {
                                         </label>
                                     </div>
 
-                                    <label className="full-width">
+                                    <label className="full-width signup-email-section">
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span>Email Address *</span>
                                             {emailVerified && <span style={{ color: 'var(--success)', fontSize: '0.75rem' }}>Verified ✓</span>}
@@ -434,7 +489,7 @@ export default function AuthSignup() {
                                         {errors.signupEmail && <span className="error">{errors.signupEmail}</span>}
                                     </label>
 
-                                    <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                    <div className="form-row signup-password-section" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                         <label>
                                             Password *
                                             <div className="password-input-wrapper">
@@ -457,26 +512,6 @@ export default function AuthSignup() {
                                                     {showSignupPassword ? <EyeIcon /> : <EyeOffIcon />}
                                                 </button>
                                             </div>
-                                            {signupPassword && (
-                                                <div style={{ marginTop: '0.4rem', marginBottom: '0.2rem' }}>
-                                                    <div style={{ display: 'flex', gap: '4px', height: '4px', marginBottom: '4px' }}>
-                                                        {[1, 2, 3, 4].map(idx => (
-                                                            <div
-                                                                key={idx}
-                                                                style={{
-                                                                    flex: 1,
-                                                                    borderRadius: '2px',
-                                                                    background: idx <= passwordScore ? strengthColor : 'var(--border)',
-                                                                    transition: 'background 0.3s ease'
-                                                                }}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <div style={{ fontSize: '0.7rem', color: strengthColor, fontWeight: 600, textAlign: 'right' }}>
-                                                        {strengthLabel}
-                                                    </div>
-                                                </div>
-                                            )}
                                             {errors.signupPassword && <span className="error">{errors.signupPassword}</span>}
                                         </label>
 
@@ -506,35 +541,46 @@ export default function AuthSignup() {
                                         </label>
                                     </div>
 
+                                    <div className="password-requirements signup-password-requirements" aria-live="polite">
+                                        <div className="password-strength"><span>Password Strength</span><strong className={`strength-${passwordValidation.strength.toLowerCase()}`}>{signupPassword ? passwordValidation.strength : '—'}</strong></div>
+                                        <div className="password-strength-bars" aria-hidden="true">{[1, 2, 3, 4, 5].map(level => <span key={level} className={level <= passwordValidation.strengthScore ? `active strength-${passwordValidation.strength.toLowerCase()}` : ''} />)}</div>
+                                        <div className="password-requirement-list">{(Object.keys(passwordRequirementLabels) as (keyof typeof passwordRequirementLabels)[]).map(key => <span key={key} className={passwordValidation.requirements[key] ? 'met' : 'unmet'}><b>{passwordValidation.requirements[key] ? '✓' : '○'}</b>{passwordRequirementLabels[key]}</span>)}</div>
+                                    </div>
+
                                     {otpSent && !emailVerified && (
-                                        <label className="full-width" style={{ marginTop: '0.2rem' }}>
+                                        <label className="full-width signup-otp-section" style={{ marginTop: '0.2rem' }}>
                                             Verification Code *
-                                            <input
-                                                type="text"
-                                                maxLength={6}
-                                                value={otpValue}
-                                                onChange={e => {
-                                                    setOtpValue(e.target.value.replace(/\D/g, ''));
-                                                    setErrors(prev => ({ ...prev, otp: '' }));
-                                                }}
-                                                placeholder="6-digit code"
-                                                style={{ letterSpacing: '0.25em', fontWeight: 600 }}
-                                            />
+                                            <div className="otp-inputs">
+                                                {otpDigits.map((digit, index) => (
+                                                    <input
+                                                        key={index}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={1}
+                                                        value={digit}
+                                                        onChange={e => handleOtpChange(index, e.target.value)}
+                                                        onKeyDown={e => handleOtpKeyDown(index, e)}
+                                                        onPaste={index === 0 ? handleOtpPaste : undefined}
+                                                        ref={el => { otpRefs.current[index] = el; }}
+                                                        className="otp-input"
+                                                    />
+                                                ))}
+                                            </div>
                                             {errors.otp && <span className="error">{errors.otp}</span>}
                                         </label>
                                     )}
 
-                                    {errors.general && <div className="error">{errors.general}</div>}
-                                    {infoMessage && <div className="info-msg">{infoMessage}</div>}
+                                    {errors.general && <div className="error signup-status">{errors.general}</div>}
+                                    {infoMessage && <div className="info-msg signup-status">{infoMessage}</div>}
 
-                                    <div className="cta-row">
+                                    <div className="cta-row signup-create-section">
                                         <button
                                             className="primary"
                                             type="button"
-                                            disabled={sendingOtp || isSubmitting || !otpSent}
+                                            disabled={sendingOtp || isSubmitting || !canVerifyAndCreateAccount}
                                             onClick={handleVerifyOtp}
                                         >
-                                            {sendingOtp ? "Creating account..." : "Verify & Create Account"}
+                                            {sendingOtp ? "Creating account..." : "Create Account"}
                                         </button>
                                     </div>
                                 </div>
@@ -612,6 +658,12 @@ export default function AuthSignup() {
                                         <button className="primary" type="submit" disabled={isSubmitting}>
                                             {isSubmitting ? "Signing in..." : "Sign In"}
                                         </button>
+                                        {(!roleState || roleState === 'student') && passkeySupported && <>
+                                            <div className="passkey-divider"><span>or</span></div>
+                                            <button className="passkey-signin" type="button" disabled={isSubmitting || passkeySigningIn} onClick={() => void handlePasskeyLogin()}>
+                                                <span aria-hidden="true"></span>{passkeySigningIn ? 'Checking passkey…' : 'Sign in with Passkey'}
+                                            </button>
+                                        </>}
                                     </div>
                                 </div>
 
