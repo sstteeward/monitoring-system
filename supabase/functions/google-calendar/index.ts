@@ -34,6 +34,30 @@ const sign = async (value: string, secret: string) => {
   return base64url(String.fromCharCode(...new Uint8Array(signature)));
 };
 
+type GoogleCalendarEvent = {
+  id?: string;
+  summary?: string;
+  description?: string;
+  location?: string;
+  start?: { dateTime?: string; date?: string };
+  end?: { dateTime?: string; date?: string };
+  recurrence?: string[];
+  status?: string;
+};
+
+const dateFromGoogleEvent = (value?: { dateTime?: string; date?: string }) => value?.date || value?.dateTime?.slice(0, 10) || null;
+const timeFromGoogleEvent = (value?: { dateTime?: string; date?: string }) => value?.dateTime?.slice(11, 16) || '00:00';
+const recurrenceFromGoogleEvent = (rules?: string[]) => {
+  const rule = rules?.find((value) => value.startsWith('RRULE:')) || '';
+  if (rule.includes('FREQ=DAILY')) return { recurrence: 'daily', working_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] };
+  if (rule.includes('FREQ=WEEKLY')) {
+    const byDay = rule.match(/BYDAY=([^;]+)/)?.[1]?.split(',') || [];
+    const days: Record<string, string> = { MO: 'Monday', TU: 'Tuesday', WE: 'Wednesday', TH: 'Thursday', FR: 'Friday', SA: 'Saturday', SU: 'Sunday' };
+    return { recurrence: 'weekly', working_days: byDay.map((day) => days[day]).filter(Boolean) };
+  }
+  return { recurrence: 'none', working_days: [] };
+};
+
 Deno.serve(async (request) => {
   if (!isAllowedOrigin(request)) return json(request, { error: 'Origin is not allowed.' }, 403);
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(request) });
@@ -76,6 +100,47 @@ Deno.serve(async (request) => {
   const redirectUri = `${supabaseUrl}/functions/v1/google-calendar`;
   if (action === 'connect') { const requestOrigin = request.headers.get('origin'); const popup = Boolean(body.popup); const returnOrigin = requestOrigin && allowedOrigins.has(requestOrigin) ? requestOrigin : appUrl; const payload = base64url(JSON.stringify({ companyId: profile.company_id, userId: user.id, exp: Date.now() + 10 * 60 * 1000, popup, returnOrigin })); const state = `${payload}.${await sign(payload, stateSecret)}`; const query = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, response_type: 'code', access_type: 'offline', prompt: 'select_account consent', include_granted_scopes: 'true', scope: 'https://www.googleapis.com/auth/calendar.events', state }); return json(request, { authorizationUrl: `https://accounts.google.com/o/oauth2/v2/auth?${query}` }); }
   if (action === 'disconnect') { await admin.rpc('service_delete_google_calendar_connection', { p_company_id: profile.company_id }); await admin.from('company_google_calendar_status').delete().eq('company_id', profile.company_id); await admin.from('schedules').update({ calendar_sync_status: 'not_connected' }).eq('company_id', profile.company_id); await admin.from('schedule_audit_logs').insert({ company_id: profile.company_id, actor_id: user.id, action: 'calendar_disconnected' }); return json(request, { message: 'Google Calendar disconnected.' }); }
+  if (action === 'import') {
+    const { data: storedConnection, error: connectionError } = await admin.rpc('service_get_google_calendar_connection', { p_company_id: profile.company_id });
+    if (connectionError) return json(request, { error: 'Unable to read the calendar connection.' }, 500);
+    if (!storedConnection) return json(request, { error: 'Connect Google Calendar before importing.' }, 400);
+
+    let accessToken = storedConnection.access_token;
+    if (storedConnection.expires_at && new Date(storedConnection.expires_at).getTime() < Date.now() + 60_000) {
+      const refresh = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: storedConnection.refresh_token, grant_type: 'refresh_token' }) });
+      if (!refresh.ok) return json(request, { error: 'Google Calendar authorization expired. Reconnect your calendar.' }, 401);
+      const refreshed = await refresh.json(); accessToken = refreshed.access_token;
+      await admin.rpc('service_upsert_google_calendar_connection', { p_company_id: profile.company_id, p_calendar_id: storedConnection.calendar_id, p_calendar_name: storedConnection.calendar_name, p_access_token: accessToken, p_refresh_token: storedConnection.refresh_token, p_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(), p_created_by: storedConnection.created_by });
+    }
+
+    const eventsResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(storedConnection.calendar_id)}/events?singleEvents=true&orderBy=startTime&maxResults=250`, { headers: { authorization: `Bearer ${accessToken}` } });
+    if (!eventsResponse.ok) return json(request, { error: 'Unable to read Google Calendar events. Reconnect your calendar and try again.' }, 502);
+    const eventsPayload = await eventsResponse.json() as { items?: GoogleCalendarEvent[] };
+    let imported = 0;
+    for (const event of eventsPayload.items || []) {
+      if (!event.id || event.status === 'cancelled') continue;
+      const startDate = dateFromGoogleEvent(event.start);
+      if (!startDate) continue;
+      const { recurrence, working_days } = recurrenceFromGoogleEvent(event.recurrence);
+      const endDate = dateFromGoogleEvent(event.end) || startDate;
+      const schedule = {
+        company_id: profile.company_id, student_id: null, name: event.summary?.trim() || 'Google Calendar event',
+        start_date: startDate, end_date: endDate, start_time: timeFromGoogleEvent(event.start), end_time: timeFromGoogleEvent(event.end),
+        break_duration_minutes: 0, location: event.location || null, notes: event.description || null, recurrence, working_days,
+        status: startDate > new Date().toISOString().slice(0, 10) ? 'upcoming' : 'active', calendar_sync_status: 'synced',
+        google_event_id: event.id, last_calendar_sync_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      };
+      const { data: existing, error: findError } = await admin.from('schedules').select('id').eq('company_id', profile.company_id).eq('google_event_id', event.id).maybeSingle();
+      if (findError) return json(request, { error: 'Unable to match imported calendar events.' }, 500);
+      const { error: saveError } = existing
+        ? await admin.from('schedules').update(schedule).eq('id', existing.id)
+        : await admin.from('schedules').insert(schedule);
+      if (saveError) return json(request, { error: 'Unable to save an imported calendar event.' }, 500);
+      imported += 1;
+    }
+    await admin.from('schedule_audit_logs').insert({ company_id: profile.company_id, actor_id: user.id, action: 'calendar_events_imported', details: { imported } });
+    return json(request, { message: `${imported} Google Calendar event(s) imported.` });
+  }
   if (action === 'sync') {
     const { data: storedConnection, error: connectionError } = await admin.rpc('service_get_google_calendar_connection', { p_company_id: profile.company_id });
     if (connectionError) return json(request, { error: 'Unable to read the calendar connection.' }, 500);

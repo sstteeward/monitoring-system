@@ -231,6 +231,35 @@ export async function signIn({ email, password, role }: { email: string; passwor
   return data;
 }
 
+/** Verifies that a session issued by Supabase Passkeys is allowed in the student portal. */
+export async function validatePasskeyStudentSession() {
+  const supabase = await getClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) throw new Error('Passkey sign-in could not be verified.');
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('is_active, locked_until, account_type')
+    .eq('auth_user_id', user.id)
+    .single();
+
+  if (profileError || !profile || profile.account_type !== 'student') {
+    await supabase.auth.signOut();
+    throw new Error('This passkey is not authorized for the student portal.');
+  }
+  if (profile.is_active === false) {
+    await supabase.auth.signOut();
+    throw new Error('Your account has been deactivated. Please contact an administrator.');
+  }
+  if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
+    await supabase.auth.signOut();
+    throw new Error(`Your account is locked until ${new Date(profile.locked_until).toLocaleTimeString()}.`);
+  }
+
+  if (user.email) await supabase.rpc('reset_failed_login', { user_email: user.email.toLowerCase() });
+  return user;
+}
+
 export async function signOut() {
   const supabase = await getClient();
   try {

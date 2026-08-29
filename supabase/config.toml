@@ -32,3 +32,17 @@ enabled = true
 # JWT itself for every POST action.
 verify_jwt = false
 entrypoint = "./functions/google-calendar/index.ts"
+
+[functions.set-signup-password]
+enabled = true
+# The handler verifies the current user's bearer token before setting a password.
+verify_jwt = false
+entrypoint = "./functions/set-signup-password/index.ts"
+
+[auth.passkey]
+enabled = true
+
+[auth.webauthn]
+rp_display_name = "Asian College SIL Monitoring System"
+rp_id = "asiancollegesilmonitoringsystem.vercel.app"
+rp_origins = ["https://asiancollegesilmonitoringsystem.vercel.app"]

@@ -427,7 +427,7 @@ export const companyService = {
     return data as CalendarIntegration;
   },
 
-  async invokeCalendar(action: 'connect' | 'sync' | 'disconnect', scheduleId?: string, popup = false) {
+  async invokeCalendar(action: 'connect' | 'import' | 'sync' | 'disconnect', scheduleId?: string, popup = false) {
     if (import.meta.env.DEV) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Your session has expired. Please sign in again.');

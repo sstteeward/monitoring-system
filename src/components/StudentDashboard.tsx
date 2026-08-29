@@ -51,6 +51,8 @@ const StudentDashboard: React.FC = () => {
     const [errorModalTitle, setErrorModalTitle] = useState<string>('Error');
     const [driftWarning, setDriftWarning] = useState<string | null>(null);
     const [activeShift, setActiveShift] = useState<'morning' | 'afternoon' | null>(null);
+    const [showPasskeyEnrollment, setShowPasskeyEnrollment] = useState(false);
+    const [passkeyEnrollmentBusy, setPasskeyEnrollmentBusy] = useState(false);
     const driftCountRef = useRef(0);
     const driftIntervalRef = useRef<number | null>(null);
 
@@ -80,6 +82,34 @@ const StudentDashboard: React.FC = () => {
         dtrService.healMisplacedRecords().catch(err => console.warn('[DTR] Heal check failed:', err));
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, []);
+
+    useEffect(() => {
+        if (profile?.account_type !== 'student' || sessionStorage.getItem('offer_passkey_enrollment') !== '1') return;
+        sessionStorage.removeItem('offer_passkey_enrollment');
+        if (!window.isSecureContext || !('PublicKeyCredential' in window) || !('credentials' in navigator)) return;
+
+        const passkeyAuth = supabase.auth as any;
+        void passkeyAuth.passkey.list().then(({ data, error }: any) => {
+            if (!error && !data?.length) setShowPasskeyEnrollment(true);
+        }).catch(() => undefined);
+    }, [profile?.account_type]);
+
+    const enablePasskey = async () => {
+        setPasskeyEnrollmentBusy(true);
+        try {
+            const passkeyAuth = supabase.auth as any;
+            const { error } = await passkeyAuth.registerPasskey();
+            if (error) throw error;
+            setShowPasskeyEnrollment(false);
+        } catch (error: any) {
+            if (!/abort|cancel/i.test(error?.message || '')) {
+                setErrorModalTitle('Passkey setup');
+                setErrorModalMsg(error?.message || 'Passkey setup could not be completed.');
+            }
+        } finally {
+            setPasskeyEnrollmentBusy(false);
+        }
+    };
 
     const loadNotifications = async () => {
         try {
@@ -1328,6 +1358,20 @@ const StudentDashboard: React.FC = () => {
                 />
 
                 {/* Error Custom Modal */}
+                {showPasskeyEnrollment && (
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="glass-card" style={{ border: '1px solid rgba(16,185,129,0.3)', borderRadius: 20, padding: '2rem', width: '90%', maxWidth: 420, boxShadow: '0 24px 64px rgba(0,0,0,0.5)', animation: 'fadeIn 0.2s ease' }}>
+                            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(16,185,129,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: '1.4rem' }}>🔐</div>
+                            <h3 style={{ textAlign: 'center', color: 'var(--text-primary)', margin: '0 0 0.5rem', fontSize: '1.2rem', fontWeight: 600 }}>Enable faster sign-in with Passkey</h3>
+                            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.75rem', lineHeight: 1.5 }}>Use your device’s secure sign-in method for faster access. Your fingerprint, Face ID data, device PIN, and private key never leave your device.</p>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <button onClick={() => setShowPasskeyEnrollment(false)} disabled={passkeyEnrollmentBusy} style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}>Not now</button>
+                                <button onClick={() => void enablePasskey()} disabled={passkeyEnrollmentBusy} style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}>{passkeyEnrollmentBusy ? 'Enabling…' : 'Enable Passkey'}</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {errorModalMsg && (
                     <div style={{
                         position: 'fixed', inset: 0, zIndex: 1000,
