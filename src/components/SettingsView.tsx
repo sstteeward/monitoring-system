@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePasteBlocker } from '../hooks/usePasteBlocker';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 import PasswordField from './PasswordField';
 import BrowserPushNotificationToggle from './BrowserPushNotificationToggle';
+import { deleteCurrentUserPasskey, formatPasskeyError, isPasskeySupported, listCurrentUserPasskeys, registerCurrentUserPasskey, type PasskeyRecord } from '../services/passkeyAuth';
 
 interface SettingsViewProps {
     sidebarMode?: 'expanded' | 'collapsed' | 'hover';
@@ -31,6 +32,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode
     const [pwSaving, setPwSaving] = useState(false);
     const [pwSuccess, setPwSuccess] = useState(false);
     const [pwError, setPwError] = useState<string | null>(null);
+
+    const [passkeys, setPasskeys] = useState<PasskeyRecord[]>([]);
+    const [passkeyBusy, setPasskeyBusy] = useState(false);
+    const [passkeyMessage, setPasskeyMessage] = useState<string | null>(null);
+    const [passkeyError, setPasskeyError] = useState<string | null>(null);
+    const passkeySupported = isPasskeySupported();
 
     const [showTerms, setShowTerms] = useState(false);
     const [showPrivacy, setShowPrivacy] = useState(false);
@@ -60,6 +67,54 @@ const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode
             setPwError(err.message ?? 'Failed to update password.');
         } finally {
             setPwSaving(false);
+        }
+    };
+
+    const refreshPasskeys = async () => {
+        if (!passkeySupported) return;
+        try {
+            const data = await listCurrentUserPasskeys();
+            setPasskeys(data);
+            setPasskeyError(null);
+        } catch (err) {
+            setPasskeyError(formatPasskeyError(err, 'Unable to load passkeys.'));
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab !== 'security') return;
+        void refreshPasskeys();
+    }, [activeTab]);
+
+    const handleRegisterPasskey = async () => {
+        setPasskeyBusy(true);
+        setPasskeyError(null);
+        setPasskeyMessage(null);
+        try {
+            await registerCurrentUserPasskey();
+            await refreshPasskeys();
+            setPasskeyMessage('Passkey added. You can use Sign in with Passkey on the login page.');
+        } catch (err) {
+            const message = formatPasskeyError(err, 'Unable to add a passkey.');
+            if (message) setPasskeyError(message);
+        } finally {
+            setPasskeyBusy(false);
+        }
+    };
+
+    const handleDeletePasskey = async (passkeyId: string) => {
+        setPasskeyBusy(true);
+        setPasskeyError(null);
+        setPasskeyMessage(null);
+        try {
+            await deleteCurrentUserPasskey(passkeyId);
+            await refreshPasskeys();
+            setPasskeyMessage('Passkey removed.');
+        } catch (err) {
+            const message = formatPasskeyError(err, 'Unable to remove this passkey.');
+            if (message) setPasskeyError(message);
+        } finally {
+            setPasskeyBusy(false);
         }
     };
 
@@ -205,6 +260,38 @@ const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode
                                     </div>
                                 </form>
                             )}
+
+                            <div style={{ marginTop: '1.75rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+                                <h4 style={{ margin: '0 0 0.35rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)' }}>Passkeys</h4>
+                                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                                    After you add a passkey, you can sign in on the student login page without typing your password.
+                                </p>
+                                {!passkeySupported && (
+                                    <div style={{ color: '#f87171', fontSize: '0.82rem' }}>This browser or connection cannot use passkeys. Use HTTPS or localhost.</div>
+                                )}
+                                {passkeyMessage && (
+                                    <div style={{ color: '#10b981', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{passkeyMessage}</div>
+                                )}
+                                {passkeyError && (
+                                    <div style={{ color: '#f87171', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{passkeyError}</div>
+                                )}
+                                {passkeys.length > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                                        {passkeys.map(pk => (
+                                            <div key={pk.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 0.85rem', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg-elevated)' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>{pk.friendly_name || 'Passkey'}</div>
+                                                    {pk.created_at && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Added {new Date(pk.created_at).toLocaleDateString()}</div>}
+                                                </div>
+                                                <button type="button" className="btn btn-secondary" disabled={passkeyBusy} onClick={() => void handleDeletePasskey(pk.id)}>Remove</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <button type="button" className="btn btn-primary" disabled={!passkeySupported || passkeyBusy} onClick={() => void handleRegisterPasskey()}>
+                                    {passkeyBusy ? 'Waiting for device…' : 'Add passkey'}
+                                </button>
+                            </div>
                         </div>
                     )}
 

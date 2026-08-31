@@ -114,8 +114,8 @@ html[data-theme="dark"] .profile-card {
 /* Editable fields */
 .form-row {
     display: flex;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    gap: var(--form-col-gap);
+    margin-bottom: var(--form-row-gap);
 }
 
 .form-row .form-group {
@@ -125,7 +125,7 @@ html[data-theme="dark"] .profile-card {
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--form-label-gap);
 }
 
 .form-group label {
@@ -207,7 +207,7 @@ html[data-theme="dark"] .profile-card {
 
     .form-row {
         flex-direction: column;
-        gap: 1.5rem;
+        gap: var(--form-row-gap);
     }
 
     .form-actions {

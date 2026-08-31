@@ -44,5 +44,5 @@ enabled = true
 
 [auth.webauthn]
 rp_display_name = "Asian College SIL Monitoring System"
-rp_id = "asiancollegesilmonitoringsystem.vercel.app"
-rp_origins = ["https://asiancollegesilmonitoringsystem.vercel.app"]
+rp_id = "localhost"
+rp_origins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4173", "http://127.0.0.1:4173"]

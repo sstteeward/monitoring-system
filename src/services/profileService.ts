@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { namesFromUserMetadata, pickNameField, readRegistrationName } from '../utils/registrationName';
 
 export interface Profile {
     id: string;
@@ -18,6 +19,16 @@ export interface Profile {
     updated_at: string;
     // Onboarding fields
     birthday?: string | null;
+    country?: string | null;
+    region?: string | null;
+    region_code?: string | null;
+    province?: string | null;
+    province_code?: string | null;
+    city_municipality?: string | null;
+    city_municipality_code?: string | null;
+    barangay?: string | null;
+    barangay_code?: string | null;
+    house_street?: string | null;
     address?: string | null;
     contact_number?: string | null;
     year_level?: string | null;
@@ -79,7 +90,89 @@ export const profileService = {
             return null;
         }
 
-        return data as Profile;
+        return await this.attachApprovedCompanyIfNeeded(
+            await this.applyRegistrationNames(data as Profile, user),
+            user.id
+        );
+    },
+
+    async attachApprovedCompanyIfNeeded(profile: Profile, userId: string): Promise<Profile> {
+        if (profile.account_type !== 'student' || profile.company_id) return profile;
+
+        const { data: request, error: requestError } = await supabase
+            .from('company_requests')
+            .select('name')
+            .eq('requested_by', userId)
+            .eq('status', 'approved')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (requestError || !request?.name) return profile;
+
+        const { data: company, error: companyError } = await supabase
+            .from('companies')
+            .select('id, name, latitude, longitude, geofence_radius, geofence_polygon')
+            .ilike('name', request.name)
+            .limit(1)
+            .maybeSingle();
+
+        if (companyError || !company?.id) return profile;
+
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ company_id: company.id })
+            .eq('auth_user_id', userId);
+
+        if (updateError) {
+            console.warn('Unable to attach approved company to student profile:', updateError);
+        }
+
+        return {
+            ...profile,
+            company_id: company.id,
+            company: {
+                name: company.name,
+                latitude: company.latitude,
+                longitude: company.longitude,
+                geofence_radius: company.geofence_radius,
+                geofence_polygon: company.geofence_polygon,
+            },
+        };
+    },
+
+    async applyRegistrationNames(profile: Profile, user: { id: string; user_metadata?: Record<string, unknown> | null }) {
+        const meta = namesFromUserMetadata(user.user_metadata);
+        const stored = readRegistrationName(user.id);
+        const first_name = pickNameField(profile.first_name, meta.first_name, stored?.first_name);
+        const middle_name = pickNameField(profile.middle_name, meta.middle_name, stored?.middle_name) || null;
+        const last_name = pickNameField(profile.last_name, meta.last_name, stored?.last_name);
+
+        const needsHeal =
+            (first_name && first_name !== (profile.first_name ?? '').trim())
+            || (last_name && last_name !== (profile.last_name ?? '').trim())
+            || ((middle_name ?? '') !== (profile.middle_name ?? '').trim());
+
+        if (needsHeal && (first_name || last_name || middle_name)) {
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    first_name: first_name || null,
+                    middle_name: middle_name || null,
+                    last_name: last_name || null,
+                })
+                .eq('auth_user_id', user.id);
+            if (error) {
+                console.warn('Unable to persist registration name onto profile:', error);
+            }
+        }
+
+        return {
+            ...profile,
+            first_name: first_name || null,
+            middle_name,
+            last_name: last_name || null,
+        } as Profile;
     },
 
     async updateProfile(updates: Partial<Profile>) {

@@ -256,7 +256,7 @@ html[data-theme="dark"] .auth-page::before {
 .form-scrollable {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem; /* Reduced from 1rem */
+    gap: var(--form-row-gap);
     overflow-y: auto;
     padding: 0 2px;
 }
@@ -309,18 +309,24 @@ html[data-theme="dark"] .auth-page::before {
 /* Form Rows & Inputs */
 .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.6rem; /* Reduced from 0.75rem */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--form-row-gap) var(--form-col-gap);
+    min-width: 0;
+}
+
+.form-row.form-row-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .form-row label,
 .full-width {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: var(--form-label-gap);
     font-size: 0.8rem;
     font-weight: 500;
     color: var(--muted-light);
+    min-width: 0;
 }
 
 .auth-page input {
@@ -632,11 +638,7 @@ html[data-theme="dark"] .auth-page::before {
     }
 
     .form-scrollable {
-        gap: 1rem;
-    }
-
-    .form-row {
-        grid-template-columns: 1fr;
+        gap: var(--form-row-gap);
     }
 
     .email-row {
@@ -672,6 +674,14 @@ html[data-theme="dark"] .auth-page::before {
         height: 38px;
         max-width: 40px;
         font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .form-row,
+    .form-row.form-row-2 {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--form-row-gap);
     }
 }
 

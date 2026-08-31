@@ -150,7 +150,7 @@
 .company-onboarding-form label {
   display: flex;
   flex-direction: column;
-  gap: 0.42rem;
+  gap: var(--form-label-gap);
   color: var(--text-muted, #a3a3a3);
   font-size: 0.78rem;
   font-weight: 600;
@@ -294,7 +294,13 @@
 .company-onboarding-status-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: var(--form-row-gap) var(--form-col-gap);
+  min-width: 0;
+}
+
+.company-onboarding-field-grid > *,
+.company-onboarding-review-grid > * {
+  min-width: 0;
 }
 
 .company-onboarding-info-callout {
@@ -527,5 +533,8 @@
   .company-onboarding-status-card { padding: 1.25rem; }
   .company-onboarding-field-grid,
   .company-onboarding-review-grid,
-  .company-onboarding-status-meta { grid-template-columns: 1fr; }
+  .company-onboarding-status-meta {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--form-row-gap);
+  }
 }

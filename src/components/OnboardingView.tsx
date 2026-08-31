@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import usePsLocation from '../hooks/usePsLocation';
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../services/adminService';
 import type { Profile } from '../services/profileService';
+import { profileService } from '../services/profileService';
 import CustomSelect from './CustomSelect';
 import AdvancedLocationPickerMap from './AdvancedLocationPickerMap';
 import type { GeoJSONPolygon } from '../utils/geoUtils';
+import { clearRegistrationName, namesFromUserMetadata, pickNameField, readRegistrationName } from '../utils/registrationName';
+import './OnboardingView.css';
 
 interface Company { 
     id: string; 
@@ -18,27 +22,218 @@ interface Company {
 
 interface OnboardingViewProps {
     profile: Profile;
-    onComplete: () => void;
+    onComplete: (options?: { showWelcome?: boolean }) => void;
 }
 
+const resolveOnboardingNames = (profile: Profile, metadata?: Record<string, unknown> | null) => {
+    const stored = readRegistrationName(profile.auth_user_id);
+    const meta = namesFromUserMetadata(metadata);
+    return {
+        firstName: pickNameField(profile.first_name, meta.first_name, stored?.first_name),
+        middleName: pickNameField(profile.middle_name, meta.middle_name, stored?.middle_name),
+        lastName: pickNameField(profile.last_name, meta.last_name, stored?.last_name),
+    };
+};
+
 const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) => {
+    const initialNames = resolveOnboardingNames(profile);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState('');
     const [search, setSearch] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
-    const [firstName, setFirstName] = useState(profile.first_name ?? '');
-    const [middleName, setMiddleName] = useState(profile.middle_name ?? '');
-    const [lastName, setLastName] = useState(profile.last_name ?? '');
+    const [firstName, setFirstName] = useState(initialNames.firstName);
+    const [middleName, setMiddleName] = useState(initialNames.middleName);
+    const [lastName, setLastName] = useState(initialNames.lastName);
     const [birthday, setBirthday] = useState(profile.birthday ?? '');
-    const [address, setAddress] = useState(profile.address ?? '');
+    const [birthdayError, setBirthdayError] = useState<string | null>(null);
     const [contactNumber, setContactNumber] = useState(profile.contact_number ?? '');
     const [yearLevel, setYearLevel] = useState(profile.year_level ?? '');
     const [section, setSection] = useState(profile.section ?? '');
     const [course, setCourse] = useState(profile.course ?? '');
     const [department, setDepartment] = useState(profile.department ?? '');
-    const [requiredHours, setRequiredHours] = useState(profile.required_ojt_hours ?? 400);
+    const [requiredHours, setRequiredHours] = useState(profile.required_ojt_hours ?? 500);
     const [saving, setSaving] = useState(false);
     const [requestedName, setRequestedName] = useState('');
+    const [country, setCountry] = useState(profile.country ?? 'Philippines');
+    const [regionCode, setRegionCode] = useState(profile.region_code ?? '');
+    const [regionName, setRegionName] = useState(profile.region ?? '');
+    const [provinceCode, setProvinceCode] = useState(profile.province_code ?? '');
+    const [provinceName, setProvinceName] = useState(profile.province ?? '');
+    const [cityCode, setCityCode] = useState(profile.city_municipality_code ?? '');
+    const [cityMunicipalityName, setCityMunicipalityName] = useState(profile.city_municipality ?? '');
+    const [barangayCode, setBarangayCode] = useState(profile.barangay_code ?? '');
+    const [barangayName, setBarangayName] = useState(profile.barangay ?? '');
+    const [houseStreet, setHouseStreet] = useState(profile.house_street ?? '');
+    
+    const { 
+        regions, 
+        loading: locationLoading, 
+        getProvincesByRegion, 
+        getCitiesByProvince, 
+        getBarangaysByCity,
+        getRegionByCode,
+        getProvinceByCode,
+        getCityByCode,
+        getBarangayByCode,
+    } = usePsLocation();
+
+    const provinceOptions = useMemo(() => regionCode ? getProvincesByRegion(regionCode) : [], [regionCode, getProvincesByRegion]);
+    const cityOptions = useMemo(() => provinceCode ? getCitiesByProvince(provinceCode) : [], [provinceCode, getCitiesByProvince]);
+    const barangayOptions = useMemo(() => cityCode ? getBarangaysByCity(cityCode) : [], [cityCode, getBarangaysByCity]);
+
+    // CustomSelect options
+    const regionSelectOptions = useMemo(() => 
+        regions.map(r => ({ value: r.region_code, label: r.region_name, code: r.region_code })),
+        [regions]
+    );
+    
+    const provinceSelectOptions = useMemo(() => 
+        provinceOptions.map(p => ({ value: p.province_code, label: p.province_name, code: p.province_code })),
+        [provinceOptions]
+    );
+    
+    const citySelectOptions = useMemo(() => 
+        cityOptions.map(c => ({ value: c.city_code, label: c.city_name, code: c.city_code })),
+        [cityOptions]
+    );
+    
+    const barangaySelectOptions = useMemo(() => 
+        barangayOptions.map(b => ({ value: b.barangay_code, label: b.barangay_name, code: b.barangay_code })),
+        [barangayOptions]
+    );
+
+    const formatStructuredAddress = () => {
+        const parts = [houseStreet, barangayName ? `Barangay ${barangayName}` : '', cityMunicipalityName, provinceName, country || 'Philippines'];
+        return parts.filter(Boolean).join(', ');
+    };
+
+    const getAgeCutoffDate = (): string => {
+        const today = new Date();
+        const cutoff = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+        const year = cutoff.getFullYear();
+        const month = String(cutoff.getMonth() + 1).padStart(2, '0');
+        const day = String(cutoff.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const isAtLeast18 = (value: string): boolean => {
+        if (!value) return false;
+        const birthDate = new Date(`${value}T00:00:00`);
+        if (Number.isNaN(birthDate.getTime())) return false;
+
+        const today = new Date();
+        const cutoffDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+        return birthDate <= cutoffDate;
+    };
+
+    const birthdayMaxDate = getAgeCutoffDate();
+
+    useEffect(() => {
+        if (!birthday) {
+            setBirthdayError(null);
+            return;
+        }
+        setBirthdayError(isAtLeast18(birthday)
+            ? null
+            : '⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+    }, [birthday]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const applyNames = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!isMounted) return;
+            const names = resolveOnboardingNames(profile, user?.user_metadata);
+            setFirstName(prev => pickNameField(names.firstName, prev));
+            setMiddleName(prev => names.middleName || prev);
+            setLastName(prev => pickNameField(names.lastName, prev));
+        };
+
+        setFirstName(prev => pickNameField(profile.first_name, prev));
+        setMiddleName(prev => pickNameField(profile.middle_name, prev));
+        setLastName(prev => pickNameField(profile.last_name, prev));
+        setBirthday(profile.birthday ?? '');
+        setContactNumber(profile.contact_number ?? '');
+        setYearLevel(profile.year_level ?? '');
+        setSection(profile.section ?? '');
+        setCourse(profile.course ?? '');
+        setDepartment(profile.department ?? '');
+        setRequiredHours(profile.required_ojt_hours ?? 500);
+        setCountry(profile.country ?? 'Philippines');
+        setRegionCode(profile.region_code ?? '');
+        setRegionName(profile.region ?? '');
+        setProvinceCode(profile.province_code ?? '');
+        setProvinceName(profile.province ?? '');
+        setCityCode(profile.city_municipality_code ?? '');
+        setCityMunicipalityName(profile.city_municipality ?? '');
+        setBarangayCode(profile.barangay_code ?? '');
+        setBarangayName(profile.barangay ?? '');
+        setHouseStreet(profile.house_street ?? '');
+        void applyNames();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [profile]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const reloadLatestProfile = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user?.id || !isMounted) return;
+
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('first_name, middle_name, last_name, birthday, address, country, region, region_code, province, province_code, city_municipality, city_municipality_code, barangay, barangay_code, house_street, contact_number, year_level, section, course, department, required_ojt_hours')
+                    .eq('auth_user_id', user.id)
+                    .maybeSingle();
+
+                if (error || !isMounted) return;
+
+                const names = resolveOnboardingNames(
+                    {
+                        ...profile,
+                        ...(data ?? {}),
+                    } as Profile,
+                    user.user_metadata
+                );
+
+                setFirstName(prev => pickNameField(names.firstName, prev));
+                setMiddleName(prev => names.middleName || prev);
+                setLastName(prev => pickNameField(names.lastName, prev));
+
+                if (!data) return;
+
+                setBirthday(data.birthday ?? '');
+                setCountry(data.country ?? 'Philippines');
+                setRegionCode(data.region_code ?? '');
+                setRegionName(data.region ?? '');
+                setProvinceCode(data.province_code ?? '');
+                setProvinceName(data.province ?? '');
+                setCityCode(data.city_municipality_code ?? '');
+                setCityMunicipalityName(data.city_municipality ?? '');
+                setBarangayCode(data.barangay_code ?? '');
+                setBarangayName(data.barangay ?? '');
+                setHouseStreet(data.house_street ?? '');
+                setContactNumber(data.contact_number ?? '');
+                setYearLevel(data.year_level ?? '');
+                setSection(data.section ?? '');
+                setCourse(data.course ?? '');
+                setDepartment(data.department ?? '');
+                setRequiredHours(data.required_ojt_hours ?? 500);
+            } catch (err) {
+                console.warn('[Onboarding] Unable to refresh latest profile from DB:', err);
+            }
+        };
+
+        void reloadLatestProfile();
+        return () => {
+            isMounted = false;
+        };
+    }, [profile?.auth_user_id, profile?.id]);
     
     // New Geofence state for company request
     const [showNewCompanyForm, setShowNewCompanyForm] = useState(false);
@@ -54,30 +249,48 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [courses, setCourses] = useState<{ id: string; name: string; description?: string }[]>([]);
 
     useEffect(() => {
-        // Fetch pending requests to see if user is already blocked
-        const checkPending = async () => {
+        let isMounted = true;
+
+        const checkCompanyRequestStatus = async () => {
             const authId = (await supabase.auth.getUser()).data.user?.id;
-            if (authId) {
-                const { data } = await supabase
-                    .from('company_requests')
-                    .select('*')
-                    .eq('requested_by', authId)
-                    .eq('status', 'pending')
-                    .limit(1)
-                    .maybeSingle();
-                if (data) {
-                    setPendingRequest(data);
-                }
+            if (!authId || !isMounted) return;
+
+            const { data: pending } = await supabase
+                .from('company_requests')
+                .select('*')
+                .eq('requested_by', authId)
+                .eq('status', 'pending')
+                .limit(1)
+                .maybeSingle();
+
+            if (!isMounted) return;
+
+            if (pending) {
+                setPendingRequest(pending);
+                return;
+            }
+
+            const academicComplete = Boolean(profile.course && profile.department && profile.year_level);
+            if (!academicComplete) return;
+
+            const healed = await profileService.attachApprovedCompanyIfNeeded(profile, authId);
+            if (isMounted && healed.company_id) {
+                onComplete({ showWelcome: false });
             }
         };
-        checkPending();
+
+        void checkCompanyRequestStatus();
 
         supabase.from('companies').select('id, name, address, latitude, longitude, geofence_polygon, geofence_radius').order('name').then(({ data }) => {
             setCompanies(data ?? []);
         });
         adminService.getDepartments().then(setDepartments);
         adminService.getCourses().then(setCourses);
-    }, []);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [profile.auth_user_id]);
 
     const filtered = companies.filter(c =>
         c.name.toLowerCase().includes(search.toLowerCase())
@@ -103,11 +316,20 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 
     const handleNext = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!firstName.trim() || !lastName.trim()) {
-            setError('Please enter your full name.');
+
+        if (!birthday) {
+            setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+            setError('Please fill in all required fields.');
             return;
         }
-        if (!birthday || !address.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim()) {
+
+        if (!isAtLeast18(birthday)) {
+            setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+            setError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+            return;
+        }
+
+        if (!country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim()) {
             setError('Please fill in all required fields.');
             return;
         }
@@ -116,63 +338,193 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         setStep(2);
     };
 
+    const getErrorMessage = (err: unknown) => {
+        if (!err) return 'Failed to save. Please try again.';
+        if (typeof err === 'string' && err.trim()) return err;
+        if (err instanceof Error && err.message.trim()) return err.message;
+        if (typeof err === 'object') {
+            const e = err as { message?: string; details?: string; hint?: string; error?: string };
+            const text = [e.message, e.details, e.hint, e.error].filter(value => typeof value === 'string' && value.trim()).join(' — ');
+            if (text) return text;
+        }
+        return 'Failed to save. Please try again.';
+    };
+
+    const isMissingColumnError = (message: string) =>
+        /could not find the .* column|schema cache|column .* does not exist/i.test(message);
+
+    const submitCompanyRequest = async (authId: string) => {
+        const payloads: Record<string, unknown>[] = [
+            {
+                name: requestedName.trim() || search.trim(),
+                student_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+                requested_by: authId,
+                status: 'pending',
+                request_type: 'student_company',
+                latitude: newCompanyLat,
+                longitude: newCompanyLng,
+                geofence_radius: newCompanyRadius,
+                geofence_polygon: newCompanyPolygon,
+            },
+            {
+                name: requestedName.trim() || search.trim(),
+                student_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+                requested_by: authId,
+                status: 'pending',
+                request_type: 'student_company',
+            },
+            {
+                name: requestedName.trim() || search.trim(),
+                student_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+                requested_by: authId,
+                status: 'pending',
+            },
+        ];
+
+        let lastError: unknown = null;
+        for (const payload of payloads) {
+            const { error } = await supabase.from('company_requests').insert(payload);
+            if (!error) return;
+            lastError = error;
+            if (!isMissingColumnError(getErrorMessage(error))) throw error;
+        }
+        throw lastError;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedCompanyId && !showNewCompanyForm) {
+
+        const matchedCompany = selectedCompanyId
+            ? companies.find(c => c.id === selectedCompanyId)
+            : companies.find(c => c.name.trim().toLowerCase() === search.trim().toLowerCase());
+        const companyIdToSave = selectedCompanyId || matchedCompany?.id || '';
+
+        if (!companyIdToSave && !showNewCompanyForm) {
             setError('Please select your internship company or request a new one.');
             return;
         }
+
+        if (!birthday || !isAtLeast18(birthday)) {
+            setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+            setError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+            return;
+        }
+
+        if (!country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim()) {
+            setError('Please complete your address information before continuing.');
+            return;
+        }
+
         setSaving(true);
         setError(null);
         try {
             const authId = (await supabase.auth.getUser()).data.user?.id;
-            const selectedDept = departments.find(d => d.name === department.trim());
-            
-            // If requesting a new company, create the request first
-            if (showNewCompanyForm) {
-                const { error: reqErr } = await supabase
-                    .from('company_requests')
-                    .insert({
-                        name: requestedName,
-                        student_name: `${firstName.trim()} ${lastName.trim()}`,
-                        requested_by: authId,
-                        status: 'pending',
-                        latitude: newCompanyLat,
-                        longitude: newCompanyLng,
-                        geofence_radius: newCompanyRadius,
-                        geofence_polygon: newCompanyPolygon,
-                    });
-                if (reqErr) throw reqErr;
+            if (!authId) {
+                throw new Error('Your session is no longer valid. Please log in again.');
             }
 
-            const { error: err } = await supabase
-                .from('profiles')
-                .update({
+            const { data: ageCheck, error: ageCheckError } = await supabase.rpc('validate_student_age_eligibility', {
+                p_birth_date: birthday,
+            });
+
+            if (ageCheckError) {
+                console.warn('[Onboarding] DB age validation unavailable or failed:', ageCheckError);
+            }
+
+            if (ageCheck === false || (typeof ageCheck === 'boolean' && !ageCheck)) {
+                setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+                setError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+                return;
+            }
+
+            const selectedDept = departments.find(d => d.name === department.trim());
+            const fullAddress = formatStructuredAddress();
+
+            if (showNewCompanyForm) {
+                await submitCompanyRequest(authId);
+            }
+
+            const profilePayload: Record<string, unknown> = {
+                first_name: firstName.trim(),
+                middle_name: middleName.trim() || null,
+                last_name: lastName.trim(),
+                birthday: birthday || null,
+                country: country || 'Philippines',
+                region: regionName.trim() || null,
+                region_code: regionCode.trim() || null,
+                province: provinceName.trim() || null,
+                province_code: provinceCode.trim() || null,
+                city_municipality: cityMunicipalityName.trim() || null,
+                city_municipality_code: cityCode.trim() || null,
+                barangay: barangayName.trim() || null,
+                barangay_code: barangayCode.trim() || null,
+                house_street: houseStreet.trim() || null,
+                address: fullAddress || null,
+                contact_number: contactNumber.trim() || null,
+                year_level: yearLevel.trim() || null,
+                section: section.trim() || null,
+                course: course.trim() || null,
+                department: department.trim() || null,
+                required_ojt_hours: Number.isFinite(requiredHours) ? requiredHours : 500,
+            };
+            if (selectedDept?.id) profilePayload.department_id = selectedDept.id;
+            if (companyIdToSave) profilePayload.company_id = companyIdToSave;
+
+            const saveProfile = async (payload: Record<string, unknown>) => {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .update(payload)
+                    .eq('auth_user_id', authId)
+                    .select('id');
+                if (error) throw error;
+                if (!data?.length) {
+                    throw new Error('Your profile could not be updated. Please try again.');
+                }
+            };
+
+            try {
+                await saveProfile(profilePayload);
+            } catch (profileErr) {
+                const message = getErrorMessage(profileErr);
+                const fallbackPayload: Record<string, unknown> = {
                     first_name: firstName.trim(),
-                    middle_name: middleName.trim() || null,
                     last_name: lastName.trim(),
                     birthday: birthday || null,
-                    address: address.trim() || null,
+                    address: fullAddress || null,
                     contact_number: contactNumber.trim() || null,
                     year_level: yearLevel.trim() || null,
                     section: section.trim() || null,
                     course: course.trim() || null,
                     department: department.trim() || null,
-                    department_id: selectedDept ? selectedDept.id : null,
-                    ...(selectedCompanyId ? { company_id: selectedCompanyId } : {}),
-                    required_ojt_hours: requiredHours,
-                })
-                .eq('auth_user_id', authId);
+                    required_ojt_hours: Number.isFinite(requiredHours) ? requiredHours : 500,
+                };
+                if (middleName.trim()) fallbackPayload.middle_name = middleName.trim();
+                if (companyIdToSave) fallbackPayload.company_id = companyIdToSave;
 
-            if (err) throw err;
-            
-            if (showNewCompanyForm) {
-                setPendingRequest({ name: requestedName, status: 'pending', requested_by: authId || '' });
+                try {
+                    await saveProfile(isMissingColumnError(message) ? fallbackPayload : { ...profilePayload, department_id: undefined });
+                } catch (retryErr) {
+                    if (!isMissingColumnError(getErrorMessage(retryErr))) throw retryErr;
+                    await saveProfile(fallbackPayload);
+                }
+            }
+
+            clearRegistrationName();
+
+            if (showNewCompanyForm && !companyIdToSave) {
+                setPendingRequest({ name: requestedName.trim() || search.trim(), status: 'pending', requested_by: authId || '' });
             } else {
-                onComplete();
+                await onComplete({ showWelcome: true });
             }
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to save. Please try again.');
+            console.error('[Onboarding] save failed:', err);
+            const message = getErrorMessage(err);
+            if (/at least 18 years old|under 18|18 years old/i.test(message)) {
+                setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+                setError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+            } else {
+                setError(message || 'Failed to save. Please try again.');
+            }
         } finally {
             setSaving(false);
         }
@@ -239,7 +591,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                         Welcome to SIL Monitoring
                     </h1>
                     <p style={{ color: 'var(--text-muted)', marginTop: '0.4rem', fontSize: 'clamp(0.8rem, 4vw, 0.9rem)', wordWrap: 'break-word' }}>
-                        {step === 1 ? "Let's confirm your name before we get started." : "Where are you doing your internship?"}
+                        {step === 1 ? "Let's confirm your information before we get started." : "Where are you doing your internship?"}
                     </p>
                 </div>
 
@@ -274,43 +626,173 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                     {/* ── Step 1: Personal Info ── */}
                     {step === 1 && (
                         <form onSubmit={handleNext}>
-                            <div style={{ marginBottom: '1rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.8rem' }}>
-                                    <div>
+                            <div className="onboarding-form-stack">
+                                <div style={{ 
+                                    background: 'rgba(16, 185, 129, 0.05)', 
+                                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                                    borderRadius: 10,
+                                    padding: '0.75rem 1rem',
+                                }}>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                        ✓ Your name from account creation is shown below. You can edit if needed.
+                                    </p>
+                                </div>
+                                
+                                <div className="form-field-row">
+                                    <div className="onboarding-field">
                                         <label style={labelSt}>First Name *</label>
                                         <input style={inputSt} value={firstName} onChange={e => setFirstName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="First" required />
                                     </div>
-                                    <div>
+                                    <div className="onboarding-field">
                                         <label style={labelSt}>Middle Name</label>
                                         <input style={inputSt} value={middleName} onChange={e => setMiddleName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Middle (Opt)" />
                                     </div>
-                                    <div>
+                                    <div className="onboarding-field">
                                         <label style={labelSt}>Last Name *</label>
                                         <input style={inputSt} value={lastName} onChange={e => setLastName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Last" required />
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.8rem' }}>
-                                    <div>
+                                <div className="form-field-row">
+                                    <div className="onboarding-field">
                                         <label style={labelSt}>Birthday *</label>
-                                        <input style={inputSt} type="date" value={birthday} onChange={e => setBirthday(e.target.value)} required />
+                                        <input
+                                            style={{ ...inputSt, borderColor: birthdayError ? '#f87171' : 'var(--border)' }}
+                                            type="date"
+                                            value={birthday}
+                                            max={birthdayMaxDate}
+                                            onChange={e => setBirthday(e.target.value)}
+                                            required
+                                        />
+                                        {birthdayError && (
+                                            <div style={{
+                                                marginTop: '0.5rem',
+                                                color: '#f87171',
+                                                fontSize: '0.78rem',
+                                                lineHeight: 1.4,
+                                                fontWeight: 600,
+                                            }}>
+                                                {birthdayError}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div>
+                                    <div className="onboarding-field">
                                         <label style={labelSt}>Contact No. *</label>
                                         <input style={inputSt} type="tel" value={contactNumber} onChange={e => setContactNumber(e.target.value)} placeholder="e.g. 0912..." required />
                                     </div>
-                                    <div>
+                                    <div className="onboarding-field">
                                         <label style={labelSt}>Required Hours</label>
                                         <input style={inputSt} type="number" min={0} value={requiredHours} onChange={e => setRequiredHours(Number(e.target.value))} />
                                     </div>
                                 </div>
 
-                                <div style={{ marginBottom: '0.8rem' }}>
-                                    <label style={labelSt}>Complete Address *</label>
-                                    <input style={inputSt} value={address} onChange={e => setAddress(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="123 Main St, Brgy, City, Province" required />
+                                <div>
+                                    <label style={labelSt}>Address *</label>
+
+                                    <div className="onboarding-form-stack">
+                                        <div>
+                                            <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>Country</label>
+                                            <div style={{ ...inputWrapSt }}>
+                                                <input value="Philippines" readOnly style={{ ...inputSt, background: 'var(--bg-elevated)', cursor: 'default', border: 'none', paddingLeft: 0, paddingRight: 0 }} />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>Region</label>
+                                            <CustomSelect
+                                                value={regionCode}
+                                                onChange={(val) => {
+                                                    setRegionCode(val);
+                                                    setRegionName(getRegionByCode(val)?.region_name ?? '');
+                                                    setProvinceCode('');
+                                                    setProvinceName('');
+                                                    setCityCode('');
+                                                    setCityMunicipalityName('');
+                                                    setBarangayCode('');
+                                                    setBarangayName('');
+                                                }}
+                                                options={regionSelectOptions}
+                                                placeholder="Select Region"
+                                                searchable={true}
+                                                searchPlaceholder="Search region..."
+                                                disabled={locationLoading || !regions.length}
+                                                showClear
+                                            />
+                                        </div>
+
+                                        <div className="form-field-row cols-2">
+                                            <div>
+                                                <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>Province</label>
+                                                <CustomSelect
+                                                    value={provinceCode}
+                                                    onChange={(val) => {
+                                                        setProvinceCode(val);
+                                                        setProvinceName(getProvinceByCode(val)?.province_name ?? '');
+                                                        setCityCode('');
+                                                        setCityMunicipalityName('');
+                                                        setBarangayCode('');
+                                                        setBarangayName('');
+                                                    }}
+                                                    options={provinceSelectOptions}
+                                                    placeholder="Select Province"
+                                                    searchable={true}
+                                                    searchPlaceholder="Search province..."
+                                                    disabled={!regionCode || locationLoading || !provinceOptions.length}
+                                                    showClear
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>City / Municipality</label>
+                                                <CustomSelect
+                                                    value={cityCode}
+                                                    onChange={(val) => {
+                                                        setCityCode(val);
+                                                        setCityMunicipalityName(getCityByCode(val)?.city_name ?? '');
+                                                        setBarangayCode('');
+                                                        setBarangayName('');
+                                                    }}
+                                                    options={citySelectOptions}
+                                                    placeholder="Select City / Municipality"
+                                                    searchable={true}
+                                                    searchPlaceholder="Search city/municipality..."
+                                                    disabled={!provinceCode || locationLoading || !cityOptions.length}
+                                                    showClear
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>Barangay</label>
+                                            <CustomSelect
+                                                value={barangayCode}
+                                                onChange={(val) => {
+                                                    setBarangayCode(val);
+                                                    setBarangayName(getBarangayByCode(val)?.barangay_name ?? '');
+                                                }}
+                                                options={barangaySelectOptions}
+                                                placeholder={!cityCode ? "Select a city/municipality first" : "Select Barangay"}
+                                                searchable={!!cityCode}
+                                                searchPlaceholder="Search barangay..."
+                                                disabled={!cityCode || locationLoading || !barangayOptions.length}
+                                                showClear
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>House No. / Street</label>
+                                            <div style={{ ...inputWrapSt }}>
+                                                <input
+                                                    value={houseStreet}
+                                                    onChange={e => setHouseStreet(e.target.value)}
+                                                    placeholder="House number, street name"
+                                                    style={{ ...inputSt, border: 'none', paddingLeft: 0, paddingRight: 0 }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '0.8rem' }}>
+                                <div className="form-field-row cols-2">
                                     <div>
                                         <label style={labelSt}>Course *</label>
                                         <CustomSelect
@@ -334,7 +816,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                                <div className="form-field-row cols-2">
                                     <div>
                                         <label style={labelSt}>Year Level *</label>
                                         <CustomSelect
@@ -371,7 +853,16 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" style={btnPrimary}>
+                            <button
+                                type="submit"
+                                className="onboarding-continue-btn"
+                                style={{
+                                    ...btnPrimary,
+                                    opacity: !birthday || !isAtLeast18(birthday) || !country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim() ? 0.6 : 1,
+                                    cursor: !birthday || !isAtLeast18(birthday) || !country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim() ? 'not-allowed' : 'pointer',
+                                }}
+                                disabled={!birthday || !isAtLeast18(birthday) || !country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim()}
+                            >
                                 Continue →
                             </button>
                         </form>
@@ -546,8 +1037,14 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 // Shared micro-styles
 const labelSt: React.CSSProperties = {
     display: 'block', fontSize: '0.78rem', fontWeight: 600,
-    color: 'var(--text-muted)', marginBottom: '0.4rem',
+    color: 'var(--text-muted)', marginBottom: 'var(--form-label-gap)',
     textTransform: 'uppercase', letterSpacing: '0.05em',
+};
+const inputWrapSt: React.CSSProperties = {
+    display: 'flex', alignItems: 'center',
+    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+    borderRadius: 8, padding: '0 0.75rem',
+    minHeight: '2.8rem',
 };
 const inputSt: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box',

@@ -745,13 +745,26 @@ export const coordinatorService = {
             const studentIds = requests.map(req => req.requested_by).filter(Boolean);
             if (studentIds.length > 0) {
                 // Update their profiles
-                const { error: profileErr } = await supabase
+                const { data: assignedRows, error: profileErr } = await supabase
                     .from('profiles')
                     .update({ company_id: company.id })
-                    .in('auth_user_id', studentIds);
+                    .in('auth_user_id', studentIds)
+                    .select('auth_user_id');
 
                 if (profileErr) {
                     console.error('Error auto-assigning students to company:', profileErr);
+                }
+
+                const assignedIds = new Set((assignedRows ?? []).map(row => row.auth_user_id));
+                const missingIds = studentIds.filter(id => !assignedIds.has(id));
+                if (missingIds.length > 0) {
+                    const { error: rpcError } = await supabase.rpc('assign_profile_company', {
+                        p_user_ids: missingIds,
+                        p_company_id: company.id,
+                    });
+                    if (rpcError) {
+                        console.warn('assign_profile_company RPC unavailable or failed:', rpcError);
+                    }
                 }
 
                 for (const studentId of studentIds) {

@@ -11,6 +11,10 @@
   --font-inter: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   --transition-fast: 0.15s ease;
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  --form-col-gap: 1.125rem; /* 18px desktop */
+  --form-row-gap: 1rem;     /* 16px between rows */
+  --form-label-gap: 0.5rem;
 }
 
 /* One shared scrollbar treatment for every page and nested scroll container. */
@@ -864,4 +868,50 @@ html[data-theme="dark"] .account-dropdown {
 .paste-blocked-toast--exit {
   opacity: 0;
   transform: translateX(-50%) translateY(-10px);
+}
+
+/* Shared form field rows: consistent column/row gap, no overlapping inputs */
+.form-field-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--form-row-gap) var(--form-col-gap);
+  min-width: 0;
+}
+
+.form-field-row.cols-2,
+.form-row.form-row-2,
+.form-row-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-field-row > *,
+.form-row > * {
+  min-width: 0;
+}
+
+.form-field-row input,
+.form-field-row select,
+.form-field-row textarea,
+.form-row input,
+.form-row select,
+.form-row textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 860px) {
+  :root {
+    --form-col-gap: 0.875rem; /* 14px tablet */
+    --form-row-gap: 0.875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-field-row,
+  .form-field-row.cols-2,
+  .form-row.form-row-2,
+  .form-row-2 {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--form-row-gap);
+  }
 }

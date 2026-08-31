@@ -9,11 +9,12 @@ import CompanyDashboard from "./components/CompanyDashboard";
 import PendingApprovalView from "./components/PendingApprovalView";
 
 import UpdatePasswordView from "./components/UpdatePasswordView";
-import { supabase } from "./lib/supabaseClient";
+import { supabase } from './lib/supabaseClient';
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { DTRCard } from "./components/DTRCard";
 import LandingPage from "./components/LandingPage";
 import { pushNotificationService } from "./services/pushNotificationService";
+import { profileService } from "./services/profileService";
 
 function AppContent() {
   const [session, setSession] = useState<any>(null);
@@ -71,20 +72,30 @@ function AppContent() {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('account_type, is_active')
-        .eq('auth_user_id', userId)
-        .single();
+      const data = await profileService.getCurrentProfile();
 
-      if (!error && data) {
+      if (data && data.auth_user_id === userId) {
         setProfile(data);
-      } else {
-        setProfile(null);
-        setSession(null);
-        await supabase.auth.signOut();
-        navigate('/login', { replace: true });
+        sessionStorage.removeItem('fresh_registration');
+        return;
       }
+
+      // Newly registered users may land before the profile row is readable — retry briefly
+      if (sessionStorage.getItem('fresh_registration') === '1') {
+        await new Promise(resolve => setTimeout(resolve, 750));
+        const retryData = await profileService.getCurrentProfile();
+
+        if (retryData && retryData.auth_user_id === userId) {
+          setProfile(retryData);
+          sessionStorage.removeItem('fresh_registration');
+          return;
+        }
+      }
+
+      setProfile(null);
+      setSession(null);
+      await supabase.auth.signOut();
+      navigate('/login', { replace: true });
     } catch (e) {
       console.error("Error fetching profile for routing", e);
       setProfile(null);

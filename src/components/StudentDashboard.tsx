@@ -19,6 +19,7 @@ import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
 import GroupStudentsModal from './GroupStudentsModal';
 import { DTRCard } from './DTRCard';
+import { formatPasskeyError, isPasskeySupported, listCurrentUserPasskeys, registerCurrentUserPasskey } from '../services/passkeyAuth';
 import './StudentDashboard.css';
 
 type View = 'dashboard' | 'timesheets' | 'journal' | 'performance' | 'profile' | 'settings' | 'documents' | 'announcement' | 'dtr';
@@ -86,25 +87,23 @@ const StudentDashboard: React.FC = () => {
     useEffect(() => {
         if (profile?.account_type !== 'student' || sessionStorage.getItem('offer_passkey_enrollment') !== '1') return;
         sessionStorage.removeItem('offer_passkey_enrollment');
-        if (!window.isSecureContext || !('PublicKeyCredential' in window) || !('credentials' in navigator)) return;
+        if (!isPasskeySupported()) return;
 
-        const passkeyAuth = supabase.auth as any;
-        void passkeyAuth.passkey.list().then(({ data, error }: any) => {
-            if (!error && !data?.length) setShowPasskeyEnrollment(true);
+        void listCurrentUserPasskeys().then((data) => {
+            if (!data?.length) setShowPasskeyEnrollment(true);
         }).catch(() => undefined);
     }, [profile?.account_type]);
 
     const enablePasskey = async () => {
         setPasskeyEnrollmentBusy(true);
         try {
-            const passkeyAuth = supabase.auth as any;
-            const { error } = await passkeyAuth.registerPasskey();
-            if (error) throw error;
+            await registerCurrentUserPasskey();
             setShowPasskeyEnrollment(false);
-        } catch (error: any) {
-            if (!/abort|cancel/i.test(error?.message || '')) {
+        } catch (error: unknown) {
+            const message = formatPasskeyError(error, 'Passkey setup could not be completed.');
+            if (message) {
                 setErrorModalTitle('Passkey setup');
-                setErrorModalMsg(error?.message || 'Passkey setup could not be completed.');
+                setErrorModalMsg(message);
             }
         } finally {
             setPasskeyEnrollmentBusy(false);
@@ -198,16 +197,26 @@ const StudentDashboard: React.FC = () => {
         try {
             const data = await profileService.getCurrentProfile();
             if (!data) {
+                if (sessionStorage.getItem('fresh_registration') === '1') {
+                    await new Promise(resolve => setTimeout(resolve, 750));
+                    const retryData = await profileService.getCurrentProfile();
+                    if (retryData) {
+                        sessionStorage.removeItem('fresh_registration');
+                        setProfile(retryData);
+                        setNeedsOnboarding(true);
+                        return;
+                    }
+                }
                 await supabase.auth.signOut();
                 routerNavigate('/login', { replace: true });
                 return;
             }
-            setProfile(data);
-            // Show onboarding if company hasn't been set yet OR missing crucial new profile fields
-            const isMissingFields = !data?.company_id || !data?.course || !data?.department || !data?.year_level;
-            if (isMissingFields) {
-                setNeedsOnboarding(true);
+            if (sessionStorage.getItem('fresh_registration') === '1') {
+                sessionStorage.removeItem('fresh_registration');
             }
+            setProfile(data);
+            const isMissingFields = !data?.company_id || !data?.course || !data?.department || !data?.year_level;
+            setNeedsOnboarding(isMissingFields);
         } catch (err) {
             console.error('Error loading profile:', err);
             await supabase.auth.signOut();
@@ -718,10 +727,12 @@ const StudentDashboard: React.FC = () => {
         return (
             <OnboardingView
                 profile={profile}
-                onComplete={async () => {
+                onComplete={async (options) => {
                     await loadProfile();
                     setNeedsOnboarding(false);
-                    setShowWelcome(true);
+                    if (options?.showWelcome !== false) {
+                        setShowWelcome(true);
+                    }
                 }}
             />
         );

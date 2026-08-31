@@ -3,9 +3,11 @@ import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { useLocation } from "react-router-dom";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
-import { signUp, signIn, resetPasswordForEmail, validatePasskeyStudentSession } from "../services/auth";
+import { signIn, resetPasswordForEmail, validatePasskeyStudentSession } from "../services/auth";
+import { formatPasskeyError, isPasskeySupported, signInWithPasskey } from "../services/passkeyAuth";
 import { supabase } from "../lib/supabaseClient";
 import { passwordRequirementLabels, passwordRequirementsMessage, validatePassword } from "../utils/passwordRules";
+import { saveRegistrationName } from "../utils/registrationName";
 
 const EyeIcon = () => (
     <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="eye-icon">
@@ -106,18 +108,8 @@ export default function AuthSignup() {
     }, [mode]);
 
     useEffect(() => {
-        setPasskeySupported(typeof window !== 'undefined'
-            && window.isSecureContext
-            && 'PublicKeyCredential' in window
-            && 'credentials' in navigator);
+        setPasskeySupported(isPasskeySupported());
     }, []);
-
-    // Auto-verify when all 6 digits are entered
-    useEffect(() => {
-        if (otpSent && !sendingOtp && otpDigits.every(d => d !== "") && canVerifyAndCreateAccount) {
-            handleVerifyOtp();
-        }
-    }, [otpDigits, otpSent]);
 
     // Auto-focus first OTP box when the verification section appears
     useEffect(() => {
@@ -172,12 +164,22 @@ export default function AuthSignup() {
                 email: signupEmail.trim(),
                 options: {
                     shouldCreateUser: true,
-                    // The profile row is created as soon as this email-code account is made.
-                    // Include the portal role now so it is never created as a student first.
-                    data: { account_type: resolveAccountType() },
+                    // Profile is created by the auth trigger at this moment.
+                    // Include the registration name now so it is not stored as blank.
+                    data: {
+                        account_type: resolveAccountType(),
+                        first_name: firstName.trim() || null,
+                        middle_name: middleName.trim() || null,
+                        last_name: lastName.trim() || null,
+                    },
                 },
             });
             if (error) throw error;
+            saveRegistrationName({
+                first_name: firstName.trim(),
+                middle_name: middleName.trim(),
+                last_name: lastName.trim(),
+            });
             setOtpSent(true);
             setOtpDigits(["", "", "", "", "", ""]);
             setInfoMessage("A 6-digit code was sent to your email. Enter it.");
@@ -208,6 +210,10 @@ export default function AuthSignup() {
     };
 
     const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            return;
+        }
         if (e.key === 'Backspace') {
             if (otpDigits[index] !== "") {
                 const newDigits = [...otpDigits];
@@ -233,24 +239,23 @@ export default function AuthSignup() {
         otpRefs.current[nextIndex]?.focus();
     };
 
+    const mapOtpError = (message: string) => {
+        if (/expired/i.test(message)) {
+            return "Your verification code has expired. Please request a new code.";
+        }
+        return "Invalid verification code. Please check the code sent to your email.";
+    };
+
     const handleVerifyOtp = async () => {
         const combinedOtp = otpDigits.join("");
-        if (combinedOtp.length < 6) return;
-
-        // Validate that password fields are filled before verifying
-        const e: Record<string, string> = {};
-        if (!firstName.trim()) e.firstName = "First name is required";
-        if (!lastName.trim()) e.lastName = "Last name is required";
-        if (!signupPassword) e.signupPassword = "Password is required";
-        else if (!passwordValidation.isValid) e.signupPassword = passwordRequirementsMessage;
-        if (!signupConfirm) e.signupConfirm = "Please confirm your password";
-        else if (signupPassword !== signupConfirm) e.signupConfirm = "Passwords do not match";
-        if (Object.keys(e).length > 0) {
-            setErrors(prev => ({ ...prev, ...e }));
+        if (combinedOtp.length !== 6 || !/^\d{6}$/.test(combinedOtp)) {
+            setErrors(prev => ({ ...prev, otp: "Please enter the 6-digit verification code." }));
             return;
         }
 
-        setSendingOtp(true);
+        if (!validateSignup()) return;
+
+        setIsSubmitting(true);
         setErrors(prev => ({ ...prev, otp: '' }));
         try {
             // Step 1: Verify OTP — this logs the user in with a magic-link session
@@ -265,6 +270,11 @@ export default function AuthSignup() {
 
             const targetAccountType = resolveAccountType();
             const targetIsActive = targetAccountType === 'coordinator' ? false : true;
+            const registrationName = {
+                first_name: firstName.trim(),
+                middle_name: middleName.trim(),
+                last_name: lastName.trim(),
+            };
 
             // Step 2: The Edge Function validates the password server-side before setting it.
             const { error: passwordError } = await supabase.functions.invoke('set-signup-password', {
@@ -272,62 +282,74 @@ export default function AuthSignup() {
             });
             if (passwordError) throw passwordError;
 
-            // Step 3: Upsert the full profile info based on the chosen portal
+            // Keep the registration name on the auth user so onboarding can recover it.
+            const { error: metaError } = await supabase.auth.updateUser({
+                data: {
+                    account_type: targetAccountType,
+                    first_name: registrationName.first_name,
+                    middle_name: registrationName.middle_name || null,
+                    last_name: registrationName.last_name,
+                },
+            });
+            if (metaError) {
+                console.warn('Unable to store registration name on auth user metadata:', metaError);
+            }
+
+            // Step 3: Persist the name onto the existing profile row created at Send code.
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                const { error: profileError } = await supabase.from('profiles').upsert(
-                    {
-                        auth_user_id: user.id,
-                        email: signupEmail.trim().toLowerCase(),
-                        first_name: firstName.trim(),
-                        middle_name: middleName.trim() || null,
-                        last_name: lastName.trim(),
-                        account_type: targetAccountType,
-                        is_active: targetIsActive
-                    },
-                    { onConflict: 'auth_user_id', ignoreDuplicates: false }
-                );
-                if (profileError) {
-                    if (targetAccountType === 'company') {
-                        throw new Error('Company onboarding is not enabled in the database yet. Please ask an administrator to apply the Company Portal migration, then try again.');
+                saveRegistrationName({ userId: user.id, ...registrationName });
+
+                const profilePayload = {
+                    email: signupEmail.trim().toLowerCase(),
+                    first_name: registrationName.first_name,
+                    middle_name: registrationName.middle_name || null,
+                    last_name: registrationName.last_name,
+                    account_type: targetAccountType,
+                    is_active: targetIsActive,
+                };
+
+                const { data: updatedRows, error: updateError } = await supabase
+                    .from('profiles')
+                    .update(profilePayload)
+                    .eq('auth_user_id', user.id)
+                    .select('id');
+
+                if (updateError || !updatedRows?.length) {
+                    const { error: profileError } = await supabase.from('profiles').upsert(
+                        {
+                            auth_user_id: user.id,
+                            ...profilePayload,
+                        },
+                        { onConflict: 'auth_user_id', ignoreDuplicates: false }
+                    );
+                    if (profileError) {
+                        if (targetAccountType === 'company') {
+                            throw new Error('Company onboarding is not enabled in the database yet. Please ask an administrator to apply the Company Portal migration, then try again.');
+                        }
+                        if (updateError) throw updateError;
+                        throw profileError;
                     }
-                    throw profileError;
                 }
             }
 
-            // Session is now live
+            // Session is now live — go straight to onboarding (student) or portal home
             setInfoMessage("✅ Account created! Redirecting...");
             setEmailVerified(true);
-            window.location.href = targetAccountType === 'company' ? '/company' : '/';
+            sessionStorage.setItem('fresh_registration', '1');
+            const redirectPath = targetAccountType === 'company'
+                ? '/company'
+                : targetAccountType === 'admin'
+                    ? '/admin'
+                    : targetAccountType === 'coordinator'
+                        ? '/coordinator'
+                        : '/';
+            window.location.href = redirectPath;
         } catch (err: any) {
-            setErrors(prev => ({ ...prev, otp: err.message || "Invalid or expired code. Try again." }));
+            setErrors(prev => ({ ...prev, otp: mapOtpError(err.message || '') }));
         } finally {
-            setSendingOtp(false);
+            setIsSubmitting(false);
         }
-    };
-
-    // Signup: creates the account, then Supabase sends a confirmation email automatically.
-    const handleSignup = (ev: React.FormEvent) => {
-        ev.preventDefault();
-        setInfoMessage(null);
-        if (!validateSignup()) return;
-        setIsSubmitting(true);
-        setErrors({});
-
-        const targetAccountType = resolveAccountType();
-
-        signUp({
-            email: signupEmail,
-            password: signupPassword,
-            firstName,
-            middleName,
-            lastName,
-            accountType: targetAccountType
-        }).then(() => {
-            setInfoMessage("✅ Account created! Check your email for a confirmation link before logging in.");
-        }).catch(err => {
-            setErrors(prev => ({ ...prev, general: err.message || String(err) }));
-        }).finally(() => setIsSubmitting(false));
     };
 
     const handleLogin = async (ev: React.FormEvent) => {
@@ -373,14 +395,12 @@ export default function AuthSignup() {
         setErrors({});
         setInfoMessage(null);
         try {
-            const passkeyAuth = supabase.auth as any;
-            const { error } = await passkeyAuth.signInWithPasskey();
-            if (error) throw error;
+            await signInWithPasskey();
             await validatePasskeyStudentSession();
             window.location.href = '/';
-        } catch (err: any) {
-            const message = err?.message || 'Passkey sign-in was not completed.';
-            if (!/abort|cancel/i.test(message)) setErrors(prev => ({ ...prev, general: message }));
+        } catch (err: unknown) {
+            const message = formatPasskeyError(err, 'Passkey sign-in was not completed.');
+            if (message) setErrors(prev => ({ ...prev, general: message }));
         } finally {
             setPasskeySigningIn(false);
         }
@@ -432,7 +452,7 @@ export default function AuthSignup() {
                                 <p className="subtitle">Sign up using your {roleState === 'company' ? 'company' : <strong>.edu.ph</strong>} email.</p>
                             </div>
 
-                            <form className="auth-form" onSubmit={handleSignup} noValidate>
+                            <form className="auth-form" onSubmit={(ev) => ev.preventDefault()} noValidate>
                                 <div className="form-scrollable">
                                     <div className="form-row signup-name-section">
                                         <label>
@@ -489,7 +509,7 @@ export default function AuthSignup() {
                                         {errors.signupEmail && <span className="error">{errors.signupEmail}</span>}
                                     </label>
 
-                                    <div className="form-row signup-password-section" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                    <div className="form-row signup-password-section form-row-2">
                                         <label>
                                             Password *
                                             <div className="password-input-wrapper">
@@ -577,10 +597,10 @@ export default function AuthSignup() {
                                         <button
                                             className="primary"
                                             type="button"
-                                            disabled={sendingOtp || isSubmitting || !canVerifyAndCreateAccount}
+                                            disabled={isSubmitting || !canVerifyAndCreateAccount}
                                             onClick={handleVerifyOtp}
                                         >
-                                            {sendingOtp ? "Creating account..." : "Create Account"}
+                                            {isSubmitting ? "Creating account..." : "Create Account"}
                                         </button>
                                     </div>
                                 </div>
