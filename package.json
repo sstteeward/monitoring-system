@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@joemark0008/use-ph-location": "^1.0.4",
     "@supabase/supabase-js": "^2.105.0",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.14.0",
