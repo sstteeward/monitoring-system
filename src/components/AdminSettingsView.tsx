@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 import { adminService } from '../services/adminService';
 import PasswordField from './PasswordField';
+import PasskeySettingsSection from './PasskeySettingsSection';
 
 type AdminSettingsTab = 'system' | 'appearance' | 'layout' | 'security' | 'about';
 
@@ -256,6 +257,8 @@ const AdminSettingsView: React.FC<{
                                     </div>
                                 </form>
                             )}
+
+                            <PasskeySettingsSection portalName="Admin Portal" variant="admin" />
                         </div>
                     )}
 

@@ -3,11 +3,20 @@ import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { useLocation } from "react-router-dom";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
-import { signIn, resetPasswordForEmail, validatePasskeyStudentSession } from "../services/auth";
+import { signIn, resetPasswordForEmail, validatePasskeySession } from "../services/auth";
 import { formatPasskeyError, isPasskeySupported, signInWithPasskey } from "../services/passkeyAuth";
 import { supabase } from "../lib/supabaseClient";
 import { passwordRequirementLabels, passwordRequirementsMessage, validatePassword } from "../utils/passwordRules";
 import { saveRegistrationName } from "../utils/registrationName";
+
+const PasskeyIcon = () => (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <circle cx="8" cy="15" r="4" />
+        <path d="M10.85 12.15 19 4" />
+        <path d="m18 5 2 2" />
+        <path d="m15 8 2 2" />
+    </svg>
+);
 
 const EyeIcon = () => (
     <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="eye-icon">
@@ -361,8 +370,8 @@ export default function AuthSignup() {
 
         try {
             await signIn({ email: loginEmail, password, role: roleState as "student" | "coordinator" | "admin" | "company" | undefined });
-            if (!roleState || roleState === 'student') sessionStorage.setItem('offer_passkey_enrollment', '1');
-            window.location.href = roleState === 'company' ? '/company' : '/';
+            sessionStorage.setItem('offer_passkey_enrollment', '1');
+            window.location.href = roleState === 'company' ? '/company' : roleState === 'coordinator' ? '/coordinator' : roleState === 'admin' ? '/admin' : '/';
         } catch (err: any) {
             let errorMsg = err.message || String(err);
             if (errorMsg.includes('ACCOUNT_PENDING')) {
@@ -396,10 +405,28 @@ export default function AuthSignup() {
         setInfoMessage(null);
         try {
             await signInWithPasskey();
-            await validatePasskeyStudentSession();
-            window.location.href = '/';
+            const expectedRole = roleState as "student" | "coordinator" | "admin" | "company" | undefined;
+            const { profile } = await validatePasskeySession(expectedRole);
+            
+            // Redirect user to the corresponding portal dashboard based on account type
+            if (profile?.account_type === 'admin') {
+                window.location.href = '/admin';
+            } else if (profile?.account_type === 'coordinator') {
+                window.location.href = '/coordinator';
+            } else if (profile?.account_type === 'company') {
+                window.location.href = '/company';
+            } else {
+                window.location.href = '/';
+            }
         } catch (err: unknown) {
-            const message = formatPasskeyError(err, 'Passkey sign-in was not completed.');
+            let message = formatPasskeyError(err, 'Passkey sign-in was not completed.');
+            if (message.includes('ACCOUNT_PENDING')) {
+                message = "Your coordinator account is pending approval from an administrator.";
+            } else if (message.includes('ACCOUNT_DEACTIVATED')) {
+                message = "Your account has been deactivated. Please contact an administrator.";
+            } else if (message.includes('ACCOUNT_LOCKED')) {
+                message = message.replace('ACCOUNT_LOCKED: ', '');
+            }
             if (message) setErrors(prev => ({ ...prev, general: message }));
         } finally {
             setPasskeySigningIn(false);
@@ -678,12 +705,20 @@ export default function AuthSignup() {
                                         <button className="primary" type="submit" disabled={isSubmitting}>
                                             {isSubmitting ? "Signing in..." : "Sign In"}
                                         </button>
-                                        {(!roleState || roleState === 'student') && passkeySupported && <>
-                                            <div className="passkey-divider"><span>or</span></div>
-                                            <button className="passkey-signin" type="button" disabled={isSubmitting || passkeySigningIn} onClick={() => void handlePasskeyLogin()}>
-                                                <span aria-hidden="true"></span>{passkeySigningIn ? 'Checking passkey…' : 'Sign in with Passkey'}
-                                            </button>
-                                        </>}
+                                        {passkeySupported && (
+                                            <>
+                                                <div className="passkey-divider"><span>or</span></div>
+                                                <button
+                                                    className="passkey-signin"
+                                                    type="button"
+                                                    disabled={isSubmitting || passkeySigningIn}
+                                                    onClick={() => void handlePasskeyLogin()}
+                                                >
+                                                    <PasskeyIcon />
+                                                    <span>{passkeySigningIn ? 'Waiting for passkey…' : 'Sign in with Passkey'}</span>
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 

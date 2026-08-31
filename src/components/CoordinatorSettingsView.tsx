@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 import PasswordField from './PasswordField';
 import BrowserPushNotificationToggle from './BrowserPushNotificationToggle';
+import PasskeySettingsSection from './PasskeySettingsSection';
 
 interface CoordinatorSettingsViewProps {
     sidebarMode?: 'expanded' | 'collapsed' | 'hover';
@@ -253,6 +254,8 @@ const CoordinatorSettingsView: React.FC<CoordinatorSettingsViewProps> = ({ sideb
                                     </div>
                                 </form>
                             )}
+
+                            <PasskeySettingsSection portalName="Coordinator Portal" />
                         </div>
                     )}
 

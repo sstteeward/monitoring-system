@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 import PasswordField from './PasswordField';
 import BrowserPushNotificationToggle from './BrowserPushNotificationToggle';
+import PasskeySettingsSection from './PasskeySettingsSection';
 
 interface CompanySettingsViewProps {
     sidebarMode?: 'expanded' | 'collapsed' | 'hover';
@@ -253,6 +254,8 @@ const CompanySettingsView: React.FC<CompanySettingsViewProps> = ({ sidebarMode, 
                                     </div>
                                 </form>
                             )}
+
+                            <PasskeySettingsSection portalName="Company Portal" />
                         </div>
                     )}
 

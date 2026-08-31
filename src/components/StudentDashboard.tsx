@@ -85,14 +85,14 @@ const StudentDashboard: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (profile?.account_type !== 'student' || sessionStorage.getItem('offer_passkey_enrollment') !== '1') return;
+        if (sessionStorage.getItem('offer_passkey_enrollment') !== '1') return;
         sessionStorage.removeItem('offer_passkey_enrollment');
         if (!isPasskeySupported()) return;
 
         void listCurrentUserPasskeys().then((data) => {
             if (!data?.length) setShowPasskeyEnrollment(true);
         }).catch(() => undefined);
-    }, [profile?.account_type]);
+    }, [profile?.auth_user_id]);
 
     const enablePasskey = async () => {
         setPasskeyEnrollmentBusy(true);

@@ -231,8 +231,8 @@ export async function signIn({ email, password, role }: { email: string; passwor
   return data;
 }
 
-/** Verifies that a session issued by Supabase Passkeys is allowed in the student portal. */
-export async function validatePasskeyStudentSession() {
+/** Verifies that a session issued by Supabase Passkeys is valid, active, not locked, and authorized for the requested portal. */
+export async function validatePasskeySession(expectedRole?: 'student' | 'coordinator' | 'admin' | 'company') {
   const supabase = await getClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) throw new Error('Passkey sign-in could not be verified.');
@@ -243,21 +243,85 @@ export async function validatePasskeyStudentSession() {
     .eq('auth_user_id', user.id)
     .single();
 
-  if (profileError || !profile || profile.account_type !== 'student') {
+  if (profileError || !profile) {
     await supabase.auth.signOut();
-    throw new Error('This passkey is not authorized for the student portal.');
-  }
-  if (profile.is_active === false) {
-    await supabase.auth.signOut();
-    throw new Error('Your account has been deactivated. Please contact an administrator.');
-  }
-  if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
-    await supabase.auth.signOut();
-    throw new Error(`Your account is locked until ${new Date(profile.locked_until).toLocaleTimeString()}.`);
+    throw new Error('Account profile not found for this passkey. Please contact support.');
   }
 
-  if (user.email) await supabase.rpc('reset_failed_login', { user_email: user.email.toLowerCase() });
-  return user;
+  if (profile.is_active === false) {
+    await supabase.auth.signOut();
+    if (profile.account_type === 'coordinator') {
+      throw new Error('ACCOUNT_PENDING: Your coordinator account is pending approval from an administrator.');
+    }
+    throw new Error('ACCOUNT_DEACTIVATED: Your account has been deactivated. Please contact an administrator.');
+  }
+
+  if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
+    await supabase.auth.signOut();
+    const unlockTime = new Date(profile.locked_until).toLocaleTimeString();
+    throw new Error(`ACCOUNT_LOCKED: Your account is locked until ${unlockTime}.`);
+  }
+
+  if (expectedRole && profile.account_type !== expectedRole) {
+    // Allow admins to access coordinator portal if needed, mirroring password login
+    if (!(expectedRole === 'coordinator' && profile.account_type === 'admin')) {
+      await supabase.auth.signOut();
+      throw new Error(`Access Denied: This passkey belongs to a ${profile.account_type} account and is not authorized for the ${expectedRole} portal.`);
+    }
+  }
+
+  if (user.email) {
+    try {
+      await supabase.rpc('reset_failed_login', { user_email: user.email.toLowerCase() });
+    } catch {}
+  }
+
+  // Audit logging for passkey login
+  try {
+    const { createAuditLog } = await import('./auditService');
+    await createAuditLog({
+      action: 'LOGIN',
+      module: 'Authentication',
+      description: `Successfully signed in with passkey as ${user.email || user.id}`,
+      overrideUser: {
+        userId: user.id,
+        userName: user.email || 'User',
+        userRole: profile.account_type || 'unknown'
+      }
+    });
+  } catch {}
+
+  // Register Device Fingerprint
+  try {
+    const fingerprint = await generateDeviceFingerprint();
+    const deviceLabel = getDeviceLabel();
+    
+    const { error: fpError } = await supabase.from('device_fingerprints').upsert({
+      user_id: user.id,
+      fingerprint,
+      device_label: deviceLabel,
+      last_seen_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id, fingerprint'
+    });
+
+    if (!fpError) {
+      await supabase.rpc('increment_device_seen_count', { 
+        p_user_id: user.id, 
+        p_fingerprint: fingerprint 
+      });
+    }
+  } catch (fpErr) {
+    console.warn('[Auth] Error generating device fingerprint for passkey login:', fpErr);
+  }
+
+  return { user, profile };
+}
+
+/** Backwards-compatible alias for existing student callers */
+export async function validatePasskeyStudentSession() {
+  const result = await validatePasskeySession('student');
+  return result.user;
 }
 
 export async function signOut() {
