@@ -152,12 +152,13 @@ export const PasskeySettingsSection: React.FC<PasskeySettingsSectionProps> = ({
                                             border: '1px solid var(--border, rgba(255,255,255,0.08))',
                                             borderRadius: 10,
                                             background: 'var(--bg-elevated, var(--admin-card-bg, rgba(255,255,255,0.03)))',
+                                            flexWrap: 'wrap',
                                         }}
                                     >
-                                        <div style={{ minWidth: 0 }}>
+                                        <div style={{ minWidth: 0, flex: '1 1 180px' }}>
                                             <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-bright, var(--admin-text-primary, #fff))', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                                 <PasskeyIcon />
-                                                <span>{pk.friendly_name || 'Passkey Device'}</span>
+                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pk.friendly_name || 'Passkey Device'}</span>
                                             </div>
                                             <div style={{ fontSize: '0.76rem', color: 'var(--text-muted, var(--admin-text-secondary, #94a3b8))', marginTop: '0.2rem', display: 'flex', gap: '0.85rem', flexWrap: 'wrap' }}>
                                                 {createdStr && <span>Added on {createdStr}</span>}
@@ -170,7 +171,7 @@ export const PasskeySettingsSection: React.FC<PasskeySettingsSectionProps> = ({
                                             className={secondaryBtnClass}
                                             disabled={isBusy || registering}
                                             onClick={() => void handleDelete(pk.id)}
-                                            style={isAdmin ? { padding: '0.4rem 0.8rem', fontSize: '0.8rem' } : undefined}
+                                            style={isAdmin ? { padding: '0.5rem 0.9rem', fontSize: '0.82rem', flexShrink: 0, minHeight: 40 } : { flexShrink: 0, minHeight: 40, padding: '0.5rem 1rem' }}
                                         >
                                             {isBusy ? 'Revoking…' : 'Revoke'}
                                         </button>
@@ -190,7 +191,7 @@ export const PasskeySettingsSection: React.FC<PasskeySettingsSectionProps> = ({
                         <button
                             type="button"
                             className={primaryBtnClass}
-                            style={primaryBtnStyle}
+                            style={{ ...primaryBtnStyle, minHeight: 44, padding: '0.65rem 1.25rem' }}
                             disabled={!supported || registering || !!busyId}
                             onClick={() => void handleRegister()}
                         >
