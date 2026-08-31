@@ -49,7 +49,6 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
         const rect = triggerRef.current.getBoundingClientRect();
         const spaceBelow = window.innerHeight - rect.bottom - DROPDOWN_GAP;
         const spaceAbove = rect.top - DROPDOWN_GAP;
-        const maxHeight = Math.min(DROPDOWN_MAX_HEIGHT, Math.max(spaceBelow, spaceAbove));
         const needsUpward = spaceBelow < DROPDOWN_MAX_HEIGHT && spaceAbove > spaceBelow;
         setPosition(needsUpward ? 'up' : 'down');
         setDropRect(rect);
