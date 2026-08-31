@@ -102,7 +102,7 @@ export const PasskeySettingsSection: React.FC<PasskeySettingsSectionProps> = ({
                 </h4>
             </div>
             <p style={{ fontSize: '0.84rem', color: 'var(--text-muted, var(--admin-text-secondary, #94a3b8))', margin: '0 0 1rem', lineHeight: 1.5 }}>
-                Passkeys let you sign in securely to {portalName} using Touch ID, Face ID, Windows Hello, or a security key without typing your password.
+                Passkeys use your device’s native authentication (Windows Hello, Touch ID, Face ID, Android Biometrics, device PIN, or security key) to sign in securely to {portalName} without typing your password.
             </p>
 
             {!supported && (

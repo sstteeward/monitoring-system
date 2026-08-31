@@ -19,36 +19,71 @@ export type PasskeyRecord = {
 export function isPasskeySupported() {
     return typeof window !== 'undefined'
         && window.isSecureContext
-        && 'PublicKeyCredential' in window
-        && 'credentials' in navigator;
+        && typeof window.PublicKeyCredential !== 'undefined'
+        && 'credentials' in navigator
+        && typeof navigator.credentials?.get === 'function'
+        && typeof navigator.credentials?.create === 'function';
 }
 
-export function formatPasskeyError(err: unknown, fallback = 'Passkey could not be completed.') {
+/** Check if the device has a native platform authenticator (Windows Hello, Touch ID, Face ID, Android Biometric) */
+export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
+    if (!isPasskeySupported()) return false;
+    if (typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') return false;
+    try {
+        return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    } catch {
+        return false;
+    }
+}
+
+export function formatPasskeyError(err: unknown, fallback = 'Passkey authentication could not be completed.') {
     const e = err as { message?: string; code?: string; error_code?: string; name?: string } | null;
     const code = e?.code || e?.error_code || '';
     const message = e?.message || (err instanceof Error ? err.message : '');
+    const name = e?.name || '';
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
     const onLoopback = host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
 
+    // 1. Native WebAuthn user cancellation or abort (don't display error message)
+    if (
+        name === 'NotAllowedError' ||
+        name === 'AbortError' ||
+        /abort|cancel|not allowed|user cancelled/i.test(message)
+    ) {
+        return '';
+    }
+
+    // 2. Passkey already registered
+    if (name === 'InvalidStateError' || /already registered/i.test(message)) {
+        return 'This device or security key is already registered as a passkey on your account.';
+    }
+
+    // 3. Not supported on device/browser
+    if (name === 'NotSupportedError' || /not supported/i.test(message)) {
+        return 'Your device or browser does not support this passkey operation.';
+    }
+
+    // 4. Supabase Auth specific error codes
     if (code === 'passkey_disabled' || /passkeys are disabled/i.test(message)) {
         return onLoopback
             ? 'Passkeys are not enabled yet. In Supabase Dashboard → Authentication → Passkeys, turn them on, set Relying Party ID to localhost, and add origin http://localhost:5173.'
-            : 'Passkeys are not enabled yet. In Supabase Dashboard → Authentication → Passkeys, turn them on and set Relying Party ID to asiancollegesilmonitoringsystem.vercel.app.';
+            : 'Passkeys are not currently enabled on the system. Please use password login or contact an administrator.';
     }
-    if (code === 'webauthn_credential_not_found') {
-        return 'No passkey is registered for this account yet. Sign in with your password, then add a passkey from Settings → Security.';
+
+    if (code === 'webauthn_credential_not_found' || /no credential|not found/i.test(message)) {
+        return 'No passkey found for this account on this device. Sign in with your password, then register a passkey in Settings → Security.';
     }
+
     if (/origin|rp id|relying party|securityerror/i.test(message)) {
         return onLoopback
-            ? 'This local origin is blocked because the project Relying Party ID is still the production domain. In Supabase Dashboard → Authentication → Passkeys set Relying Party ID to localhost and Origins to http://localhost:5173 and http://127.0.0.1:5173. Switch those back to the Vercel domain before using passkeys on the live site.'
-            : 'This page origin is not allowed for passkeys. Add it under Supabase Dashboard → Authentication → Passkeys → Origins.';
+            ? 'This local origin is blocked by the project Relying Party ID. In Supabase Dashboard → Authentication → Passkeys set Relying Party ID to localhost and Origins to http://localhost:5173 and http://127.0.0.1:5173.'
+            : 'This domain is not configured for passkeys. Please sign in with your password.';
     }
+
     if (code === 'email_not_confirmed') {
-        return 'Confirm your email before using a passkey.';
+        return 'Please confirm your email address before using a passkey.';
     }
-    if (/abort|cancel|not allowed/i.test(message) || e?.name === 'NotAllowedError') {
-        return '';
-    }
+
     return message || fallback;
 }
 
