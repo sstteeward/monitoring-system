@@ -1285,5 +1285,508 @@ export const coordinatorService = {
             throw error;
         }
         return true;
+    },
+
+    // ─── Adviser & Section Management Methods ─────────────────────────────
+
+    /**
+     * Fetch all advisers with their assigned sections and student count
+     */
+    async getAllAdvisers() {
+        // 1. Fetch profiles where account_type = 'adviser'
+        const { data: advisers, error: advError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('account_type', 'adviser')
+            .order('last_name', { ascending: true });
+
+        if (advError) {
+            console.error('Error fetching advisers:', advError);
+            throw advError;
+        }
+
+        if (!advisers || advisers.length === 0) return [];
+
+        const adviserUserIds = advisers.map(a => a.auth_user_id);
+
+        // 2. Fetch active section assignments for these advisers
+        const { data: assignments } = await supabase
+            .from('adviser_sections')
+            .select(`
+                id,
+                adviser_id,
+                section_id,
+                status,
+                assigned_at,
+                sections:section_id (
+                    id,
+                    name,
+                    course_code
+                )
+            `)
+            .in('adviser_id', adviserUserIds)
+            .eq('status', 'active');
+
+        // Map assigned sections per adviser
+        const assignedSectionsMap: Record<string, { id: string; name: string; course_code: string }[]> = {};
+        const allAssignedSectionNames: string[] = [];
+
+        (assignments || []).forEach((asgn: any) => {
+            if (asgn.sections) {
+                if (!assignedSectionsMap[asgn.adviser_id]) {
+                    assignedSectionsMap[asgn.adviser_id] = [];
+                }
+                assignedSectionsMap[asgn.adviser_id].push({
+                    id: asgn.sections.id,
+                    name: asgn.sections.name,
+                    course_code: asgn.sections.course_code
+                });
+                allAssignedSectionNames.push(asgn.sections.name);
+            }
+        });
+
+        // 3. Count students in each section
+        const { data: studentProfiles } = await supabase
+            .from('profiles')
+            .select('section')
+            .eq('account_type', 'student')
+            .in('section', allAssignedSectionNames.length > 0 ? allAssignedSectionNames : ['__dummy__']);
+
+        const sectionStudentCounts: Record<string, number> = {};
+        (studentProfiles || []).forEach(p => {
+            if (p.section) {
+                sectionStudentCounts[p.section] = (sectionStudentCounts[p.section] || 0) + 1;
+            }
+        });
+
+        // 4. Combine and compute student count per adviser
+        return advisers.map(a => {
+            const sections = assignedSectionsMap[a.auth_user_id] || [];
+            const studentCount = sections.reduce((sum, sec) => sum + (sectionStudentCounts[sec.name] || 0), 0);
+            return {
+                ...a,
+                assigned_sections: sections,
+                sections_count: sections.length,
+                students_count: studentCount,
+                adviser_type: a.adviser_type || (a.course === 'DHT' ? 'HT Adviser' : a.course === 'DIT' ? 'IT Adviser' : 'HT Adviser')
+            };
+        });
+    },
+
+    /**
+     * Fetch all sections with their currently assigned adviser and student count
+     */
+    async getAllSections() {
+        const { data: sections, error: secError } = await supabase
+            .from('sections')
+            .select('*')
+            .order('name', { ascending: true });
+
+        if (secError) {
+            console.error('Error fetching sections:', secError);
+            throw secError;
+        }
+
+        if (!sections || sections.length === 0) return [];
+
+        const sectionIds = sections.map(s => s.id);
+        const sectionNames = sections.map(s => s.name);
+
+        // Fetch assignments for these sections
+        const { data: assignments } = await supabase
+            .from('adviser_sections')
+            .select(`
+                id,
+                adviser_id,
+                section_id,
+                status,
+                assigned_at
+            `)
+            .in('section_id', sectionIds)
+            .eq('status', 'active');
+
+        const adviserIds = (assignments || []).map(a => a.adviser_id);
+        let adviserProfiles: Record<string, Profile> = {};
+
+        if (adviserIds.length > 0) {
+            const { data: advList } = await supabase
+                .from('profiles')
+                .select('*')
+                .in('auth_user_id', adviserIds);
+
+            (advList || []).forEach(a => {
+                adviserProfiles[a.auth_user_id] = a;
+            });
+        }
+
+        const assignmentMap: Record<string, any> = {};
+        (assignments || []).forEach(asgn => {
+            const adv = adviserProfiles[asgn.adviser_id];
+            assignmentMap[asgn.section_id] = {
+                assignment_id: asgn.id,
+                adviser_id: asgn.adviser_id,
+                adviser_name: adv ? `${adv.first_name || ''} ${adv.last_name || ''}`.trim() : 'Unknown Adviser',
+                adviser_type: adv?.adviser_type || (adv?.course === 'DHT' ? 'HT Adviser' : 'IT Adviser'),
+                adviser_email: adv?.email,
+                assigned_at: asgn.assigned_at
+            };
+        });
+
+        // Count students per section
+        const { data: students } = await supabase
+            .from('profiles')
+            .select('section')
+            .eq('account_type', 'student')
+            .in('section', sectionNames);
+
+        const counts: Record<string, number> = {};
+        (students || []).forEach(s => {
+            if (s.section) {
+                counts[s.section] = (counts[s.section] || 0) + 1;
+            }
+        });
+
+        return sections.map(s => ({
+            ...s,
+            student_count: counts[s.name] || 0,
+            assignment: assignmentMap[s.id] || null,
+            adviser_id: assignmentMap[s.id]?.adviser_id || null,
+            adviser_name: assignmentMap[s.id]?.adviser_name || null,
+            adviser_type: assignmentMap[s.id]?.adviser_type || null,
+            adviser_email: assignmentMap[s.id]?.adviser_email || null,
+        }));
+    },
+
+    /**
+     * Create a new section
+     */
+    async createSection(name: string, courseCode: 'DHT' | 'DIT', departmentId?: string) {
+        const { data, error } = await supabase
+            .from('sections')
+            .insert([{
+                name: name.trim().toUpperCase(),
+                course_code: courseCode,
+                department_id: departmentId || null
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating section:', error);
+            throw error;
+        }
+
+        try {
+            await createAuditLog({
+                action: 'CREATE',
+                module: 'User Management',
+                description: `Created section ${data.name} for course ${courseCode}`,
+                targetType: 'section',
+                targetId: data.id,
+                targetName: data.name
+            });
+        } catch {}
+
+        return data;
+    },
+
+    /**
+     * Delete a section
+     */
+    async deleteSection(sectionId: string, sectionName: string) {
+        const { error } = await supabase
+            .from('sections')
+            .delete()
+            .eq('id', sectionId);
+
+        if (error) {
+            console.error('Error deleting section:', error);
+            throw error;
+        }
+
+        try {
+            await createAuditLog({
+                action: 'DELETE',
+                module: 'User Management',
+                description: `Deleted section ${sectionName}`,
+                targetType: 'section',
+                targetId: sectionId,
+                targetName: sectionName
+            });
+        } catch {}
+
+        return true;
+    },
+
+    /**
+     * Create an Adviser account
+     */
+    async createAdviserAccount(data: {
+        email: string;
+        password?: string;
+        firstName: string;
+        lastName: string;
+        course: 'DHT' | 'DIT';
+        adviserType: 'HT Adviser' | 'IT Adviser';
+    }) {
+        const adviserType = data.course === 'DHT' ? 'HT Adviser' : 'IT Adviser';
+        
+        // 1. Check if user already exists
+        const { data: existingUser } = await supabase
+            .from('profiles')
+            .select('id, auth_user_id')
+            .eq('email', data.email.toLowerCase().trim())
+            .maybeSingle();
+
+        if (existingUser) {
+            // Update existing user to adviser
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                    account_type: 'adviser',
+                    first_name: data.firstName.trim(),
+                    last_name: data.lastName.trim(),
+                    course: data.course,
+                    adviser_type: adviserType,
+                    is_active: true
+                })
+                .eq('id', existingUser.id);
+
+            if (updateError) throw updateError;
+            return existingUser;
+        }
+
+        // 2. Sign up via Supabase Auth
+        const tempPassword = data.password || 'Adviser@12345';
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: data.email.trim(),
+            password: tempPassword,
+            options: {
+                data: {
+                    first_name: data.firstName.trim(),
+                    last_name: data.lastName.trim(),
+                    account_type: 'adviser',
+                    course: data.course,
+                    adviser_type: adviserType
+                }
+            }
+        });
+
+        if (signUpError) {
+            console.error('Error signing up adviser:', signUpError);
+            throw signUpError;
+        }
+
+        if (signUpData.user) {
+            // Upsert profile row to guarantee fields are set
+            await supabase.from('profiles').upsert({
+                auth_user_id: signUpData.user.id,
+                email: data.email.toLowerCase().trim(),
+                first_name: data.firstName.trim(),
+                last_name: data.lastName.trim(),
+                account_type: 'adviser',
+                course: data.course,
+                adviser_type: adviserType,
+                is_active: true
+            }, { onConflict: 'auth_user_id' });
+        }
+
+        try {
+            await createAuditLog({
+                action: 'CREATE',
+                module: 'User Management',
+                description: `Created new ${adviserType} account for ${data.email} (${data.course})`,
+                targetType: 'user',
+                targetName: `${data.firstName} ${data.lastName}`,
+            });
+        } catch {}
+
+        return signUpData;
+    },
+
+    /**
+     * Update an Adviser's details
+     */
+    async updateAdviserInfo(adviserId: string, updates: Partial<Profile>) {
+        const { error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('auth_user_id', adviserId);
+
+        if (error) {
+            console.error('Error updating adviser info:', error);
+            throw error;
+        }
+
+        try {
+            await createAuditLog({
+                action: 'UPDATE',
+                module: 'User Management',
+                description: `Updated adviser details for user ${adviserId}`,
+                targetType: 'user',
+                targetId: adviserId
+            });
+        } catch {}
+
+        return true;
+    },
+
+    /**
+     * Activate or Deactivate an Adviser account
+     */
+    async setAdviserStatus(adviserId: string, isActive: boolean) {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ is_active: isActive })
+            .eq('auth_user_id', adviserId);
+
+        if (error) {
+            console.error('Error updating adviser active status:', error);
+            throw error;
+        }
+
+        try {
+            await createAuditLog({
+                action: 'STATUS_CHANGE',
+                module: 'User Management',
+                description: `${isActive ? 'Activated' : 'Deactivated'} adviser account: ${adviserId}`,
+                targetType: 'user',
+                targetId: adviserId
+            });
+        } catch {}
+
+        return true;
+    },
+
+    /**
+     * Assign or reassign an Adviser to a Section with strict course compatibility check
+     */
+    async assignAdviserToSection(adviserId: string, sectionId: string) {
+        // 1. Fetch section info
+        const { data: section, error: secErr } = await supabase
+            .from('sections')
+            .select('id, name, course_code')
+            .eq('id', sectionId)
+            .single();
+
+        if (secErr || !section) {
+            throw new Error('Section not found.');
+        }
+
+        // 2. Fetch adviser info
+        const { data: adviser, error: advErr } = await supabase
+            .from('profiles')
+            .select('id, auth_user_id, first_name, last_name, course, adviser_type, is_active')
+            .eq('auth_user_id', adviserId)
+            .single();
+
+        if (advErr || !adviser) {
+            throw new Error('Adviser not found.');
+        }
+
+        if (adviser.is_active === false) {
+            throw new Error('Cannot assign an inactive adviser. Please activate the account first.');
+        }
+
+        // 3. Strict Course Compatibility Validation
+        const isDHTSection = section.course_code === 'DHT';
+        const isDITSection = section.course_code === 'DIT';
+        const isHTAdviser = adviser.adviser_type === 'HT Adviser' || adviser.course === 'DHT';
+        const isITAdviser = adviser.adviser_type === 'IT Adviser' || adviser.course === 'DIT';
+
+        if (isDHTSection && !isHTAdviser) {
+            throw new Error('Course mismatch: DHT sections can only be assigned to HT Advisers.');
+        }
+        if (isDITSection && !isITAdviser) {
+            throw new Error('Course mismatch: DIT sections can only be assigned to IT Advisers.');
+        }
+
+        // 4. Try RPC function first
+        const { error: rpcErr } = await supabase.rpc('coordinator_assign_adviser_section', {
+            p_adviser_id: adviserId,
+            p_section_id: sectionId
+        });
+
+        if (rpcErr) {
+            console.warn('RPC coordinator_assign_adviser_section error, fallback to upsert:', rpcErr);
+            const { data: { user } } = await supabase.auth.getUser();
+
+            const { error: upsertErr } = await supabase
+                .from('adviser_sections')
+                .upsert({
+                    adviser_id: adviserId,
+                    section_id: sectionId,
+                    assigned_by: user?.id,
+                    status: 'active',
+                    assigned_at: new Date().toISOString()
+                }, { onConflict: 'section_id' });
+
+            if (upsertErr) throw upsertErr;
+        }
+
+        // Notify Adviser
+        try {
+            await notificationService.createNotification(
+                adviserId,
+                'New Section Assigned',
+                `You have been assigned as the Section Adviser for ${section.name} (${section.course_code}).`,
+                'info'
+            );
+        } catch (notifErr) {
+            console.warn('Notification failed:', notifErr);
+        }
+
+        // Audit log
+        try {
+            await createAuditLog({
+                action: 'ASSIGN',
+                module: 'User Management',
+                description: `Assigned adviser ${adviser.first_name} ${adviser.last_name} to section ${section.name}`,
+                targetType: 'section',
+                targetId: sectionId,
+                targetName: section.name
+            });
+        } catch {}
+
+        return true;
+    },
+
+    /**
+     * Remove an Adviser assignment from a section
+     */
+    async removeAdviserFromSection(sectionId: string) {
+        const { error: rpcErr } = await supabase.rpc('coordinator_remove_adviser_section', {
+            p_section_id: sectionId
+        });
+
+        if (rpcErr) {
+            console.warn('RPC coordinator_remove_adviser_section failed, fallback to delete:', rpcErr);
+            const { error } = await supabase
+                .from('adviser_sections')
+                .delete()
+                .eq('section_id', sectionId);
+
+            if (error) throw error;
+        }
+
+        try {
+            await createAuditLog({
+                action: 'UNASSIGN',
+                module: 'User Management',
+                description: `Removed adviser assignment from section ${sectionId}`,
+                targetType: 'section',
+                targetId: sectionId
+            });
+        } catch {}
+
+        return true;
+    },
+
+    /**
+     * Reassign a section from one Adviser to another
+     */
+    async reassignSectionAdviser(sectionId: string, newAdviserId: string) {
+        return this.assignAdviserToSection(newAdviserId, sectionId);
     }
 };
+

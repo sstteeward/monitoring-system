@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { notificationService, type UserNotification } from '../services/notificationService';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
@@ -14,6 +14,7 @@ import JournalView from './JournalView';
 import AnnouncementsView from './AnnouncementsView';
 import DocumentsView from './DocumentsView';
 import OnboardingView from './OnboardingView';
+import PendingApprovalView from './PendingApprovalView';
 import WelcomeCelebration from './WelcomeCelebration';
 import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
@@ -722,6 +723,11 @@ const StudentDashboard: React.FC = () => {
         );
     }
 
+    // Safeguard: Ensure non-students are never shown student onboarding or student views
+    if (profile && profile.account_type && profile.account_type !== 'student') {
+        return <Navigate to={`/${profile.account_type}`} replace />;
+    }
+
     // Show onboarding for students who haven't set their company yet
     if (needsOnboarding && profile) {
         return (
@@ -736,6 +742,11 @@ const StudentDashboard: React.FC = () => {
                 }}
             />
         );
+    }
+
+    // Show pending approval view if student account is not active or awaiting adviser approval
+    if (profile && (profile.is_active === false || profile.approval_status === 'pending' || profile.approval_status === 'rejected')) {
+        return <PendingApprovalView profile={profile} />;
     }
 
     return (

@@ -1,0 +1,399 @@
+/* ═══════════════════════════════════════════════════
+   ADVISER ONBOARDING VIEW — Emerald Green Palette
+   Matches Student & Company Onboarding Aesthetics
+   ═══════════════════════════════════════════════════ */
+
+.adviser-onboarding-page {
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem 1rem 3rem;
+  overflow-y: auto;
+  color: var(--text-primary, #0f172a);
+  background: var(--bg-page, #f8fafc);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.adviser-onboarding-container {
+  width: 100%;
+  max-width: 540px;
+  margin: auto;
+}
+
+/* Header matching Student/Company onboarding */
+.adviser-onboarding-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.adviser-onboarding-top-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #ffffff;
+}
+
+.adviser-onboarding-title {
+  font-size: clamp(1.3rem, 5vw, 1.65rem);
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--text-bright, #0f172a);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.adviser-onboarding-subtitle {
+  color: var(--text-muted, #64748b);
+  margin-top: 0.4rem;
+  font-size: clamp(0.82rem, 3.5vw, 0.92rem);
+  line-height: 1.5;
+}
+
+/* Progress pills */
+.adviser-onboarding-progress-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.adviser-progress-pill {
+  height: 10px;
+  width: 10px;
+  border-radius: 10px;
+  background: var(--bg-elevated, #e2e8f0);
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.adviser-progress-pill.active {
+  background: #10b981;
+}
+
+.adviser-progress-pill.current {
+  width: 28px;
+}
+
+/* Card */
+.adviser-onboarding-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 20px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 640px) {
+  .adviser-onboarding-card {
+    padding: 2rem;
+  }
+}
+
+/* Error Banner */
+.adviser-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+}
+
+/* Info Notice */
+.adviser-info-notice {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #047857;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+}
+
+.adviser-info-notice p {
+  margin: 0;
+}
+
+/* Form Layout */
+.adviser-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.adviser-form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
+@media (min-width: 520px) {
+  .adviser-form-grid-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.adviser-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
+@media (min-width: 520px) {
+  .adviser-form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.adviser-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.adviser-form-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.adviser-form-label .req {
+  color: #ef4444;
+}
+
+.adviser-form-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--border, #cbd5e1);
+  background: var(--bg-input, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+  min-width: 0;
+}
+
+.adviser-form-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.adviser-form-input:disabled {
+  background: var(--bg-elevated, #f1f5f9);
+  color: var(--text-muted, #64748b);
+  cursor: not-allowed;
+}
+
+/* Adviser Specialization Cards */
+.adviser-type-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+@media (min-width: 480px) {
+  .adviser-type-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.adviser-type-card {
+  border: 2px solid var(--border, #e2e8f0);
+  background: var(--bg-card, #ffffff);
+  border-radius: 14px;
+  padding: 1.25rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.45rem;
+  user-select: none;
+}
+
+.adviser-type-card:hover {
+  border-color: #10b981;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.12);
+}
+
+.adviser-type-card.selected {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.06);
+  box-shadow: 0 0 0 1px #10b981, 0 6px 20px rgba(16, 185, 129, 0.15);
+}
+
+.adviser-type-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-bright, #0f172a);
+}
+
+.adviser-type-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.adviser-type-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* Actions */
+.adviser-onboarding-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.adviser-btn-back {
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--border, #cbd5e1);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-secondary, #475569);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.adviser-btn-back:hover:not(:disabled) {
+  background: var(--bg-elevated, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+}
+
+.adviser-btn-next {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s ease;
+}
+
+.adviser-btn-next:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.adviser-btn-next:disabled,
+.adviser-btn-back:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Dark Mode Overrides */
+[data-theme='dark'] .adviser-onboarding-page {
+  background: #090d16;
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .adviser-onboarding-card {
+  background: #111827;
+  border-color: #1f2937;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .adviser-onboarding-title {
+  color: #f9fafb;
+}
+
+[data-theme='dark'] .adviser-onboarding-subtitle {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .adviser-form-label {
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .adviser-form-input {
+  background: #1e293b;
+  border-color: #374151;
+  color: #f9fafb;
+}
+
+[data-theme='dark'] .adviser-form-input:focus {
+  border-color: #10b981;
+}
+
+[data-theme='dark'] .adviser-type-card {
+  background: #1a2234;
+  border-color: #374151;
+}
+
+[data-theme='dark'] .adviser-type-card:hover {
+  border-color: #10b981;
+}
+
+[data-theme='dark'] .adviser-type-card.selected {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+}
+
+[data-theme='dark'] .adviser-type-title {
+  color: #f9fafb;
+}
+
+[data-theme='dark'] .adviser-type-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+[data-theme='dark'] .adviser-type-desc {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .adviser-btn-back {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .adviser-btn-back:hover:not(:disabled) {
+  background: #374151;
+  color: #ffffff;
+}
+
+[data-theme='dark'] .adviser-info-notice {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}

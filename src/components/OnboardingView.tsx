@@ -49,6 +49,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [contactNumber, setContactNumber] = useState(profile.contact_number ?? '');
     const [yearLevel, setYearLevel] = useState(profile.year_level ?? '');
     const [section, setSection] = useState(profile.section ?? '');
+    const [availableSections, setAvailableSections] = useState<{ id: string; name: string; course_code: string }[]>([]);
     const [course, setCourse] = useState(profile.course ?? '');
     const [department, setDepartment] = useState(profile.department ?? '');
     const [requiredHours, setRequiredHours] = useState(profile.required_ojt_hours ?? 500);
@@ -286,6 +287,11 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         });
         adminService.getDepartments().then(setDepartments);
         adminService.getCourses().then(setCourses);
+        supabase.from('sections').select('id, name, course_code').order('name').then(({ data }) => {
+            if (data && data.length > 0) {
+                setAvailableSections(data);
+            }
+        });
 
         return () => {
             isMounted = false;
@@ -837,18 +843,26 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                             value={section}
                                             onChange={setSection}
                                             placeholder="Select Section"
-                                            options={[
-                                                { value: 'A', label: 'A' },
-                                                { value: 'B', label: 'B' },
-                                                { value: 'C', label: 'C' },
-                                                { value: 'D', label: 'D' },
-                                                { value: 'E', label: 'E' },
-                                                { value: 'F', label: 'F' },
-                                                { value: 'G', label: 'G' },
-                                                { value: 'H', label: 'H' },
-                                                { value: 'I', label: 'I' },
-                                                { value: 'J', label: 'J' },
-                                            ]}
+                                            options={
+                                                availableSections.length > 0
+                                                    ? availableSections
+                                                        .filter(s => !course || !s.course_code || course.toUpperCase().includes(s.course_code.toUpperCase()))
+                                                        .map(s => ({ value: s.name, label: `${s.name} (${s.course_code})` }))
+                                                    : [
+                                                        { value: 'DHT-1A', label: 'DHT-1A (Hospitality Tech)' },
+                                                        { value: 'DHT-1B', label: 'DHT-1B (Hospitality Tech)' },
+                                                        { value: 'DHT-2A', label: 'DHT-2A (Hospitality Tech)' },
+                                                        { value: 'DHT-2B', label: 'DHT-2B (Hospitality Tech)' },
+                                                        { value: 'DIT-1A', label: 'DIT-1A (Information Tech)' },
+                                                        { value: 'DIT-1B', label: 'DIT-1B (Information Tech)' },
+                                                        { value: 'DIT-2A', label: 'DIT-2A (Information Tech)' },
+                                                        { value: 'DIT-2B', label: 'DIT-2B (Information Tech)' },
+                                                        { value: 'A', label: 'Section A' },
+                                                        { value: 'B', label: 'Section B' },
+                                                        { value: 'C', label: 'Section C' },
+                                                        { value: 'D', label: 'Section D' },
+                                                    ]
+                                            }
                                         />
                                     </div>
                                 </div>

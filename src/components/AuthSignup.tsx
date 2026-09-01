@@ -46,7 +46,11 @@ export default function AuthSignup() {
     const blockPaste = usePasteBlocker();
     // Read the portal role from URL search params (e.g. /login?portal=coordinator)
     const searchParams = new URLSearchParams(location.search);
-    const roleState = searchParams.get('portal') || undefined;
+    const roleFromUrl = searchParams.get('portal');
+    if (roleFromUrl) {
+        sessionStorage.setItem('active_portal_role', roleFromUrl);
+    }
+    const roleState = roleFromUrl || sessionStorage.getItem('active_portal_role') || undefined;
     const displayRole = roleState ? roleState.charAt(0).toUpperCase() + roleState.slice(1) : "";
 
     const [mode, setMode] = useState<"signup" | "login" | "forgot">("login");
@@ -94,9 +98,10 @@ export default function AuthSignup() {
         el.style.setProperty('--spot-y', `${e.clientY - rect.top}px`);
     };
 
-    const resolveAccountType = (): 'student' | 'coordinator' | 'admin' | 'company' => {
+    const resolveAccountType = (): 'student' | 'coordinator' | 'admin' | 'company' | 'adviser' => {
         if (roleState === 'company') return 'company';
         if (roleState === 'coordinator') return 'coordinator';
+        if (roleState === 'adviser') return 'adviser';
         if (roleState === 'admin') return 'admin';
         return 'student';
     };
@@ -352,7 +357,9 @@ export default function AuthSignup() {
                     ? '/admin'
                     : targetAccountType === 'coordinator'
                         ? '/coordinator'
-                        : '/';
+                        : targetAccountType === 'adviser'
+                            ? '/adviser'
+                            : '/';
             window.location.href = redirectPath;
         } catch (err: any) {
             setErrors(prev => ({ ...prev, otp: mapOtpError(err.message || '') }));
@@ -369,13 +376,27 @@ export default function AuthSignup() {
         setErrors({});
 
         try {
-            await signIn({ email: loginEmail, password, role: roleState as "student" | "coordinator" | "admin" | "company" | undefined });
+            await signIn({ email: loginEmail, password, role: roleState as "student" | "coordinator" | "admin" | "company" | "adviser" | undefined });
             sessionStorage.setItem('offer_passkey_enrollment', '1');
-            window.location.href = roleState === 'company' ? '/company' : roleState === 'coordinator' ? '/coordinator' : roleState === 'admin' ? '/admin' : '/';
+            window.location.href = roleState === 'company' 
+                ? '/company' 
+                : roleState === 'coordinator' 
+                    ? '/coordinator' 
+                    : roleState === 'adviser'
+                        ? '/adviser'
+                        : roleState === 'admin' 
+                            ? '/admin' 
+                            : '/';
         } catch (err: any) {
             let errorMsg = err.message || String(err);
             if (errorMsg.includes('ACCOUNT_PENDING')) {
-                errorMsg = "Your coordinator account is pending approval from an administrator.";
+                if (roleState === 'student') {
+                    errorMsg = "Your student account is pending approval from your section adviser.";
+                } else if (roleState === 'adviser') {
+                    errorMsg = "Your adviser account is pending activation from a coordinator.";
+                } else {
+                    errorMsg = "Your account is pending approval from an administrator.";
+                }
             } else if (errorMsg.includes('ACCOUNT_DEACTIVATED')) {
                 errorMsg = "Your account has been deactivated. Please contact an administrator.";
             } else if (errorMsg.includes('ACCOUNT_LOCKED')) {

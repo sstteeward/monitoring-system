@@ -3,8 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import "./App.css";
 import AuthSignup from "./components/AuthSignup";
 import StudentDashboard from "./components/StudentDashboard";
-import CoordinatorDashboard from "./components/CoordinatorDashboard";
 import AdminDashboard from "./components/AdminDashboard";
+import CoordinatorDashboard from "./components/CoordinatorDashboard";
+import AdviserDashboard from "./components/AdviserDashboard";
 import CompanyDashboard from "./components/CompanyDashboard";
 import PendingApprovalView from "./components/PendingApprovalView";
 
@@ -140,10 +141,25 @@ function AppContent() {
 
 
 
-  if (profile?.account_type === 'coordinator' && profile?.is_active === false) {
+  const isAdviserOnboarded = (p: any): boolean => {
+    if (!p) return false;
+    return Boolean(p.adviser_type && p.contact_number && p.birthday && (p.region_code || p.address));
+  };
+
+  // If an Adviser has not completed onboarding yet, route to Adviser Dashboard where AdviserOnboardingView will display
+  if (profile?.account_type === 'adviser' && !isAdviserOnboarded(profile)) {
     return (
       <Routes>
-        <Route path="/" element={<PendingApprovalView />} />
+        <Route path="/adviser/*" element={<AdviserDashboard />} />
+        <Route path="*" element={<Navigate to="/adviser" replace />} />
+      </Routes>
+    );
+  }
+
+  if ((profile?.account_type === 'coordinator' || profile?.account_type === 'adviser') && profile?.is_active === false) {
+    return (
+      <Routes>
+        <Route path="/" element={<PendingApprovalView profile={profile} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -153,12 +169,15 @@ function AppContent() {
     <Routes>
       <Route path="/admin/*" element={profile?.account_type === 'admin' ? <AdminDashboard /> : <Navigate to="/" />} />
       <Route path="/coordinator/*" element={profile?.account_type === 'coordinator' ? <CoordinatorDashboard /> : <Navigate to="/" />} />
+      <Route path="/adviser/*" element={profile?.account_type === 'adviser' ? <AdviserDashboard /> : <Navigate to="/" />} />
       <Route path="/company/*" element={profile?.account_type === 'company' ? <CompanyDashboard /> : <Navigate to="/" />} />
       <Route path="/*" element={
         profile?.account_type === 'admin' ? <Navigate to="/admin" /> :
         profile?.account_type === 'coordinator' ? <Navigate to="/coordinator" /> :
+        profile?.account_type === 'adviser' ? <Navigate to="/adviser" /> :
         profile?.account_type === 'company' ? <Navigate to="/company" /> :
-        <StudentDashboard />
+        profile?.account_type === 'student' ? <StudentDashboard /> :
+        <Navigate to="/login" replace />
       } />
     </Routes>
   );

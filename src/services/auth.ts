@@ -11,13 +11,15 @@ async function getClient() {
   }
 }
 
-export async function signUp({ email, password, firstName, middleName, lastName, accountType }: {
+export async function signUp({ email, password, firstName, middleName, lastName, accountType, course, adviserType }: {
   email: string;
   password: string;
   firstName?: string;
   middleName?: string;
   lastName?: string;
-  accountType?: 'student' | 'coordinator' | 'admin' | 'company';
+  accountType?: 'student' | 'coordinator' | 'admin' | 'company' | 'adviser';
+  course?: string;
+  adviserType?: 'HT Adviser' | 'IT Adviser';
 }) {
   const supabase = await getClient();
 
@@ -32,6 +34,8 @@ export async function signUp({ email, password, firstName, middleName, lastName,
         middle_name: middleName ?? null,
         last_name: lastName ?? null,
         account_type: accountType ?? 'student',
+        course: course ?? null,
+        adviser_type: adviserType ?? null,
       },
     },
   });
@@ -54,6 +58,8 @@ export async function signUp({ email, password, firstName, middleName, lastName,
   // the profile has the correct value, regardless of trigger timing.
   if (signUpData?.user) {
     const isCoordinator = accountType === 'coordinator';
+    const isAdviser = accountType === 'adviser';
+    const isStudent = accountType === 'student' || !accountType;
     const { error: profileError } = await supabase
       .from('profiles')
       .upsert(
@@ -64,7 +70,11 @@ export async function signUp({ email, password, firstName, middleName, lastName,
           middle_name: middleName ?? null,
           last_name: lastName ?? null,
           account_type: accountType ?? 'student',
-          is_active: isCoordinator ? false : true // Coordinators require admin approval
+          course: course ?? null,
+          adviser_type: adviserType ?? null,
+          // Coordinators and Advisers require approval; Students start pending until approved by adviser
+          is_active: (isCoordinator || isAdviser) ? false : (isStudent ? false : true),
+          approval_status: isStudent ? 'pending' : (isCoordinator || isAdviser ? 'pending' : 'approved')
         },
         { onConflict: 'auth_user_id', ignoreDuplicates: false }
       );
@@ -98,7 +108,7 @@ export async function signUp({ email, password, firstName, middleName, lastName,
   return signUpData;
 }
 
-export async function signIn({ email, password, role }: { email: string; password: string; role?: 'student' | 'coordinator' | 'admin' | 'company' }) {
+export async function signIn({ email, password, role }: { email: string; password: string; role?: 'student' | 'coordinator' | 'admin' | 'company' | 'adviser' }) {
   const supabase = await getClient();
 
   // 1. Attempt login first (bypassing RLS until authenticated)
@@ -128,7 +138,7 @@ export async function signIn({ email, password, role }: { email: string; passwor
   // 2. Fetch the profile NOW that we are authenticated (RLS will allow this)
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('is_active, locked_until, account_type')
+    .select('is_active, locked_until, account_type, approval_status')
     .eq('auth_user_id', data.user.id)
     .single();
 
@@ -144,7 +154,13 @@ export async function signIn({ email, password, role }: { email: string; passwor
       if (profile.account_type === 'coordinator') {
         throw new Error("ACCOUNT_PENDING: Your coordinator account is pending approval from an administrator.");
       }
-      throw new Error("ACCOUNT_DEACTIVATED: Your account has been deactivated by an admin.");
+      if (profile.account_type === 'adviser') {
+        throw new Error("ACCOUNT_PENDING: Your adviser account is pending activation from a coordinator.");
+      }
+      if (profile.account_type === 'student') {
+        throw new Error("ACCOUNT_PENDING: Your student account is pending approval from your section adviser.");
+      }
+      throw new Error("ACCOUNT_DEACTIVATED: Your account has been deactivated. Please contact an administrator.");
     }
 
     if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
@@ -153,8 +169,8 @@ export async function signIn({ email, password, role }: { email: string; passwor
     }
 
     if (role && profile.account_type !== role) {
-      // Allow admins to log in via the coordinator portal
-      if (!(role === 'coordinator' && profile.account_type === 'admin')) {
+      // Allow admins to log in via coordinator or adviser portal
+      if (!((role === 'coordinator' || role === 'adviser') && profile.account_type === 'admin')) {
         throw new Error('Access Denied: Your account is not authorized for this portal.');
       }
     }
@@ -232,7 +248,7 @@ export async function signIn({ email, password, role }: { email: string; passwor
 }
 
 /** Verifies that a session issued by Supabase Passkeys is valid, active, not locked, and authorized for the requested portal. */
-export async function validatePasskeySession(expectedRole?: 'student' | 'coordinator' | 'admin' | 'company') {
+export async function validatePasskeySession(expectedRole?: 'student' | 'coordinator' | 'admin' | 'company' | 'adviser') {
   const supabase = await getClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) throw new Error('Passkey sign-in could not be verified.');
@@ -253,6 +269,12 @@ export async function validatePasskeySession(expectedRole?: 'student' | 'coordin
     if (profile.account_type === 'coordinator') {
       throw new Error('ACCOUNT_PENDING: Your coordinator account is pending approval from an administrator.');
     }
+    if (profile.account_type === 'adviser') {
+      throw new Error('ACCOUNT_PENDING: Your adviser account is pending activation from a coordinator.');
+    }
+    if (profile.account_type === 'student') {
+      throw new Error('ACCOUNT_PENDING: Your student account is pending approval from your section adviser.');
+    }
     throw new Error('ACCOUNT_DEACTIVATED: Your account has been deactivated. Please contact an administrator.');
   }
 
@@ -263,8 +285,8 @@ export async function validatePasskeySession(expectedRole?: 'student' | 'coordin
   }
 
   if (expectedRole && profile.account_type !== expectedRole) {
-    // Allow admins to access coordinator portal if needed, mirroring password login
-    if (!(expectedRole === 'coordinator' && profile.account_type === 'admin')) {
+    // Allow admins to access coordinator/adviser portal if needed, mirroring password login
+    if (!((expectedRole === 'coordinator' || expectedRole === 'adviser') && profile.account_type === 'admin')) {
       await supabase.auth.signOut();
       throw new Error(`Access Denied: This passkey belongs to a ${profile.account_type} account and is not authorized for the ${expectedRole} portal.`);
     }

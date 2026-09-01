@@ -8,7 +8,7 @@ export interface Profile {
     first_name: string | null;
     middle_name?: string | null;
     last_name: string | null;
-    account_type: 'student' | 'coordinator' | 'admin' | 'company';
+    account_type: 'student' | 'coordinator' | 'admin' | 'company' | 'adviser';
     required_ojt_hours: number;
     absences: number;
     company_id: string | null;
@@ -36,6 +36,12 @@ export interface Profile {
     course?: string | null;
     department?: string | null;
     grade?: string | null;
+    // Adviser & Approval fields
+    adviser_type?: 'HT Adviser' | 'IT Adviser' | string | null;
+    approval_status?: 'pending' | 'approved' | 'rejected' | 'correction_requested' | null;
+    adviser_remarks?: string | null;
+    approved_by?: string | null;
+    approved_at?: string | null;
     // Signature
     coordinator_signature?: string | null;
     // Enterprise fields
