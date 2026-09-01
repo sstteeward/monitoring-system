@@ -184,11 +184,9 @@ const CoordinatorAdvisersView: React.FC = () => {
     const openAssignModal = (section?: SectionItem, preselectedAdviser?: AdviserWithSections) => {
         setError(null);
         if (section) {
-            setSelectedSection(section);
             setAssignSectionId(section.id);
             setAssignAdviserId(section.adviser_id || '');
         } else {
-            setSelectedSection(null);
             setAssignSectionId(sections[0]?.id || '');
             setAssignAdviserId(preselectedAdviser?.auth_user_id || '');
         }
