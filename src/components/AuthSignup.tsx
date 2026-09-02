@@ -351,8 +351,8 @@ export default function AuthSignup() {
             setInfoMessage("✅ Account created! Redirecting...");
             setEmailVerified(true);
             sessionStorage.setItem('fresh_registration', '1');
-            const redirectPath = targetAccountType === 'company'
-                ? '/company'
+            const redirectPath = targetAccountType === 'student'
+                ? '/student'
                 : targetAccountType === 'admin'
                     ? '/admin'
                     : targetAccountType === 'coordinator'
