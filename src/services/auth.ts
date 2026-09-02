@@ -1,6 +1,8 @@
 // Lazy-load the Supabase client to avoid module import-time crashes when env vars are missing.
 import { generateDeviceFingerprint, getDeviceLabel } from '../utils/deviceFingerprint';
 
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 async function getClient() {
   try {
     const mod = await import('../lib/supabaseClient');
@@ -22,11 +24,12 @@ export async function signUp({ email, password, firstName, middleName, lastName,
   adviserType?: 'HT Adviser' | 'IT Adviser';
 }) {
   const supabase = await getClient();
+  const normalizedEmail = normalizeEmail(email);
 
   // Sign up the user — the DB trigger `on_auth_user_created` will automatically
   // insert a row into public.profiles, so we don't need to insert manually.
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
+    email: normalizedEmail,
     password,
     options: {
       data: {
@@ -65,7 +68,7 @@ export async function signUp({ email, password, firstName, middleName, lastName,
       .upsert(
         {
           auth_user_id: signUpData.user.id,
-          email: email.toLowerCase(),
+          email: normalizedEmail,
           first_name: firstName ?? null,
           middle_name: middleName ?? null,
           last_name: lastName ?? null,
@@ -110,23 +113,28 @@ export async function signUp({ email, password, firstName, middleName, lastName,
 
 export async function signIn({ email, password, role }: { email: string; password: string; role?: 'student' | 'coordinator' | 'admin' | 'company' | 'adviser' }) {
   const supabase = await getClient();
+  const normalizedEmail = normalizeEmail(email);
 
   // 1. Attempt login first (bypassing RLS until authenticated)
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
 
   if (error) {
     if (error.message.includes('Invalid login credentials')) {
-      await supabase.rpc('increment_failed_login', { user_email: email.toLowerCase() });
+      try {
+        await supabase.rpc('increment_failed_login', { user_email: normalizedEmail });
+      } catch (rpcError) {
+        console.warn('[Auth] Failed to record failed login attempt:', rpcError);
+      }
     }
     try {
       const { createAuditLog } = await import('./auditService');
       await createAuditLog({
         action: 'LOGIN_FAILED',
         module: 'Authentication',
-        description: `Failed login attempt for ${email}: ${error.message}`,
+        description: `Failed login attempt for ${normalizedEmail}: ${error.message}`,
         overrideUser: {
           userId: '',
-          userName: email,
+          userName: normalizedEmail,
           userRole: 'guest'
         },
         status: 'failed'
@@ -150,14 +158,16 @@ export async function signIn({ email, password, role }: { email: string; passwor
 
   // 3. Perform security and role checks
   try {
+    const profileAccountType = profile.account_type?.trim().toLowerCase();
+
     if (profile.is_active === false) {
-      if (profile.account_type === 'coordinator') {
+      if (profileAccountType === 'coordinator') {
         throw new Error("ACCOUNT_PENDING: Your coordinator account is pending approval from an administrator.");
       }
-      if (profile.account_type === 'adviser') {
+      if (profileAccountType === 'adviser') {
         throw new Error("ACCOUNT_PENDING: Your adviser account is pending activation from a coordinator.");
       }
-      if (profile.account_type === 'student') {
+      if (profileAccountType === 'student') {
         throw new Error("ACCOUNT_PENDING: Your student account is pending approval from your section adviser.");
       }
       throw new Error("ACCOUNT_DEACTIVATED: Your account has been deactivated. Please contact an administrator.");
@@ -168,25 +178,25 @@ export async function signIn({ email, password, role }: { email: string; passwor
       throw new Error(`ACCOUNT_LOCKED: Too many failed attempts. Try again after ${unlockTime}.`);
     }
 
-    if (role && profile.account_type !== role) {
+    if (role && profileAccountType !== role) {
       // Allow admins to log in via coordinator or adviser portal
-      if (!((role === 'coordinator' || role === 'adviser') && profile.account_type === 'admin')) {
+      if (!((role === 'coordinator' || role === 'adviser') && profileAccountType === 'admin')) {
         throw new Error('Access Denied: Your account is not authorized for this portal.');
       }
     }
 
     // 4. On absolute success, reset failed attempts
-    await supabase.rpc('reset_failed_login', { user_email: email.toLowerCase() });
+    await supabase.rpc('reset_failed_login', { user_email: normalizedEmail });
 
     try {
       const { createAuditLog } = await import('./auditService');
       await createAuditLog({
         action: 'LOGIN',
         module: 'Authentication',
-        description: `Successfully signed in as ${email}`,
+        description: `Successfully signed in as ${normalizedEmail}`,
         overrideUser: {
           userId: data.user.id,
-          userName: email,
+          userName: normalizedEmail,
           userRole: profile.account_type || 'unknown'
         }
       });
@@ -362,7 +372,8 @@ export async function signOut() {
 
 export async function resetPasswordForEmail(email: string) {
   const supabase = await getClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  const normalizedEmail = normalizeEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
     redirectTo: `${window.location.origin}/change-password`,
   });
   if (error) {
@@ -371,8 +382,8 @@ export async function resetPasswordForEmail(email: string) {
       await createAuditLog({
         action: 'PASSWORD_RESET',
         module: 'Authentication',
-        description: `Failed to request password reset for ${email}: ${error.message}`,
-        overrideUser: { userId: '', userName: email, userRole: 'guest' },
+        description: `Failed to request password reset for ${normalizedEmail}: ${error.message}`,
+        overrideUser: { userId: '', userName: normalizedEmail, userRole: 'guest' },
         status: 'failed'
       });
     } catch {}

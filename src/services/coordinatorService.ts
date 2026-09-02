@@ -1530,12 +1530,13 @@ export const coordinatorService = {
         adviserType: 'HT Adviser' | 'IT Adviser';
     }) {
         const adviserType = data.course === 'DHT' ? 'HT Adviser' : 'IT Adviser';
+        const normalizedEmail = data.email.trim().toLowerCase();
         
         // 1. Check if user already exists
         const { data: existingUser } = await supabase
             .from('profiles')
             .select('id, auth_user_id')
-            .eq('email', data.email.toLowerCase().trim())
+            .eq('email', normalizedEmail)
             .maybeSingle();
 
         if (existingUser) {
@@ -1559,7 +1560,7 @@ export const coordinatorService = {
         // 2. Sign up via Supabase Auth
         const tempPassword = data.password || 'Adviser@12345';
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: data.email.trim(),
+            email: normalizedEmail,
             password: tempPassword,
             options: {
                 data: {
@@ -1581,7 +1582,7 @@ export const coordinatorService = {
             // Upsert profile row to guarantee fields are set
             await supabase.from('profiles').upsert({
                 auth_user_id: signUpData.user.id,
-                email: data.email.toLowerCase().trim(),
+                email: normalizedEmail,
                 first_name: data.firstName.trim(),
                 last_name: data.lastName.trim(),
                 account_type: 'adviser',
@@ -1789,4 +1790,3 @@ export const coordinatorService = {
         return this.assignAdviserToSection(newAdviserId, sectionId);
     }
 };
-

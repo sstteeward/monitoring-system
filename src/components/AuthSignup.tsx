@@ -175,7 +175,7 @@ export default function AuthSignup() {
         setErrors(prev => ({ ...prev, signupEmail: '' }));
         try {
             const { error } = await supabase.auth.signInWithOtp({
-                email: signupEmail.trim(),
+                email: signupEmail.trim().toLowerCase(),
                 options: {
                     shouldCreateUser: true,
                     // Profile is created by the auth trigger at this moment.
@@ -274,7 +274,7 @@ export default function AuthSignup() {
         try {
             // Step 1: Verify OTP — this logs the user in with a magic-link session
             const { error: verifyError } = await supabase.auth.verifyOtp({
-                email: signupEmail.trim(),
+                email: signupEmail.trim().toLowerCase(),
                 token: combinedOtp,
                 type: 'email',
             });
