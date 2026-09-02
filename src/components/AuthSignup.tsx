@@ -99,7 +99,7 @@ export default function AuthSignup() {
     };
 
     const resolveAccountType = (): 'student' | 'coordinator' | 'admin' | 'company' | 'adviser' => {
-        if (roleState === 'company') return 'company';
+        if (roleState === 'student') return 'student';
         if (roleState === 'coordinator') return 'coordinator';
         if (roleState === 'adviser') return 'adviser';
         if (roleState === 'admin') return 'admin';
