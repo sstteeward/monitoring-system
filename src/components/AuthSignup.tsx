@@ -378,8 +378,8 @@ export default function AuthSignup() {
         try {
             await signIn({ email: loginEmail, password, role: roleState as "student" | "coordinator" | "admin" | "company" | "adviser" | undefined });
             sessionStorage.setItem('offer_passkey_enrollment', '1');
-            window.location.href = roleState === 'company' 
-                ? '/company' 
+            window.location.href = roleState === 'student' 
+                ? '/student' 
                 : roleState === 'coordinator' 
                     ? '/coordinator' 
                     : roleState === 'adviser'
