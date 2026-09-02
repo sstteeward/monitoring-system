@@ -1,17 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import { profileService, type Profile } from '../services/profileService';
 import { supabase } from '../lib/supabaseClient';
+import NameFieldsGroup from './onboarding/NameFieldsGroup';
+import AddressLevelsSelector from './onboarding/AddressLevelsSelector';
+import { addressLevelsFromProfile, useAddressLevels } from './onboarding/useAddressLevels';
+import {
+    addressLevelsToProfileColumns,
+    formatFullName,
+    getAgeCutoffDate,
+    nameLevelsToProfileColumns,
+    validateAddressLevels,
+    validateBirthday,
+    validateContactNumber,
+    validateNameLevels,
+    type FieldChrome,
+    type NameLevels,
+} from './onboarding/onboardingFields';
 
 interface CoordinatorProfileViewProps {
     initialProfile: Profile | null;
     onProfileUpdated?: (p: Profile) => void;
 }
 
+const nameLevelsFromProfile = (p: Profile | null): NameLevels => ({
+    firstName: p?.first_name ?? '',
+    middleName: p?.middle_name ?? '',
+    lastName: p?.last_name ?? '',
+    suffix: p?.suffix ?? '',
+});
+
 const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initialProfile, onProfileUpdated }) => {
     const [profile, setProfile] = useState<Profile | null>(initialProfile);
-    const [firstName, setFirstName] = useState(initialProfile?.first_name ?? '');
-    const [lastName, setLastName] = useState(initialProfile?.last_name ?? '');
+    const [name, setName] = useState<NameLevels>(() => nameLevelsFromProfile(initialProfile));
+    const [birthday, setBirthday] = useState(initialProfile?.birthday ?? '');
+    const [contactNumber, setContactNumber] = useState(initialProfile?.contact_number ?? '');
     const [email, setEmail] = useState(initialProfile?.email ?? '');
+
+    // Address by level — same structure as Adviser, Student and Company onboarding.
+    const addressLevels = useAddressLevels(addressLevelsFromProfile(initialProfile));
     const [avatarUrl, setAvatarUrl] = useState<string | null>(initialProfile?.avatar_url ?? null);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [saving, setSaving] = useState(false);
@@ -24,10 +50,12 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
             profileService.getCurrentProfile().then(p => {
                 if (p) {
                     setProfile(p);
-                    setFirstName(p.first_name ?? '');
-                    setLastName(p.last_name ?? '');
+                    setName(nameLevelsFromProfile(p));
+                    setBirthday(p.birthday ?? '');
+                    setContactNumber(p.contact_number ?? '');
                     setEmail(p.email ?? '');
                     setAvatarUrl(p.avatar_url ?? null);
+                    addressLevels.setAddress(addressLevelsFromProfile(p));
                 }
             });
         }
@@ -43,6 +71,16 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        // Shared rules — identical to Student, Adviser and Company onboarding.
+        const validationError = validateNameLevels(name)
+            ?? validateBirthday(birthday)
+            ?? validateContactNumber(contactNumber)
+            ?? validateAddressLevels(addressLevels.address);
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
         setSaving(true);
         setSuccess(false);
         setError(null);
@@ -52,11 +90,34 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
                 currentAvatarUrl = await profileService.uploadAvatar(avatarFile);
             }
 
-            await profileService.updateProfile({
-                first_name: firstName,
-                last_name: lastName,
-                avatar_url: currentAvatarUrl,
-            });
+            const nameColumns = nameLevelsToProfileColumns(name);
+            const addressColumns = addressLevelsToProfileColumns(addressLevels.address);
+
+            try {
+                await profileService.updateProfile({
+                    ...nameColumns,
+                    birthday: birthday || null,
+                    contact_number: contactNumber.trim(),
+                    ...addressColumns,
+                    avatar_url: currentAvatarUrl,
+                });
+            } catch (saveErr: unknown) {
+                const message = (saveErr instanceof Error ? saveErr.message : String(saveErr ?? '')).toLowerCase();
+                const isMissingColumn = message.includes('could not find')
+                    || message.includes('schema cache')
+                    || message.includes('does not exist');
+                if (!isMissingColumn) throw saveErr;
+
+                // Database has not run the by-level migration yet — save what it can hold.
+                const { suffix: _suffix, ...legacyName } = nameColumns;
+                await profileService.updateProfile({
+                    ...legacyName,
+                    birthday: birthday || null,
+                    contact_number: contactNumber.trim(),
+                    address: addressColumns.address,
+                    avatar_url: currentAvatarUrl,
+                });
+            }
             setSuccess(true);
             const updated = await profileService.getCurrentProfile();
             if (updated) {
@@ -72,7 +133,7 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
         }
     };
 
-    const initials = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || '?';
+    const initials = `${name.firstName[0] ?? ''}${name.lastName[0] ?? ''}`.toUpperCase() || '?';
     const joinDate = profile?.created_at
         ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
         : '—';
@@ -101,6 +162,21 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
     };
 
     const cardStyle: React.CSSProperties = { borderRadius: '16px' };
+
+    /** Coordinator styling passed into the shared field components. */
+    const nameChrome: FieldChrome = {
+        group: 'form-field-row cols-4',
+        labelStyle,
+        inputStyle,
+        requiredMark: ' *',
+    };
+
+    const addressChrome: FieldChrome = {
+        group: 'form-field-row cols-2',
+        labelStyle,
+        inputStyle,
+        requiredMark: ' *',
+    };
 
     return (
         <div className="view-container fade-in">
@@ -139,8 +215,8 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
 
                     <div style={{ textAlign: 'center' }} className="profile-hero-text">
                         <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-bright)' }}>
-                            {firstName && !firstName.includes('@')
-                                ? `${firstName} ${lastName}`.trim()
+                            {name.firstName && !name.firstName.includes('@')
+                                ? formatFullName(name)
                                 : email
                                     ? email.split('@')[0].split(/[._-]/).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
                                     : 'Coordinator'}
@@ -169,29 +245,37 @@ const CoordinatorProfileView: React.FC<CoordinatorProfileViewProps> = ({ initial
                 <div className="glass-card" style={{ ...cardStyle, padding: '1.75rem 2rem' }}>
                     <h3 style={{ margin: '0 0 1.5rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)' }}>Personal Information</h3>
                     <form onSubmit={handleSave}>
-                        <div className="profile-name-grid">
+                        {/* Name by level — shared with Student, Adviser and Company onboarding */}
+                        <div style={{ marginBottom: '1.25rem' }}>
+                            <NameFieldsGroup value={name} onChange={setName} chrome={nameChrome} />
+                        </div>
+
+                        <div className="form-field-row cols-2" style={{ marginBottom: '1.25rem' }}>
                             <div>
-                                <label style={labelStyle}>First Name</label>
+                                <label style={labelStyle}>Birthday *</label>
                                 <input
                                     style={inputStyle}
-                                    value={firstName}
-                                    onChange={e => setFirstName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))}
-                                    placeholder="First name"
-                                    onFocus={e => { e.target.style.borderColor = '#10b981'; e.target.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.12)'; }}
-                                    onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+                                    type="date"
+                                    value={birthday}
+                                    max={getAgeCutoffDate()}
+                                    onChange={e => setBirthday(e.target.value)}
                                 />
                             </div>
                             <div>
-                                <label style={labelStyle}>Last Name</label>
+                                <label style={labelStyle}>Contact No. *</label>
                                 <input
                                     style={inputStyle}
-                                    value={lastName}
-                                    onChange={e => setLastName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))}
-                                    placeholder="Last name"
-                                    onFocus={e => { e.target.style.borderColor = '#10b981'; e.target.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.12)'; }}
-                                    onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+                                    type="tel"
+                                    value={contactNumber}
+                                    onChange={e => setContactNumber(e.target.value)}
+                                    placeholder="e.g. 0912..."
                                 />
                             </div>
+                        </div>
+
+                        {/* Address by level — shared with Student, Adviser and Company onboarding */}
+                        <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <AddressLevelsSelector levels={addressLevels} chrome={addressChrome} />
                         </div>
 
                         <div style={{ marginBottom: '1.25rem' }}>

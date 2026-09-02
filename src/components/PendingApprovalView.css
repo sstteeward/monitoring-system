@@ -1,0 +1,310 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PENDING APPROVAL — status page for students, advisers and
+   coordinators whose account is awaiting review.
+
+   Shares the SIL Monitoring onboarding look: emerald brand, rounded
+   card, soft shadow, clean typography. Every colour here is a literal
+   or a token that actually exists in index.css — the previous version
+   referenced --bg-primary and --shadow-lg, which are not defined, so
+   the page rendered with no background and no shadow.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.pav-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem 2.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--bg-page, #f8fafc);
+  color: var(--text-primary, #0f172a);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.pav-card {
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+  margin: auto;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+@media (min-width: 480px) {
+  .pav-card {
+    padding: 2.5rem;
+  }
+}
+
+/* ── Status icon ──────────────────────────────────────────────────── */
+
+.pav-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #b45309;
+}
+
+.pav-icon.rejected {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+/* ── Heading + status chip ────────────────────────────────────────── */
+
+.pav-title {
+  margin: 0;
+  font-size: clamp(1.25rem, 5vw, 1.5rem);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-bright, #0f172a);
+  overflow-wrap: break-word;
+}
+
+.pav-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.pav-chip.rejected {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.pav-chip .pav-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+/* ── Body copy ────────────────────────────────────────────────────── */
+
+.pav-body {
+  margin: 1.25rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  color: var(--text-secondary, #334155);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.pav-body p {
+  margin: 0;
+}
+
+/* ── Adviser / section meta ───────────────────────────────────────── */
+
+.pav-meta {
+  margin-top: 1.25rem;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(16, 185, 129, 0.05);
+  text-align: left;
+}
+
+.pav-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.95rem;
+}
+
+.pav-meta-row + .pav-meta-row {
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+
+.pav-meta-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+  flex: 0 0 auto;
+}
+
+.pav-meta-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #047857;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* ── Adviser rejection remarks ────────────────────────────────────── */
+
+.pav-remarks {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #b91c1c;
+  font-size: 0.87rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.pav-remarks-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+/* ── Action ───────────────────────────────────────────────────────── */
+
+.pav-actions {
+  margin-top: 1.75rem;
+}
+
+.pav-btn {
+  width: 100%;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.85rem 1.5rem;
+  border: 1px solid #047857;
+  border-radius: 12px;
+  /*
+   * Flat colour, not a gradient image — see the note on `button` in index.css.
+   * #047857 is the SIL emerald at the shade where white label text clears
+   * WCAG AA (5.5:1). The brand #10b981 only reaches 2.6:1 against white, which
+   * is what made this label hard to read even once the background showed up.
+   */
+  background-color: #047857;
+  background-image: none;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.3);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.pav-btn:hover {
+  background-color: #065f46;
+  border-color: #065f46;
+  box-shadow: 0 6px 18px rgba(4, 120, 87, 0.4);
+}
+
+.pav-btn:active {
+  background-color: #064e3b;
+  border-color: #064e3b;
+  box-shadow: 0 2px 8px rgba(4, 120, 87, 0.35);
+  transform: translateY(1px);
+}
+
+.pav-btn:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.45);
+  outline-offset: 2px;
+}
+
+.pav-footnote {
+  margin: 1rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-dim, #64748b);
+  line-height: 1.5;
+}
+
+/* ── Dark mode ────────────────────────────────────────────────────── */
+
+html[data-theme='dark'] .pav-card {
+  background: #111827;
+  border-color: #1f2937;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme='dark'] .pav-title {
+  color: #f9fafb;
+}
+
+html[data-theme='dark'] .pav-body {
+  color: #cbd5e1;
+}
+
+html[data-theme='dark'] .pav-icon {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
+}
+
+html[data-theme='dark'] .pav-icon.rejected {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #f87171;
+}
+
+html[data-theme='dark'] .pav-chip {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+html[data-theme='dark'] .pav-chip.rejected {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+html[data-theme='dark'] .pav-meta {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #1f2937;
+}
+
+html[data-theme='dark'] .pav-meta-row + .pav-meta-row {
+  border-top-color: #1f2937;
+}
+
+html[data-theme='dark'] .pav-meta-label {
+  color: #9ca3af;
+}
+
+html[data-theme='dark'] .pav-meta-value {
+  color: #34d399;
+}
+
+html[data-theme='dark'] .pav-remarks {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}

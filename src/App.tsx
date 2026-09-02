@@ -16,6 +16,7 @@ import { DTRCard } from "./components/DTRCard";
 import LandingPage from "./components/LandingPage";
 import { pushNotificationService } from "./services/pushNotificationService";
 import { profileService } from "./services/profileService";
+import { getPostAuthRedirect, normalizeAccountType } from "./utils/authRedirect";
 
 function AppContent() {
   const [session, setSession] = useState<any>(null);
@@ -146,8 +147,12 @@ function AppContent() {
     return Boolean(p.adviser_type && p.contact_number && p.birthday && (p.region_code || p.address));
   };
 
+  // Compare on the normalized role everywhere so casing/whitespace drift in the DB
+  // ("Student" vs "student") cannot knock a user into the wrong portal.
+  const role = normalizeAccountType(profile?.account_type);
+
   // If an Adviser has not completed onboarding yet, route to Adviser Dashboard where AdviserOnboardingView will display
-  if (profile?.account_type === 'adviser' && !isAdviserOnboarded(profile)) {
+  if (role === 'adviser' && !isAdviserOnboarded(profile)) {
     return (
       <Routes>
         <Route path="/adviser/*" element={<AdviserDashboard />} />
@@ -156,7 +161,7 @@ function AppContent() {
     );
   }
 
-  if ((profile?.account_type === 'coordinator' || profile?.account_type === 'adviser') && profile?.is_active === false) {
+  if ((role === 'coordinator' || role === 'adviser') && profile?.is_active === false) {
     return (
       <Routes>
         <Route path="/" element={<PendingApprovalView profile={profile} />} />
@@ -165,20 +170,30 @@ function AppContent() {
     );
   }
 
+  // A session with no recognizable role has nowhere safe to go — send it back to login
+  // rather than letting it fall through into a portal.
+  if (!role) {
+    console.error('[auth-redirect] Signed-in profile has an unrecognized account_type:', profile?.account_type);
+    return (
+      <Routes>
+        <Route path="*" element={<AuthSignup />} />
+      </Routes>
+    );
+  }
+
+  // The signed-in account's own portal root — used for every unmatched/unauthorized path.
+  const homePath = getPostAuthRedirect(role);
+
   return (
     <Routes>
-      <Route path="/admin/*" element={profile?.account_type === 'admin' ? <AdminDashboard /> : <Navigate to="/" />} />
-      <Route path="/coordinator/*" element={profile?.account_type === 'coordinator' ? <CoordinatorDashboard /> : <Navigate to="/" />} />
-      <Route path="/adviser/*" element={profile?.account_type === 'adviser' ? <AdviserDashboard /> : <Navigate to="/" />} />
-      <Route path="/company/*" element={profile?.account_type === 'company' ? <CompanyDashboard /> : <Navigate to="/" />} />
-      <Route path="/*" element={
-        profile?.account_type === 'admin' ? <Navigate to="/admin" /> :
-        profile?.account_type === 'coordinator' ? <Navigate to="/coordinator" /> :
-        profile?.account_type === 'adviser' ? <Navigate to="/adviser" /> :
-        profile?.account_type === 'company' ? <Navigate to="/company" /> :
-        profile?.account_type === 'student' ? <StudentDashboard /> :
-        <Navigate to="/login" replace />
-      } />
+      <Route path="/admin/*" element={role === 'admin' ? <AdminDashboard /> : <Navigate to={homePath} replace />} />
+      <Route path="/coordinator/*" element={role === 'coordinator' ? <CoordinatorDashboard /> : <Navigate to={homePath} replace />} />
+      <Route path="/adviser/*" element={role === 'adviser' ? <AdviserDashboard /> : <Navigate to={homePath} replace />} />
+      <Route path="/company/*" element={role === 'company' ? <CompanyDashboard /> : <Navigate to={homePath} replace />} />
+      <Route path="/student/*" element={role === 'student' ? <StudentDashboard /> : <Navigate to={homePath} replace />} />
+      {/* Every other path lands on the signed-in role's own portal. No role falls through
+          to another portal — an unknown account_type goes back to login. */}
+      <Route path="/*" element={<Navigate to={homePath} replace />} />
     </Routes>
   );
 }

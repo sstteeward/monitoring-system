@@ -303,6 +303,36 @@
   min-width: 0;
 }
 
+/* Name by level: First / Middle / Last / Suffix — suffix is narrower. */
+.company-onboarding-field-grid-4 {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.6fr);
+}
+
+/* Wrapper for one field rendered by the shared onboarding components. */
+.company-onboarding-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--form-label-gap);
+  min-width: 0;
+}
+
+/* Groups the by-level fields under one heading (Office address, Contact person). */
+.company-onboarding-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--form-row-gap);
+  min-width: 0;
+}
+
+.company-onboarding-subsection-title {
+  margin: 0;
+  color: var(--text-muted, #a3a3a3);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .company-onboarding-info-callout {
   display: flex;
   align-items: flex-start;

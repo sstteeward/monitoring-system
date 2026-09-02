@@ -8,6 +8,8 @@ import { formatPasskeyError, isPasskeySupported, signInWithPasskey } from "../se
 import { supabase } from "../lib/supabaseClient";
 import { passwordRequirementLabels, passwordRequirementsMessage, validatePassword } from "../utils/passwordRules";
 import { saveRegistrationName } from "../utils/registrationName";
+import { getPostAuthRedirect, logRedirectDecision, normalizeAccountType } from "../utils/authRedirect";
+import type { AccountType } from "../utils/authRedirect";
 
 const PasskeyIcon = () => (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -98,13 +100,9 @@ export default function AuthSignup() {
         el.style.setProperty('--spot-y', `${e.clientY - rect.top}px`);
     };
 
-    const resolveAccountType = (): 'student' | 'coordinator' | 'admin' | 'company' | 'adviser' => {
-        if (roleState === 'student') return 'student';
-        if (roleState === 'coordinator') return 'coordinator';
-        if (roleState === 'adviser') return 'adviser';
-        if (roleState === 'admin') return 'admin';
-        return 'student';
-    };
+    // The portal the account is being created for. `company` was missing here, so
+    // company signups were silently written to the DB as students.
+    const resolveAccountType = (): AccountType => normalizeAccountType(roleState) ?? 'student';
 
     // Recover portal access-denied errors that were saved before sign-out redirect
     useEffect(() => {
@@ -347,19 +345,32 @@ export default function AuthSignup() {
                 }
             }
 
-            // Session is now live — go straight to onboarding (student) or portal home
+            // Session is now live — send the new account to its own portal, where that
+            // role's onboarding flow is rendered (admin/coordinator have no onboarding step).
             setInfoMessage("✅ Account created! Redirecting...");
             setEmailVerified(true);
             sessionStorage.setItem('fresh_registration', '1');
-            const redirectPath = targetAccountType === 'student'
-                ? '/student'
-                : targetAccountType === 'admin'
-                    ? '/admin'
-                    : targetAccountType === 'coordinator'
-                        ? '/coordinator'
-                        : targetAccountType === 'adviser'
-                            ? '/adviser'
-                            : '/';
+
+            // Redirect on the role that was actually persisted, not on local state, so a
+            // failed/partial profile write can never drop the user into another portal.
+            let persistedProfile: Record<string, any> | null = null;
+            if (user) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('account_type, company_id, course, department, year_level, adviser_type, contact_number, birthday, region_code, address')
+                    .eq('auth_user_id', user.id)
+                    .maybeSingle();
+                persistedProfile = data ?? null;
+            }
+
+            const effectiveAccountType =
+                normalizeAccountType(persistedProfile?.account_type) ?? targetAccountType;
+            const redirectPath = getPostAuthRedirect(effectiveAccountType);
+            logRedirectDecision(
+                'signup:verify-otp',
+                { ...(persistedProfile ?? {}), account_type: effectiveAccountType },
+                redirectPath
+            );
             window.location.href = redirectPath;
         } catch (err: any) {
             setErrors(prev => ({ ...prev, otp: mapOtpError(err.message || '') }));
@@ -376,17 +387,24 @@ export default function AuthSignup() {
         setErrors({});
 
         try {
-            await signIn({ email: loginEmail, password, role: roleState as "student" | "coordinator" | "admin" | "company" | "adviser" | undefined });
+            const { user: signedInUser } = await signIn({ email: loginEmail, password, role: normalizeAccountType(roleState) ?? undefined });
             sessionStorage.setItem('offer_passkey_enrollment', '1');
-            window.location.href = roleState === 'student' 
-                ? '/student' 
-                : roleState === 'coordinator' 
-                    ? '/coordinator' 
-                    : roleState === 'adviser'
-                        ? '/adviser'
-                        : roleState === 'admin' 
-                            ? '/admin' 
-                            : '/';
+
+            // Returning users go to their own portal. Read the role off the profile rather
+            // than the portal URL — an admin may sign in through the coordinator/adviser portal.
+            let loginProfile: Record<string, any> | null = null;
+            if (signedInUser) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('account_type')
+                    .eq('auth_user_id', signedInUser.id)
+                    .maybeSingle();
+                loginProfile = data ?? null;
+            }
+            const loginRole = normalizeAccountType(loginProfile?.account_type) ?? normalizeAccountType(roleState);
+            const loginRedirect = getPostAuthRedirect(loginRole);
+            logRedirectDecision('login:password', { account_type: loginRole }, loginRedirect);
+            window.location.href = loginRedirect;
         } catch (err: any) {
             let errorMsg = err.message || String(err);
             if (errorMsg.includes('ACCOUNT_PENDING')) {
@@ -426,19 +444,13 @@ export default function AuthSignup() {
         setInfoMessage(null);
         try {
             await signInWithPasskey();
-            const expectedRole = roleState as "student" | "coordinator" | "admin" | "company" | undefined;
+            const expectedRole = normalizeAccountType(roleState) ?? undefined;
             const { profile } = await validatePasskeySession(expectedRole);
-            
+
             // Redirect user to the corresponding portal dashboard based on account type
-            if (profile?.account_type === 'admin') {
-                window.location.href = '/admin';
-            } else if (profile?.account_type === 'coordinator') {
-                window.location.href = '/coordinator';
-            } else if (profile?.account_type === 'company') {
-                window.location.href = '/company';
-            } else {
-                window.location.href = '/';
-            }
+            const passkeyRedirect = getPostAuthRedirect(profile?.account_type);
+            logRedirectDecision('login:passkey', profile, passkeyRedirect);
+            window.location.href = passkeyRedirect;
         } catch (err: unknown) {
             let message = formatPasskeyError(err, 'Passkey sign-in was not completed.');
             if (message.includes('ACCOUNT_PENDING')) {

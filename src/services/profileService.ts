@@ -8,6 +8,8 @@ export interface Profile {
     first_name: string | null;
     middle_name?: string | null;
     last_name: string | null;
+    /** Name suffix captured by level (Jr., Sr., III). Never appended to last_name. */
+    suffix?: string | null;
     account_type: 'student' | 'coordinator' | 'admin' | 'company' | 'adviser';
     required_ojt_hours: number;
     absences: number;

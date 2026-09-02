@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
+/**
+ * Coordinator onboarding — Personal → Address → Coordinator Info → Review.
+ *
+ * Uses the shared onboarding wizard (OnboardingShell + the by-level name and
+ * address components), so it is the same experience as Student, Adviser and
+ * Company onboarding with coordinator-specific fields only. No student academic
+ * fields (course / year level / section) are collected here.
+ */
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { adminService } from '../services/adminService';
 import type { Profile } from '../services/profileService';
 import { clearRegistrationName, namesFromUserMetadata, pickNameField, readRegistrationName } from '../utils/registrationName';
+import CustomSelect from './CustomSelect';
 import NameFieldsGroup from './onboarding/NameFieldsGroup';
 import AddressLevelsSelector from './onboarding/AddressLevelsSelector';
 import OnboardingShell, { OnboardingActions } from './onboarding/OnboardingShell';
@@ -22,17 +32,16 @@ import {
     type NameLevels,
 } from './onboarding/onboardingFields';
 
-/** Personal → Address → Adviser Information → Review & Confirm. */
-const STEPS = ['Personal', 'Address', 'Adviser Info', 'Review'];
+const STEPS = ['Personal', 'Address', 'Coordinator Info', 'Review'];
 
 const SUBTITLES = [
     "Let's confirm your personal information before we get started.",
     'Where are you currently residing?',
-    'What is your adviser specialization?',
+    'Which department or office do you coordinate for?',
     'Check everything over before we finish your profile.',
 ];
 
-interface AdviserOnboardingViewProps {
+interface CoordinatorOnboardingViewProps {
     profile: Profile;
     onComplete: () => void | Promise<void>;
 }
@@ -48,41 +57,54 @@ const resolveOnboardingNames = (profile: Profile, metadata?: Record<string, unkn
     };
 };
 
-export default function AdviserOnboardingView({ profile, onComplete }: AdviserOnboardingViewProps) {
+const isMissingColumnError = (err: unknown) => {
+    const msg = (err instanceof Error ? err.message : String((err as { message?: string })?.message ?? err ?? '')).toLowerCase();
+    return msg.includes('could not find') || msg.includes('schema cache') || msg.includes('does not exist');
+};
+
+const CoordinatorOnboardingView: React.FC<CoordinatorOnboardingViewProps> = ({ profile, onComplete }) => {
     const [step, setStep] = useState(1);
 
-    // ── Step 1: Personal Info ──
+    // ── Step 1: Personal Information ──
     const [name, setName] = useState<NameLevels>(() => resolveOnboardingNames(profile));
     const [birthday, setBirthday] = useState(profile.birthday ?? '');
     const [contactNumber, setContactNumber] = useState(profile.contact_number ?? '');
 
-    // ── Step 2: Address Info (by level) ──
+    // ── Step 2: Address (by level, PSGC cascade) ──
     const addressLevels = useAddressLevels(addressLevelsFromProfile(profile));
 
-    // ── Step 3: Professional / Adviser Info ──
-    const [adviserType, setAdviserType] = useState<'HT Adviser' | 'IT Adviser'>(
-        (profile.adviser_type as 'HT Adviser' | 'IT Adviser') || (profile.course === 'DHT' ? 'HT Adviser' : 'IT Adviser')
-    );
-    const [department, setDepartment] = useState(
-        profile.department || (adviserType === 'HT Adviser' ? 'Hospitality Management' : 'Information Technology')
-    );
-    const [position, setPosition] = useState('Faculty / Adviser');
+    // ── Step 3: Coordinator Information ──
+    const [department, setDepartment] = useState(profile.department ?? '');
+    const [position, setPosition] = useState('SIL Coordinator');
     const [employeeId, setEmployeeId] = useState('');
+    const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
 
-    // Status / Errors
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
-    const handleAdviserTypeChange = (type: 'HT Adviser' | 'IT Adviser') => {
-        setAdviserType(type);
-        if (type === 'HT Adviser') {
-            setDepartment('Hospitality Management');
-        } else {
-            setDepartment('Information Technology');
-        }
-    };
+    useEffect(() => {
+        let mounted = true;
 
-    // Validation rules are shared with the Student, Coordinator and Company forms.
+        adminService.getDepartments()
+            .then(list => { if (mounted) setDepartments(list ?? []); })
+            .catch(err => console.warn('[CoordinatorOnboarding] Unable to load departments:', err));
+
+        // Fall back to the name captured at registration when the profile row is bare.
+        supabase.auth.getUser().then(({ data }) => {
+            if (!mounted) return;
+            const resolved = resolveOnboardingNames(profile, data.user?.user_metadata);
+            setName(prev => ({
+                firstName: pickNameField(prev.firstName, resolved.firstName),
+                middleName: prev.middleName || resolved.middleName,
+                lastName: pickNameField(prev.lastName, resolved.lastName),
+                suffix: prev.suffix || resolved.suffix,
+            }));
+        });
+
+        return () => { mounted = false; };
+    }, [profile.auth_user_id]);
+
+    // Shared validation rules — identical to Student, Adviser and Company.
     const validateStep1 = () => {
         const message = validateNameLevels(name)
             ?? validateBirthday(birthday)
@@ -98,23 +120,18 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
     };
 
     const validateStep3 = () => {
-        if (!adviserType) {
-            setError('Please select your adviser specialization.');
-            return false;
-        }
         if (!department.trim()) {
-            setError('Please enter or confirm your department.');
+            setError('Please select or enter the department / office you coordinate for.');
             return false;
         }
         if (!position.trim()) {
-            setError('Please enter your academic title or position.');
+            setError('Please enter your position or role.');
             return false;
         }
         setError(null);
         return true;
     };
 
-    /** Every step before `target` must validate before we let the user jump there. */
     const canReach = (target: number) => {
         if (target > 1 && !validateStep1()) return false;
         if (target > 2 && !validateStep2()) return false;
@@ -143,7 +160,6 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Re-check every step so an incomplete profile can never be submitted.
         if (!validateStep1() || !validateStep2() || !validateStep3()) return;
 
         setSaving(true);
@@ -151,32 +167,25 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
 
         try {
             const authId = profile.auth_user_id;
-            const courseCode = adviserType === 'HT Adviser' ? 'DHT' : 'DIT';
             const addressColumns = addressLevelsToProfileColumns(addressLevels.address);
+            const matchedDepartment = departments.find(d => d.name === department.trim());
 
-            // Suffix is its own column now — it is no longer glued onto last_name.
-            const basePayload: Record<string, any> = {
+            const basePayload: Record<string, unknown> = {
                 ...nameLevelsToProfileColumns(name),
                 birthday: birthday || null,
                 contact_number: contactNumber.trim(),
-                address: addressColumns.address,
-                adviser_type: adviserType,
-                course: courseCode,
                 department: department.trim(),
-                account_type: 'adviser',
+                account_type: 'coordinator',
             };
+            if (matchedDepartment?.id) basePayload.department_id = matchedDepartment.id;
 
-            const saveProfile = async (payload: Record<string, any>) => {
+            const saveProfile = async (payload: Record<string, unknown>) => {
                 const { data, error: updateError } = await supabase
                     .from('profiles')
                     .update(payload)
                     .eq('auth_user_id', authId)
                     .select('id');
-
-                if (updateError) {
-                    throw updateError;
-                }
-
+                if (updateError) throw updateError;
                 if (!data?.length) {
                     const { error: upsertError } = await supabase
                         .from('profiles')
@@ -185,29 +194,34 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
                 }
             };
 
-            const isMissingColumnError = (err: any) => {
-                const msg = (err?.message || String(err || '')).toLowerCase();
-                return msg.includes('could not find') || msg.includes('schema cache') || msg.includes('does not exist');
-            };
+            // Try the richest payload first, then degrade for databases that have
+            // not run the by-level / position migrations yet.
+            const attempts: Record<string, unknown>[] = [
+                { ...basePayload, ...addressColumns, position: position.trim() },
+                { ...basePayload, ...addressColumns },
+                { ...basePayload, address: addressColumns.address },
+            ];
 
-            try {
-                // First try saving with the granular by-level columns
-                await saveProfile({ ...basePayload, ...addressColumns });
-            } catch (err: any) {
-                if (isMissingColumnError(err)) {
-                    // Fallback for databases that have not run the by-level migration yet
-                    const { suffix: _suffix, ...legacyName } = basePayload;
-                    await saveProfile(legacyName);
-                } else {
-                    throw err;
+            let lastError: unknown = null;
+            let saved = false;
+            for (const payload of attempts) {
+                try {
+                    await saveProfile(payload);
+                    saved = true;
+                    break;
+                } catch (attemptError) {
+                    lastError = attemptError;
+                    if (!isMissingColumnError(attemptError)) throw attemptError;
                 }
             }
+            if (!saved) throw lastError;
 
             clearRegistrationName();
             await onComplete();
-        } catch (err: any) {
-            console.error('Error saving adviser onboarding:', err);
-            setError(err.message || 'Failed to complete adviser profile. Please try again.');
+        } catch (err: unknown) {
+            console.error('Error saving coordinator onboarding:', err);
+            const message = err instanceof Error ? err.message : 'Failed to complete your coordinator profile. Please try again.';
+            setError(message);
         } finally {
             setSaving(false);
         }
@@ -221,6 +235,7 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
                 { label: 'Full Name', value: formatFullName(name), full: true },
                 { label: 'Birthday', value: formatDisplayDate(birthday) },
                 { label: 'Contact Number', value: contactNumber },
+                { label: 'Email', value: profile.email ?? '' },
             ],
         },
         {
@@ -237,13 +252,12 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
             ],
         },
         {
-            title: 'Adviser Information',
+            title: 'Coordinator Information',
             step: 3,
             rows: [
-                { label: 'Specialization', value: adviserType },
-                { label: 'Department', value: department },
-                { label: 'Position / Title', value: position },
-                { label: 'Faculty ID', value: employeeId },
+                { label: 'Department / Office', value: department },
+                { label: 'Position / Role', value: position },
+                { label: 'Employee ID', value: employeeId },
             ],
         },
     ];
@@ -252,17 +266,19 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
         <OnboardingShell
             icon={(
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="8.5" cy="7" r="4" />
-                    <polyline points="17 11 19 13 23 9" />
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
             )}
-            title="Welcome, Adviser!"
+            title="Welcome, Coordinator!"
             subtitle={SUBTITLES[step - 1]}
             steps={STEPS}
             current={step}
             onStepSelect={goTo}
             error={error}
+            footnote="You can update these details later from your Profile page."
         >
             {/* ══ STEP 1: Personal Information ══ */}
             {step === 1 && (
@@ -280,8 +296,8 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
                                 type="date"
                                 className="onb-input"
                                 value={birthday}
-                                onChange={e => setBirthday(e.target.value)}
                                 max={getAgeCutoffDate()}
+                                onChange={e => setBirthday(e.target.value)}
                                 required
                             />
                         </div>
@@ -298,11 +314,17 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
                         </div>
                     </div>
 
+                    <div className="onb-field">
+                        <label className="onb-label">Email Address</label>
+                        <input className="onb-input" value={profile.email ?? ''} disabled />
+                        <p className="onb-hint">Managed by your account sign-in and cannot be changed here.</p>
+                    </div>
+
                     <OnboardingActions />
                 </form>
             )}
 
-            {/* ══ STEP 2: Address Information ══ */}
+            {/* ══ STEP 2: Address ══ */}
             {step === 2 && (
                 <form onSubmit={handleNext} className="onb-form">
                     <AddressLevelsSelector levels={addressLevels} chrome={ONB_ADDRESS_CHROME} />
@@ -310,77 +332,57 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
                 </form>
             )}
 
-            {/* ══ STEP 3: Professional / Adviser Information ══ */}
+            {/* ══ STEP 3: Coordinator Information ══ */}
             {step === 3 && (
                 <form onSubmit={handleNext} className="onb-form">
-                    <div className="onb-field">
-                        <label className="onb-label">Adviser Specialization <span className="req">*</span></label>
-                        <div className="onb-choice-cards">
-                            <div
-                                className={`onb-choice-card ${adviserType === 'HT Adviser' ? 'selected' : ''}`}
-                                onClick={() => handleAdviserTypeChange('HT Adviser')}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleAdviserTypeChange('HT Adviser'); }}
-                            >
-                                <div className="onb-choice-title">HT Adviser</div>
-                                <div className="onb-choice-badge">Hospitality Technology</div>
-                                <p className="onb-choice-desc">Assigned to DHT sections.</p>
-                            </div>
-
-                            <div
-                                className={`onb-choice-card ${adviserType === 'IT Adviser' ? 'selected' : ''}`}
-                                onClick={() => handleAdviserTypeChange('IT Adviser')}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleAdviserTypeChange('IT Adviser'); }}
-                            >
-                                <div className="onb-choice-title">IT Adviser</div>
-                                <div className="onb-choice-badge">Information Technology</div>
-                                <p className="onb-choice-desc">Assigned to DIT sections.</p>
-                            </div>
-                        </div>
-                    </div>
-
                     <div className="onb-grid-2">
                         <div className="onb-field">
-                            <label className="onb-label">Department <span className="req">*</span></label>
-                            <input
-                                type="text"
-                                className="onb-input"
-                                value={department}
-                                onChange={e => setDepartment(e.target.value)}
-                                placeholder="e.g. Hospitality Management"
-                                required
-                            />
+                            <label className="onb-label">Department / Office <span className="req">*</span></label>
+                            {departments.length > 0 ? (
+                                <CustomSelect
+                                    value={department}
+                                    onChange={setDepartment}
+                                    placeholder="Select Department / Office"
+                                    options={departments.map(d => ({ value: d.name, label: d.name }))}
+                                    searchable
+                                />
+                            ) : (
+                                <input
+                                    type="text"
+                                    className="onb-input"
+                                    value={department}
+                                    onChange={e => setDepartment(e.target.value)}
+                                    placeholder="e.g. Information Technology"
+                                    required
+                                />
+                            )}
                         </div>
                         <div className="onb-field">
-                            <label className="onb-label">Position / Title <span className="req">*</span></label>
+                            <label className="onb-label">Position / Role <span className="req">*</span></label>
                             <input
                                 type="text"
                                 className="onb-input"
                                 value={position}
                                 onChange={e => setPosition(e.target.value)}
-                                placeholder="e.g. Section Adviser"
+                                placeholder="e.g. SIL Coordinator"
                                 required
                             />
                         </div>
                     </div>
 
                     <div className="onb-field">
-                        <label className="onb-label">Faculty ID <span className="onb-optional">(Optional)</span></label>
+                        <label className="onb-label">Employee ID <span className="onb-optional">(Optional)</span></label>
                         <input
                             type="text"
                             className="onb-input"
                             value={employeeId}
                             onChange={e => setEmployeeId(e.target.value)}
-                            placeholder="e.g. FAC-2026-089"
+                            placeholder="e.g. EMP-2026-014"
                         />
                     </div>
 
-                    {/* Section Assignment Notice */}
                     <div className="onb-notice">
-                        <p><strong>Section Assignment:</strong> Advisers do not choose sections during onboarding. The SIL Coordinator will assign your handled section(s) upon review and activation.</p>
+                        <p><strong>Scope:</strong> Your department determines the students, advisers and company partners you oversee in the coordinator portal.</p>
                     </div>
 
                     <OnboardingActions onBack={handleBack} />
@@ -400,4 +402,6 @@ export default function AdviserOnboardingView({ profile, onComplete }: AdviserOn
             )}
         </OnboardingShell>
     );
-}
+};
+
+export default CoordinatorOnboardingView;

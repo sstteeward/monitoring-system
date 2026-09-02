@@ -7,6 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:redirect": "node --experimental-strip-types --test src/utils/authRedirect.test.ts",
+    "test:onboarding": "node --experimental-strip-types --test src/components/onboarding/onboardingFields.test.ts",
+    "test:sections": "node --experimental-strip-types --test src/utils/sections.test.ts",
+    "test": "node --experimental-strip-types --test src/utils/authRedirect.test.ts src/utils/sections.test.ts src/components/onboarding/onboardingFields.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

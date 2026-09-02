@@ -160,6 +160,18 @@ h1 {
   line-height: 1.1;
 }
 
+/*
+ * Base button.
+ *
+ * Uses `background-color`, never the `background` shorthand or a
+ * `background-image` gradient. A gradient here is a background-IMAGE, and an
+ * image is painted on top of the background-color — so a component that sets
+ * only `backgroundColor` inline (React's usual way) would keep this rule's
+ * opaque near-white image and render as a blank button, hiding white label
+ * text entirely. That is what made "Return to Login" on the pending-approval
+ * page invisible. Keeping this flat means any inline background-color wins,
+ * and the bug cannot come back on other buttons.
+ */
 button {
   border-radius: 8px;
   border: 1px solid #e2e8f0;
@@ -167,14 +179,16 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background: linear-gradient(145deg, #ffffff, #f1f5f9);
+  background-color: #ffffff;
+  background-image: none;
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 html[data-theme="dark"] button {
-  background: linear-gradient(145deg, #1a1a1a, #141414);
+  background-color: #171717;
+  background-image: none;
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
 }
@@ -1051,6 +1065,11 @@ html[data-theme="dark"] .account-dropdown {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Name by level: First / Middle / Last / Suffix — suffix is narrower. */
+.form-field-row.cols-4 {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.6fr);
+}
+
 .form-field-row > *,
 .form-row > * {
   min-width: 0;
@@ -1076,6 +1095,7 @@ html[data-theme="dark"] .account-dropdown {
 @media (max-width: 640px) {
   .form-field-row,
   .form-field-row.cols-2,
+  .form-field-row.cols-4,
   .form-row.form-row-2,
   .form-row-2 {
     grid-template-columns: minmax(0, 1fr);

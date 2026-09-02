@@ -1,5 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import usePsLocation from '../hooks/usePsLocation';
+/**
+ * Student onboarding.
+ *
+ * Personal → Address → Academic Information → Internship Company → Review & Confirm,
+ * built on the shared onboarding wizard (OnboardingShell) so it matches the
+ * Adviser, Coordinator and Company flows.
+ *
+ * The Internship Company step is student-only: a student profile is not complete
+ * until `company_id` is set (or a company request is pending), so it keeps its
+ * own step rather than being folded into the academic fields.
+ */
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../services/adminService';
 import type { Profile } from '../services/profileService';
@@ -8,11 +18,42 @@ import CustomSelect from './CustomSelect';
 import AdvancedLocationPickerMap from './AdvancedLocationPickerMap';
 import type { GeoJSONPolygon } from '../utils/geoUtils';
 import { clearRegistrationName, namesFromUserMetadata, pickNameField, readRegistrationName } from '../utils/registrationName';
-import './OnboardingView.css';
+import NameFieldsGroup from './onboarding/NameFieldsGroup';
+import AddressLevelsSelector from './onboarding/AddressLevelsSelector';
+import OnboardingShell, { OnboardingActions } from './onboarding/OnboardingShell';
+import { ONB_ADDRESS_CHROME, ONB_NAME_CHROME } from './onboarding/onboardingChrome';
+import ReviewSummary, { type ReviewSectionData } from './onboarding/ReviewSummary';
+import { addressLevelsFromProfile, useAddressLevels } from './onboarding/useAddressLevels';
+import {
+    addressLevelsToProfileColumns,
+    formatDisplayDate,
+    formatFullName,
+    formatStructuredAddress,
+    getAgeCutoffDate,
+    isAtLeast18,
+    nameLevelsToProfileColumns,
+    validateAddressLevels,
+    validateContactNumber,
+    validateNameLevels,
+    type NameLevels,
+} from './onboarding/onboardingFields';
+import { YEAR_LEVELS, buildSectionOptions } from '../utils/sections';
 
-interface Company { 
-    id: string; 
-    name: string; 
+const STEPS =['Personal', 'Address', 'Academic', 'Company', 'Review'];
+
+const SUBTITLES = [
+    "Let's confirm your information before we get started.",
+    'Where are you currently residing?',
+    'Tell us about your program and section.',
+    'Where are you doing your internship?',
+    'Check everything over before we finish your profile.',
+];
+
+const AGE_MESSAGE = '⚠️ You must be at least 18 years old to participate in the SIL/OJT program.';
+
+interface Company {
+    id: string;
+    name: string;
     address?: string;
     latitude?: number | null;
     longitude?: number | null;
@@ -25,118 +66,61 @@ interface OnboardingViewProps {
     onComplete: (options?: { showWelcome?: boolean }) => void;
 }
 
-const resolveOnboardingNames = (profile: Profile, metadata?: Record<string, unknown> | null) => {
+const resolveOnboardingNames = (profile: Profile, metadata?: Record<string, unknown> | null): NameLevels => {
     const stored = readRegistrationName(profile.auth_user_id);
     const meta = namesFromUserMetadata(metadata);
     return {
         firstName: pickNameField(profile.first_name, meta.first_name, stored?.first_name),
         middleName: pickNameField(profile.middle_name, meta.middle_name, stored?.middle_name),
         lastName: pickNameField(profile.last_name, meta.last_name, stored?.last_name),
+        suffix: profile.suffix ?? '',
     };
 };
 
 const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) => {
-    const initialNames = resolveOnboardingNames(profile);
+    const [step, setStep] = useState(1);
+
+    // ── Step 1: Personal Information ──
+    const [name, setName] = useState<NameLevels>(() => resolveOnboardingNames(profile));
+    const [birthday, setBirthday] = useState(profile.birthday ?? '');
+    const [birthdayError, setBirthdayError] = useState<string | null>(null);
+    const [contactNumber, setContactNumber] = useState(profile.contact_number ?? '');
+    const [requiredHours, setRequiredHours] = useState(profile.required_ojt_hours ?? 500);
+
+    // ── Step 2: Address by level — shared with Adviser, Coordinator and Company ──
+    const addressLevels = useAddressLevels(addressLevelsFromProfile(profile));
+
+    // ── Step 3: Academic Information ──
+    const [yearLevel, setYearLevel] = useState(profile.year_level ?? '');
+    const [section, setSection] = useState(profile.section ?? '');
+    const [course, setCourse] = useState(profile.course ?? '');
+    const [department, setDepartment] = useState(profile.department ?? '');
+    const [availableSections, setAvailableSections] = useState<{ id: string; name: string; course_code: string }[]>([]);
+    const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+    const [courses, setCourses] = useState<{ id: string; name: string; description?: string }[]>([]);
+
+    // ── Step 4: Internship Company ──
     const [companies, setCompanies] = useState<Company[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState('');
     const [search, setSearch] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
-    const [firstName, setFirstName] = useState(initialNames.firstName);
-    const [middleName, setMiddleName] = useState(initialNames.middleName);
-    const [lastName, setLastName] = useState(initialNames.lastName);
-    const [birthday, setBirthday] = useState(profile.birthday ?? '');
-    const [birthdayError, setBirthdayError] = useState<string | null>(null);
-    const [contactNumber, setContactNumber] = useState(profile.contact_number ?? '');
-    const [yearLevel, setYearLevel] = useState(profile.year_level ?? '');
-    const [section, setSection] = useState(profile.section ?? '');
-    const [availableSections, setAvailableSections] = useState<{ id: string; name: string; course_code: string }[]>([]);
-    const [course, setCourse] = useState(profile.course ?? '');
-    const [department, setDepartment] = useState(profile.department ?? '');
-    const [requiredHours, setRequiredHours] = useState(profile.required_ojt_hours ?? 500);
-    const [saving, setSaving] = useState(false);
     const [requestedName, setRequestedName] = useState('');
-    const [country, setCountry] = useState(profile.country ?? 'Philippines');
-    const [regionCode, setRegionCode] = useState(profile.region_code ?? '');
-    const [regionName, setRegionName] = useState(profile.region ?? '');
-    const [provinceCode, setProvinceCode] = useState(profile.province_code ?? '');
-    const [provinceName, setProvinceName] = useState(profile.province ?? '');
-    const [cityCode, setCityCode] = useState(profile.city_municipality_code ?? '');
-    const [cityMunicipalityName, setCityMunicipalityName] = useState(profile.city_municipality ?? '');
-    const [barangayCode, setBarangayCode] = useState(profile.barangay_code ?? '');
-    const [barangayName, setBarangayName] = useState(profile.barangay ?? '');
-    const [houseStreet, setHouseStreet] = useState(profile.house_street ?? '');
-    
-    const { 
-        regions, 
-        loading: locationLoading, 
-        getProvincesByRegion, 
-        getCitiesByProvince, 
-        getBarangaysByCity,
-        getRegionByCode,
-        getProvinceByCode,
-        getCityByCode,
-        getBarangayByCode,
-    } = usePsLocation();
+    const [showNewCompanyForm, setShowNewCompanyForm] = useState(false);
+    const [newCompanyLat, setNewCompanyLat] = useState<number | null>(null);
+    const [newCompanyLng, setNewCompanyLng] = useState<number | null>(null);
+    const [newCompanyRadius] = useState<number>(100);
+    const [newCompanyPolygon, setNewCompanyPolygon] = useState<GeoJSONPolygon | null>(null);
+    const [pendingRequest, setPendingRequest] = useState<{ name: string; status: string; requested_by: string } | null>(null);
 
-    const provinceOptions = useMemo(() => regionCode ? getProvincesByRegion(regionCode) : [], [regionCode, getProvincesByRegion]);
-    const cityOptions = useMemo(() => provinceCode ? getCitiesByProvince(provinceCode) : [], [provinceCode, getCitiesByProvince]);
-    const barangayOptions = useMemo(() => cityCode ? getBarangaysByCity(cityCode) : [], [cityCode, getBarangaysByCity]);
-
-    // CustomSelect options
-    const regionSelectOptions = useMemo(() => 
-        regions.map(r => ({ value: r.region_code, label: r.region_name, code: r.region_code })),
-        [regions]
-    );
-    
-    const provinceSelectOptions = useMemo(() => 
-        provinceOptions.map(p => ({ value: p.province_code, label: p.province_name, code: p.province_code })),
-        [provinceOptions]
-    );
-    
-    const citySelectOptions = useMemo(() => 
-        cityOptions.map(c => ({ value: c.city_code, label: c.city_name, code: c.city_code })),
-        [cityOptions]
-    );
-    
-    const barangaySelectOptions = useMemo(() => 
-        barangayOptions.map(b => ({ value: b.barangay_code, label: b.barangay_name, code: b.barangay_code })),
-        [barangayOptions]
-    );
-
-    const formatStructuredAddress = () => {
-        const parts = [houseStreet, barangayName ? `Barangay ${barangayName}` : '', cityMunicipalityName, provinceName, country || 'Philippines'];
-        return parts.filter(Boolean).join(', ');
-    };
-
-    const getAgeCutoffDate = (): string => {
-        const today = new Date();
-        const cutoff = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
-        const year = cutoff.getFullYear();
-        const month = String(cutoff.getMonth() + 1).padStart(2, '0');
-        const day = String(cutoff.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    const isAtLeast18 = (value: string): boolean => {
-        if (!value) return false;
-        const birthDate = new Date(`${value}T00:00:00`);
-        if (Number.isNaN(birthDate.getTime())) return false;
-
-        const today = new Date();
-        const cutoffDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
-        return birthDate <= cutoffDate;
-    };
-
-    const birthdayMaxDate = getAgeCutoffDate();
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!birthday) {
             setBirthdayError(null);
             return;
         }
-        setBirthdayError(isAtLeast18(birthday)
-            ? null
-            : '⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+        setBirthdayError(isAtLeast18(birthday) ? null : AGE_MESSAGE);
     }, [birthday]);
 
     useEffect(() => {
@@ -146,14 +130,20 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             const { data: { user } } = await supabase.auth.getUser();
             if (!isMounted) return;
             const names = resolveOnboardingNames(profile, user?.user_metadata);
-            setFirstName(prev => pickNameField(names.firstName, prev));
-            setMiddleName(prev => names.middleName || prev);
-            setLastName(prev => pickNameField(names.lastName, prev));
+            setName(prev => ({
+                firstName: pickNameField(names.firstName, prev.firstName),
+                middleName: names.middleName || prev.middleName,
+                lastName: pickNameField(names.lastName, prev.lastName),
+                suffix: names.suffix || prev.suffix,
+            }));
         };
 
-        setFirstName(prev => pickNameField(profile.first_name, prev));
-        setMiddleName(prev => pickNameField(profile.middle_name, prev));
-        setLastName(prev => pickNameField(profile.last_name, prev));
+        setName(prev => ({
+            firstName: pickNameField(profile.first_name, prev.firstName),
+            middleName: pickNameField(profile.middle_name, prev.middleName),
+            lastName: pickNameField(profile.last_name, prev.lastName),
+            suffix: profile.suffix || prev.suffix,
+        }));
         setBirthday(profile.birthday ?? '');
         setContactNumber(profile.contact_number ?? '');
         setYearLevel(profile.year_level ?? '');
@@ -161,16 +151,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         setCourse(profile.course ?? '');
         setDepartment(profile.department ?? '');
         setRequiredHours(profile.required_ojt_hours ?? 500);
-        setCountry(profile.country ?? 'Philippines');
-        setRegionCode(profile.region_code ?? '');
-        setRegionName(profile.region ?? '');
-        setProvinceCode(profile.province_code ?? '');
-        setProvinceName(profile.province ?? '');
-        setCityCode(profile.city_municipality_code ?? '');
-        setCityMunicipalityName(profile.city_municipality ?? '');
-        setBarangayCode(profile.barangay_code ?? '');
-        setBarangayName(profile.barangay ?? '');
-        setHouseStreet(profile.house_street ?? '');
+        addressLevels.setAddress(addressLevelsFromProfile(profile));
         void applyNames();
 
         return () => {
@@ -188,7 +169,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('first_name, middle_name, last_name, birthday, address, country, region, region_code, province, province_code, city_municipality, city_municipality_code, barangay, barangay_code, house_street, contact_number, year_level, section, course, department, required_ojt_hours')
+                    .select('first_name, middle_name, last_name, suffix, birthday, address, country, region, region_code, province, province_code, city_municipality, city_municipality_code, barangay, barangay_code, house_street, contact_number, year_level, section, course, department, required_ojt_hours')
                     .eq('auth_user_id', user.id)
                     .maybeSingle();
 
@@ -202,23 +183,17 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                     user.user_metadata
                 );
 
-                setFirstName(prev => pickNameField(names.firstName, prev));
-                setMiddleName(prev => names.middleName || prev);
-                setLastName(prev => pickNameField(names.lastName, prev));
+                setName(prev => ({
+                    firstName: pickNameField(names.firstName, prev.firstName),
+                    middleName: names.middleName || prev.middleName,
+                    lastName: pickNameField(names.lastName, prev.lastName),
+                    suffix: names.suffix || prev.suffix,
+                }));
 
                 if (!data) return;
 
                 setBirthday(data.birthday ?? '');
-                setCountry(data.country ?? 'Philippines');
-                setRegionCode(data.region_code ?? '');
-                setRegionName(data.region ?? '');
-                setProvinceCode(data.province_code ?? '');
-                setProvinceName(data.province ?? '');
-                setCityCode(data.city_municipality_code ?? '');
-                setCityMunicipalityName(data.city_municipality ?? '');
-                setBarangayCode(data.barangay_code ?? '');
-                setBarangayName(data.barangay ?? '');
-                setHouseStreet(data.house_street ?? '');
+                addressLevels.setAddress(addressLevelsFromProfile(data));
                 setContactNumber(data.contact_number ?? '');
                 setYearLevel(data.year_level ?? '');
                 setSection(data.section ?? '');
@@ -235,19 +210,6 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             isMounted = false;
         };
     }, [profile?.auth_user_id, profile?.id]);
-    
-    // New Geofence state for company request
-    const [showNewCompanyForm, setShowNewCompanyForm] = useState(false);
-    const [newCompanyLat, setNewCompanyLat] = useState<number | null>(null);
-    const [newCompanyLng, setNewCompanyLng] = useState<number | null>(null);
-    const [newCompanyRadius] = useState<number>(100);
-    const [newCompanyPolygon, setNewCompanyPolygon] = useState<GeoJSONPolygon | null>(null);
-    const [pendingRequest, setPendingRequest] = useState<{ name: string; status: string; requested_by: string } | null>(null);
-
-    const [error, setError] = useState<string | null>(null);
-    const [step, setStep] = useState<1 | 2>(1);
-    const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
-    const [courses, setCourses] = useState<{ id: string; name: string; description?: string }[]>([]);
 
     useEffect(() => {
         let isMounted = true;
@@ -304,44 +266,116 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
+    const matchedCompany = selectedCompanyId
+        ? companies.find(c => c.id === selectedCompanyId)
+        : companies.find(c => c.name.trim().toLowerCase() === search.trim().toLowerCase());
+    const companyIdToSave = selectedCompanyId || matchedCompany?.id || '';
+
+    /**
+     * Section names embed the course and year (DIT-3A), so changing either can
+     * invalidate the current choice. Clear it only when it no longer belongs,
+     * so returning from a later step never loses a still-valid section.
+     */
+    const clearSectionIfStale = (nextCourse: string, nextYearLevel: string) => {
+        if (!section) return;
+        const stillValid = buildSectionOptions({
+            course: nextCourse,
+            yearLevel: nextYearLevel,
+            sections: availableSections,
+        }).some(option => option.value === section);
+        if (!stillValid) setSection('');
+    };
+
+    const handleCourseChange = (next: string) => {
+        setCourse(next);
+        clearSectionIfStale(next, yearLevel);
+    };
+
+    const handleYearLevelChange = (next: string) => {
+        setYearLevel(next);
+        clearSectionIfStale(course, next);
+    };
+
     const handleSelectCompany = (c: Company) => {
         setSelectedCompanyId(c.id);
         setSearch(c.name);
         setShowDropdown(false);
+        setShowNewCompanyForm(false);
     };
 
     const handleRequestCompanyClick = () => {
-        const name = search.trim();
-        if (!name) return;
-        setRequestedName(name);
+        const requested = search.trim();
+        if (!requested) return;
+        setRequestedName(requested);
         setShowNewCompanyForm(true);
         setSelectedCompanyId('');
         setShowDropdown(false);
     };
 
+    // ── Per-step validation. Shared rules match Adviser/Coordinator/Company. ──
+
+    const validateStep1 = () => {
+        if (!birthday || !isAtLeast18(birthday)) {
+            setBirthdayError(AGE_MESSAGE);
+            setError(AGE_MESSAGE);
+            return false;
+        }
+        const message = validateNameLevels(name) ?? validateContactNumber(contactNumber);
+        setError(message);
+        return message === null;
+    };
+
+    const validateStep2 = () => {
+        const message = validateAddressLevels(addressLevels.address);
+        setError(message);
+        return message === null;
+    };
+
+    const validateStep3 = () => {
+        if (!course.trim() || !department.trim() || !yearLevel.trim() || !section.trim()) {
+            setError('Please complete your course, department, year level and section.');
+            return false;
+        }
+        setError(null);
+        return true;
+    };
+
+    const validateStep4 = () => {
+        if (!companyIdToSave && !showNewCompanyForm) {
+            setError('Please select your internship company or request a new one.');
+            return false;
+        }
+        setError(null);
+        return true;
+    };
+
+    const canReach = (target: number) => {
+        if (target > 1 && !validateStep1()) return false;
+        if (target > 2 && !validateStep2()) return false;
+        if (target > 3 && !validateStep3()) return false;
+        if (target > 4 && !validateStep4()) return false;
+        return true;
+    };
+
+    const goTo = (target: number) => {
+        setShowDropdown(false);
+        if (target <= step) {
+            setError(null);
+            setStep(target);
+            return;
+        }
+        if (canReach(target)) setStep(target);
+    };
 
     const handleNext = (e: React.FormEvent) => {
         e.preventDefault();
+        goTo(step + 1);
+    };
 
-        if (!birthday) {
-            setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
-            setError('Please fill in all required fields.');
-            return;
-        }
-
-        if (!isAtLeast18(birthday)) {
-            setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
-            setError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
-            return;
-        }
-
-        if (!country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim()) {
-            setError('Please fill in all required fields.');
-            return;
-        }
+    const handleBack = () => {
         setError(null);
         setShowDropdown(false);
-        setStep(2);
+        setStep(current => Math.max(1, current - 1));
     };
 
     const getErrorMessage = (err: unknown) => {
@@ -363,7 +397,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         const payloads: Record<string, unknown>[] = [
             {
                 name: requestedName.trim() || search.trim(),
-                student_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+                student_name: formatFullName(name),
                 requested_by: authId,
                 status: 'pending',
                 request_type: 'student_company',
@@ -374,14 +408,14 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             },
             {
                 name: requestedName.trim() || search.trim(),
-                student_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+                student_name: formatFullName(name),
                 requested_by: authId,
                 status: 'pending',
                 request_type: 'student_company',
             },
             {
                 name: requestedName.trim() || search.trim(),
-                student_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+                student_name: formatFullName(name),
                 requested_by: authId,
                 status: 'pending',
             },
@@ -400,26 +434,11 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const matchedCompany = selectedCompanyId
-            ? companies.find(c => c.id === selectedCompanyId)
-            : companies.find(c => c.name.trim().toLowerCase() === search.trim().toLowerCase());
-        const companyIdToSave = selectedCompanyId || matchedCompany?.id || '';
-
-        if (!companyIdToSave && !showNewCompanyForm) {
-            setError('Please select your internship company or request a new one.');
-            return;
-        }
-
-        if (!birthday || !isAtLeast18(birthday)) {
-            setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
-            setError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
-            return;
-        }
-
-        if (!country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim()) {
-            setError('Please complete your address information before continuing.');
-            return;
-        }
+        // Re-check every step so an incomplete profile can never be submitted.
+        if (!validateStep1()) { setStep(1); return; }
+        if (!validateStep2()) { setStep(2); return; }
+        if (!validateStep3()) { setStep(3); return; }
+        if (!validateStep4()) { setStep(4); return; }
 
         setSaving(true);
         setError(null);
@@ -438,34 +457,23 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             }
 
             if (ageCheck === false || (typeof ageCheck === 'boolean' && !ageCheck)) {
-                setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
-                setError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+                setBirthdayError(AGE_MESSAGE);
+                setError(AGE_MESSAGE);
+                setStep(1);
                 return;
             }
 
             const selectedDept = departments.find(d => d.name === department.trim());
-            const fullAddress = formatStructuredAddress();
+            const addressColumns = addressLevelsToProfileColumns(addressLevels.address);
 
             if (showNewCompanyForm) {
                 await submitCompanyRequest(authId);
             }
 
             const profilePayload: Record<string, unknown> = {
-                first_name: firstName.trim(),
-                middle_name: middleName.trim() || null,
-                last_name: lastName.trim(),
+                ...nameLevelsToProfileColumns(name),
                 birthday: birthday || null,
-                country: country || 'Philippines',
-                region: regionName.trim() || null,
-                region_code: regionCode.trim() || null,
-                province: provinceName.trim() || null,
-                province_code: provinceCode.trim() || null,
-                city_municipality: cityMunicipalityName.trim() || null,
-                city_municipality_code: cityCode.trim() || null,
-                barangay: barangayName.trim() || null,
-                barangay_code: barangayCode.trim() || null,
-                house_street: houseStreet.trim() || null,
-                address: fullAddress || null,
+                ...addressColumns,
                 contact_number: contactNumber.trim() || null,
                 year_level: yearLevel.trim() || null,
                 section: section.trim() || null,
@@ -492,11 +500,12 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 await saveProfile(profilePayload);
             } catch (profileErr) {
                 const message = getErrorMessage(profileErr);
+                // Fallback for databases that have not run the by-level migration yet.
                 const fallbackPayload: Record<string, unknown> = {
-                    first_name: firstName.trim(),
-                    last_name: lastName.trim(),
+                    first_name: name.firstName.trim(),
+                    last_name: name.lastName.trim(),
                     birthday: birthday || null,
-                    address: fullAddress || null,
+                    address: addressColumns.address || null,
                     contact_number: contactNumber.trim() || null,
                     year_level: yearLevel.trim() || null,
                     section: section.trim() || null,
@@ -504,7 +513,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                     department: department.trim() || null,
                     required_ojt_hours: Number.isFinite(requiredHours) ? requiredHours : 500,
                 };
-                if (middleName.trim()) fallbackPayload.middle_name = middleName.trim();
+                if (name.middleName.trim()) fallbackPayload.middle_name = name.middleName.trim();
                 if (companyIdToSave) fallbackPayload.company_id = companyIdToSave;
 
                 try {
@@ -526,8 +535,8 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             console.error('[Onboarding] save failed:', err);
             const message = getErrorMessage(err);
             if (/at least 18 years old|under 18|18 years old/i.test(message)) {
-                setBirthdayError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
-                setError('⚠️ You must be at least 18 years old to participate in the SIL/OJT program.');
+                setBirthdayError(AGE_MESSAGE);
+                setError(AGE_MESSAGE);
             } else {
                 setError(message || 'Failed to save. Please try again.');
             }
@@ -563,518 +572,341 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
         );
     }
 
+    // Letters A–J for the chosen course + year level, whichever rows the
+    // `sections` table happens to hold. See src/utils/sections.ts.
+    const sectionOptions = buildSectionOptions({
+        course,
+        yearLevel,
+        sections: availableSections,
+        currentValue: section,
+    });
+
+    const companySummary = showNewCompanyForm
+        ? `${requestedName || search} (new company request)`
+        : (selectedCompany?.name ?? matchedCompany?.name ?? '');
+
+    const reviewSections: ReviewSectionData[] = [
+        {
+            title: 'Personal Information',
+            step: 1,
+            rows: [
+                { label: 'Full Name', value: formatFullName(name), full: true },
+                { label: 'Birthday', value: formatDisplayDate(birthday) },
+                { label: 'Contact Number', value: contactNumber },
+                { label: 'Required SIL/OJT Hours', value: `${requiredHours} hours` },
+            ],
+        },
+        {
+            title: 'Address',
+            step: 2,
+            rows: [
+                { label: 'Country', value: addressLevels.address.country },
+                { label: 'Region', value: addressLevels.address.regionName },
+                { label: 'Province', value: addressLevels.address.provinceName },
+                { label: 'City / Municipality', value: addressLevels.address.cityMunicipalityName },
+                { label: 'Barangay', value: addressLevels.address.barangayName },
+                { label: 'House No. / Street', value: addressLevels.address.houseStreet },
+                { label: 'Full Address', value: formatStructuredAddress(addressLevels.address), full: true },
+            ],
+        },
+        {
+            title: 'Academic Information',
+            step: 3,
+            rows: [
+                { label: 'Course', value: course },
+                { label: 'Department', value: department },
+                { label: 'Year Level', value: yearLevel },
+                { label: 'Section', value: section },
+            ],
+        },
+        {
+            title: 'Internship Company',
+            step: 4,
+            rows: [
+                { label: 'Company', value: companySummary, full: true },
+            ],
+        },
+    ];
+
     return (
-        <div style={{
-            minHeight: '100vh',
-            height: '100%',
-            width: '100%',
-            background: 'var(--bg-page)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'center',
-            padding: '1rem',
-            overflowY: 'auto'
-        }}>
-            <div style={{ width: '100%', maxWidth: 520, margin: 'auto' }}>
-
-                {/* Logo */}
-                <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-                    <div style={{
-                        width: 60, height: 60, borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #10b981, #059669)',
-                        boxShadow: '0 8px 32px rgba(16,185,129,0.35)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        margin: '0 auto 1rem',
-                    }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
+        <OnboardingShell
+            icon={(
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+            )}
+            title="Welcome to SIL Monitoring"
+            subtitle={SUBTITLES[step - 1]}
+            steps={STEPS}
+            current={step}
+            onStepSelect={goTo}
+            error={error}
+            footnote="You can update this later from your Profile page."
+        >
+            {/* ══ STEP 1: Personal Information ══ */}
+            {step === 1 && (
+                <form onSubmit={handleNext} className="onb-form">
+                    <div className="onb-notice">
+                        <p>✓ Your name from account creation is shown below. You can edit if needed.</p>
                     </div>
-                    <h1 style={{ fontSize: 'clamp(1.2rem, 6vw, 1.6rem)', lineHeight: 1.2, fontWeight: 800, color: 'var(--text-bright)', margin: 0, wordWrap: 'break-word' }}>
-                        Welcome to SIL Monitoring
-                    </h1>
-                    <p style={{ color: 'var(--text-muted)', marginTop: '0.4rem', fontSize: 'clamp(0.8rem, 4vw, 0.9rem)', wordWrap: 'break-word' }}>
-                        {step === 1 ? "Let's confirm your information before we get started." : "Where are you doing your internship?"}
-                    </p>
-                </div>
 
-                {/* Progress dots */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
-                    {[1, 2].map(s => (
-                        <div key={s} style={{
-                            width: s === step ? 28 : 10,
-                            height: 10, borderRadius: 10,
-                            background: s <= step ? '#10b981' : 'var(--bg-elevated)',
-                            transition: 'width 0.3s, background 0.3s',
-                        }} />
-                    ))}
-                </div>
+                    <NameFieldsGroup value={name} onChange={setName} chrome={ONB_NAME_CHROME} />
 
-                {/* Card */}
-                <div className="glass-card" style={{
-                    borderRadius: 20,
-                    padding: '1.5rem 2rem',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-                    position: 'relative',
-                    zIndex: 60,
-                }}>
-                    {error && (
-                        <div style={{
-                            background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)',
-                            borderRadius: 10, padding: '0.7rem 1rem', marginBottom: '1.25rem',
-                            color: '#f87171', fontSize: '0.85rem',
-                        }}>{error}</div>
+                    <div className="onb-grid-3">
+                        <div className="onb-field">
+                            <label className="onb-label">Birthday <span className="req">*</span></label>
+                            <input
+                                type="date"
+                                className={`onb-input${birthdayError ? ' invalid' : ''}`}
+                                value={birthday}
+                                max={getAgeCutoffDate()}
+                                onChange={e => setBirthday(e.target.value)}
+                                required
+                            />
+                            {birthdayError && <div className="onb-field-error">{birthdayError}</div>}
+                        </div>
+                        <div className="onb-field">
+                            <label className="onb-label">Contact No. <span className="req">*</span></label>
+                            <input
+                                type="tel"
+                                className="onb-input"
+                                value={contactNumber}
+                                onChange={e => setContactNumber(e.target.value)}
+                                placeholder="e.g. 0912..."
+                                required
+                            />
+                        </div>
+                        <div className="onb-field">
+                            <label className="onb-label">Required Hours</label>
+                            <input
+                                type="number"
+                                className="onb-input"
+                                min={0}
+                                value={requiredHours}
+                                onChange={e => setRequiredHours(Number(e.target.value))}
+                            />
+                        </div>
+                    </div>
+
+                    <OnboardingActions />
+                </form>
+            )}
+
+            {/* ══ STEP 2: Address ══ */}
+            {step === 2 && (
+                <form onSubmit={handleNext} className="onb-form">
+                    <AddressLevelsSelector levels={addressLevels} chrome={ONB_ADDRESS_CHROME} />
+                    <OnboardingActions onBack={handleBack} />
+                </form>
+            )}
+
+            {/* ══ STEP 3: Academic Information ══ */}
+            {step === 3 && (
+                <form onSubmit={handleNext} className="onb-form">
+                    <div className="onb-grid-2">
+                        <div className="onb-field">
+                            <label className="onb-label">Course <span className="req">*</span></label>
+                            <CustomSelect
+                                value={course}
+                                onChange={handleCourseChange}
+                                placeholder="Select Course"
+                                options={courses.map(c => ({
+                                    value: c.description || c.name,
+                                    label: c.description ? `${c.description} — ${c.name}` : c.name,
+                                }))}
+                            />
+                        </div>
+                        <div className="onb-field">
+                            <label className="onb-label">Department <span className="req">*</span></label>
+                            <CustomSelect
+                                value={department}
+                                onChange={setDepartment}
+                                placeholder="Select Department"
+                                options={departments.map(d => ({ value: d.name, label: d.name }))}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="onb-grid-2">
+                        <div className="onb-field">
+                            <label className="onb-label">Year Level <span className="req">*</span></label>
+                            <CustomSelect
+                                value={yearLevel}
+                                onChange={handleYearLevelChange}
+                                placeholder="Select Year"
+                                options={YEAR_LEVELS.map(y => ({ value: y, label: y }))}
+                            />
+                        </div>
+                        <div className="onb-field">
+                            <label className="onb-label">Section <span className="req">*</span></label>
+                            <CustomSelect
+                                value={section}
+                                onChange={setSection}
+                                placeholder="Select Section"
+                                options={sectionOptions}
+                            />
+                        </div>
+                    </div>
+
+                    <OnboardingActions onBack={handleBack} />
+                </form>
+            )}
+
+            {/* ══ STEP 4: Internship Company ══ */}
+            {step === 4 && (
+                <form onSubmit={handleNext} className="onb-form">
+                    {/* Click anywhere outside to close the company dropdown. */}
+                    {showDropdown && (
+                        <div style={{ position: 'fixed', inset: 0, zIndex: 50 }} onClick={() => setShowDropdown(false)} />
                     )}
+                    <div className="onb-field" style={{ position: 'relative', zIndex: showDropdown ? 60 : undefined, marginBottom: showDropdown ? '13rem' : 0 }}>
+                        <label className="onb-label">Internship Company <span className="req">*</span></label>
+                        <input
+                            className="onb-input"
+                            value={search}
+                            onChange={e => {
+                                setSearch(e.target.value.replace(/\b\w/g, c => c.toUpperCase()));
+                                setShowDropdown(true);
+                                setSelectedCompanyId('');
+                            }}
+                            onFocus={() => setShowDropdown(true)}
+                            placeholder="Search or select a company…"
+                            autoComplete="off"
+                        />
 
-                    {/* ── Step 1: Personal Info ── */}
-                    {step === 1 && (
-                        <form onSubmit={handleNext}>
-                            <div className="onboarding-form-stack">
-                                <div style={{ 
-                                    background: 'rgba(16, 185, 129, 0.05)', 
-                                    border: '1px solid rgba(16, 185, 129, 0.15)',
-                                    borderRadius: 10,
-                                    padding: '0.75rem 1rem',
-                                }}>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                                        ✓ Your name from account creation is shown below. You can edit if needed.
-                                    </p>
-                                </div>
-                                
-                                <div className="form-field-row">
-                                    <div className="onboarding-field">
-                                        <label style={labelSt}>First Name *</label>
-                                        <input style={inputSt} value={firstName} onChange={e => setFirstName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="First" required />
-                                    </div>
-                                    <div className="onboarding-field">
-                                        <label style={labelSt}>Middle Name</label>
-                                        <input style={inputSt} value={middleName} onChange={e => setMiddleName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Middle (Opt)" />
-                                    </div>
-                                    <div className="onboarding-field">
-                                        <label style={labelSt}>Last Name *</label>
-                                        <input style={inputSt} value={lastName} onChange={e => setLastName(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} placeholder="Last" required />
-                                    </div>
-                                </div>
-
-                                <div className="form-field-row">
-                                    <div className="onboarding-field">
-                                        <label style={labelSt}>Birthday *</label>
-                                        <input
-                                            style={{ ...inputSt, borderColor: birthdayError ? '#f87171' : 'var(--border)' }}
-                                            type="date"
-                                            value={birthday}
-                                            max={birthdayMaxDate}
-                                            onChange={e => setBirthday(e.target.value)}
-                                            required
-                                        />
-                                        {birthdayError && (
-                                            <div style={{
-                                                marginTop: '0.5rem',
-                                                color: '#f87171',
-                                                fontSize: '0.78rem',
-                                                lineHeight: 1.4,
-                                                fontWeight: 600,
-                                            }}>
-                                                {birthdayError}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="onboarding-field">
-                                        <label style={labelSt}>Contact No. *</label>
-                                        <input style={inputSt} type="tel" value={contactNumber} onChange={e => setContactNumber(e.target.value)} placeholder="e.g. 0912..." required />
-                                    </div>
-                                    <div className="onboarding-field">
-                                        <label style={labelSt}>Required Hours</label>
-                                        <input style={inputSt} type="number" min={0} value={requiredHours} onChange={e => setRequiredHours(Number(e.target.value))} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label style={labelSt}>Address *</label>
-
-                                    <div className="onboarding-form-stack">
-                                        <div>
-                                            <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>Country</label>
-                                            <div style={{ ...inputWrapSt }}>
-                                                <input value="Philippines" readOnly style={{ ...inputSt, background: 'var(--bg-elevated)', cursor: 'default', border: 'none', paddingLeft: 0, paddingRight: 0 }} />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>Region</label>
-                                            <CustomSelect
-                                                value={regionCode}
-                                                onChange={(val) => {
-                                                    setRegionCode(val);
-                                                    setRegionName(getRegionByCode(val)?.region_name ?? '');
-                                                    setProvinceCode('');
-                                                    setProvinceName('');
-                                                    setCityCode('');
-                                                    setCityMunicipalityName('');
-                                                    setBarangayCode('');
-                                                    setBarangayName('');
-                                                }}
-                                                options={regionSelectOptions}
-                                                placeholder="Select Region"
-                                                searchable={true}
-                                                searchPlaceholder="Search region..."
-                                                disabled={locationLoading || !regions.length}
-                                                showClear
-                                            />
-                                        </div>
-
-                                        <div className="form-field-row cols-2">
-                                            <div>
-                                                <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>Province</label>
-                                                <CustomSelect
-                                                    value={provinceCode}
-                                                    onChange={(val) => {
-                                                        setProvinceCode(val);
-                                                        setProvinceName(getProvinceByCode(val)?.province_name ?? '');
-                                                        setCityCode('');
-                                                        setCityMunicipalityName('');
-                                                        setBarangayCode('');
-                                                        setBarangayName('');
-                                                    }}
-                                                    options={provinceSelectOptions}
-                                                    placeholder="Select Province"
-                                                    searchable={true}
-                                                    searchPlaceholder="Search province..."
-                                                    disabled={!regionCode || locationLoading || !provinceOptions.length}
-                                                    showClear
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>City / Municipality</label>
-                                                <CustomSelect
-                                                    value={cityCode}
-                                                    onChange={(val) => {
-                                                        setCityCode(val);
-                                                        setCityMunicipalityName(getCityByCode(val)?.city_name ?? '');
-                                                        setBarangayCode('');
-                                                        setBarangayName('');
-                                                    }}
-                                                    options={citySelectOptions}
-                                                    placeholder="Select City / Municipality"
-                                                    searchable={true}
-                                                    searchPlaceholder="Search city/municipality..."
-                                                    disabled={!provinceCode || locationLoading || !cityOptions.length}
-                                                    showClear
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>Barangay</label>
-                                            <CustomSelect
-                                                value={barangayCode}
-                                                onChange={(val) => {
-                                                    setBarangayCode(val);
-                                                    setBarangayName(getBarangayByCode(val)?.barangay_name ?? '');
-                                                }}
-                                                options={barangaySelectOptions}
-                                                placeholder={!cityCode ? "Select a city/municipality first" : "Select Barangay"}
-                                                searchable={!!cityCode}
-                                                searchPlaceholder="Search barangay..."
-                                                disabled={!cityCode || locationLoading || !barangayOptions.length}
-                                                showClear
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label style={{ ...labelSt, textTransform: 'none', letterSpacing: '0.02em' }}>House No. / Street</label>
-                                            <div style={{ ...inputWrapSt }}>
-                                                <input
-                                                    value={houseStreet}
-                                                    onChange={e => setHouseStreet(e.target.value)}
-                                                    placeholder="House number, street name"
-                                                    style={{ ...inputSt, border: 'none', paddingLeft: 0, paddingRight: 0 }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="form-field-row cols-2">
-                                    <div>
-                                        <label style={labelSt}>Course *</label>
-                                        <CustomSelect
-                                            value={course}
-                                            onChange={setCourse}
-                                            placeholder="Select Course"
-                                            options={courses.map(c => ({
-                                                value: c.description || c.name,
-                                                label: c.description ? `${c.description} — ${c.name}` : c.name,
-                                            }))}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label style={labelSt}>Department *</label>
-                                        <CustomSelect
-                                            value={department}
-                                            onChange={setDepartment}
-                                            placeholder="Select Department"
-                                            options={departments.map(d => ({ value: d.name, label: d.name }))}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="form-field-row cols-2">
-                                    <div>
-                                        <label style={labelSt}>Year Level *</label>
-                                        <CustomSelect
-                                            value={yearLevel}
-                                            onChange={setYearLevel}
-                                            placeholder="Select Year"
-                                            options={[
-                                                { value: '1st Year', label: '1st Year' },
-                                                { value: '2nd Year', label: '2nd Year' },
-                                                { value: '3rd Year', label: '3rd Year' },
-                                                { value: '4th Year', label: '4th Year' },
-                                            ]}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label style={labelSt}>Section *</label>
-                                        <CustomSelect
-                                            value={section}
-                                            onChange={setSection}
-                                            placeholder="Select Section"
-                                            options={
-                                                availableSections.length > 0
-                                                    ? availableSections
-                                                        .filter(s => !course || !s.course_code || course.toUpperCase().includes(s.course_code.toUpperCase()))
-                                                        .map(s => ({ value: s.name, label: `${s.name} (${s.course_code})` }))
-                                                    : [
-                                                        { value: 'DHT-1A', label: 'DHT-1A (Hospitality Tech)' },
-                                                        { value: 'DHT-1B', label: 'DHT-1B (Hospitality Tech)' },
-                                                        { value: 'DHT-2A', label: 'DHT-2A (Hospitality Tech)' },
-                                                        { value: 'DHT-2B', label: 'DHT-2B (Hospitality Tech)' },
-                                                        { value: 'DIT-1A', label: 'DIT-1A (Information Tech)' },
-                                                        { value: 'DIT-1B', label: 'DIT-1B (Information Tech)' },
-                                                        { value: 'DIT-2A', label: 'DIT-2A (Information Tech)' },
-                                                        { value: 'DIT-2B', label: 'DIT-2B (Information Tech)' },
-                                                        { value: 'A', label: 'Section A' },
-                                                        { value: 'B', label: 'Section B' },
-                                                        { value: 'C', label: 'Section C' },
-                                                        { value: 'D', label: 'Section D' },
-                                                    ]
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <button
-                                type="submit"
-                                className="onboarding-continue-btn"
-                                style={{
-                                    ...btnPrimary,
-                                    opacity: !birthday || !isAtLeast18(birthday) || !country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim() ? 0.6 : 1,
-                                    cursor: !birthday || !isAtLeast18(birthday) || !country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim() ? 'not-allowed' : 'pointer',
-                                }}
-                                disabled={!birthday || !isAtLeast18(birthday) || !country.trim() || !regionCode.trim() || !provinceCode.trim() || !cityCode.trim() || !barangayCode.trim() || !houseStreet.trim() || !contactNumber.trim() || !yearLevel.trim() || !section.trim() || !course.trim() || !department.trim()}
-                            >
-                                Continue →
-                            </button>
-                        </form>
-                    )}
-
-                    {/* ── Step 2: Company ── */}
-                    {step === 2 && (
-                        <form onSubmit={handleSubmit}>
-                            <div style={{ marginBottom: showDropdown ? '14rem' : '1.5rem', position: 'relative', transition: 'margin-bottom 0.2s' }}>
-                                <label style={labelSt}>Internship Company</label>
-                                <input
-                                    style={inputSt}
-                                    value={search}
-                                    onChange={e => { 
-                                        setSearch(e.target.value.replace(/\b\w/g, c => c.toUpperCase())); 
-                                        setShowDropdown(true); 
-                                        setSelectedCompanyId(''); 
-                                    }}
-                                    onFocus={() => setShowDropdown(true)}
-                                    placeholder="Search or select a company…"
-                                    autoComplete="off"
-                                />
-                                {/* Dropdown */}
-                                {showDropdown && filtered.length > 0 && (
-                                    <div style={{
-                                        position: 'absolute', top: '100%', left: 0, right: 0,
-                                        background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                                        borderRadius: 12, zIndex: 100, maxHeight: 220, overflowY: 'auto',
-                                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4,
-                                    }}>
-                                        {filtered.map(c => (
-                                            <div
-                                                key={c.id}
-                                                onClick={() => handleSelectCompany(c)}
-                                                style={{
-                                                    padding: '0.75rem 1rem', cursor: 'pointer',
-                                                    borderBottom: '1px solid var(--border)',
-                                                    transition: 'background 0.12s',
-                                                    background: selectedCompanyId === c.id ? 'rgba(16,185,129,0.1)' : 'transparent',
-                                                }}
-                                                onMouseOver={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.08)')}
-                                                onMouseOut={e => (e.currentTarget.style.background = selectedCompanyId === c.id ? 'rgba(16,185,129,0.1)' : 'transparent')}
-                                            >
-                                                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-bright)' }}>{c.name}</div>
-                                                {c.address && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{c.address}</div>}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                {showDropdown && filtered.length === 0 && search.length > 0 && (
-                                    <div style={{
-                                        position: 'absolute', top: '100%', left: 0, right: 0,
-                                        background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                                        borderRadius: 12, zIndex: 100, marginTop: 4,
-                                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden',
-                                    }}>
-                                        <div style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
-                                            No companies match &ldquo;{search}&rdquo;
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleRequestCompanyClick}
-                                            style={{
-                                                width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem',
-                                                padding: '0.75rem 1rem', background: 'transparent', border: 'none',
-                                                cursor: 'pointer',
-                                                color: '#10b981', fontSize: '0.88rem', fontWeight: 600,
-                                                fontFamily: 'Inter, sans-serif', textAlign: 'left',
-                                            }}
-                                            onMouseOver={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.08)')}
-                                            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
-                                        >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                                            Request &ldquo;{search}&rdquo;
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Request new company sub-form */}
-                            {showNewCompanyForm && (
-                                <div style={{
-                                    background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)',
-                                    borderRadius: 12, padding: '1.25rem', marginBottom: '1.25rem'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                                <circle cx="8.5" cy="7" r="4" />
-                                                <line x1="20" y1="8" x2="20" y2="14" />
-                                                <line x1="23" y1="11" x2="17" y2="11" />
-                                            </svg>
-                                            <span style={{ fontSize: '0.95rem', color: '#10b981', fontWeight: 600 }}>
-                                                New Company Request: {requestedName}
-                                            </span>
-                                        </div>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowNewCompanyForm(false)}
-                                            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                                        >
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                        </button>
-                                    </div>
-
-                                    <label style={{ ...labelSt, marginBottom: '0.5rem', display: 'block' }}>Company Location & Geofence (Optional)</label>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.4 }}>
-                                        Help your coordinator by drawing the company location on the map. This ensures you can clock in properly once approved.
-                                    </p>
-                                    
-                                    <AdvancedLocationPickerMap
-                                        initialLat={newCompanyLat}
-                                        initialLng={newCompanyLng}
-                                        initialPolygon={newCompanyPolygon}
-                                        geofenceRadius={newCompanyRadius}
-                                        onLocationSelect={(lat, lng) => {
-                                            setNewCompanyLat(lat);
-                                            setNewCompanyLng(lng);
+                        {showDropdown && filtered.length > 0 && (
+                            <div style={{
+                                position: 'absolute', top: '100%', left: 0, right: 0,
+                                background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                                borderRadius: 12, zIndex: 100, maxHeight: 220, overflowY: 'auto',
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4,
+                            }}>
+                                {filtered.map(c => (
+                                    <div
+                                        key={c.id}
+                                        onClick={() => handleSelectCompany(c)}
+                                        style={{
+                                            padding: '0.75rem 1rem', cursor: 'pointer',
+                                            borderBottom: '1px solid var(--border)',
+                                            background: selectedCompanyId === c.id ? 'rgba(16,185,129,0.1)' : 'transparent',
                                         }}
-                                        onPolygonChange={(poly) => setNewCompanyPolygon(poly)}
-                                    />
-                                </div>
-                            )}
-
-                            {selectedCompany && !showNewCompanyForm && (
-                                <div style={{ marginBottom: '1.25rem' }}>
-                                    <label style={{ ...labelSt, marginBottom: '0.5rem', display: 'block' }}>Company Location</label>
-                                    <div style={{ pointerEvents: 'none', opacity: 0.9 }}>
-                                        <AdvancedLocationPickerMap
-                                            initialLat={selectedCompany.latitude}
-                                            initialLng={selectedCompany.longitude}
-                                            initialPolygon={selectedCompany.geofence_polygon}
-                                            geofenceRadius={selectedCompany.geofence_radius || 100}
-                                            onLocationSelect={() => {}}
-                                            onPolygonChange={() => {}}
-                                        />
+                                    >
+                                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-bright)' }}>{c.name}</div>
+                                        {c.address && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{c.address}</div>}
                                     </div>
-                                </div>
-                            )}
+                                ))}
+                            </div>
+                        )}
 
-                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        {showDropdown && filtered.length === 0 && search.length > 0 && (
+                            <div style={{
+                                position: 'absolute', top: '100%', left: 0, right: 0,
+                                background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                                borderRadius: 12, zIndex: 100, marginTop: 4,
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden',
+                            }}>
+                                <div style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+                                    No companies match &ldquo;{search}&rdquo;
+                                </div>
                                 <button
                                     type="button"
-                                    onClick={() => { setShowDropdown(false); setStep(1); }}
-                                    style={{ ...btnPrimary, background: 'var(--bg-elevated)', color: 'var(--text-secondary)', flex: '0 0 auto', width: 'auto', padding: '0.75rem 1.25rem', position: 'relative', zIndex: 60 }}
+                                    onClick={handleRequestCompanyClick}
+                                    style={{
+                                        width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem',
+                                        padding: '0.75rem 1rem', background: 'transparent', border: 'none',
+                                        cursor: 'pointer', color: '#10b981', fontSize: '0.88rem', fontWeight: 600,
+                                        fontFamily: 'inherit', textAlign: 'left',
+                                    }}
                                 >
-                                    ← Back
-                                </button>
-                                <button type="submit" style={{ ...btnPrimary, flex: 1, position: 'relative', zIndex: 60 }} disabled={saving || (!selectedCompanyId && !showNewCompanyForm)}>
-                                    {saving ? 'Submitting...' : showNewCompanyForm ? 'Submit Request' : 'Complete Profile'}
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                                    Request &ldquo;{search}&rdquo;
                                 </button>
                             </div>
-                        </form>
+                        )}
+                    </div>
+
+                    {/* Request new company sub-form */}
+                    {showNewCompanyForm && (
+                        <div style={{
+                            background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)',
+                            borderRadius: 12, padding: '1.25rem'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '1rem' }}>
+                                <span style={{ fontSize: '0.92rem', color: '#10b981', fontWeight: 600 }}>
+                                    New Company Request: {requestedName}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNewCompanyForm(false)}
+                                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                                    aria-label="Cancel company request"
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                </button>
+                            </div>
+
+                            <label className="onb-label" style={{ marginBottom: '0.5rem' }}>Company Location &amp; Geofence (Optional)</label>
+                            <p className="onb-hint" style={{ marginBottom: '1rem' }}>
+                                Help your coordinator by drawing the company location on the map. This ensures you can clock in properly once approved.
+                            </p>
+
+                            <AdvancedLocationPickerMap
+                                initialLat={newCompanyLat}
+                                initialLng={newCompanyLng}
+                                initialPolygon={newCompanyPolygon}
+                                geofenceRadius={newCompanyRadius}
+                                onLocationSelect={(lat, lng) => {
+                                    setNewCompanyLat(lat);
+                                    setNewCompanyLng(lng);
+                                }}
+                                onPolygonChange={(poly) => setNewCompanyPolygon(poly)}
+                            />
+                        </div>
                     )}
-                </div>
 
-                <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.75rem', marginTop: '1.5rem' }}>
-                    You can update this later from your Profile page.
-                </p>
-            </div>
+                    {selectedCompany && !showNewCompanyForm && (
+                        <div className="onb-field">
+                            <label className="onb-label">Company Location</label>
+                            <div style={{ pointerEvents: 'none', opacity: 0.9 }}>
+                                <AdvancedLocationPickerMap
+                                    initialLat={selectedCompany.latitude}
+                                    initialLng={selectedCompany.longitude}
+                                    initialPolygon={selectedCompany.geofence_polygon}
+                                    geofenceRadius={selectedCompany.geofence_radius || 100}
+                                    onLocationSelect={() => {}}
+                                    onPolygonChange={() => {}}
+                                />
+                            </div>
+                        </div>
+                    )}
 
-            {/* Click outside to close dropdown */}
-            {showDropdown && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 50 }} onClick={() => setShowDropdown(false)} />
+                    <OnboardingActions onBack={handleBack} />
+                </form>
             )}
-        </div>
+
+            {/* ══ STEP 5: Review & Confirm ══ */}
+            {step === 5 && (
+                <form onSubmit={handleSubmit} className="onb-form">
+                    <ReviewSummary sections={reviewSections} onEdit={goTo} />
+                    {showNewCompanyForm && (
+                        <div className="onb-notice">
+                            <p>Your company is not in the directory yet, so submitting will send a request to your coordinator for approval.</p>
+                        </div>
+                    )}
+                    <OnboardingActions
+                        onBack={handleBack}
+                        busy={saving}
+                        nextLabel={saving
+                            ? 'Submitting...'
+                            : showNewCompanyForm ? 'Confirm & Submit Request' : 'Confirm & Complete Onboarding'}
+                    />
+                </form>
+            )}
+        </OnboardingShell>
     );
-};
-
-
-// Shared micro-styles
-const labelSt: React.CSSProperties = {
-    display: 'block', fontSize: '0.78rem', fontWeight: 600,
-    color: 'var(--text-muted)', marginBottom: 'var(--form-label-gap)',
-    textTransform: 'uppercase', letterSpacing: '0.05em',
-};
-const inputWrapSt: React.CSSProperties = {
-    display: 'flex', alignItems: 'center',
-    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-    borderRadius: 8, padding: '0 0.75rem',
-    minHeight: '2.8rem',
-};
-const inputSt: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box',
-    padding: '0.55rem 0.8rem',
-    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-    borderRadius: 8, color: 'var(--text-primary)',
-    fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', outline: 'none',
-};
-const btnPrimary: React.CSSProperties = {
-    width: '100%', padding: '0.85rem 1.5rem',
-    background: 'linear-gradient(135deg, #10b981, #059669)',
-    border: 'none', borderRadius: 12,
-    color: '#fff', fontWeight: 700, fontSize: '0.95rem',
-    cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-    boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
-    transition: 'opacity 0.15s',
 };
 
 export default OnboardingView;

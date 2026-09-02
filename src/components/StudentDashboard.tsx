@@ -14,6 +14,7 @@ import JournalView from './JournalView';
 import AnnouncementsView from './AnnouncementsView';
 import DocumentsView from './DocumentsView';
 import OnboardingView from './OnboardingView';
+import { getPostAuthRedirect } from '../utils/authRedirect';
 import PendingApprovalView from './PendingApprovalView';
 import WelcomeCelebration from './WelcomeCelebration';
 import ChatWidget from './ChatWidget';
@@ -63,9 +64,12 @@ const StudentDashboard: React.FC = () => {
     const routerNavigate = useNavigate();
     const location = useLocation();
 
-    // Determine current view from pathname
-    const lastPart = location.pathname.split('/').pop();
-    const currentView: View = (lastPart === '' || lastPart === 'monitoring-system' || lastPart === undefined ? 'dashboard' : lastPart as View) || 'dashboard';
+    // Determine current view from the path segment after the /student portal root
+    const segments = location.pathname.split('/').filter(Boolean);
+    const viewSegment = segments[0] === 'student' ? segments[1] : segments[segments.length - 1];
+    const currentView: View = (!viewSegment || viewSegment === 'student' || viewSegment === 'monitoring-system'
+        ? 'dashboard'
+        : viewSegment as View) || 'dashboard';
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -620,7 +624,7 @@ const StudentDashboard: React.FC = () => {
     };
 
     const navigateTo = (view: View, query?: Record<string, string>) => {
-        const base = view === 'dashboard' ? '/' : `/${view}`;
+        const base = view === 'dashboard' ? '/student' : `/student/${view}`;
         const params = query ? '?' + new URLSearchParams(query).toString() : '';
         routerNavigate(base + params);
         setIsMobileMenuOpen(false);
@@ -725,7 +729,7 @@ const StudentDashboard: React.FC = () => {
 
     // Safeguard: Ensure non-students are never shown student onboarding or student views
     if (profile && profile.account_type && profile.account_type !== 'student') {
-        return <Navigate to={`/${profile.account_type}`} replace />;
+        return <Navigate to={getPostAuthRedirect(profile.account_type)} replace />;
     }
 
     // Show onboarding for students who haven't set their company yet

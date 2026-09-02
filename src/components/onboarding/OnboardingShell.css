@@ -1,0 +1,787 @@
+/* ═══════════════════════════════════════════════════════════════════
+   SHARED ONBOARDING WIZARD — SIL Monitoring System
+   One design system for Student, Adviser, Coordinator and Company.
+
+   Derived from AdviserOnboardingView.css, which is the reference
+   implementation: emerald brand green, rounded cards, clean typography.
+   Every onboarding flow uses these classes so the four roles cannot
+   drift apart visually.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.onb-page {
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem 1rem 3rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: var(--text-primary, #0f172a);
+  background: var(--bg-page, #f8fafc);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.onb-container {
+  width: 100%;
+  max-width: 620px;
+  margin: auto;
+  min-width: 0;
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+
+.onb-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.onb-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #ffffff;
+}
+
+.onb-title {
+  font-size: clamp(1.25rem, 5vw, 1.65rem);
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--text-bright, #0f172a);
+  margin: 0;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+}
+
+.onb-subtitle {
+  color: var(--text-muted, #64748b);
+  margin: 0.4rem 0 0;
+  font-size: clamp(0.82rem, 3.5vw, 0.92rem);
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+/* ── Stepper (desktop) ────────────────────────────────────────────── */
+
+.onb-stepper {
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  margin-bottom: 1.75rem;
+}
+
+.onb-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+  max-width: 8.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: default;
+}
+
+.onb-step.clickable {
+  cursor: pointer;
+}
+
+.onb-step-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 2px solid var(--border, #e2e8f0);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-muted, #94a3b8);
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.onb-step-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  text-align: center;
+  line-height: 1.25;
+  transition: color 0.25s ease;
+}
+
+.onb-step.completed .onb-step-circle {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.onb-step.completed .onb-step-label {
+  color: var(--text-secondary, #475569);
+}
+
+.onb-step.current .onb-step-circle {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
+}
+
+.onb-step.current .onb-step-label {
+  color: #059669;
+  font-weight: 700;
+}
+
+.onb-step-line {
+  flex: 1 1 auto;
+  height: 2px;
+  min-width: 1rem;
+  margin-top: 17px;
+  border-radius: 2px;
+  background: var(--border, #e2e8f0);
+  transition: background 0.3s ease;
+}
+
+.onb-step-line.done {
+  background: #10b981;
+}
+
+/* ── Stepper (mobile) ─────────────────────────────────────────────── */
+
+.onb-stepper-mobile {
+  margin-bottom: 1.5rem;
+}
+
+.onb-stepper-mobile-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.onb-stepper-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #059669;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.onb-stepper-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-bright, #0f172a);
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.onb-stepper-track {
+  height: 6px;
+  border-radius: 6px;
+  background: var(--bg-elevated, #e2e8f0);
+  overflow: hidden;
+}
+
+.onb-stepper-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #10b981, #059669);
+  transition: width 0.35s ease;
+}
+
+@media (min-width: 640px) {
+  .onb-stepper {
+    display: flex;
+  }
+  .onb-stepper-mobile {
+    display: none;
+  }
+}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+
+.onb-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 20px;
+  padding: 1.35rem 1.15rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .onb-card {
+    padding: 2rem;
+  }
+}
+
+.onb-footnote {
+  text-align: center;
+  color: var(--text-dim, #94a3b8);
+  font-size: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* ── Banners ──────────────────────────────────────────────────────── */
+
+.onb-error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 1.25rem;
+}
+
+.onb-error svg {
+  flex: 0 0 auto;
+}
+
+.onb-notice {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #047857;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.onb-notice p {
+  margin: 0;
+}
+
+/* ── Form layout ──────────────────────────────────────────────────── */
+
+.onb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  min-width: 0;
+  animation: onb-step-in 0.28s ease;
+}
+
+@keyframes onb-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onb-form {
+    animation: none;
+  }
+}
+
+/* One column on small screens; columns only appear when there is room. */
+.onb-grid-2,
+.onb-grid-3,
+.onb-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+@media (min-width: 560px) {
+  .onb-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .onb-grid-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  /* First / Middle / Last / Suffix — suffix is narrower. */
+  .onb-grid-4 {
+    grid-template-columns: 1fr 1fr 1fr 0.6fr;
+  }
+}
+
+.onb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.onb-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.onb-label .req {
+  color: #ef4444;
+}
+
+.onb-optional {
+  color: var(--text-dim, #94a3b8);
+  font-weight: 400;
+}
+
+.onb-input,
+.onb-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--border, #cbd5e1);
+  background: var(--bg-input, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-width: 0;
+}
+
+.onb-textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+.onb-input:focus,
+.onb-textarea:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.onb-input:disabled,
+.onb-textarea:disabled {
+  background: var(--bg-elevated, #f1f5f9);
+  color: var(--text-muted, #64748b);
+  cursor: not-allowed;
+}
+
+.onb-input.invalid {
+  border-color: #ef4444;
+}
+
+.onb-field-error {
+  color: #ef4444;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.onb-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.onb-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+  margin: 0;
+}
+
+.onb-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+/* ── Selectable option cards (e.g. Adviser specialization) ────────── */
+
+.onb-choice-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+@media (min-width: 480px) {
+  .onb-choice-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.onb-choice-card {
+  border: 2px solid var(--border, #e2e8f0);
+  background: var(--bg-card, #ffffff);
+  border-radius: 14px;
+  padding: 1.25rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.45rem;
+  user-select: none;
+}
+
+.onb-choice-card:hover {
+  border-color: #10b981;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.12);
+}
+
+.onb-choice-card.selected {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.06);
+  box-shadow: 0 0 0 1px #10b981, 0 6px 20px rgba(16, 185, 129, 0.15);
+}
+
+.onb-choice-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-bright, #0f172a);
+}
+
+.onb-choice-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.onb-choice-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* ── Review & Confirm ─────────────────────────────────────────────── */
+
+.onb-review {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.onb-review-section {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg-card, #ffffff);
+}
+
+.onb-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.95rem;
+  background: rgba(16, 185, 129, 0.06);
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.onb-review-head h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-bright, #0f172a);
+}
+
+.onb-review-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #059669;
+  border-radius: 8px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.onb-review-edit:hover {
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.onb-review-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  padding: 0.95rem;
+}
+
+@media (min-width: 560px) {
+  .onb-review-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.onb-review-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.onb-review-row.full {
+  grid-column: 1 / -1;
+}
+
+.onb-review-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted, #94a3b8);
+}
+
+.onb-review-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-bright, #0f172a);
+  overflow-wrap: break-word;
+}
+
+.onb-review-value.empty {
+  color: var(--text-dim, #94a3b8);
+  font-weight: 500;
+}
+
+/* ── Confirmation checkbox ────────────────────────────────────────── */
+
+.onb-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+}
+
+.onb-checkbox input {
+  margin-top: 0.15rem;
+  width: 16px;
+  height: 16px;
+  accent-color: #10b981;
+  flex: 0 0 auto;
+}
+
+/* ── Actions ──────────────────────────────────────────────────────── */
+
+.onb-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.onb-actions.end {
+  justify-content: flex-end;
+}
+
+.onb-btn-back,
+.onb-btn-next {
+  padding: 0.8rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 44px;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.onb-btn-back {
+  border: 1px solid var(--border, #cbd5e1);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-secondary, #475569);
+}
+
+.onb-btn-back:hover:not(:disabled) {
+  background: var(--bg-elevated, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+}
+
+.onb-btn-next {
+  border: none;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+  padding-inline: 1.5rem;
+}
+
+.onb-btn-next:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.onb-btn-next:disabled,
+.onb-btn-back:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Buttons stack and go full width where a row would be cramped. */
+@media (max-width: 400px) {
+  .onb-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .onb-actions .onb-btn-back,
+  .onb-actions .onb-btn-next {
+    width: 100%;
+  }
+}
+
+/* ── Dark mode ────────────────────────────────────────────────────── */
+
+[data-theme='dark'] .onb-page {
+  background: #090d16;
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .onb-card,
+[data-theme='dark'] .onb-review-section {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+[data-theme='dark'] .onb-card {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .onb-title,
+[data-theme='dark'] .onb-review-head h4,
+[data-theme='dark'] .onb-review-value,
+[data-theme='dark'] .onb-choice-title,
+[data-theme='dark'] .onb-stepper-name {
+  color: #f9fafb;
+}
+
+[data-theme='dark'] .onb-subtitle,
+[data-theme='dark'] .onb-choice-desc,
+[data-theme='dark'] .onb-hint,
+[data-theme='dark'] .onb-review-label {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .onb-label,
+[data-theme='dark'] .onb-checkbox {
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .onb-input,
+[data-theme='dark'] .onb-textarea {
+  background: #1e293b;
+  border-color: #374151;
+  color: #f9fafb;
+}
+
+[data-theme='dark'] .onb-input:focus,
+[data-theme='dark'] .onb-textarea:focus {
+  border-color: #10b981;
+}
+
+[data-theme='dark'] .onb-step-circle {
+  background: #1a2234;
+  border-color: #374151;
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .onb-step-line {
+  background: #374151;
+}
+
+[data-theme='dark'] .onb-step-line.done {
+  background: #10b981;
+}
+
+[data-theme='dark'] .onb-step.completed .onb-step-label {
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .onb-step.current .onb-step-label {
+  color: #34d399;
+}
+
+[data-theme='dark'] .onb-stepper-count {
+  color: #34d399;
+}
+
+[data-theme='dark'] .onb-stepper-track {
+  background: #1f2937;
+}
+
+[data-theme='dark'] .onb-choice-card {
+  background: #1a2234;
+  border-color: #374151;
+}
+
+[data-theme='dark'] .onb-choice-card.selected {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+}
+
+[data-theme='dark'] .onb-choice-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+[data-theme='dark'] .onb-notice {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+[data-theme='dark'] .onb-review-head {
+  background: rgba(16, 185, 129, 0.1);
+  border-bottom-color: #1f2937;
+}
+
+[data-theme='dark'] .onb-review-edit {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.35);
+}
+
+[data-theme='dark'] .onb-btn-back {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .onb-btn-back:hover:not(:disabled) {
+  background: #374151;
+  color: #ffffff;
+}

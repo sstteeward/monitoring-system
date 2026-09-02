@@ -1,7 +1,41 @@
+/**
+ * Company account onboarding.
+ *
+ * Company Details → Company Address → Supervisor / Contact → Review & Confirm,
+ * built on the shared onboarding wizard (OnboardingShell) so it matches the
+ * Student, Adviser and Coordinator flows.
+ *
+ * Company accounts are not people: no birthday or SIL/OJT hours are collected —
+ * the personal step is replaced by the company's own contact information.
+ * The application payloads and `company_requests` relationships are unchanged.
+ */
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import type { Profile } from '../services/profileService';
+import NameFieldsGroup from './onboarding/NameFieldsGroup';
+import AddressLevelsSelector from './onboarding/AddressLevelsSelector';
+import OnboardingShell, { OnboardingActions } from './onboarding/OnboardingShell';
+import { ONB_ADDRESS_CHROME, ONB_NAME_CHROME } from './onboarding/onboardingChrome';
+import ReviewSummary, { type ReviewSectionData } from './onboarding/ReviewSummary';
+import { addressLevelsFromProfile, useAddressLevels, type AddressLevelRow } from './onboarding/useAddressLevels';
+import {
+    formatFullName,
+    formatStructuredAddress,
+    validateAddressLevels,
+    validateContactNumber,
+    validateNameLevels,
+    type NameLevels,
+} from './onboarding/onboardingFields';
 import './CompanyOnboardingView.css';
+
+const STEPS = ['Company', 'Address', 'Supervisor', 'Review'];
+
+const SUBTITLES = [
+    "Let's set up your company profile.",
+    'Where is your office located?',
+    'Who will supervise the SIL/OJT students?',
+    'Review your company application before submitting.',
+];
 
 interface CompanyOnboardingViewProps {
     profile: Profile;
@@ -15,7 +49,7 @@ interface CompanyApplication {
     created_at: string;
 }
 
-interface Company {
+interface Company extends AddressLevelRow {
     id: string;
     name: string;
     address?: string;
@@ -42,21 +76,36 @@ interface CompanyRequest {
     geofence_polygon?: unknown;
 }
 
-const steps = [1, 2];
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 const CompanyOnboardingView: React.FC<CompanyOnboardingViewProps> = ({ profile }) => {
     const [step, setStep] = useState(1);
+
+    // ── Step 1: Company details ──
     const [companyName, setCompanyName] = useState('');
     const [industry, setIndustry] = useState('');
-    const [address, setAddress] = useState('');
     const [website, setWebsite] = useState('');
-    const [contactName, setContactName] = useState(`${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim());
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+    // ── Step 2: Office address by level (PSGC) ──
+    const addressLevels = useAddressLevels(addressLevelsFromProfile(null));
+    const address = formatStructuredAddress(addressLevels.address);
+
+    // ── Step 3: Supervisor / contact person ──
+    const [contactName, setContactName] = useState<NameLevels>({
+        firstName: profile.first_name ?? '',
+        middleName: profile.middle_name ?? '',
+        lastName: profile.last_name ?? '',
+        suffix: profile.suffix ?? '',
+    });
     const [contactPosition, setContactPosition] = useState('');
     const [contactEmail, setContactEmail] = useState(profile.email ?? '');
     const [contactPhone, setContactPhone] = useState('');
-    const [logoFile, setLogoFile] = useState<File | null>(null);
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+    // ── Step 4: Review ──
     const [accepted, setAccepted] = useState(false);
+
     const [pendingApplication, setPendingApplication] = useState<CompanyApplication | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -126,7 +175,10 @@ const CompanyOnboardingView: React.FC<CompanyOnboardingViewProps> = ({ profile }
 
     const handleCompanySelect = (company: Company) => {
         setCompanyName(company.name);
-        if (company.address) setAddress(company.address);
+        // Prefill the address levels when the stored company already has them.
+        // A legacy company with only a combined `address` cannot be split reliably,
+        // so the applicant re-picks the levels instead of us guessing.
+        addressLevels.setAddress(addressLevelsFromProfile(company));
         if (company.industry) setIndustry(company.industry);
         setCompanySearch(company.name);
         setShowCompanyDropdown(false);
@@ -140,20 +192,86 @@ const CompanyOnboardingView: React.FC<CompanyOnboardingViewProps> = ({ profile }
         setLogoPreview(URL.createObjectURL(file));
     };
 
-    const nextStep = (event: React.FormEvent) => {
-        event.preventDefault();
-        setError(null);
+    // ── Per-step validation ──
 
-        if (step === 1 && (!companyName.trim() || !industry.trim() || !address.trim() || !contactName.trim() || !contactPosition.trim() || !contactEmail.trim() || !contactPhone.trim())) {
-            setError('Please complete the required company details before continuing.');
+    const validateStep1 = () => {
+        if (!companyName.trim()) {
+            setError('Please enter or select your company name.');
+            return false;
+        }
+        if (!industry.trim()) {
+            setError('Please enter your company type or industry.');
+            return false;
+        }
+        setError(null);
+        return true;
+    };
+
+    const validateStep2 = () => {
+        const message = validateAddressLevels(addressLevels.address);
+        setError(message);
+        return message === null;
+    };
+
+    const validateStep3 = () => {
+        // Shared rules — identical to Student, Adviser and Coordinator onboarding.
+        const nameError = validateNameLevels(contactName);
+        if (nameError) {
+            setError(nameError);
+            return false;
+        }
+        if (!contactPosition.trim()) {
+            setError('Please enter the contact person’s position.');
+            return false;
+        }
+        if (!isValidEmail(contactEmail)) {
+            setError('Please enter a valid company email address.');
+            return false;
+        }
+        const phoneError = validateContactNumber(contactPhone);
+        if (phoneError) {
+            setError(phoneError);
+            return false;
+        }
+        setError(null);
+        return true;
+    };
+
+    const canReach = (target: number) => {
+        if (target > 1 && !validateStep1()) return false;
+        if (target > 2 && !validateStep2()) return false;
+        if (target > 3 && !validateStep3()) return false;
+        return true;
+    };
+
+    const goTo = (target: number) => {
+        setShowCompanyDropdown(false);
+        if (target <= step) {
+            setError(null);
+            setStep(target);
             return;
         }
+        if (canReach(target)) setStep(target);
+    };
+
+    const nextStep = (event: React.FormEvent) => {
+        event.preventDefault();
+        goTo(step + 1);
+    };
+
+    const handleBack = () => {
+        setError(null);
         setShowCompanyDropdown(false);
-        setStep(current => Math.min(current + 1, 2));
+        setStep(current => Math.max(1, current - 1));
     };
 
     const submitApplication = async (event: React.FormEvent) => {
         event.preventDefault();
+
+        // Re-check every step so an incomplete application can never be sent.
+        if (!validateStep1()) { setStep(1); return; }
+        if (!validateStep2()) { setStep(2); return; }
+        if (!validateStep3()) { setStep(3); return; }
         if (!accepted) {
             setError('Please confirm that the information provided is accurate.');
             return;
@@ -187,28 +305,62 @@ const CompanyOnboardingView: React.FC<CompanyOnboardingViewProps> = ({ profile }
                 companies.find(c => c.id === selectedCompanyId) ??
                 companyRequests.find(r => `request-${r.id}` === selectedCompanyId);
 
-            const { data, error: requestError } = await supabase
-                .from('company_requests')
-                .insert({
-                    name: companyName.trim(),
-                    request_type: 'company_account',
-                    requested_by: user.id,
-                    student_name: contactName.trim(),
-                    position: contactPosition.trim(),
-                    contact_email: contactEmail.trim().toLowerCase(),
-                    contact_phone: contactPhone.trim(),
-                    address: address.trim(),
-                    industry: industry.trim(),
-                    website: website.trim() || null,
-                    logo_url: logoUrl,
-                    latitude: selectedCompany?.latitude ?? null,
-                    longitude: selectedCompany?.longitude ?? null,
-                    geofence_radius: selectedCompany?.geofence_radius ?? null,
-                    geofence_polygon: selectedCompany?.geofence_polygon ?? null,
-                    status: 'pending',
-                })
-                .select('id, name, contact_email, created_at, status')
-                .single();
+            // Legacy columns keep the combined display values; the by-level columns
+            // are the source of truth going forward.
+            const legacyPayload = {
+                name: companyName.trim(),
+                request_type: 'company_account',
+                requested_by: user.id,
+                student_name: formatFullName(contactName),
+                position: contactPosition.trim(),
+                contact_email: contactEmail.trim().toLowerCase(),
+                contact_phone: contactPhone.trim(),
+                address: address.trim(),
+                industry: industry.trim(),
+                website: website.trim() || null,
+                logo_url: logoUrl,
+                latitude: selectedCompany?.latitude ?? null,
+                longitude: selectedCompany?.longitude ?? null,
+                geofence_radius: selectedCompany?.geofence_radius ?? null,
+                geofence_polygon: selectedCompany?.geofence_polygon ?? null,
+                status: 'pending',
+            };
+
+            const byLevelPayload = {
+                ...legacyPayload,
+                contact_first_name: contactName.firstName.trim(),
+                contact_middle_name: contactName.middleName.trim() || null,
+                contact_last_name: contactName.lastName.trim(),
+                contact_suffix: contactName.suffix.trim() || null,
+                country: addressLevels.address.country || 'Philippines',
+                region: addressLevels.address.regionName || null,
+                region_code: addressLevels.address.regionCode || null,
+                province: addressLevels.address.provinceName || null,
+                province_code: addressLevels.address.provinceCode || null,
+                city_municipality: addressLevels.address.cityMunicipalityName || null,
+                city_municipality_code: addressLevels.address.cityCode || null,
+                barangay: addressLevels.address.barangayName || null,
+                barangay_code: addressLevels.address.barangayCode || null,
+                house_street: addressLevels.address.houseStreet.trim() || null,
+            };
+
+            const isMissingColumnError = (err: unknown) => {
+                const msg = (err instanceof Error ? err.message : String(err ?? '')).toLowerCase();
+                return msg.includes('could not find') || msg.includes('schema cache') || msg.includes('does not exist');
+            };
+
+            const insertRequest = (payload: Record<string, unknown>) =>
+                supabase
+                    .from('company_requests')
+                    .insert(payload)
+                    .select('id, name, contact_email, created_at, status')
+                    .single();
+
+            let { data, error: requestError } = await insertRequest(byLevelPayload);
+            if (requestError && isMissingColumnError(requestError)) {
+                // Database has not run the by-level migration yet.
+                ({ data, error: requestError } = await insertRequest(legacyPayload));
+            }
 
             if (requestError) throw requestError;
             setPendingApplication(data as CompanyApplication);
@@ -255,7 +407,7 @@ const CompanyOnboardingView: React.FC<CompanyOnboardingViewProps> = ({ profile }
                                 <div><span>3</span>Submit a new application once corrected.</div>
                             </div>
                             <div className="company-onboarding-actions">
-                                <button type="button" className="company-onboarding-primary" onClick={() => setPendingApplication(null)}>Submit a new application <span>→</span></button>
+                                <button type="button" className="company-onboarding-primary" onClick={() => { setPendingApplication(null); setStep(1); setAccepted(false); }}>Submit a new application <span>→</span></button>
                             </div>
                         </div>
                         <p className="company-onboarding-footnote">Sign in again anytime to check your application status.</p>
@@ -317,145 +469,232 @@ const CompanyOnboardingView: React.FC<CompanyOnboardingViewProps> = ({ profile }
         );
     }
 
-    const subtitle = step === 1
-        ? "Let's set up your company profile."
-        : 'Review your company application before submitting.';
+    const reviewSections: ReviewSectionData[] = [
+        {
+            title: 'Company Information',
+            step: 1,
+            rows: [
+                { label: 'Company Name', value: companyName },
+                { label: 'Company Type / Industry', value: industry },
+                { label: 'Website', value: website, full: true },
+            ],
+        },
+        {
+            title: 'Company Address',
+            step: 2,
+            rows: [
+                { label: 'Country', value: addressLevels.address.country },
+                { label: 'Region', value: addressLevels.address.regionName },
+                { label: 'Province', value: addressLevels.address.provinceName },
+                { label: 'City / Municipality', value: addressLevels.address.cityMunicipalityName },
+                { label: 'Barangay', value: addressLevels.address.barangayName },
+                { label: 'Company Address / Street', value: addressLevels.address.houseStreet },
+                { label: 'Full Address', value: address, full: true },
+            ],
+        },
+        {
+            title: 'Supervisor / Contact Person',
+            step: 3,
+            rows: [
+                { label: 'Contact Person', value: formatFullName(contactName), full: true },
+                { label: 'Position', value: contactPosition },
+                { label: 'Email', value: contactEmail },
+                { label: 'Contact Number', value: contactPhone },
+            ],
+        },
+    ];
 
     return (
-        <div className="company-onboarding-page">
-            <div className="company-onboarding-container">
-                <div className="company-onboarding-intro">
-                    <div className="company-onboarding-icon" aria-hidden="true">
-                        <svg width="29" height="29" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="7" width="18" height="14" rx="2" />
-                            <path d="M16 21V4.5A1.5 1.5 0 0 0 14.5 3h-5A1.5 1.5 0 0 0 8 4.5V21" />
-                            <path d="M10.5 11h.01M13.5 11h.01M10.5 14.5h.01M13.5 14.5h.01" />
-                        </svg>
-                    </div>
-                    <h1>Welcome to SIL Monitoring</h1>
-                    <p>{subtitle}</p>
-                </div>
-
-                <div className="company-onboarding-progress-dots" aria-label={`Step ${step} of 2`}>
-                    {steps.map(item => <span key={item} className={item <= step ? 'active' : ''} />)}
-                </div>
-
-                <div className="company-onboarding-card">
-                    {error && <div className="company-onboarding-error" role="alert">{error}</div>}
-
-                    {step < 2 ? (
-                        <form onSubmit={nextStep} className="company-onboarding-form">
-                            {step === 1 && (
-                                <section className="company-onboarding-form-section">
-                                    <div className="company-onboarding-section-heading">
-                                        <span className="company-onboarding-section-icon">⌂</span>
-                                        <div><h3>Company details</h3><p>These details will appear on your partner profile.</p></div>
+        <OnboardingShell
+            icon={(
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="7" width="18" height="14" rx="2" />
+                    <path d="M16 21V4.5A1.5 1.5 0 0 0 14.5 3h-5A1.5 1.5 0 0 0 8 4.5V21" />
+                    <path d="M10.5 11h.01M13.5 11h.01M10.5 14.5h.01M13.5 14.5h.01" />
+                </svg>
+            )}
+            title="Welcome to SIL Monitoring"
+            subtitle={SUBTITLES[step - 1]}
+            steps={STEPS}
+            current={step}
+            onStepSelect={goTo}
+            error={error}
+            footnote="You can update these details later from your Company Profile page."
+        >
+            {/* ══ STEP 1: Company details ══ */}
+            {step === 1 && (
+                <form onSubmit={nextStep} className="onb-form">
+                    <div className="onb-field company-onboarding-company-field">
+                        <label className="onb-label">Company Name <span className="req">*</span></label>
+                        <input
+                            className="onb-input"
+                            value={companySearch}
+                            onChange={e => { setCompanySearch(e.target.value); setCompanyName(e.target.value); setSelectedCompanyId(''); }}
+                            onClick={() => setShowCompanyDropdown(true)}
+                            onFocus={() => setShowCompanyDropdown(true)}
+                            placeholder="Search or select a company…"
+                            autoComplete="off"
+                        />
+                        {showCompanyDropdown && (
+                            <>
+                                <div className="company-onboarding-dropdown-overlay" onClick={() => setShowCompanyDropdown(false)} />
+                                {filteredCompanies.length > 0 ? (
+                                    <div className="company-onboarding-dropdown" role="listbox">
+                                        {filteredCompanies.map(c => (
+                                            <div
+                                                key={c.id}
+                                                role="option"
+                                                aria-selected={selectedCompanyId === c.id}
+                                                className={`company-onboarding-dropdown-item${selectedCompanyId === c.id ? ' selected' : ''}`}
+                                                onClick={() => handleCompanySelect(c)}
+                                            >
+                                                <div className="company-onboarding-dropdown-name">
+                                                    {c.name}
+                                                    {c.id.startsWith('request-') && <span className="company-onboarding-dropdown-badge">Requested by student</span>}
+                                                </div>
+                                                {c.address && <div className="company-onboarding-dropdown-sub">{c.address}</div>}
+                                                {c.industry && <div className="company-onboarding-dropdown-meta">{c.industry}</div>}
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div className="company-onboarding-company-field">
-                                        <label>Company name *</label>
-                                        <input
-                                            value={companySearch}
-                                            onChange={e => { setCompanySearch(e.target.value); setCompanyName(e.target.value); }}
-                                            onClick={() => setShowCompanyDropdown(true)}
-                                            onFocus={() => setShowCompanyDropdown(true)}
-                                            placeholder="Search or select a company…"
-                                            autoComplete="off"
-                                        />
-                                        {showCompanyDropdown && (
-                                            <>
-                                                <div className="company-onboarding-dropdown-overlay" onClick={() => setShowCompanyDropdown(false)} />
-                                                {filteredCompanies.length > 0 ? (
-                                                    <div className="company-onboarding-dropdown" role="listbox">
-                                                        {filteredCompanies.map(c => (
-                                                            <div
-                                                                key={c.id}
-                                                                role="option"
-                                                                aria-selected={selectedCompanyId === c.id}
-                                                                className={`company-onboarding-dropdown-item${selectedCompanyId === c.id ? ' selected' : ''}`}
-                                                                onClick={() => handleCompanySelect(c)}
-                                                            >
-                                                                <div className="company-onboarding-dropdown-name">
-                                                                    {c.name}
-                                                                    {c.id.startsWith('request-') && <span className="company-onboarding-dropdown-badge">Requested by student</span>}
-                                                                </div>
-                                                                {c.address && <div className="company-onboarding-dropdown-sub">{c.address}</div>}
-                                                                {c.industry && <div className="company-onboarding-dropdown-meta">{c.industry}</div>}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="company-onboarding-dropdown company-onboarding-dropdown-empty">
-                                                        <div className="company-onboarding-dropdown-name">No matching companies</div>
-                                                        <div className="company-onboarding-dropdown-sub">You can continue typing to register a new company.</div>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                    <div className="company-onboarding-field-grid">
-                                        <label>Industry *<input value={industry} onChange={event => setIndustry(event.target.value)} placeholder="e.g. Information Technology" /></label>
-                                        <label>Website<input type="url" value={website} onChange={event => setWebsite(event.target.value)} placeholder="https://yourcompany.com" /></label>
-                                    </div>
-                                    <label>Office address *<input value={address} onChange={event => setAddress(event.target.value)} placeholder="Street, barangay, city, province" /></label>
-                                    <label>Contact person *<input value={contactName} onChange={event => setContactName(event.target.value)} placeholder="Full name" /></label>
-                                    <div className="company-onboarding-field-grid">
-                                        <label>Position *<input value={contactPosition} onChange={event => setContactPosition(event.target.value)} placeholder="e.g. HR Manager" /></label>
-                                        <label>Company email *<input type="email" value={contactEmail} onChange={event => setContactEmail(event.target.value)} placeholder="supervisor@company.com" /></label>
-                                    </div>
-                                    <label>Contact number *<input type="tel" value={contactPhone} onChange={event => setContactPhone(event.target.value)} placeholder="09XX XXX XXXX" /></label>
-                                    <div className="company-onboarding-logo-upload">
-                                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoChange} />
-                                        {logoPreview ? (
-                                            <button type="button" className="company-onboarding-logo-box" onClick={event => { event.preventDefault(); (event.currentTarget.previousElementSibling as HTMLInputElement)?.click(); }}>
-                                                <img src={logoPreview} alt="Company logo" />
-                                                <span>Click to change logo</span>
-                                            </button>
-                                        ) : (
-                                            <button type="button" className="company-onboarding-logo-box" onClick={event => { event.preventDefault(); (event.currentTarget.previousElementSibling as HTMLInputElement)?.click(); }}>
-                                                <span className="company-onboarding-logo-icon">
-                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-                                                </span>
-                                                <span>Upload company logo</span>
-                                                <small>PNG or JPG, up to 2MB</small>
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="company-onboarding-info-callout"><span>i</span><p>This account will become the primary supervisor login after your application is approved.</p></div>
-                                </section>
-                            )}
-                            <div className="company-onboarding-actions"><button type="submit" className="company-onboarding-primary">Continue <span>→</span></button></div>
-                        </form>
-                    ) : (
-                        <form onSubmit={submitApplication} className="company-onboarding-form">
-                            <section className="company-onboarding-form-section">
-                                <div className="company-onboarding-section-heading">
-                                    <span className="company-onboarding-section-icon">✓</span>
-                                    <div><h3>Review your application</h3><p>Make sure everything looks right before sending it.</p></div>
-                                </div>
-                                {logoPreview && (
-                                    <div className="company-onboarding-review-logo">
-                                        <img src={logoPreview} alt="Company logo" />
+                                ) : (
+                                    <div className="company-onboarding-dropdown company-onboarding-dropdown-empty">
+                                        <div className="company-onboarding-dropdown-name">No matching companies</div>
+                                        <div className="company-onboarding-dropdown-sub">You can continue typing to register a new company.</div>
                                     </div>
                                 )}
-                                <div className="company-onboarding-review-grid">
-                                    <div><span>Company</span><strong>{companyName}</strong></div>
-                                    <div><span>Industry</span><strong>{industry}</strong></div>
-                                    <div><span>Address</span><strong>{address}</strong></div>
-                                    <div><span>Contact person</span><strong>{contactName}</strong></div>
-                                    <div><span>Position</span><strong>{contactPosition}</strong></div>
-                                    <div><span>Email</span><strong>{contactEmail}</strong></div>
-                                    <div><span>Phone</span><strong>{contactPhone}</strong></div>
-                                    {website && <div><span>Website</span><strong>{website}</strong></div>}
-                                </div>
-                                <label className="company-onboarding-checkbox"><input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)} /><span>I confirm these details are accurate and authorize Asian College to review this company partnership application.</span></label>
-                            </section>
-                            <div className="company-onboarding-actions company-onboarding-actions-split"><button type="button" className="company-onboarding-back" onClick={(event) => { event.preventDefault(); event.stopPropagation(); console.log('[onboarding] back clicked', step); setStep(1); setShowCompanyDropdown(false); setError(null); }}>← Back</button><button type="submit" className="company-onboarding-primary" disabled={saving}>{saving ? 'Submitting...' : 'Submit application'} <span>→</span></button></div>
-                        </form>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="onb-grid-2">
+                        <div className="onb-field">
+                            <label className="onb-label">Company Type / Industry <span className="req">*</span></label>
+                            <input
+                                className="onb-input"
+                                value={industry}
+                                onChange={event => setIndustry(event.target.value)}
+                                placeholder="e.g. Information Technology"
+                                required
+                            />
+                        </div>
+                        <div className="onb-field">
+                            <label className="onb-label">Website <span className="onb-optional">(Optional)</span></label>
+                            <input
+                                type="url"
+                                className="onb-input"
+                                value={website}
+                                onChange={event => setWebsite(event.target.value)}
+                                placeholder="https://yourcompany.com"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="company-onboarding-logo-upload">
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoChange} />
+                        {logoPreview ? (
+                            <button type="button" className="company-onboarding-logo-box" onClick={event => { event.preventDefault(); (event.currentTarget.previousElementSibling as HTMLInputElement)?.click(); }}>
+                                <img src={logoPreview} alt="Company logo" />
+                                <span>Click to change logo</span>
+                            </button>
+                        ) : (
+                            <button type="button" className="company-onboarding-logo-box" onClick={event => { event.preventDefault(); (event.currentTarget.previousElementSibling as HTMLInputElement)?.click(); }}>
+                                <span className="company-onboarding-logo-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                                </span>
+                                <span>Upload company logo</span>
+                                <small>PNG or JPG, up to 2MB</small>
+                            </button>
+                        )}
+                    </div>
+
+                    <OnboardingActions />
+                </form>
+            )}
+
+            {/* ══ STEP 2: Company address ══ */}
+            {step === 2 && (
+                <form onSubmit={nextStep} className="onb-form">
+                    <p className="onb-section-title">Office address</p>
+                    <AddressLevelsSelector levels={addressLevels} chrome={ONB_ADDRESS_CHROME} />
+                    <OnboardingActions onBack={handleBack} />
+                </form>
+            )}
+
+            {/* ══ STEP 3: Supervisor / contact person ══ */}
+            {step === 3 && (
+                <form onSubmit={nextStep} className="onb-form">
+                    <p className="onb-section-title">Contact person</p>
+                    <NameFieldsGroup value={contactName} onChange={setContactName} chrome={ONB_NAME_CHROME} />
+
+                    <div className="onb-grid-2">
+                        <div className="onb-field">
+                            <label className="onb-label">Position <span className="req">*</span></label>
+                            <input
+                                className="onb-input"
+                                value={contactPosition}
+                                onChange={event => setContactPosition(event.target.value)}
+                                placeholder="e.g. HR Manager"
+                                required
+                            />
+                        </div>
+                        <div className="onb-field">
+                            <label className="onb-label">Company Email <span className="req">*</span></label>
+                            <input
+                                type="email"
+                                className="onb-input"
+                                value={contactEmail}
+                                onChange={event => setContactEmail(event.target.value)}
+                                placeholder="supervisor@company.com"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="onb-field">
+                        <label className="onb-label">Contact Number <span className="req">*</span></label>
+                        <input
+                            type="tel"
+                            className="onb-input"
+                            value={contactPhone}
+                            onChange={event => setContactPhone(event.target.value)}
+                            placeholder="09XX XXX XXXX"
+                            required
+                        />
+                    </div>
+
+                    <div className="onb-notice">
+                        <p>This account will become the primary supervisor login after your application is approved.</p>
+                    </div>
+
+                    <OnboardingActions onBack={handleBack} />
+                </form>
+            )}
+
+            {/* ══ STEP 4: Review & Confirm ══ */}
+            {step === 4 && (
+                <form onSubmit={submitApplication} className="onb-form">
+                    {logoPreview && (
+                        <div className="company-onboarding-review-logo">
+                            <img src={logoPreview} alt="Company logo" />
+                        </div>
                     )}
-                </div>
-                <p className="company-onboarding-footnote">You can update these details later from your Company Profile page.</p>
-            </div>
-        </div>
+
+                    <ReviewSummary sections={reviewSections} onEdit={goTo} />
+
+                    <label className="onb-checkbox">
+                        <input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)} />
+                        <span>I confirm these details are accurate and authorize Asian College to review this company partnership application.</span>
+                    </label>
+
+                    <OnboardingActions
+                        onBack={handleBack}
+                        busy={saving}
+                        nextLabel={saving ? 'Submitting...' : 'Confirm & Submit Application'}
+                    />
+                </form>
+            )}
+        </OnboardingShell>
     );
 };
 
