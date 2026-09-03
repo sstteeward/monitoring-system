@@ -67,6 +67,51 @@ export function buildSectionName(courseCode: string, year: number, letter: strin
     return `${courseCode.trim().toUpperCase()}-${year}${letter.trim().toUpperCase()}`;
 }
 
+/**
+ * Resolves whatever is stored in `profiles.section` to the canonical section
+ * name used by `sections.name`.
+ *
+ * Onboarding writes the full name ("DIT-1A"), but older records hold only the
+ * section letter ("A", sometimes lower-cased) with the course code and year
+ * level in their own columns. Comparing those two shapes directly is what made
+ * every section report "0 Students Enrolled", so both the roster queries and
+ * the SQL function `public.canonical_section_name` route through this rule.
+ * Keep the two in step.
+ *
+ * Returns null when the student has no section at all.
+ */
+export function canonicalSectionName(
+    section: string | null | undefined,
+    course?: string | null,
+    yearLevel?: string | null,
+): string | null {
+    const value = (section ?? '').trim().toUpperCase();
+    if (!value) return null;
+
+    // Already a generated name.
+    if (parseSectionName(value)) return value;
+
+    // Legacy bare letter — rebuild it from the course code and year level.
+    const courseCode = courseCodeFromValue(course);
+    const year = yearNumberFromLevel(yearLevel);
+    if (/^[A-Z]$/.test(value) && courseCode && year) {
+        return buildSectionName(courseCode, year, value);
+    }
+
+    // Coordinator-created or free-text names are compared as-is.
+    return value;
+}
+
+/** Do a student's section fields resolve to the given `sections.name`? */
+export function studentMatchesSection(
+    student: { section?: string | null; course?: string | null; year_level?: string | null },
+    sectionName: string,
+): boolean {
+    const target = (sectionName ?? '').trim().toUpperCase();
+    if (!target) return false;
+    return canonicalSectionName(student.section, student.course, student.year_level) === target;
+}
+
 const optionFor = (name: string, courseCode: string): SectionOption => ({
     value: name,
     label: courseCode ? `${name} (${courseCode})` : name,

@@ -84,6 +84,26 @@ export interface AllAttendanceRow extends CompanyAttendanceRow {
   company_name: string;
 }
 
+/**
+ * One student in an adviser's assigned section, for a single date.
+ *
+ * Roster-based: a student with no attendance record for the date is still
+ * returned, with `attendance_id` and `status` null.
+ */
+export interface AdviserAttendanceRow extends AllAttendanceRow {
+  section_name: string | null;
+  year_level: string | null;
+  /** Hours clocked on the selected date, breaks excluded. */
+  worked_hours: number;
+  /** Lifetime rendered hours, for OJT progress. */
+  total_rendered_hours: number;
+  required_hours: number;
+  /** Timesheet entries on the selected date. */
+  timesheet_count: number;
+  /** Entries clocked in but never clocked out. */
+  open_timesheet_count: number;
+}
+
 export interface AttendanceAuditEntry {
   id: string;
   action: 'created' | 'updated';
@@ -186,6 +206,38 @@ export const attendanceService = {
       throw error;
     }
     return (data || []) as AllAttendanceRow[];
+  },
+
+  /**
+   * Attendance for every student in the calling adviser's assigned sections on
+   * one date.
+   *
+   * `getAllAttendance` is restricted to coordinators and admins, so calling it
+   * as an adviser fails with "Not authorized" — that was the cause of the
+   * Adviser → Attendance page's error banner. This RPC derives its scope from
+   * the adviser's own `adviser_sections` rows, so passing a section the adviser
+   * does not hold is rejected server-side rather than filtered in the browser.
+   */
+  async getAdviserAttendance(date: string, sectionId?: string | null): Promise<AdviserAttendanceRow[]> {
+    const { data, error } = await supabase.rpc('get_adviser_attendance', {
+      p_attendance_date: date,
+      p_section_id: sectionId ?? null
+    });
+
+    if (error) {
+      console.error('Error fetching adviser attendance:', error);
+      throw new Error(error.message || 'Failed to load attendance.');
+    }
+
+    // Postgres numerics arrive as strings over PostgREST.
+    return (data || []).map((row: Record<string, unknown>) => ({
+      ...row,
+      worked_hours: Number(row.worked_hours ?? 0),
+      total_rendered_hours: Number(row.total_rendered_hours ?? 0),
+      required_hours: Number(row.required_hours ?? 0),
+      timesheet_count: Number(row.timesheet_count ?? 0),
+      open_timesheet_count: Number(row.open_timesheet_count ?? 0),
+    })) as AdviserAttendanceRow[];
   },
 
   /** Change history for a single attendance record. */

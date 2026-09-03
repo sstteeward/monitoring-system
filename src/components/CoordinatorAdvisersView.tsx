@@ -6,6 +6,7 @@ import UserProfileModal from './UserProfileModal';
 import UserClickableName from './UserClickableName';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import { studentMatchesSection } from '../utils/sections';
 import './CoordinatorDashboard.css';
 
 interface AdviserWithSections extends Profile {
@@ -53,8 +54,12 @@ const CoordinatorAdvisersView: React.FC = () => {
     const [createPassword, setCreatePassword] = useState('');
     const [createCourse, setCreateCourse] = useState<'DHT' | 'DIT'>('DHT');
 
-    // Assign / Reassign Form State
+    // Assign / Reassign Form State.
+    // 'section' mode reassigns one specific section; 'adviser' mode picks any
+    // number of sections for a single adviser.
+    const [assignMode, setAssignMode] = useState<'section' | 'adviser'>('section');
     const [assignSectionId, setAssignSectionId] = useState('');
+    const [assignSectionIds, setAssignSectionIds] = useState<string[]>([]);
     const [assignAdviserId, setAssignAdviserId] = useState('');
 
     // Create Section Form State
@@ -184,30 +189,87 @@ const CoordinatorAdvisersView: React.FC = () => {
     const openAssignModal = (section?: SectionItem, preselectedAdviser?: AdviserWithSections) => {
         setError(null);
         if (section) {
+            // Section-first flow: one specific section is being (re)assigned.
+            setAssignMode('section');
             setAssignSectionId(section.id);
+            setAssignSectionIds([section.id]);
             setAssignAdviserId(section.adviser_id || '');
         } else {
-            setAssignSectionId(sections[0]?.id || '');
+            // Adviser-first flow: pick any number of sections for this adviser,
+            // pre-ticking the ones they already hold.
+            setAssignMode('adviser');
+            setAssignSectionId('');
+            setAssignSectionIds(preselectedAdviser?.assigned_sections.map(s => s.id) || []);
             setAssignAdviserId(preselectedAdviser?.auth_user_id || '');
         }
         setShowAssignModal(true);
     };
 
+    const toggleAssignSection = (sectionId: string) => {
+        setAssignSectionIds(prev =>
+            prev.includes(sectionId) ? prev.filter(id => id !== sectionId) : [...prev, sectionId]
+        );
+    };
+
     const handleAssignSection = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!assignSectionId || !assignAdviserId) {
-            setError('Please select both a section and an adviser.');
+
+        if (!assignAdviserId) {
+            setError('Please select an adviser.');
+            return;
+        }
+
+        const targetIds = assignMode === 'section'
+            ? (assignSectionId ? [assignSectionId] : [])
+            : assignSectionIds;
+
+        if (targetIds.length === 0) {
+            setError('Please select at least one section.');
             return;
         }
 
         setSubmitting(true);
         setError(null);
         try {
-            await coordinatorService.assignAdviserToSection(assignAdviserId, assignSectionId);
-            const sec = sections.find(s => s.id === assignSectionId);
             const adv = advisers.find(a => a.auth_user_id === assignAdviserId);
-            showSuccess(`Successfully assigned ${adv?.first_name} ${adv?.last_name} (${adv?.adviser_type}) to section ${sec?.name}.`);
-            setShowAssignModal(false);
+            const adviserName = `${adv?.first_name || ''} ${adv?.last_name || ''}`.trim();
+
+            // Sections the adviser holds today but that are no longer ticked.
+            const removedIds = assignMode === 'adviser'
+                ? (adv?.assigned_sections || [])
+                    .filter(s => !targetIds.includes(s.id))
+                    .map(s => s.id)
+                : [];
+
+            const { assigned, failed } = await coordinatorService.assignAdviserToSections(
+                assignAdviserId,
+                targetIds
+            );
+
+            for (const sectionId of removedIds) {
+                await coordinatorService.removeAdviserFromSection(sectionId);
+            }
+
+            const nameOf = (id: string) => sections.find(s => s.id === id)?.name || id;
+
+            if (failed.length > 0) {
+                setError(
+                    `Could not assign ${failed.map(f => nameOf(f.sectionId)).join(', ')}: ${failed[0].message}`
+                );
+            }
+
+            if (assigned.length > 0 || removedIds.length > 0) {
+                const parts: string[] = [];
+                if (assigned.length > 0) {
+                    parts.push(`assigned to ${assigned.map(nameOf).join(', ')}`);
+                }
+                if (removedIds.length > 0) {
+                    parts.push(`removed from ${removedIds.map(nameOf).join(', ')}`);
+                }
+                showSuccess(`${adviserName} ${parts.join(' and ')}.`);
+            }
+
+            if (failed.length === 0) setShowAssignModal(false);
             await loadData();
         } catch (err: any) {
             console.error('Error assigning adviser:', err);
@@ -252,11 +314,14 @@ const CoordinatorAdvisersView: React.FC = () => {
         setViewAdviserDetail(adv);
         setLoadingStudents(true);
         try {
-            // Fetch students in this adviser's sections
+            // Fetch students in this adviser's sections. A student's stored
+            // section may be a legacy letter, so compare canonical names.
             const sectionNames = adv.assigned_sections.map(s => s.name);
             if (sectionNames.length > 0) {
                 const students = await coordinatorService.getAllStudents();
-                setAdviserStudents(students.filter(s => s.section && sectionNames.includes(s.section)));
+                setAdviserStudents(
+                    students.filter(s => sectionNames.some(name => studentMatchesSection(s, name)))
+                );
             } else {
                 setAdviserStudents([]);
             }
@@ -282,6 +347,18 @@ const CoordinatorAdvisersView: React.FC = () => {
             return false;
         });
     }, [advisers, activeSection]);
+
+    // In adviser-first mode, offer every section whose course matches the
+    // selected adviser — the same compatibility rule the service enforces.
+    const activeAdviser = advisers.find(a => a.auth_user_id === assignAdviserId);
+    const compatibleSections = useMemo(() => {
+        if (!activeAdviser) return sections;
+        const isHT = activeAdviser.course === 'DHT' || activeAdviser.adviser_type === 'HT Adviser';
+        const isIT = activeAdviser.course === 'DIT' || activeAdviser.adviser_type === 'IT Adviser';
+        return sections.filter(s =>
+            (s.course_code === 'DHT' && isHT) || (s.course_code === 'DIT' && isIT)
+        );
+    }, [sections, activeAdviser]);
 
     // Calculate Summary KPIs
     const totalAdvisers = advisers.length;
@@ -871,37 +948,41 @@ const CoordinatorAdvisersView: React.FC = () => {
                     <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', width: '90%' }}>
                         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h3 style={{ margin: 0, fontSize: '1.2rem' }}>
-                                {activeSection?.adviser_id ? 'Reassign Section Adviser' : 'Assign Adviser to Section'}
+                                {assignMode === 'adviser'
+                                    ? 'Assign Sections to Adviser'
+                                    : activeSection?.adviser_id ? 'Reassign Section Adviser' : 'Assign Adviser to Section'}
                             </h3>
                             <button className="modal-close-btn" onClick={() => setShowAssignModal(false)}>✕</button>
                         </div>
                         <form onSubmit={handleAssignSection} style={{ padding: '1.5rem' }}>
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
-                                    Target Section *
-                                </label>
-                                <select
-                                    value={assignSectionId}
-                                    onChange={e => setAssignSectionId(e.target.value)}
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.65rem',
-                                        borderRadius: 8,
-                                        border: '1px solid var(--border)',
-                                        background: 'var(--bg-page)',
-                                        color: 'var(--text-primary)',
-                                        fontSize: '0.9rem'
-                                    }}
-                                >
-                                    <option value="" disabled>Select Section</option>
-                                    {sections.map(s => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.name} ({s.course_code}) — {s.student_count} Students {s.adviser_name ? `(Current: ${s.adviser_name})` : '(Unassigned)'}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            {assignMode === 'section' && (
+                                <div style={{ marginBottom: '1.25rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
+                                        Target Section *
+                                    </label>
+                                    <select
+                                        value={assignSectionId}
+                                        onChange={e => setAssignSectionId(e.target.value)}
+                                        required
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.65rem',
+                                            borderRadius: 8,
+                                            border: '1px solid var(--border)',
+                                            background: 'var(--bg-page)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        <option value="" disabled>Select Section</option>
+                                        {sections.map(s => (
+                                            <option key={s.id} value={s.id}>
+                                                {s.name} ({s.course_code}) — {s.student_count} Students {s.adviser_name ? `(Current: ${s.adviser_name})` : '(Unassigned)'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             {activeSection && (
                                 <div style={{
@@ -954,6 +1035,67 @@ const CoordinatorAdvisersView: React.FC = () => {
                                 )}
                             </div>
 
+                            {assignMode === 'adviser' && (
+                                <div style={{ marginBottom: '1.5rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
+                                        Assigned Sections * <span style={{ opacity: 0.75 }}>({assignSectionIds.length} selected)</span>
+                                    </label>
+                                    {!assignAdviserId ? (
+                                        <div style={{ padding: '1rem', background: 'var(--bg-page)', border: '1px solid var(--border)', borderRadius: 8, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            Select an adviser first to see the sections they can handle.
+                                        </div>
+                                    ) : compatibleSections.length === 0 ? (
+                                        <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: 8, fontSize: '0.85rem' }}>
+                                            No sections match this adviser's course. Create a section first.
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            maxHeight: '260px',
+                                            overflowY: 'auto',
+                                            border: '1px solid var(--border)',
+                                            borderRadius: 8,
+                                            background: 'var(--bg-page)'
+                                        }}>
+                                            {compatibleSections.map(s => {
+                                                const checked = assignSectionIds.includes(s.id);
+                                                const heldByOther = !!s.adviser_id && s.adviser_id !== assignAdviserId;
+                                                return (
+                                                    <label
+                                                        key={s.id}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.65rem',
+                                                            padding: '0.6rem 0.85rem',
+                                                            borderBottom: '1px solid var(--border)',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.85rem'
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() => toggleAssignSection(s.id)}
+                                                        />
+                                                        <span style={{ flex: 1 }}>
+                                                            <strong>{s.name}</strong> ({s.course_code}) — {s.student_count} Student{s.student_count !== 1 ? 's' : ''}
+                                                            {heldByOther && (
+                                                                <span style={{ display: 'block', fontSize: '0.75rem', color: '#f59e0b' }}>
+                                                                    Currently handled by {s.adviser_name} — ticking this reassigns it.
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                                        An adviser can handle any number of sections. Unticking a section removes that assignment.
+                                    </div>
+                                </div>
+                            )}
+
                             {activeSection?.adviser_id && (
                                 <div style={{
                                     padding: '0.75rem 1rem',
@@ -977,7 +1119,11 @@ const CoordinatorAdvisersView: React.FC = () => {
                                     className="cd-btn cd-btn-primary"
                                     disabled={submitting || compatibleAdvisers.length === 0}
                                 >
-                                    {submitting ? 'Saving…' : activeSection?.adviser_id ? 'Confirm Reassignment' : 'Assign Adviser'}
+                                    {submitting
+                                        ? 'Saving…'
+                                        : assignMode === 'adviser'
+                                            ? 'Save Section Assignments'
+                                            : activeSection?.adviser_id ? 'Confirm Reassignment' : 'Assign Adviser'}
                                 </button>
                             </div>
                         </form>

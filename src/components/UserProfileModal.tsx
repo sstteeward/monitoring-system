@@ -15,6 +15,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
     const navigate = useNavigate();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(false);
+    /** Set only when the request itself failed — distinct from "no such profile". */
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [reloadNonce, setReloadNonce] = useState(0);
     const [showDTR, setShowDTR] = useState(false);
     const [currentUser, setCurrentUser] = useState<Profile | null>(null);
     const [showSignaturePad, setShowSignaturePad] = useState(false);
@@ -26,13 +29,30 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
 
     useEffect(() => {
         if (!profileId) return;
+
+        // Guards against a slow response for a previously opened profile
+        // landing after the user has already opened a different one.
+        let cancelled = false;
+
         setProfile(null);
+        setLoadError(null);
         setLoading(true);
-        profileService.getProfileById(profileId).then(data => {
-            setProfile(data);
-            setLoading(false);
-        });
-    }, [profileId]);
+
+        profileService.getProfileById(profileId)
+            .then(data => {
+                if (cancelled) return;
+                setProfile(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                if (cancelled) return;
+                console.error('Failed to load user profile:', err);
+                setLoadError(err instanceof Error ? err.message : 'Unable to load profile. Please try again.');
+                setLoading(false);
+            });
+
+        return () => { cancelled = true; };
+    }, [profileId, reloadNonce]);
 
     useEffect(() => {
         if (!profile || profile.account_type !== 'student') {
@@ -72,6 +92,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
     const roleColors: Record<string, string> = {
         student: '#3b82f6',
         coordinator: '#10b981',
+        adviser: '#0ea5e9',
         admin: '#f59e0b',
         company: '#8b5cf6',
     };
@@ -179,6 +200,30 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ profileId, onClose 
                                 </div>
                             ))}
                         </div>
+                    </div>
+                ) : loadError ? (
+                    /* The request failed. Saying "not found" here would blame the
+                       data for what is actually a database or permission error. */
+                    <div style={{ padding: '5rem 2rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }}>⚠️</div>
+                        <h3 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Unable to load profile</h3>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{loadError}</p>
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setReloadNonce(n => n + 1); }}
+                            style={{
+                                background: 'var(--primary)',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '12px',
+                                padding: '0.65rem 1.35rem',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Try Again
+                        </button>
                     </div>
                 ) : !profile ? (
                     <div style={{ padding: '5rem 2rem', textAlign: 'center' }}>

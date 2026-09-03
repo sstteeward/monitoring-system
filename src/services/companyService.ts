@@ -23,6 +23,8 @@ export interface Schedule {
   status: 'upcoming' | 'active' | 'completed' | 'cancelled';
   calendar_sync_status: 'not_connected' | 'pending' | 'synced' | 'failed';
   google_event_id: string | null;
+  /** 'google' rows were imported from Google Calendar and are owned by it. */
+  source: 'local' | 'google';
   assigned_students: ScheduleStudent[];
   created_at: string;
   updated_at: string;
@@ -61,13 +63,34 @@ export interface ScheduleAuditEntry {
   actor_name: string | null;
 }
 
+export interface CalendarSyncStats {
+  retrieved?: number;
+  created?: number;
+  updated?: number;
+  removed?: number;
+  pushed?: number;
+  pushFailed?: number;
+}
+
 export interface CalendarIntegration {
   connected: boolean;
+  /** Stored credentials exist but Google rejected them; the company must reconnect. */
+  needs_reconnect: boolean;
   calendar_id: string | null;
   calendar_name: string | null;
+  google_account_email: string | null;
+  calendar_time_zone: string;
+  connected_at: string | null;
+  last_synced_at: string | null;
+  last_sync_stats: CalendarSyncStats;
   automatic_sync: boolean;
   cancel_behavior: 'mark_cancelled' | 'remove';
-  last_synced_at: string | null;
+}
+
+export interface CalendarActionResult {
+  authorizationUrl?: string;
+  message?: string;
+  stats?: CalendarSyncStats;
 }
 
 export interface Evaluation {
@@ -427,7 +450,11 @@ export const companyService = {
     return data as CalendarIntegration;
   },
 
-  async invokeCalendar(action: 'connect' | 'import' | 'sync' | 'disconnect', scheduleId?: string, popup = false) {
+  async invokeCalendar(
+    action: 'connect' | 'import' | 'sync' | 'push' | 'disconnect',
+    scheduleId?: string,
+    popup = false,
+  ): Promise<CalendarActionResult> {
     if (import.meta.env.DEV) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Your session has expired. Please sign in again.');
@@ -443,14 +470,24 @@ export const companyService = {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Calendar request failed.');
-      return payload as { authorizationUrl?: string; message?: string };
+      return payload as CalendarActionResult;
     }
 
     const { data, error } = await supabase.functions.invoke('google-calendar', {
       body: { action, scheduleId, popup },
     });
-    if (error) throw error;
-    return data as { authorizationUrl?: string; message?: string };
+    if (error) {
+      // functions.invoke surfaces only "non-2xx status code" for HTTP errors.
+      // The real, user-facing reason is in the response body, so read it rather
+      // than reporting a generic failure for an expired token or rate limit.
+      const context = (error as { context?: Response }).context;
+      if (context && typeof context.json === 'function') {
+        const payload = await context.json().catch(() => null) as { error?: string } | null;
+        if (payload?.error) throw new Error(payload.error);
+      }
+      throw error;
+    }
+    return data as CalendarActionResult;
   },
 
   async getDocuments(companyId: string) {

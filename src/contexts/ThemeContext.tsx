@@ -9,35 +9,61 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+// Signed-out visitors (landing, login, signup) share one guest preference.
+const storageKey = (userId?: string) => (userId ? `cd-theme-${userId}` : 'cd-theme-guest');
+
+const readStoredTheme = (userId?: string): Theme | null => {
+    try {
+        const saved = localStorage.getItem(storageKey(userId));
+        return saved === 'dark' || saved === 'light' ? saved : null;
+    } catch {
+        return null;
+    }
+};
+
+const getSystemTheme = (): Theme =>
+    window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+// Signed-in accounts default to light; a signed-out visitor follows the OS
+// preference until they pick a theme themselves.
+const resolveTheme = (userId?: string): Theme =>
+    readStoredTheme(userId) ?? (userId ? 'light' : getSystemTheme());
 
 export const ThemeProvider: React.FC<{ userId?: string; children: React.ReactNode }> = ({ userId, children }) => {
-    const [theme, setThemeState] = useState<Theme>(() => {
-        if (!userId) return 'light';
-        const saved = localStorage.getItem(`cd-theme-${userId}`);
-        return saved === 'dark' ? 'dark' : 'light'; // default: light
-    });
+    const [theme, setThemeState] = useState<Theme>(() => resolveTheme(userId));
 
-    // When the userId changes (different user logs in), reload their saved theme preference
+    // When the userId changes (different user logs in, or logout), reload the matching preference
     useEffect(() => {
-        let resolved: Theme = 'light';
-        if (userId) {
-            const saved = localStorage.getItem(`cd-theme-${userId}`);
-            if (saved === 'dark') resolved = 'dark';
-        }
+        const resolved = resolveTheme(userId);
         setThemeState(resolved);
         document.documentElement.setAttribute('data-theme', resolved);
     }, [userId]);
 
     const setTheme = (newTheme: Theme) => {
-        if (!userId) return; // Prevent setting theme when logged out
         setThemeState(newTheme);
-        localStorage.setItem(`cd-theme-${userId}`, newTheme);
+        try {
+            localStorage.setItem(storageKey(userId), newTheme);
+        } catch {
+            // Storage can be unavailable (private mode); the theme still applies for this session.
+        }
         document.documentElement.setAttribute('data-theme', newTheme);
     };
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
     }, [theme]);
+
+    // Keep following the OS while a signed-out visitor has not chosen a theme yet.
+    useEffect(() => {
+        if (userId) return;
+        const media = window.matchMedia?.('(prefers-color-scheme: dark)');
+        if (!media) return;
+        const handleChange = () => {
+            if (!readStoredTheme(undefined)) setThemeState(getSystemTheme());
+        };
+        media.addEventListener('change', handleChange);
+        return () => media.removeEventListener('change', handleChange);
+    }, [userId]);
 
     return (
         <ThemeContext.Provider value={{ theme, setTheme }}>

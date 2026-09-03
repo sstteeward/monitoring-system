@@ -370,6 +370,10 @@ const AdviserDashboard: React.FC = () => {
                     )}
                     {currentView === 'students' && (
                         <AdviserStudentsView
+                            // Keyed on the section so arriving from "Full Monitoring View"
+                            // always opens on the section the adviser had selected,
+                            // even if this view is already mounted.
+                            key={initialSectionFilter}
                             initialSection={initialSectionFilter}
                         />
                     )}

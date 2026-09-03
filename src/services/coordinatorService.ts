@@ -4,6 +4,34 @@ import type { Profile } from './profileService';
 import type { Timesheet } from './timeTracking';
 import { notificationService } from './notificationService';
 import { createAuditLog } from './auditService';
+import { canonicalSectionName } from '../utils/sections';
+
+/**
+ * Student head count per canonical section name (upper-cased, e.g. "DIT-1A").
+ *
+ * `profiles.section` is not reliably the full section name — older records hold
+ * just the letter with the course code and year level in their own columns — so
+ * counting has to resolve each profile rather than match `sections.name`
+ * directly. Matching directly is what made every section report 0 students.
+ */
+async function countStudentsBySection(): Promise<Record<string, number>> {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, section, course, year_level')
+        .eq('account_type', 'student');
+
+    if (error) {
+        console.error('Error counting students by section:', error);
+        throw error;
+    }
+
+    const counts: Record<string, number> = {};
+    (data || []).forEach(p => {
+        const canonical = canonicalSectionName(p.section, p.course, p.year_level);
+        if (canonical) counts[canonical] = (counts[canonical] || 0) + 1;
+    });
+    return counts;
+}
 
 // Define a type for Daily Journals since it might not be exported from journalService
 export interface DailyJournal {
@@ -1345,24 +1373,20 @@ export const coordinatorService = {
             }
         });
 
-        // 3. Count students in each section
-        const { data: studentProfiles } = await supabase
-            .from('profiles')
-            .select('section')
-            .eq('account_type', 'student')
-            .in('section', allAssignedSectionNames.length > 0 ? allAssignedSectionNames : ['__dummy__']);
-
-        const sectionStudentCounts: Record<string, number> = {};
-        (studentProfiles || []).forEach(p => {
-            if (p.section) {
-                sectionStudentCounts[p.section] = (sectionStudentCounts[p.section] || 0) + 1;
-            }
-        });
+        // 3. Count students in each section. `profiles.section` may still hold a
+        //    legacy letter ("A") instead of the full name ("DIT-1A"), so the
+        //    value is canonicalised before being counted.
+        const sectionStudentCounts = allAssignedSectionNames.length > 0
+            ? await countStudentsBySection()
+            : {};
 
         // 4. Combine and compute student count per adviser
         return advisers.map(a => {
             const sections = assignedSectionsMap[a.auth_user_id] || [];
-            const studentCount = sections.reduce((sum, sec) => sum + (sectionStudentCounts[sec.name] || 0), 0);
+            const studentCount = sections.reduce(
+                (sum, sec) => sum + (sectionStudentCounts[sec.name.trim().toUpperCase()] || 0),
+                0
+            );
             return {
                 ...a,
                 assigned_sections: sections,
@@ -1390,7 +1414,6 @@ export const coordinatorService = {
         if (!sections || sections.length === 0) return [];
 
         const sectionIds = sections.map(s => s.id);
-        const sectionNames = sections.map(s => s.name);
 
         // Fetch assignments for these sections
         const { data: assignments } = await supabase
@@ -1432,23 +1455,12 @@ export const coordinatorService = {
             };
         });
 
-        // Count students per section
-        const { data: students } = await supabase
-            .from('profiles')
-            .select('section')
-            .eq('account_type', 'student')
-            .in('section', sectionNames);
-
-        const counts: Record<string, number> = {};
-        (students || []).forEach(s => {
-            if (s.section) {
-                counts[s.section] = (counts[s.section] || 0) + 1;
-            }
-        });
+        // Count students per section, resolving legacy section values first.
+        const counts = await countStudentsBySection();
 
         return sections.map(s => ({
             ...s,
-            student_count: counts[s.name] || 0,
+            student_count: counts[s.name.trim().toUpperCase()] || 0,
             assignment: assignmentMap[s.id] || null,
             adviser_id: assignmentMap[s.id]?.adviser_id || null,
             adviser_name: assignmentMap[s.id]?.adviser_name || null,
@@ -1750,6 +1762,35 @@ export const coordinatorService = {
         } catch {}
 
         return true;
+    },
+
+    /**
+     * Assign one Adviser to several Sections in a single action.
+     *
+     * An adviser may hold any number of sections, so each section is assigned
+     * independently and a failure on one (for example a course mismatch) does
+     * not discard the ones that succeeded. Assigning a section the adviser
+     * already holds is a no-op rather than a duplicate row.
+     *
+     * Returns the sections that were assigned and any that could not be.
+     */
+    async assignAdviserToSections(adviserId: string, sectionIds: string[]) {
+        const assigned: string[] = [];
+        const failed: { sectionId: string; message: string }[] = [];
+
+        for (const sectionId of sectionIds) {
+            try {
+                await this.assignAdviserToSection(adviserId, sectionId);
+                assigned.push(sectionId);
+            } catch (err) {
+                failed.push({
+                    sectionId,
+                    message: err instanceof Error ? err.message : 'Assignment failed.',
+                });
+            }
+        }
+
+        return { assigned, failed };
     },
 
     /**

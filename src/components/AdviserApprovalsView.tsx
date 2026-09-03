@@ -6,8 +6,53 @@ import UserClickableName from './UserClickableName';
 import UserProfileModal from './UserProfileModal';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import { canonicalSectionName } from '../utils/sections';
 import './CoordinatorDashboard.css';
 import './AdviserDashboard.css';
+
+/**
+ * Per-action wording and colour for the student account dialog. The three
+ * actions share one dialog, so keeping the copy in one place avoids the chain
+ * of nested ternaries the markup used to carry.
+ */
+const STUDENT_ACTION_COPY = {
+    approve: {
+        title: 'Approve Student Account',
+        subtitle: 'Review the student information below before activating this account.',
+        fieldLabel: 'Remarks / Welcome Notes',
+        fieldRequired: false,
+        placeholder: 'e.g. Welcome! Please ensure you upload your endorsement letter.',
+        submitLabel: 'Approve & Activate',
+        submittingLabel: 'Approving…',
+        icon: '✓',
+        accent: '#10b981',
+        accentSoft: 'rgba(16, 185, 129, 0.12)',
+    },
+    reject: {
+        title: 'Reject Student Registration',
+        subtitle: 'Explain why this registration is being rejected. The student will be notified.',
+        fieldLabel: 'Rejection Reason',
+        fieldRequired: true,
+        placeholder: 'e.g. You are not officially enrolled in section DHT-1A for this term.',
+        submitLabel: 'Confirm Rejection',
+        submittingLabel: 'Rejecting…',
+        icon: '✕',
+        accent: '#ef4444',
+        accentSoft: 'rgba(239, 68, 68, 0.12)',
+    },
+    correct: {
+        title: 'Request Registration Correction',
+        subtitle: 'Tell the student exactly what to fix before resubmitting their registration.',
+        fieldLabel: 'Instructions for Student',
+        fieldRequired: true,
+        placeholder: 'e.g. Please correct your contact number and home address before resubmitting.',
+        submitLabel: 'Send Instructions',
+        submittingLabel: 'Sending…',
+        icon: '↺',
+        accent: '#f59e0b',
+        accentSoft: 'rgba(245, 158, 11, 0.14)',
+    },
+} as const;
 
 interface AdviserApprovalsViewProps {
     initialTab?: 'students' | 'journals' | 'documents' | 'timesheets';
@@ -104,11 +149,27 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
         itemsPerPage: tItemsPerPage
     } = usePagination(pendingTimesheets, 8);
 
+    // Escape closes the student action dialog, except while a request is in
+    // flight — the approval has already been sent at that point.
+    useEffect(() => {
+        if (!showStudentActionModal) return;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && actionLoading === null) {
+                setShowStudentActionModal(false);
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [showStudentActionModal, actionLoading]);
+
     // Handlers for Student Account Approval
     const openStudentActionModal = (student: Profile, type: 'approve' | 'reject' | 'correct') => {
         setSelectedStudent(student);
         setActionType(type);
         setRemarks('');
+        setError(null); // don't show a previous action's error in the fresh dialog
         setShowStudentActionModal(true);
     };
 
@@ -609,82 +670,136 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
             </div>
 
             {/* ══ MODAL: STUDENT ACCOUNT APPROVAL ACTION ══ */}
-            {showStudentActionModal && selectedStudent && (
-                <div className="modal-overlay" onClick={() => setShowStudentActionModal(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', width: '90%' }}>
-                        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem' }}>
-                                {actionType === 'approve' ? 'Approve Student Account' : actionType === 'reject' ? 'Reject Student Registration' : 'Request Registration Correction'}
-                            </h3>
-                            <button className="modal-close-btn" onClick={() => setShowStudentActionModal(false)}>✕</button>
-                        </div>
-                        <form onSubmit={handleConfirmStudentAction} style={{ padding: '1.5rem' }}>
-                            {/* Student summary */}
-                            <div style={{
-                                padding: '1rem',
-                                background: 'var(--bg-elevated)',
-                                border: '1px solid var(--border)',
-                                borderRadius: 10,
-                                marginBottom: '1.25rem'
-                            }}>
-                                <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                                    {selectedStudent.first_name} {selectedStudent.last_name}
-                                </div>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                                    Section {selectedStudent.section} · {selectedStudent.course} · {selectedStudent.email}
-                                </div>
-                            </div>
+            {showStudentActionModal && selectedStudent && (() => {
+                const copy = STUDENT_ACTION_COPY[actionType];
+                const isSubmitting = actionLoading !== null;
+                const initials = `${selectedStudent.first_name?.[0] || ''}${selectedStudent.last_name?.[0] || ''}`.toUpperCase() || '—';
+                // `profiles.section` may still hold the legacy bare letter ("C"), so show
+                // the full section name the rest of the system uses ("DIT-1C"). Falls back
+                // to the stored value when course/year level are missing.
+                const sectionLabel = canonicalSectionName(
+                    selectedStudent.section,
+                    selectedStudent.course,
+                    selectedStudent.year_level,
+                );
 
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
-                                    {actionType === 'approve' ? 'Remarks / Welcome Notes (Optional)' : actionType === 'reject' ? 'Rejection Reason (Required) *' : 'Instructions for Student (Required) *'}
-                                </label>
-                                <textarea
-                                    value={remarks}
-                                    onChange={e => setRemarks(e.target.value)}
-                                    placeholder={
-                                        actionType === 'approve'
-                                            ? 'e.g. Welcome! Please ensure you upload your endorsement letter.'
-                                            : actionType === 'reject'
-                                                ? 'e.g. You are not officially enrolled in section DHT-1A for this term.'
-                                                : 'e.g. Please correct your contact number and home address before resubmitting.'
-                                    }
-                                    rows={4}
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem',
-                                        borderRadius: 8,
-                                        border: '1px solid var(--border)',
-                                        background: 'var(--bg-page)',
-                                        color: 'var(--text-primary)',
-                                        fontFamily: 'Inter, sans-serif',
-                                        fontSize: '0.9rem',
-                                        resize: 'vertical',
-                                        boxSizing: 'border-box'
-                                    }}
-                                />
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                                <button type="button" className="cd-btn cd-btn-outline" onClick={() => setShowStudentActionModal(false)}>
-                                    Cancel
-                                </button>
+                return (
+                    <div
+                        className="modal-overlay"
+                        onClick={() => !isSubmitting && setShowStudentActionModal(false)}
+                    >
+                        <div
+                            className="ad-dialog"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="ad-dialog-title"
+                            aria-describedby="ad-dialog-subtitle"
+                            onClick={e => e.stopPropagation()}
+                            style={{ '--ad-accent': copy.accent, '--ad-accent-soft': copy.accentSoft } as React.CSSProperties}
+                        >
+                            <div className="ad-dialog__header">
+                                <div>
+                                    <h3 className="ad-dialog__title" id="ad-dialog-title">{copy.title}</h3>
+                                    <p className="ad-dialog__subtitle" id="ad-dialog-subtitle">{copy.subtitle}</p>
+                                </div>
                                 <button
-                                    type="submit"
-                                    className="cd-btn cd-btn-primary"
-                                    style={{
-                                        background: actionType === 'approve' ? '#10b981' : actionType === 'reject' ? '#ef4444' : '#f59e0b',
-                                        borderColor: actionType === 'approve' ? '#10b981' : actionType === 'reject' ? '#ef4444' : '#f59e0b'
-                                    }}
-                                    disabled={actionLoading !== null}
+                                    type="button"
+                                    className="ad-dialog__close"
+                                    aria-label="Close"
+                                    onClick={() => setShowStudentActionModal(false)}
+                                    disabled={isSubmitting}
                                 >
-                                    {actionLoading ? 'Processing…' : actionType === 'approve' ? 'Approve & Activate' : actionType === 'reject' ? 'Confirm Rejection' : 'Send Instructions'}
+                                    ✕
                                 </button>
                             </div>
-                        </form>
+
+                            <form onSubmit={handleConfirmStudentAction}>
+                                <div className="ad-dialog__body">
+                                    <span className="ad-dialog__group-label">Student Information</span>
+                                    <div className="ad-student-card">
+                                        <div className="ad-student-avatar" aria-hidden="true">{initials}</div>
+                                        <div className="ad-student-info">
+                                            <div className="ad-student-name">
+                                                {selectedStudent.first_name} {selectedStudent.last_name}
+                                            </div>
+                                            <div className="ad-student-tags">
+                                                {sectionLabel && (
+                                                    <span className="ad-student-tag">Section {sectionLabel}</span>
+                                                )}
+                                                {selectedStudent.year_level && (
+                                                    <span className="ad-student-tag">{selectedStudent.year_level}</span>
+                                                )}
+                                                {selectedStudent.course && (
+                                                    <span className="ad-student-tag">{selectedStudent.course}</span>
+                                                )}
+                                            </div>
+                                            <div className="ad-student-email">{selectedStudent.email}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="ad-dialog__field">
+                                        <label className="ad-dialog__label" htmlFor="ad-dialog-remarks">
+                                            {copy.fieldLabel}
+                                            <span className={`ad-dialog__hint${copy.fieldRequired ? ' ad-dialog__hint--required' : ''}`}>
+                                                {copy.fieldRequired ? 'Required' : 'Optional'}
+                                            </span>
+                                        </label>
+                                        <textarea
+                                            id="ad-dialog-remarks"
+                                            className="ad-dialog__textarea"
+                                            value={remarks}
+                                            onChange={e => setRemarks(e.target.value)}
+                                            placeholder={copy.placeholder}
+                                            rows={4}
+                                            // Not `required`: native validation would preempt the
+                                            // existing check in handleConfirmStudentAction.
+                                            aria-required={copy.fieldRequired}
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+
+                                    {/* The page-level error banner sits behind this overlay, so the
+                                        same message is surfaced here while the dialog is open. */}
+                                    {error && (
+                                        <div className="ad-dialog__error" role="alert">
+                                            <span aria-hidden="true">⚠</span>
+                                            <span>{error}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="ad-dialog__footer">
+                                    <button
+                                        type="button"
+                                        className="ad-dialog__btn ad-dialog__btn--secondary"
+                                        onClick={() => setShowStudentActionModal(false)}
+                                        disabled={isSubmitting}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="ad-dialog__btn ad-dialog__btn--primary"
+                                        disabled={isSubmitting}
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <span className="ad-dialog__spinner" aria-hidden="true" />
+                                                {copy.submittingLabel}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span aria-hidden="true">{copy.icon}</span>
+                                                {copy.submitLabel}
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Profile Modal */}
             {viewProfileId && (

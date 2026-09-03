@@ -1,6 +1,9 @@
 import { supabase } from '../lib/supabaseClient';
 import { namesFromUserMetadata, pickNameField, readRegistrationName } from '../utils/registrationName';
 
+/** Shape of the uuid columns a profile can be looked up by. */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export interface Profile {
     id: string;
     auth_user_id: string;
@@ -200,18 +203,45 @@ export const profileService = {
         return true;
     },
 
-    async getProfileById(id: string): Promise<Profile | null> {
+    /**
+     * Loads one profile by either of the two unique identifiers a row carries.
+     *
+     * `profiles` has both `id` (its own primary key) and `auth_user_id` (the
+     * Supabase auth user), and they hold different values. Screens hold
+     * whichever one their data source exposes: a list read straight from
+     * `profiles` has `id`, while anything derived from journals, timesheets,
+     * documents or adviser assignments only has `auth_user_id`. Matching on a
+     * single column meant every caller of the second kind — the Adviser
+     * portal's rosters and approvals among them — reported "Profile Not Found"
+     * for users that plainly exist.
+     *
+     * Returns null only when no row matches. A failed request throws instead,
+     * so the caller can tell a genuinely missing profile apart from a database
+     * or permission error.
+     */
+    async getProfileById(identifier: string): Promise<Profile | null> {
+        // Both columns are uuid, so anything else cannot match. Checking the
+        // shape also keeps the value safe to embed in the `.or()` filter below,
+        // which takes a raw PostgREST expression rather than a bound parameter.
+        if (!identifier || !UUID_PATTERN.test(identifier)) return null;
+
         const { data, error } = await supabase
             .from('profiles')
             .select('*, company:companies(name, address)')
-            .eq('id', id)
-            .single();
+            .or(`id.eq.${identifier},auth_user_id.eq.${identifier}`)
+            .limit(2);
 
         if (error) {
             console.error('Error fetching profile by id:', error);
-            return null;
+            throw new Error(error.message || 'Failed to load the user profile.');
         }
-        return data as Profile;
+
+        const rows = (data || []) as Profile[];
+        if (rows.length === 0) return null;
+
+        // Prefer the primary-key match so one identifier can never resolve to
+        // two different people, however unlikely such a collision would be.
+        return rows.find(row => row.id === identifier) ?? rows[0];
     },
 
     async uploadAvatar(file: File): Promise<string> {

@@ -2,6 +2,29 @@ import { supabase } from '../lib/supabaseClient';
 import type { Profile } from './profileService';
 import { notificationService } from './notificationService';
 import { createAuditLog } from './auditService';
+import { canonicalSectionName, studentMatchesSection } from '../utils/sections';
+
+/**
+ * True when a Postgres function is not deployed yet, as opposed to a real
+ * failure. `supabase_adviser_sections_fix.sql` installs the RPCs below; until it
+ * has been run the service falls back to querying the tables directly so the
+ * portal keeps working. Any other error is a genuine problem and is re-thrown.
+ */
+const isMissingFunction = (error: { code?: string; message?: string } | null): boolean => {
+    if (!error) return false;
+    // PGRST202: no such function in the PostgREST schema cache. 42883: undefined function.
+    return error.code === 'PGRST202'
+        || error.code === '42883'
+        || /Could not find the function|does not exist/i.test(error.message || '');
+};
+
+/**
+ * Supabase rejects with a plain object, not an Error, so the reason a query
+ * failed — including the authorization messages raised by the adviser RPCs —
+ * would be lost by the time a component catches it. Wrap it.
+ */
+const asError = (error: { message?: string; hint?: string } | null, fallback: string): Error =>
+    new Error(error?.message || error?.hint || fallback);
 
 export interface Section {
     id: string;
@@ -13,6 +36,17 @@ export interface Section {
     adviser_id?: string | null;
     adviser_name?: string | null;
     adviser_type?: string | null;
+}
+
+/** One row returned by the `get_adviser_sections` RPC. */
+interface AdviserSectionRow {
+    id: string;
+    name: string;
+    course_code: 'DHT' | 'DIT';
+    department_id: string | null;
+    created_at: string;
+    assigned_at: string;
+    student_count: number | string;
 }
 
 export interface AdviserSectionAssignment {
@@ -36,11 +70,74 @@ export interface StudentMonitoringRecord extends Profile {
     is_at_risk: boolean;
 }
 
+/** Matches a search term against the student fields an adviser can see. */
+function filterStudentsBySearch(students: Profile[], search: string): Profile[] {
+    const term = search.trim().toLowerCase();
+    if (!term) return students;
+
+    return students.filter(s =>
+        `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase().includes(term) ||
+        (s.email || '').toLowerCase().includes(term) ||
+        (s.section || '').toLowerCase().includes(term) ||
+        (s.id || '').toLowerCase().includes(term)
+    );
+}
+
+/** Resolves each student's `company_id` to a company name, in place. */
+async function attachCompanyNames(students: Profile[]): Promise<void> {
+    const companyIds = [...new Set(students.map(s => s.company_id).filter(Boolean) as string[])];
+    if (companyIds.length === 0) return;
+
+    const { data: companies } = await supabase
+        .from('companies')
+        .select('id, name')
+        .in('id', companyIds);
+
+    if (!companies) return;
+
+    const map = new Map(companies.map(c => [c.id, c.name]));
+    students.forEach(s => {
+        if (s.company_id) {
+            s.company = { name: map.get(s.company_id) || 'Unknown' };
+        }
+    });
+}
+
 export const adviserService = {
     /**
-     * Fetch sections currently assigned to the logged-in Adviser
+     * Every section currently assigned to the logged-in Adviser, each with its
+     * true enrolled-student count. An adviser may hold any number of sections.
      */
     async getMySections(): Promise<Section[]> {
+        const { data, error } = await supabase.rpc('get_adviser_sections');
+
+        if (!error) {
+            const rows = (data || []) as AdviserSectionRow[];
+            return rows.map(row => ({
+                id: row.id,
+                name: row.name,
+                course_code: row.course_code,
+                department_id: row.department_id,
+                created_at: row.created_at,
+                student_count: Number(row.student_count) || 0,
+            })).sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        if (!isMissingFunction(error)) {
+            console.error('Error fetching adviser sections:', error);
+            throw asError(error, 'Failed to load your assigned sections.');
+        }
+
+        console.warn('RPC get_adviser_sections is not deployed — run supabase_adviser_sections_fix.sql. Falling back to direct queries.');
+        return this.getMySectionsFallback();
+    },
+
+    /**
+     * Pre-migration path for {@link getMySections}. Reads the same
+     * adviser_sections → sections relationship, then counts students by
+     * resolving each profile's section value to its canonical name.
+     */
+    async getMySectionsFallback(): Promise<Section[]> {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return [];
 
@@ -64,7 +161,7 @@ export const adviserService = {
 
         if (error) {
             console.error('Error fetching adviser sections:', error);
-            throw error;
+            throw asError(error, 'Failed to load your assigned sections.');
         }
 
         const sectionsList: Section[] = (data || [])
@@ -73,82 +170,110 @@ export const adviserService = {
 
         if (sectionsList.length === 0) return [];
 
-        // Count students in each section
-        const sectionNames = sectionsList.map(s => s.name);
-        const { data: studentProfiles } = await supabase
+        // `profiles.section` may hold a legacy letter ("A") rather than the full
+        // name ("DIT-1A"), so the count cannot be a plain `.in()` on the name.
+        const { data: studentProfiles, error: countError } = await supabase
             .from('profiles')
-            .select('section')
-            .eq('account_type', 'student')
-            .in('section', sectionNames);
+            .select('id, section, course, year_level')
+            .eq('account_type', 'student');
+
+        if (countError) {
+            console.error('Error counting section students:', countError);
+            throw asError(countError, 'Failed to count students for your sections.');
+        }
 
         const counts: Record<string, number> = {};
         (studentProfiles || []).forEach(p => {
-            if (p.section) {
-                counts[p.section] = (counts[p.section] || 0) + 1;
-            }
+            const canonical = canonicalSectionName(p.section, p.course, p.year_level);
+            if (canonical) counts[canonical] = (counts[canonical] || 0) + 1;
         });
 
         return sectionsList.map(s => ({
             ...s,
-            student_count: counts[s.name] || 0
+            student_count: counts[s.name.trim().toUpperCase()] || 0
         })).sort((a, b) => a.name.localeCompare(b.name));
     },
 
     /**
-     * Fetch all students belonging to the Adviser's assigned sections
+     * Students belonging to the Adviser's assigned sections, optionally narrowed
+     * to a single one of those sections.
      */
     async getMyStudents(filters?: { section?: string; status?: string; search?: string }): Promise<Profile[]> {
+        const sectionFilter = filters?.section && filters.section !== 'all' ? filters.section : null;
+
+        let students: Profile[];
+        const { data, error } = await supabase.rpc('get_adviser_students', {
+            p_section_name: sectionFilter,
+        });
+
+        if (!error) {
+            students = (data || []) as Profile[];
+        } else if (isMissingFunction(error)) {
+            console.warn('RPC get_adviser_students is not deployed — run supabase_adviser_sections_fix.sql. Falling back to direct queries.');
+            students = await this.getMyStudentsFallback(sectionFilter);
+        } else {
+            console.error('Error fetching adviser students:', error);
+            throw asError(error, 'Failed to load students for your sections.');
+        }
+
+        if (filters?.search?.trim()) {
+            students = filterStudentsBySearch(students, filters.search);
+        }
+
+        await attachCompanyNames(students);
+        return students;
+    },
+
+    /** Pre-migration path for {@link getMyStudents}. */
+    async getMyStudentsFallback(sectionFilter: string | null): Promise<Profile[]> {
         const sections = await this.getMySections();
-        const sectionNames = sections.map(s => s.name);
+        if (sections.length === 0) return [];
 
-        if (sectionNames.length === 0) return [];
+        const allowed = sections.map(s => s.name.trim().toUpperCase());
+        const target = sectionFilter?.trim().toUpperCase() || null;
 
-        let query = supabase
+        if (target && !allowed.includes(target)) {
+            throw new Error(`Section ${sectionFilter} is not assigned to you.`);
+        }
+
+        const scope = target ? [target] : allowed;
+
+        const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('account_type', 'student')
-            .in('section', sectionNames);
+            .order('last_name', { ascending: true });
 
-        if (filters?.section && filters.section !== 'all') {
-            query = query.eq('section', filters.section);
-        }
-
-        const { data, error } = await query.order('last_name', { ascending: true });
         if (error) {
             console.error('Error fetching adviser students:', error);
-            throw error;
+            throw asError(error, 'Failed to load students for your sections.');
         }
 
-        let students = (data || []) as Profile[];
+        return ((data || []) as Profile[])
+            .filter(s => scope.some(name => studentMatchesSection(s, name)));
+    },
 
-        // Filter search term in-memory if provided
-        if (filters?.search?.trim()) {
-            const term = filters.search.trim().toLowerCase();
-            students = students.filter(s =>
-                `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase().includes(term) ||
-                (s.email || '').toLowerCase().includes(term) ||
-                (s.section || '').toLowerCase().includes(term)
-            );
+    /**
+     * Roster for one specific section. The section must be assigned to the
+     * caller — the check is enforced in the database, not here.
+     */
+    async getSectionStudents(sectionId: string, sectionName?: string): Promise<Profile[]> {
+        const { data, error } = await supabase.rpc('get_adviser_section_students', {
+            p_section_id: sectionId,
+        });
+
+        let students: Profile[];
+        if (!error) {
+            students = (data || []) as Profile[];
+        } else if (isMissingFunction(error) && sectionName) {
+            console.warn('RPC get_adviser_section_students is not deployed — run supabase_adviser_sections_fix.sql. Falling back to direct queries.');
+            students = await this.getMyStudentsFallback(sectionName);
+        } else {
+            console.error('Error fetching section students:', error);
+            throw asError(error, 'Failed to load the roster for this section.');
         }
 
-        // Attach company names
-        const companyIds = students.map(s => s.company_id).filter(Boolean) as string[];
-        if (companyIds.length > 0) {
-            const { data: companies } = await supabase
-                .from('companies')
-                .select('id, name')
-                .in('id', companyIds);
-            
-            if (companies) {
-                const map = new Map(companies.map(c => [c.id, c.name]));
-                students.forEach(s => {
-                    if (s.company_id) {
-                        s.company = { name: map.get(s.company_id) || 'Unknown' };
-                    }
-                });
-            }
-        }
-
+        await attachCompanyNames(students);
         return students;
     },
 
@@ -156,25 +281,11 @@ export const adviserService = {
      * Get pending student account registrations for assigned sections
      */
     async getPendingStudentApprovals(): Promise<Profile[]> {
-        const sections = await this.getMySections();
-        const sectionNames = sections.map(s => s.name);
+        const students = await this.getMyStudents();
 
-        if (sectionNames.length === 0) return [];
-
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('account_type', 'student')
-            .in('section', sectionNames)
-            .or('approval_status.eq.pending,is_active.eq.false')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error fetching pending student approvals:', error);
-            throw error;
-        }
-
-        return (data || []) as Profile[];
+        return students
+            .filter(s => s.approval_status === 'pending' || s.is_active === false)
+            .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
     },
 
     /**

@@ -8,8 +8,10 @@ import {
     SECTION_LETTERS,
     buildSectionName,
     buildSectionOptions,
+    canonicalSectionName,
     courseCodeFromValue,
     parseSectionName,
+    studentMatchesSection,
     yearNumberFromLevel,
 } from './sections.ts';
 
@@ -109,4 +111,49 @@ test('falls back to stored rows when no course is selected', () => {
     assert.deepEqual(values, SEEDED_SECTIONS.map(s => s.name));
 
     assert.deepEqual(buildSectionOptions({ course: '', yearLevel: '', sections: [] }), []);
+});
+
+// ─── canonicalSectionName / studentMatchesSection ───────────────────────────
+// These are what the adviser roster and every student count compare on, so the
+// legacy shapes actually present in the database are pinned here.
+
+test('canonicalSectionName passes through an already-canonical name', () => {
+    assert.equal(canonicalSectionName('DIT-3F', 'DIT', '3rd Year'), 'DIT-3F');
+    assert.equal(canonicalSectionName('dit-3f', 'DIT', '3rd Year'), 'DIT-3F');
+});
+
+test('canonicalSectionName rebuilds a legacy bare letter from course and year', () => {
+    assert.equal(canonicalSectionName('A', 'DIT', '1st Year'), 'DIT-1A');
+    assert.equal(canonicalSectionName('a', 'DIT', '2nd Year'), 'DIT-2A');
+    assert.equal(canonicalSectionName('b', 'DIT', '1st Year'), 'DIT-1B');
+    assert.equal(canonicalSectionName('D', 'DHT', '3rd Year'), 'DHT-3D');
+});
+
+test('canonicalSectionName returns null when the student has no section', () => {
+    assert.equal(canonicalSectionName(null, 'DIT', '1st Year'), null);
+    assert.equal(canonicalSectionName('   ', 'DIT', '1st Year'), null);
+});
+
+test('canonicalSectionName keeps a bare letter when course or year is missing', () => {
+    // Nothing to rebuild from, so it must not invent a name that would collide
+    // with a real section.
+    assert.equal(canonicalSectionName('A', null, '1st Year'), 'A');
+    assert.equal(canonicalSectionName('A', 'DIT', null), 'A');
+});
+
+test('studentMatchesSection scopes a roster to exactly one section', () => {
+    const inFirstA = { section: 'A', course: 'DIT', year_level: '1st Year' };
+    const inFirstB = { section: 'b', course: 'DIT', year_level: '1st Year' };
+    const inSecondA = { section: 'A', course: 'DIT', year_level: '2nd Year' };
+
+    assert.ok(studentMatchesSection(inFirstA, 'DIT-1A'));
+    assert.ok(!studentMatchesSection(inFirstA, 'DIT-1B'));
+    assert.ok(!studentMatchesSection(inFirstA, 'DIT-2A'));
+
+    assert.ok(studentMatchesSection(inFirstB, 'DIT-1B'));
+    assert.ok(studentMatchesSection(inSecondA, 'DIT-2A'));
+    assert.ok(!studentMatchesSection(inSecondA, 'DIT-1A'));
+
+    // Same letter, different course must never bleed across.
+    assert.ok(!studentMatchesSection({ section: 'D', course: 'DHT', year_level: '3rd Year' }, 'DIT-3D'));
 });
