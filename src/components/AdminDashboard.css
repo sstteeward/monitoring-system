@@ -17,11 +17,11 @@ html[data-theme="light"] {
 
 html[data-theme="dark"] {
   --admin-bg: var(--bg-app);
-  --admin-card-bg: rgba(20, 20, 20, 0.8);
-  --admin-border: rgba(255, 255, 255, 0.04);
-  --admin-text-primary: #e5e5e5;
-  --admin-text-secondary: #737373;
-  --admin-sidebar-bg: #0a0a0a;
+  --admin-card-bg: var(--bg-card);
+  --admin-border: var(--border);
+  --admin-text-primary: var(--text-secondary);
+  --admin-text-secondary: var(--text-dim);
+  --admin-sidebar-bg: var(--bg-sidebar);
 }
 
 .admin-dashboard-container {
@@ -494,7 +494,9 @@ html[data-theme="dark"] {
 }
 
 html[data-theme="dark"] .admin-welcome-banner {
-  background: linear-gradient(135deg, #0d9488 0%, #065f46 60%, #1e1b4b 100%);
+  background: #1e2b26;
+  border: 1px solid #2b3a33;
+  box-shadow: none;
 }
 
 .admin-welcome-bg {

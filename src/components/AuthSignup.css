@@ -37,6 +37,11 @@
     overflow-y: auto;
 }
 
+/* Dark ground stays flat — the emerald wash reads as a colour cast. */
+html[data-theme="dark"] .auth-page {
+    background: var(--bg-app);
+}
+
 /* Mouse-following spotlight */
 .auth-page::before {
     content: '';
@@ -47,8 +52,9 @@
     z-index: 0;
 }
 
+/* Barely-there spotlight in dark — enough to feel alive, not to tint the page. */
 html[data-theme="dark"] .auth-page::before {
-    background: radial-gradient(560px circle at var(--spot-x, 50%) var(--spot-y, -10%), rgba(52, 211, 153, 0.12), transparent 65%);
+    background: radial-gradient(560px circle at var(--spot-x, 50%) var(--spot-y, -10%), rgba(255, 252, 240, 0.035), transparent 65%);
 }
 
 .auth-card-shell {
@@ -140,9 +146,9 @@ html[data-theme="dark"] .auth-page::before {
     position: absolute;
     inset: 0;
     background: linear-gradient(to top,
-            #0a0a0a 0%,
-            rgba(13, 14, 26, 0.4) 50%,
-            rgba(13, 14, 26, 0.1) 100%);
+            #141412 0%,
+            rgba(20, 20, 18, 0.4) 50%,
+            rgba(20, 20, 18, 0.1) 100%);
     z-index: 1;
 }
 

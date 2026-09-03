@@ -197,7 +197,9 @@ export default function LandingPage() {
       {/* ── 2. Compact Hero ── */}
       <section className="lp-hero">
         <div className="lp-shell lp-hero-inner">
-          <h1 className="lp-hero-title">Asian College SIL Monitoring System</h1>
+          <h1 className="lp-hero-title">
+            <span className="asian">Asian</span> <span className="college">College</span> SIL Monitoring System
+          </h1>
           <p className="lp-hero-tagline">Supervised Industry Learning Management Platform</p>
           <p className="lp-hero-desc">
             A centralized platform for managing SIL activities, attendance, journals, monitoring,
@@ -286,7 +288,9 @@ export default function LandingPage() {
               <span className="lp-footer-brand-icon">
                 <img src={silLogo} alt="Asian College SIL Logo" className="lp-footer-brand-img" />
               </span>
-              <span className="lp-footer-brand-name">Asian College · SIL Monitoring System</span>
+              <span className="lp-footer-brand-name">
+                <span className="asian">Asian</span> <span className="college">College</span> · SIL Monitoring System
+              </span>
             </div>
             <p className="lp-footer-tagline">
               Supporting a more organized and transparent SIL experience.

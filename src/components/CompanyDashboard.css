@@ -19,11 +19,11 @@ html[data-theme="light"] {
 
 html[data-theme="dark"] {
   --company-bg: var(--bg-app);
-  --company-card-bg: rgba(20, 20, 20, 0.8);
-  --company-border: rgba(255, 255, 255, 0.04);
-  --company-text-primary: #e5e5e5;
-  --company-text-secondary: #737373;
-  --company-sidebar-bg: #0a0a0a;
+  --company-card-bg: var(--bg-card);
+  --company-border: var(--border);
+  --company-text-primary: var(--text-secondary);
+  --company-text-secondary: var(--text-dim);
+  --company-sidebar-bg: var(--bg-sidebar);
 }
 
 .company-dashboard-container {
@@ -334,7 +334,9 @@ html[data-theme="dark"] {
 }
 
 html[data-theme="dark"] .company-welcome-banner {
-  background: linear-gradient(135deg, #059669 0%, #047857 60%, #052e24 100%);
+  background: #1e2b26;
+  border: 1px solid #2b3a33;
+  box-shadow: none;
 }
 
 .company-welcome-bg {

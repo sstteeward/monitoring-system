@@ -99,8 +99,9 @@ html[data-theme="dark"] .adviser-course-dit {
 }
 
 html[data-theme="dark"] .ad-welcome-banner {
-    background: linear-gradient(135deg, #0d9488 0%, #065f46 60%, #1e1b4b 100%);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    background: #1e2b26;
+    border: 1px solid #2b3a33;
+    box-shadow: none;
 }
 
 .ad-welcome-bg {

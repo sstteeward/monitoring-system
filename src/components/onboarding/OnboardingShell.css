@@ -668,18 +668,18 @@
 /* ── Dark mode ────────────────────────────────────────────────────── */
 
 [data-theme='dark'] .onb-page {
-  background: #090d16;
-  color: #f1f5f9;
+  background: var(--bg-page);
+  color: var(--text-primary);
 }
 
 [data-theme='dark'] .onb-card,
 [data-theme='dark'] .onb-review-section {
-  background: #111827;
-  border-color: #1f2937;
+  background: var(--bg-card);
+  border-color: var(--border);
 }
 
 [data-theme='dark'] .onb-card {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme='dark'] .onb-title,
@@ -687,26 +687,26 @@
 [data-theme='dark'] .onb-review-value,
 [data-theme='dark'] .onb-choice-title,
 [data-theme='dark'] .onb-stepper-name {
-  color: #f9fafb;
+  color: var(--text-primary);
 }
 
 [data-theme='dark'] .onb-subtitle,
 [data-theme='dark'] .onb-choice-desc,
 [data-theme='dark'] .onb-hint,
 [data-theme='dark'] .onb-review-label {
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 [data-theme='dark'] .onb-label,
 [data-theme='dark'] .onb-checkbox {
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 [data-theme='dark'] .onb-input,
 [data-theme='dark'] .onb-textarea {
-  background: #1e293b;
-  border-color: #374151;
-  color: #f9fafb;
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 [data-theme='dark'] .onb-input:focus,
@@ -715,13 +715,13 @@
 }
 
 [data-theme='dark'] .onb-step-circle {
-  background: #1a2234;
-  border-color: #374151;
-  color: #94a3b8;
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  color: var(--text-muted);
 }
 
 [data-theme='dark'] .onb-step-line {
-  background: #374151;
+  background: var(--border-strong);
 }
 
 [data-theme='dark'] .onb-step-line.done {
@@ -729,7 +729,7 @@
 }
 
 [data-theme='dark'] .onb-step.completed .onb-step-label {
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 [data-theme='dark'] .onb-step.current .onb-step-label {
@@ -741,12 +741,12 @@
 }
 
 [data-theme='dark'] .onb-stepper-track {
-  background: #1f2937;
+  background: var(--surface-3);
 }
 
 [data-theme='dark'] .onb-choice-card {
-  background: #1a2234;
-  border-color: #374151;
+  background: var(--surface-3);
+  border-color: var(--border-strong);
 }
 
 [data-theme='dark'] .onb-choice-card.selected {
@@ -767,7 +767,7 @@
 
 [data-theme='dark'] .onb-review-head {
   background: rgba(16, 185, 129, 0.1);
-  border-bottom-color: #1f2937;
+  border-bottom-color: var(--border);
 }
 
 [data-theme='dark'] .onb-review-edit {
@@ -776,12 +776,12 @@
 }
 
 [data-theme='dark'] .onb-btn-back {
-  background: #1f2937;
-  border-color: #374151;
-  color: #e5e7eb;
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
 }
 
 [data-theme='dark'] .onb-btn-back:hover:not(:disabled) {
-  background: #374151;
-  color: #ffffff;
+  background: var(--surface-4);
+  color: var(--text-primary);
 }

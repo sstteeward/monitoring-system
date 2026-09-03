@@ -445,9 +445,9 @@ const CompaniesView: React.FC = () => {
                                         value={editCompanyForm.department_id} 
                                         onChange={e => setEditCompanyForm(p => ({ ...p, department_id: e.target.value }))}
                                     >
-                                        <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Uncategorized</option>
+                                        <option value="" style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>Uncategorized</option>
                                         {departments.map(d => (
-                                            <option key={d.id} value={d.id} style={{ background: '#1a1a1a', color: '#fff' }}>{d.name}</option>
+                                            <option key={d.id} value={d.id} style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>{d.name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -733,9 +733,9 @@ const CompaniesView: React.FC = () => {
                                     value={newCompany.department_id} 
                                     onChange={e => setNewCompany(p => ({ ...p, department_id: e.target.value }))}
                                 >
-                                    <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Uncategorized</option>
+                                    <option value="" style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>Uncategorized</option>
                                     {departments.map(d => (
-                                        <option key={d.id} value={d.id} style={{ background: '#1a1a1a', color: '#fff' }}>{d.name}</option>
+                                        <option key={d.id} value={d.id} style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>{d.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -922,9 +922,9 @@ const CompaniesView: React.FC = () => {
                                     value={reviewDepartmentId} 
                                     onChange={e => setReviewDepartmentId(e.target.value)}
                                 >
-                                    <option value="" style={{ background: '#1a1a1a', color: '#fff' }}>Uncategorized</option>
+                                    <option value="" style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>Uncategorized</option>
                                     {departments.map(d => (
-                                        <option key={d.id} value={d.id} style={{ background: '#1a1a1a', color: '#fff' }}>{d.name}</option>
+                                        <option key={d.id} value={d.id} style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>{d.name}</option>
                                     ))}
                                 </select>
                             </div>

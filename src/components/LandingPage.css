@@ -40,23 +40,24 @@
   transition: var(--lp-theme-transition);
 }
 
+/* Dark landing: the shared warm-neutral ramp, no navy and no ambient glow. */
 html[data-theme="dark"] .landing-container {
-  --lp-bg: #0b1220;
-  --lp-surface: #141d2f;
-  --lp-surface-muted: #101827;
-  --lp-header-bg: rgba(11, 18, 32, 0.82);
-  --lp-border: rgba(148, 163, 184, 0.14);
-  --lp-border-strong: rgba(148, 163, 184, 0.26);
+  --lp-bg: var(--surface-1);
+  --lp-surface: var(--surface-2);
+  --lp-surface-muted: var(--surface-0);
+  --lp-header-bg: rgba(20, 20, 18, 0.86);
+  --lp-border: var(--border);
+  --lp-border-strong: var(--border-strong);
 
-  --lp-text: #f1f5f9;
-  --lp-text-secondary: #b6c2d4;
-  --lp-text-muted: #8494a9;
+  --lp-text: var(--text-primary);
+  --lp-text-secondary: var(--text-secondary);
+  --lp-text-muted: var(--text-muted);
 
-  --lp-brand-red: #f87171;
-  --lp-brand-blue: #60a5fa;
+  --lp-brand-red: #ef5350;
+  --lp-brand-blue: #8fb3d9;
 
-  --lp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
-  --lp-shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.45), 0 3px 10px rgba(0, 0, 0, 0.3);
+  --lp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --lp-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
 /* Very subtle ambient background decoration */
@@ -85,12 +86,31 @@ html[data-theme="dark"] .landing-container {
   background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
 }
 
-html[data-theme="dark"] .landing-container::before {
-  background: radial-gradient(circle, rgba(248, 113, 113, 0.07) 0%, transparent 70%);
+/* Every weight on this page drops one step in dark. Hierarchy still reads —
+   it comes from size and colour here, not from heaviness. */
+html[data-theme="dark"] .lp-brand-name,
+html[data-theme="dark"] .lp-hero-title,
+html[data-theme="dark"] .lp-section-title,
+html[data-theme="dark"] .lp-platform-title,
+html[data-theme="dark"] .lp-modal-title {
+  font-weight: 600;
 }
 
+html[data-theme="dark"] .lp-brand-system,
+html[data-theme="dark"] .lp-hero-tagline,
+html[data-theme="dark"] .portal-card-label,
+html[data-theme="dark"] .portal-card-title,
+html[data-theme="dark"] .portal-card-action,
+html[data-theme="dark"] .lp-platform-col-title,
+html[data-theme="dark"] .lp-footer-brand-name,
+html[data-theme="dark"] .lp-footer-link {
+  font-weight: 500;
+}
+
+/* The dark ground stays flat — coloured blooms are what make it look synthetic. */
+html[data-theme="dark"] .landing-container::before,
 html[data-theme="dark"] .landing-container::after {
-  background: radial-gradient(circle, rgba(96, 165, 250, 0.08) 0%, transparent 70%);
+  background: none;
 }
 
 /* ── Shared wide content container ── */
@@ -263,11 +283,12 @@ html[data-theme="dark"] .landing-container::after {
 /* ═══════════════════════════════════════════════════
    HERO
    ═══════════════════════════════════════════════════ */
+/* Tight enough that the four portal cards land above the fold on a laptop. */
 .lp-hero {
   position: relative;
   z-index: 1;
   width: 100%;
-  padding-block: clamp(2.25rem, 4vw, 3.25rem) clamp(1.25rem, 2vw, 1.75rem);
+  padding-block: clamp(1.25rem, 2.2vw, 1.75rem) clamp(0.75rem, 1.2vw, 1rem);
 }
 
 .lp-hero-inner {
@@ -282,6 +303,17 @@ html[data-theme="dark"] .landing-container::after {
   line-height: 1.15;
   color: var(--lp-text);
   margin: 0;
+}
+
+/* Brand lockup inside the heading — the rest of the line keeps --lp-text.
+   Scoped to .lp-hero-title so it stays independent of the header wordmark,
+   which is a red + white lockup instead. */
+.lp-hero-title .asian {
+  color: var(--lp-brand-red);
+}
+
+.lp-hero-title .college {
+  color: var(--lp-brand-blue);
 }
 
 .lp-hero-tagline {
@@ -307,12 +339,12 @@ html[data-theme="dark"] .landing-container::after {
   position: relative;
   z-index: 1;
   width: 100%;
-  padding-block: clamp(1.5rem, 2.5vw, 2.25rem) clamp(2rem, 3vw, 3rem);
+  padding-block: clamp(0.75rem, 1.4vw, 1.25rem) clamp(2rem, 3vw, 3rem);
 }
 
 .lp-section-header {
   text-align: center;
-  margin-bottom: clamp(1.5rem, 2.2vw, 2.25rem);
+  margin-bottom: clamp(1rem, 1.6vw, 1.5rem);
   animation: lp-fadeInUp 0.6s var(--lp-ease) 0.08s both;
 }
 
@@ -381,10 +413,11 @@ html[data-theme="dark"] .landing-container::after {
 .portal-card.coordinator { --accent: #7c3aed; --accent-rgb: 124, 58, 237; }
 .portal-card.company { --accent: #d97706; --accent-rgb: 217, 119, 6; }
 
-html[data-theme="dark"] .portal-card.student { --accent: #60a5fa; --accent-rgb: 96, 165, 250; }
-html[data-theme="dark"] .portal-card.adviser { --accent: #2dd4bf; --accent-rgb: 45, 212, 191; }
-html[data-theme="dark"] .portal-card.coordinator { --accent: #a78bfa; --accent-rgb: 167, 139, 250; }
-html[data-theme="dark"] .portal-card.company { --accent: #fbbf24; --accent-rgb: 251, 191, 36; }
+/* Muted on the warm ground: still four distinguishable hues, none neon. */
+html[data-theme="dark"] .portal-card.student { --accent: #8ab0d8; --accent-rgb: 138, 176, 216; }
+html[data-theme="dark"] .portal-card.adviser { --accent: #74c3b1; --accent-rgb: 116, 195, 177; }
+html[data-theme="dark"] .portal-card.coordinator { --accent: #a99ad6; --accent-rgb: 169, 154, 214; }
+html[data-theme="dark"] .portal-card.company { --accent: #d9a566; --accent-rgb: 217, 165, 102; }
 
 /* Staggered entry */
 .portal-card:nth-child(1) { animation: lp-fadeInUp 0.5s var(--lp-ease) 0.14s both; }
@@ -551,10 +584,10 @@ html[data-theme="dark"] .portal-card.company { --accent: #fbbf24; --accent-rgb: 
 .lp-platform-col.coordinator { --accent: #7c3aed; }
 .lp-platform-col.company { --accent: #d97706; }
 
-html[data-theme="dark"] .lp-platform-col.student { --accent: #60a5fa; }
-html[data-theme="dark"] .lp-platform-col.adviser { --accent: #2dd4bf; }
-html[data-theme="dark"] .lp-platform-col.coordinator { --accent: #a78bfa; }
-html[data-theme="dark"] .lp-platform-col.company { --accent: #fbbf24; }
+html[data-theme="dark"] .lp-platform-col.student { --accent: #8ab0d8; }
+html[data-theme="dark"] .lp-platform-col.adviser { --accent: #74c3b1; }
+html[data-theme="dark"] .lp-platform-col.coordinator { --accent: #a99ad6; }
+html[data-theme="dark"] .lp-platform-col.company { --accent: #d9a566; }
 
 .lp-platform-col-title {
   position: relative;
@@ -650,6 +683,14 @@ html[data-theme="dark"] .lp-platform-col.company { --accent: #fbbf24; }
   color: var(--lp-text-secondary);
 }
 
+.lp-footer-brand-name .asian {
+  color: var(--lp-brand-red);
+}
+
+.lp-footer-brand-name .college {
+  color: var(--lp-brand-blue);
+}
+
 .lp-footer-tagline {
   font-size: 0.785rem;
   color: var(--lp-text-muted);
@@ -720,7 +761,7 @@ html[data-theme="dark"] .lp-platform-col.company { --accent: #fbbf24; }
 }
 
 html[data-theme="dark"] .lp-modal-overlay {
-  background: rgba(2, 6, 16, 0.68);
+  background: rgba(10, 10, 9, 0.7);
 }
 
 .lp-modal-content {

@@ -975,12 +975,12 @@ html[data-theme="dark"] .status-pill.break {
 
 html[data-theme="dark"] .status-pill.inactive {
     background: rgba(255, 255, 255, 0.04);
-    color: #4b5068;
+    color: var(--text-dim);
     border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 html[data-theme="dark"] .status-pill.inactive .status-dot {
-    background: #3a3d52;
+    background: var(--text-dim);
 }
 
 @keyframes blink {
@@ -1109,12 +1109,12 @@ html[data-theme="dark"] .status-pill.break {
 
 html[data-theme="dark"] .status-pill.inactive {
     background: rgba(255, 255, 255, 0.04);
-    color: #4b5068;
+    color: var(--text-dim);
     border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 html[data-theme="dark"] .status-pill.inactive .status-dot {
-    background: #3a3d52;
+    background: var(--text-dim);
 }
 
 html[data-theme="dark"] .btn-danger {
@@ -1276,8 +1276,11 @@ html[data-theme="dark"] .btn-danger:hover:not(:disabled) {
     flex-wrap: wrap;
 }
 
+/* Flat, deep green-grey panel — no gradient wash, no coloured glow. */
 html[data-theme="dark"] .greeting-banner {
-    background: linear-gradient(135deg, #0d9488 0%, #065f46 60%, #0a0a0a 100%);
+    background: #1e2b26;
+    border: 1px solid #2b3a33;
+    box-shadow: none;
 }
 
 .greeting-banner-text {
@@ -1697,7 +1700,7 @@ html[data-theme="dark"] .greeting-banner {
         display: flex;
         background: transparent;
         border: none;
-        color: #4b5068;
+        color: var(--text-dim);
         cursor: pointer;
         position: absolute;
         top: 50%;

@@ -10,18 +10,22 @@
     // Apply theme before React mounts to prevent flash of wrong theme
     (function () {
       try {
-        var theme = 'light';
+        // Light is the default; only a stored choice moves it. Mirrors
+        // resolveTheme() in src/contexts/ThemeContext.tsx — keep them in step.
+        var saved = null;
         var authKeys = Object.keys(localStorage).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
         if (authKeys.length > 0) {
           var authData = JSON.parse(localStorage.getItem(authKeys[0]));
           var userId = authData && authData.user ? authData.user.id : null;
           if (userId) {
-            var userTheme = localStorage.getItem('cd-theme-' + userId);
-            if (userTheme === 'light' || userTheme === 'dark') {
-              theme = userTheme;
-            }
+            saved = localStorage.getItem('cd-theme-' + userId);
           }
+        } else {
+          // Signed-out visitors share one preference; without this a guest who
+          // picked dark sees a light flash on every load.
+          saved = localStorage.getItem('cd-theme-guest');
         }
+        var theme = (saved === 'light' || saved === 'dark') ? saved : 'light';
         document.documentElement.setAttribute('data-theme', theme);
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'light');

@@ -46,9 +46,29 @@
   background-clip: padding-box;
 }
 
+/* A full-height emerald bar is the loudest thing on a dark page — go neutral. */
+html[data-theme="dark"] * {
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
 /* Default Theme (Light) */
 html,
 html[data-theme="light"] {
+  /* Surface ramp — light counterpart of the dark ramp, same step meanings. */
+  --surface-0: #ffffff;
+  --surface-1: #f8fafc;
+  --surface-2: #ffffff;
+  --surface-3: #f1f5f9;
+  --surface-4: #e2e8f0;
+
   --bg-page: #f8fafc;
   --bg-app: #f8fafc;
   --bg-sidebar: #ffffff;
@@ -86,31 +106,47 @@ html[data-theme="light"] {
   background-color: var(--bg-page);
 }
 
-/* Dark Theme */
+/*
+ * Dark Theme — warm neutral surfaces.
+ *
+ * Deliberately flat and low-chroma: solid surfaces instead of gradients, and a
+ * warm grey ramp (a touch of yellow, never blue) so the UI reads as paper in a
+ * dim room rather than a glowing navy dashboard. Only brand/status colours are
+ * saturated; every surface stays on the ramp below.
+ */
 html[data-theme="dark"] {
-  --bg-page: #050505;
-  --bg-app: radial-gradient(ellipse at 50% 0%, rgba(30, 30, 30, 1) 0%, rgba(5, 5, 5, 1) 100%), #050505;
-  --bg-sidebar: #050505;
-  --bg-card: linear-gradient(145deg, #0d0d0d, #0a0a0a);
-  --bg-elevated: linear-gradient(145deg, #141414, #0f0f0f);
-  --bg-secondary: rgba(255, 255, 255, 0.05);
-  --bg-hover: rgba(255, 255, 255, 0.08);
-  --bg-hero: linear-gradient(180deg, rgba(16, 185, 129, 0.03) 0%, rgba(5, 5, 5, 0.95) 100%);
+  /* Surface ramp — each step ~4% lighter than the last. */
+  --surface-0: #141412; /* deepest: sidebar, header */
+  --surface-1: #1a1a18; /* page ground */
+  --surface-2: #21211f; /* cards */
+  --surface-3: #292927; /* elevated / inputs */
+  --surface-4: #302f2c; /* hover */
 
-  --text-primary: #ffffff;
-  --text-secondary: #e5e5e5;
-  --text-muted: #a3a3a3;
-  --text-dim: #737373;
+  --bg-page: var(--surface-1);
+  --bg-app: var(--surface-1);
+  --bg-sidebar: var(--surface-0);
+  --bg-card: var(--surface-2);
+  --bg-elevated: var(--surface-3);
+  /* One step below --bg-elevated on purpose: several controls use the pair to
+     tell a disabled state from an active one (e.g. Pagination.tsx). */
+  --bg-secondary: var(--surface-2);
+  --bg-hover: var(--surface-4);
+  --bg-hero: var(--surface-2);
+
+  --text-primary: #f5f4ef;
+  --text-secondary: #e0ded6;
+  --text-muted: #a6a29a;
+  --text-dim: #7c7972;
   --text-bright: #ffffff;
-  --text-inverse: #050505;
+  --text-inverse: #1a1a18;
 
-  --nav-active-bg: rgba(16, 185, 129, 0.15);
+  --nav-active-bg: rgba(16, 185, 129, 0.14);
   --nav-active-text: #34d399;
 
-  --border: rgba(255, 255, 255, 0.04);
-  --border-strong: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.16);
-  --scrollbar: rgba(255, 255, 255, 0.1);
+  --border: #2f2e2b;
+  --border-strong: #3b3a36;
+  --border-hover: #4a4844;
+  --scrollbar: #3b3a36;
 
   /* Badge Semantic Colors */
   --badge-student-bg: rgba(16, 185, 129, 0.15);
@@ -123,6 +159,76 @@ html[data-theme="dark"] {
   color-scheme: dark;
   color: var(--text-secondary);
   background-color: var(--bg-page);
+
+  /* Light text on a dark ground renders visibly fatter than the same text
+     inverted. Grayscale antialiasing takes that extra weight back off, so the
+     UI reads lighter in dark mode without changing a single font-size. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════════
+   DARK MODE — TYPE WEIGHT
+
+   Inter reads a full step heavier as light-on-dark than it does dark-on-light,
+   so weights tuned on the light theme come out chunky here. These rules take
+   that step back off, in dark only. Kept together so the whole treatment can be
+   read — or reverted — in one place.
+
+   Two specificity tiers, deliberately:
+
+   1. Headings and text-level elements use `[data-theme="dark"] h3` — (0,1,1),
+      NOT `html[data-theme="dark"] h3` (0,1,2). At (0,1,1) it ties with a
+      component's own `.card-header h3` rule, and since every component sheet
+      loads after this file the component wins. So this lightens headings
+      nobody styled, and never overrides a deliberate choice (which would
+      otherwise bump e.g. `.profile-card h3`'s 500 *up* to 600).
+
+   2. The named classes below are the 800/900-weight display type. Those need
+      (0,2,1) to actually beat their own rules, so they are listed explicitly.
+      DTRCard is left out on purpose: it renders a document that gets exported
+      to PDF, where the heavy weights are load-bearing.
+   ═══════════════════════════════════════════════════ */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] strong,
+[data-theme="dark"] b,
+[data-theme="dark"] th {
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .ad-welcome-name,
+html[data-theme="dark"] .ad-stat-value,
+html[data-theme="dark"] .section-card-title,
+html[data-theme="dark"] .section-card-count,
+html[data-theme="dark"] .view-title,
+html[data-theme="dark"] .left-title,
+html[data-theme="dark"] .company-onboarding-icon,
+html[data-theme="dark"] .company-onboarding-section-icon,
+html[data-theme="dark"] .company-onboarding-intro h1,
+html[data-theme="dark"] .cp-hero-logo span,
+html[data-theme="dark"] .cp-hero-name,
+html[data-theme="dark"] .schedule-eyebrow,
+html[data-theme="dark"] .cd-stat-value,
+html[data-theme="dark"] .status-badge,
+html[data-theme="dark"] .feedback-modal-title,
+html[data-theme="dark"] .journal-title,
+html[data-theme="dark"] .badge-count,
+html[data-theme="dark"] .date-day,
+html[data-theme="dark"] .tip-label,
+html[data-theme="dark"] .completion-header,
+html[data-theme="dark"] .stat-label,
+html[data-theme="dark"] .stat-value,
+html[data-theme="dark"] .sidebar-section-label,
+html[data-theme="dark"] .timer-clock,
+html[data-theme="dark"] .greeting-banner-name,
+html[data-theme="dark"] .ts-stat-value,
+html[data-theme="dark"] .onb-title {
+  font-weight: 700;
 }
 
 a {
@@ -187,9 +293,9 @@ button {
 }
 
 html[data-theme="dark"] button {
-  background-color: #171717;
+  background-color: var(--surface-3);
   background-image: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-strong);
   color: var(--text-primary);
 }
 
@@ -198,9 +304,11 @@ button:hover {
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
 }
 
+/* Dark controls respond with a brighter edge, not a coloured halo. */
 html[data-theme="dark"] button:hover {
-  border-color: rgba(16, 185, 129, 0.4);
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+  background-color: var(--surface-4);
+  border-color: var(--border-hover);
+  box-shadow: none;
 }
 
 button:focus {
@@ -257,6 +365,31 @@ button:focus-visible {
 
 .primary-glow {
   box-shadow: 0 0 20px var(--primary-glow);
+}
+
+/*
+ * Dark primary button.
+ *
+ * `html[data-theme="dark"] button` (0,1,2) outranks `.primary` (0,1,0), so
+ * without this the main call to action inherits the neutral surface and stops
+ * looking like a call to action at all. Solid emerald with dark text — no
+ * gradient, no halo, no sweeping shine.
+ */
+html[data-theme="dark"] button.primary {
+  background-color: var(--primary);
+  background-image: none;
+  border: 1px solid transparent;
+  color: #0c1a14;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] button.primary:hover:not(:disabled) {
+  background-color: #34d399;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .primary::before {
+  content: none;
 }
 
 /* Theme is managed manually via data-theme attribute. */
@@ -445,7 +578,7 @@ html[data-theme="dark"] .skeleton::after {
 }
 
 html[data-theme="dark"] .glass-card {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .glass-card::before {
@@ -490,6 +623,12 @@ html[data-theme="dark"] .glass-card::after {
   transform: translateY(-4px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15), 0 0 20px var(--primary-glow);
   border-color: var(--primary-glow);
+}
+
+/* Dark surfaces lift with a border, not a coloured halo. */
+html[data-theme="dark"] .glass-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  border-color: var(--border-hover);
 }
 
 /* ══════════════════════════════════════════

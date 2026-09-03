@@ -21,13 +21,12 @@ const readStoredTheme = (userId?: string): Theme | null => {
     }
 };
 
-const getSystemTheme = (): Theme =>
-    window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+// Light is the default everywhere — signed in or out. The OS preference is
+// deliberately ignored: the portal opens light until someone picks dark, and
+// that choice is then remembered per account (and once for guests).
+const DEFAULT_THEME: Theme = 'light';
 
-// Signed-in accounts default to light; a signed-out visitor follows the OS
-// preference until they pick a theme themselves.
-const resolveTheme = (userId?: string): Theme =>
-    readStoredTheme(userId) ?? (userId ? 'light' : getSystemTheme());
+const resolveTheme = (userId?: string): Theme => readStoredTheme(userId) ?? DEFAULT_THEME;
 
 export const ThemeProvider: React.FC<{ userId?: string; children: React.ReactNode }> = ({ userId, children }) => {
     const [theme, setThemeState] = useState<Theme>(() => resolveTheme(userId));
@@ -52,18 +51,6 @@ export const ThemeProvider: React.FC<{ userId?: string; children: React.ReactNod
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
     }, [theme]);
-
-    // Keep following the OS while a signed-out visitor has not chosen a theme yet.
-    useEffect(() => {
-        if (userId) return;
-        const media = window.matchMedia?.('(prefers-color-scheme: dark)');
-        if (!media) return;
-        const handleChange = () => {
-            if (!readStoredTheme(undefined)) setThemeState(getSystemTheme());
-        };
-        media.addEventListener('change', handleChange);
-        return () => media.removeEventListener('change', handleChange);
-    }, [userId]);
 
     return (
         <ThemeContext.Provider value={{ theme, setTheme }}>
