@@ -49,6 +49,11 @@ export async function assertEmailAvailable(email: string): Promise<void> {
  * address, so the portal has to confirm — from the session, in Postgres — that
  * the account it just landed on is a fresh one and not somebody's existing
  * account being converted to another portal.
+ *
+ * "Fresh" means `profiles.registration_status = 'pending_verification'`. It
+ * deliberately does NOT mean "has no password": Supabase creates the throwaway
+ * user behind `signInWithOtp` with a bcrypt hash already in place, so every
+ * half-finished signup looks password-protected.
  */
 export async function assertSignupSessionIsNewAccount(): Promise<void> {
   const supabase = await getClient();
@@ -59,6 +64,49 @@ export async function assertSignupSessionIsNewAccount(): Promise<void> {
     }
     throw error;
   }
+}
+
+/**
+ * The database's clock, as epoch milliseconds.
+ *
+ * Used to time the verification window from two server readings rather than
+ * the browser's clock, which may be wrong, in another timezone, or both.
+ */
+export async function getServerNowMs(): Promise<number> {
+  const supabase = await getClient();
+  const { data, error } = await supabase.rpc('server_now_ms');
+  if (error) throw error;
+  return Number(data);
+}
+
+/**
+ * Finish registration: claim the pending profile for this portal and mark it
+ * complete, in one atomic statement.
+ *
+ * Until this returns, the account is `pending_verification` and is invisible to
+ * the duplicate-email check — so an abandoned signup never locks its own
+ * address, and a resend never reports "Email already registered".
+ */
+export async function completeSignupRegistration({ accountType, firstName, middleName, lastName }: {
+  accountType: 'student' | 'coordinator' | 'admin' | 'company' | 'adviser';
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+}): Promise<{ account_type: string; registration_status: string } | null> {
+  const supabase = await getClient();
+  const { data, error } = await supabase.rpc('complete_signup_registration', {
+    p_account_type: accountType,
+    p_first_name: firstName ?? null,
+    p_middle_name: middleName ?? null,
+    p_last_name: lastName ?? null,
+  });
+  if (error) {
+    if (isDuplicateEmailError(error)) {
+      throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+    }
+    throw error;
+  }
+  return Array.isArray(data) ? (data[0] ?? null) : (data ?? null);
 }
 
 export async function signUp({ email, password, firstName, middleName, lastName, accountType, course, adviserType }: {

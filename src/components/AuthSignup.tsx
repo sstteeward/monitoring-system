@@ -3,8 +3,9 @@ import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { useLocation } from "react-router-dom";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
-import { signIn, resetPasswordForEmail, validatePasskeySession, isEmailRegistered, assertSignupSessionIsNewAccount } from "../services/auth";
+import { signIn, resetPasswordForEmail, validatePasskeySession, isEmailRegistered, assertSignupSessionIsNewAccount, completeSignupRegistration, getServerNowMs } from "../services/auth";
 import { EMAIL_ALREADY_REGISTERED_MESSAGE, EMAIL_ALREADY_REGISTERED_TITLE, isDuplicateEmailError, normalizeEmail } from "../utils/email";
+import { OTP_INCOMPLETE_MESSAGE, OTP_INVALID_MESSAGE, OTP_SENT_MESSAGE, OTP_VERIFIED_MESSAGE, rejectedCodeMessage } from "../utils/verificationCode";
 import { formatPasskeyError, isPasskeySupported, signInWithPasskey } from "../services/passkeyAuth";
 import { supabase } from "../lib/supabaseClient";
 import { passwordRequirementLabels, passwordRequirementsMessage, validatePassword } from "../utils/passwordRules";
@@ -100,6 +101,10 @@ export default function AuthSignup() {
     // Live "is this address free?" indicator, so a taken email is called out
     // while the visitor is still typing rather than after they submit.
     const [emailStatus, setEmailStatus] = useState<EmailAvailability>("idle");
+
+    // When the current code was issued, read from the database clock. Used only
+    // to tell an expired code apart from a wrong or already-used one.
+    const [otpIssuedAtMs, setOtpIssuedAtMs] = useState<number | null>(null);
 
     const passwordValidation = validatePassword(signupPassword, signupConfirm);
 
@@ -244,6 +249,18 @@ export default function AuthSignup() {
                 },
             });
             if (error) throw error;
+
+            // Read the issue time off the database clock. Every later expiry
+            // decision compares this to another server reading, so the browser's
+            // clock and timezone never enter the calculation. A resend replaces
+            // it, which is what starts a fresh 10-minute window.
+            try {
+                setOtpIssuedAtMs(await getServerNowMs());
+            } catch {
+                // Without an issue time we simply never claim a code "expired".
+                setOtpIssuedAtMs(null);
+            }
+
             saveRegistrationName({
                 first_name: firstName.trim(),
                 middle_name: middleName.trim(),
@@ -251,7 +268,8 @@ export default function AuthSignup() {
             });
             setOtpSent(true);
             setOtpDigits(["", "", "", "", "", ""]);
-            setInfoMessage("A 6-digit code was sent to your email. Enter it.");
+            setErrors(prev => ({ ...prev, otp: '', general: '' }));
+            setInfoMessage(OTP_SENT_MESSAGE);
             setOtpCooldown(60);
             const timer = setInterval(() => {
                 setOtpCooldown(prev => {
@@ -315,40 +333,72 @@ export default function AuthSignup() {
         otpRefs.current[nextIndex]?.focus();
     };
 
-    const mapOtpError = (message: string) => {
-        if (/expired/i.test(message)) {
-            return "Your verification code has expired. Please request a new code.";
+    /**
+     * Supabase rejects a wrong, already-used, or genuinely expired code with the
+     * same `otp_expired` error, so the error text alone cannot tell them apart.
+     * Compare the server's issue time with the server's current time instead —
+     * two database readings, no browser clock, no timezone conversion.
+     */
+    const describeRejectedCode = async (): Promise<string> => {
+        try {
+            return rejectedCodeMessage(otpIssuedAtMs, await getServerNowMs());
+        } catch {
+            return OTP_INVALID_MESSAGE;
         }
-        return "Invalid verification code. Please check the code sent to your email.";
+    };
+
+    /** Moves the visitor back to the email step with the "address taken" notice. */
+    const reportEmailTaken = () => {
+        setOtpSent(false);
+        setOtpDigits(["", "", "", "", "", ""]);
+        setOtpIssuedAtMs(null);
+        setInfoMessage(null);
+        setEmailStatus('taken');
+        setErrors(prev => ({ ...prev, otp: '', signupEmail: EMAIL_ALREADY_REGISTERED_MESSAGE }));
     };
 
     const handleVerifyOtp = async () => {
         const combinedOtp = otpDigits.join("");
         if (combinedOtp.length !== 6 || !/^\d{6}$/.test(combinedOtp)) {
-            setErrors(prev => ({ ...prev, otp: "Please enter the 6-digit verification code." }));
+            setErrors(prev => ({ ...prev, otp: OTP_INCOMPLETE_MESSAGE }));
             return;
         }
 
         if (!validateSignup()) return;
 
         setIsSubmitting(true);
-        setErrors(prev => ({ ...prev, otp: '' }));
-        try {
-            // Step 1: Verify OTP — this logs the user in with a magic-link session
-            const { error: verifyError } = await supabase.auth.verifyOtp({
-                email: normalizeEmail(signupEmail),
-                token: combinedOtp,
-                type: 'email',
-            });
-            if (verifyError) {
-                throw verifyError;
-            }
+        setErrors(prev => ({ ...prev, otp: '', general: '' }));
 
-            // Step 2: Verifying the code signs us into whichever account owns this
-            // address, so before writing anything, confirm server-side that it is a
-            // brand-new account rather than an existing one from another portal.
-            // Nothing below runs — no password, no profile, no onboarding record —
-            // if the address is already registered anywhere in the system.
+        // ── Stage 1: the code ────────────────────────────────────────────────
+        // Kept in its own step so that ONLY a genuine code problem can ever be
+        // reported as one. Everything after this point is account creation, and
+        // its failures get their own messages.
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+            email: normalizeEmail(signupEmail),
+            token: combinedOtp,
+            type: 'email',
+        });
+        if (verifyError) {
+            const codeMessage = await describeRejectedCode();
+            setErrors(prev => ({ ...prev, otp: codeMessage }));
+            setIsSubmitting(false);
+            return;
+        }
+
+        // ── Stage 2: create the account ──────────────────────────────────────
+        const targetAccountType = resolveAccountType();
+        const registrationName = {
+            first_name: firstName.trim(),
+            middle_name: middleName.trim(),
+            last_name: lastName.trim(),
+        };
+
+        try {
+            setInfoMessage(OTP_VERIFIED_MESSAGE);
+
+            // The code is valid and we now hold a session. Confirm server-side
+            // that it belongs to a pending signup and not to somebody's finished
+            // account in another portal. Nothing is written if this fails.
             try {
                 await assertSignupSessionIsNewAccount();
             } catch (guardError) {
@@ -356,65 +406,27 @@ export default function AuthSignup() {
                 throw guardError;
             }
 
-            const targetAccountType = resolveAccountType();
-            const targetIsActive = targetAccountType === 'coordinator' ? false : true;
-            const registrationName = {
-                first_name: firstName.trim(),
-                middle_name: middleName.trim(),
-                last_name: lastName.trim(),
-            };
-
-            // Step 3: Claim the profile row created at "Send code" for this portal.
-            // This runs before the password is set: the database treats an account
-            // as registered once it has a password, and only an unregistered
-            // account may have its account_type assigned.
             const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                saveRegistrationName({ userId: user.id, ...registrationName });
+            if (!user) throw new Error('Your sign-in session was lost. Please request a new code.');
 
-                const profilePayload = {
-                    email: normalizeEmail(signupEmail),
-                    first_name: registrationName.first_name,
-                    middle_name: registrationName.middle_name || null,
-                    last_name: registrationName.last_name,
-                    account_type: targetAccountType,
-                    is_active: targetIsActive,
-                };
+            saveRegistrationName({ userId: user.id, ...registrationName });
 
-                const { data: updatedRows, error: updateError } = await supabase
-                    .from('profiles')
-                    .update(profilePayload)
-                    .eq('auth_user_id', user.id)
-                    .select('id');
-
-                if (updateError || !updatedRows?.length) {
-                    const { error: profileError } = await supabase.from('profiles').upsert(
-                        {
-                            auth_user_id: user.id,
-                            ...profilePayload,
-                        },
-                        { onConflict: 'auth_user_id', ignoreDuplicates: false }
-                    );
-                    if (profileError) {
-                        if (isDuplicateEmailError(profileError) || isDuplicateEmailError(updateError)) {
-                            await supabase.auth.signOut();
-                            throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
-                        }
-                        if (targetAccountType === 'company') {
-                            throw new Error('Company onboarding is not enabled in the database yet. Please ask an administrator to apply the Company Portal migration, then try again.');
-                        }
-                        if (updateError) throw updateError;
-                        throw profileError;
-                    }
-                }
-            }
-
-            // Step 4: The Edge Function validates the password server-side before
-            // setting it. Doing this last is what marks the account as registered.
+            // Set the password before completing, so a completed profile always
+            // has a usable password behind it.
             const { error: passwordError } = await supabase.functions.invoke('set-signup-password', {
                 body: { password: signupPassword },
             });
             if (passwordError) throw passwordError;
+
+            // One atomic statement: claim the pending profile for this portal and
+            // flip it to `complete`. Until it returns, the address is still free,
+            // so an abandoned attempt never locks anyone out of their own email.
+            const completed = await completeSignupRegistration({
+                accountType: targetAccountType,
+                firstName: registrationName.first_name,
+                middleName: registrationName.middle_name,
+                lastName: registrationName.last_name,
+            });
 
             // Keep the registration name on the auth user so onboarding can recover it.
             const { error: metaError } = await supabase.auth.updateUser({
@@ -437,18 +449,15 @@ export default function AuthSignup() {
 
             // Redirect on the role that was actually persisted, not on local state, so a
             // failed/partial profile write can never drop the user into another portal.
-            let persistedProfile: Record<string, any> | null = null;
-            if (user) {
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('account_type, company_id, course, department, year_level, adviser_type, contact_number, birthday, region_code, address')
-                    .eq('auth_user_id', user.id)
-                    .maybeSingle();
-                persistedProfile = data ?? null;
-            }
+            const { data: persistedProfile } = await supabase
+                .from('profiles')
+                .select('account_type, company_id, course, department, year_level, adviser_type, contact_number, birthday, region_code, address')
+                .eq('auth_user_id', user.id)
+                .maybeSingle();
 
             const effectiveAccountType =
-                normalizeAccountType(persistedProfile?.account_type) ?? targetAccountType;
+                normalizeAccountType(persistedProfile?.account_type ?? completed?.account_type)
+                ?? targetAccountType;
             const redirectPath = getPostAuthRedirect(effectiveAccountType);
             logRedirectDecision(
                 'signup:verify-otp',
@@ -457,18 +466,23 @@ export default function AuthSignup() {
             );
             window.location.href = redirectPath;
         } catch (err: any) {
+            setInfoMessage(null);
             // A taken address is not a bad code — say so on the email field and
             // send the visitor back to the address step instead of the OTP boxes.
             if (isDuplicateEmailError(err)) {
-                setOtpSent(false);
-                setOtpDigits(["", "", "", "", "", ""]);
-                setInfoMessage(null);
-                setEmailStatus('taken');
-                setErrors(prev => ({ ...prev, otp: '', signupEmail: EMAIL_ALREADY_REGISTERED_MESSAGE }));
+                reportEmailTaken();
             } else {
-                setErrors(prev => ({ ...prev, otp: mapOtpError(err.message || '') }));
+                // The code was accepted; this is an account-creation failure, so
+                // it must never be dressed up as "invalid/expired code".
+                console.error('[Signup] Account creation failed after successful verification:', err);
+                setErrors(prev => ({
+                    ...prev,
+                    otp: '',
+                    general: err?.message
+                        ? `We verified your email but could not finish creating your account: ${err.message}`
+                        : 'We verified your email but could not finish creating your account. Please try again.',
+                }));
             }
-        } finally {
             setIsSubmitting(false);
         }
     };
