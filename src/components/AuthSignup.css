@@ -575,6 +575,36 @@ html[data-theme="dark"] .auth-page::before {
     font-size: 0.75rem;
 }
 
+/* Shown when the address already belongs to an account in any portal. */
+.email-taken-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    margin-top: 0.35rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.08);
+    line-height: 1.35;
+}
+
+.email-taken-notice strong {
+    font-size: 0.8rem;
+}
+
+.email-taken-notice .link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 0.15rem;
+    font: inherit;
+    font-weight: 600;
+    color: var(--error);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .info-msg {
     text-align: center;
     font-size: 0.85rem;

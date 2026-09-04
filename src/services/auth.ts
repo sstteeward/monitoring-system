@@ -1,7 +1,6 @@
 // Lazy-load the Supabase client to avoid module import-time crashes when env vars are missing.
 import { generateDeviceFingerprint, getDeviceLabel } from '../utils/deviceFingerprint';
-
-const normalizeEmail = (email: string) => email.trim().toLowerCase();
+import { EMAIL_ALREADY_REGISTERED_MESSAGE, isDuplicateEmailError, normalizeEmail } from '../utils/email';
 
 async function getClient() {
   try {
@@ -10,6 +9,55 @@ async function getClient() {
   } catch (err) {
     // rethrow with clearer message
     throw new Error('Supabase client failed to initialize. Ensure environment variables are set and the client file is correct.');
+  }
+}
+
+/**
+ * Server-side check for "is this address already in use by ANY portal".
+ *
+ * The work happens in Postgres (public.is_email_registered), which reads both
+ * auth.users and public.profiles, so it covers students, advisers,
+ * coordinators, company accounts and admins in one pass. This is a UX
+ * pre-check only — the unique index and triggers in
+ * supabase_global_email_uniqueness.sql are what actually enforce the rule.
+ */
+export async function isEmailRegistered(email: string): Promise<boolean> {
+  const supabase = await getClient();
+  const { data, error } = await supabase.rpc('is_email_registered', {
+    p_email: normalizeEmail(email),
+  });
+  if (error) {
+    // Never let a check failure silently wave a registration through — the
+    // caller decides, and the database still refuses the duplicate.
+    console.warn('[Auth] Email availability check failed:', error);
+    throw error;
+  }
+  return data === true;
+}
+
+/** Throws the standard user-facing error when the address is already taken. */
+export async function assertEmailAvailable(email: string): Promise<void> {
+  if (await isEmailRegistered(email)) {
+    throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+  }
+}
+
+/**
+ * Second server-side gate for the OTP signup flow.
+ *
+ * Verifying an email OTP signs the visitor into whatever account owns that
+ * address, so the portal has to confirm — from the session, in Postgres — that
+ * the account it just landed on is a fresh one and not somebody's existing
+ * account being converted to another portal.
+ */
+export async function assertSignupSessionIsNewAccount(): Promise<void> {
+  const supabase = await getClient();
+  const { error } = await supabase.rpc('assert_signup_email_available');
+  if (error) {
+    if (isDuplicateEmailError(error)) {
+      throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+    }
+    throw error;
   }
 }
 
@@ -25,6 +73,12 @@ export async function signUp({ email, password, firstName, middleName, lastName,
 }) {
   const supabase = await getClient();
   const normalizedEmail = normalizeEmail(email);
+
+  // One email = one account, whichever portal it was created from. Checked in
+  // Postgres across auth.users and every account type before anything is
+  // written, so no auth user, profile, or onboarding row is created for an
+  // address that is already taken.
+  await assertEmailAvailable(normalizedEmail);
 
   // Sign up the user — the DB trigger `on_auth_user_created` will automatically
   // insert a row into public.profiles, so we don't need to insert manually.
@@ -53,7 +107,20 @@ export async function signUp({ email, password, firstName, middleName, lastName,
         status: 'failed'
       });
     } catch {}
+    // Lost the race, or the frontend was bypassed entirely — the database
+    // refused the duplicate. Surface the same message either way rather than
+    // leaking the underlying constraint.
+    if (isDuplicateEmailError(signUpError)) {
+      throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+    }
     throw signUpError;
+  }
+
+  // Supabase obfuscates "user already registered" when email confirmations are
+  // enabled: it answers with a fake user carrying no identities. Treat that as
+  // the duplicate it is instead of writing a second profile for the address.
+  if (signUpData?.user && Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0) {
+    throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
   }
 
   // Supabase triggers sometimes fire before user_metadata is available (e.g. when
@@ -83,6 +150,9 @@ export async function signUp({ email, password, firstName, middleName, lastName,
       );
 
     if (profileError) {
+      if (isDuplicateEmailError(profileError)) {
+        throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+      }
       if (accountType === 'company') {
         throw new Error('Company onboarding is not enabled in the database yet. Please ask an administrator to apply the Company Portal migration, then try again.');
       }
@@ -304,7 +374,7 @@ export async function validatePasskeySession(expectedRole?: 'student' | 'coordin
 
   if (user.email) {
     try {
-      await supabase.rpc('reset_failed_login', { user_email: user.email.toLowerCase() });
+      await supabase.rpc('reset_failed_login', { user_email: normalizeEmail(user.email) });
     } catch {}
   }
 

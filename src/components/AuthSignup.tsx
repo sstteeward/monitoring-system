@@ -3,7 +3,8 @@ import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { useLocation } from "react-router-dom";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
-import { signIn, resetPasswordForEmail, validatePasskeySession } from "../services/auth";
+import { signIn, resetPasswordForEmail, validatePasskeySession, isEmailRegistered, assertSignupSessionIsNewAccount } from "../services/auth";
+import { EMAIL_ALREADY_REGISTERED_MESSAGE, EMAIL_ALREADY_REGISTERED_TITLE, isDuplicateEmailError, normalizeEmail } from "../utils/email";
 import { formatPasskeyError, isPasskeySupported, signInWithPasskey } from "../services/passkeyAuth";
 import { supabase } from "../lib/supabaseClient";
 import { passwordRequirementLabels, passwordRequirementsMessage, validatePassword } from "../utils/passwordRules";
@@ -172,8 +173,17 @@ export default function AuthSignup() {
         setInfoMessage(null);
         setErrors(prev => ({ ...prev, signupEmail: '' }));
         try {
+            // Sending the code is what creates the account, so the global
+            // uniqueness check has to happen before it. The check runs in
+            // Postgres across every portal — student, adviser, coordinator,
+            // company and admin — not just the one being registered from.
+            if (await isEmailRegistered(signupEmail)) {
+                setErrors(prev => ({ ...prev, signupEmail: EMAIL_ALREADY_REGISTERED_MESSAGE }));
+                return;
+            }
+
             const { error } = await supabase.auth.signInWithOtp({
-                email: signupEmail.trim().toLowerCase(),
+                email: normalizeEmail(signupEmail),
                 options: {
                     shouldCreateUser: true,
                     // Profile is created by the auth trigger at this moment.
@@ -203,7 +213,12 @@ export default function AuthSignup() {
                 });
             }, 1000);
         } catch (err: any) {
-            setErrors(prev => ({ ...prev, signupEmail: err.message || "Failed to send verification email." }));
+            setErrors(prev => ({
+                ...prev,
+                signupEmail: isDuplicateEmailError(err)
+                    ? EMAIL_ALREADY_REGISTERED_MESSAGE
+                    : (err.message || "Failed to send verification email."),
+            }));
         } finally {
             setSendingOtp(false);
         }
@@ -272,12 +287,24 @@ export default function AuthSignup() {
         try {
             // Step 1: Verify OTP — this logs the user in with a magic-link session
             const { error: verifyError } = await supabase.auth.verifyOtp({
-                email: signupEmail.trim().toLowerCase(),
+                email: normalizeEmail(signupEmail),
                 token: combinedOtp,
                 type: 'email',
             });
             if (verifyError) {
                 throw verifyError;
+            }
+
+            // Step 2: Verifying the code signs us into whichever account owns this
+            // address, so before writing anything, confirm server-side that it is a
+            // brand-new account rather than an existing one from another portal.
+            // Nothing below runs — no password, no profile, no onboarding record —
+            // if the address is already registered anywhere in the system.
+            try {
+                await assertSignupSessionIsNewAccount();
+            } catch (guardError) {
+                await supabase.auth.signOut();
+                throw guardError;
             }
 
             const targetAccountType = resolveAccountType();
@@ -288,32 +315,16 @@ export default function AuthSignup() {
                 last_name: lastName.trim(),
             };
 
-            // Step 2: The Edge Function validates the password server-side before setting it.
-            const { error: passwordError } = await supabase.functions.invoke('set-signup-password', {
-                body: { password: signupPassword },
-            });
-            if (passwordError) throw passwordError;
-
-            // Keep the registration name on the auth user so onboarding can recover it.
-            const { error: metaError } = await supabase.auth.updateUser({
-                data: {
-                    account_type: targetAccountType,
-                    first_name: registrationName.first_name,
-                    middle_name: registrationName.middle_name || null,
-                    last_name: registrationName.last_name,
-                },
-            });
-            if (metaError) {
-                console.warn('Unable to store registration name on auth user metadata:', metaError);
-            }
-
-            // Step 3: Persist the name onto the existing profile row created at Send code.
+            // Step 3: Claim the profile row created at "Send code" for this portal.
+            // This runs before the password is set: the database treats an account
+            // as registered once it has a password, and only an unregistered
+            // account may have its account_type assigned.
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 saveRegistrationName({ userId: user.id, ...registrationName });
 
                 const profilePayload = {
-                    email: signupEmail.trim().toLowerCase(),
+                    email: normalizeEmail(signupEmail),
                     first_name: registrationName.first_name,
                     middle_name: registrationName.middle_name || null,
                     last_name: registrationName.last_name,
@@ -336,6 +347,10 @@ export default function AuthSignup() {
                         { onConflict: 'auth_user_id', ignoreDuplicates: false }
                     );
                     if (profileError) {
+                        if (isDuplicateEmailError(profileError) || isDuplicateEmailError(updateError)) {
+                            await supabase.auth.signOut();
+                            throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+                        }
                         if (targetAccountType === 'company') {
                             throw new Error('Company onboarding is not enabled in the database yet. Please ask an administrator to apply the Company Portal migration, then try again.');
                         }
@@ -343,6 +358,26 @@ export default function AuthSignup() {
                         throw profileError;
                     }
                 }
+            }
+
+            // Step 4: The Edge Function validates the password server-side before
+            // setting it. Doing this last is what marks the account as registered.
+            const { error: passwordError } = await supabase.functions.invoke('set-signup-password', {
+                body: { password: signupPassword },
+            });
+            if (passwordError) throw passwordError;
+
+            // Keep the registration name on the auth user so onboarding can recover it.
+            const { error: metaError } = await supabase.auth.updateUser({
+                data: {
+                    account_type: targetAccountType,
+                    first_name: registrationName.first_name,
+                    middle_name: registrationName.middle_name || null,
+                    last_name: registrationName.last_name,
+                },
+            });
+            if (metaError) {
+                console.warn('Unable to store registration name on auth user metadata:', metaError);
             }
 
             // Session is now live — send the new account to its own portal, where that
@@ -373,7 +408,16 @@ export default function AuthSignup() {
             );
             window.location.href = redirectPath;
         } catch (err: any) {
-            setErrors(prev => ({ ...prev, otp: mapOtpError(err.message || '') }));
+            // A taken address is not a bad code — say so on the email field and
+            // send the visitor back to the address step instead of the OTP boxes.
+            if (isDuplicateEmailError(err)) {
+                setOtpSent(false);
+                setOtpDigits(["", "", "", "", "", ""]);
+                setInfoMessage(null);
+                setErrors(prev => ({ ...prev, otp: '', signupEmail: EMAIL_ALREADY_REGISTERED_MESSAGE }));
+            } else {
+                setErrors(prev => ({ ...prev, otp: mapOtpError(err.message || '') }));
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -566,7 +610,26 @@ export default function AuthSignup() {
                                         <div id="email-note" className="muted" style={{ marginTop: '-0.3rem' }}>
                                             {roleState === 'company' ? "Please use your work or company email address." : <span>Only emails ending with <code>.edu.ph</code> are accepted.</span>}
                                         </div>
-                                        {errors.signupEmail && <span className="error">{errors.signupEmail}</span>}
+                                        {errors.signupEmail === EMAIL_ALREADY_REGISTERED_MESSAGE ? (
+                                            <div className="error email-taken-notice" role="alert">
+                                                <strong>{EMAIL_ALREADY_REGISTERED_TITLE}</strong>
+                                                <span>{EMAIL_ALREADY_REGISTERED_MESSAGE}</span>
+                                                <button
+                                                    type="button"
+                                                    className="link-btn"
+                                                    onClick={() => {
+                                                        setErrors({});
+                                                        setInfoMessage(null);
+                                                        setMode("login");
+                                                        setLoginEmail(normalizeEmail(signupEmail));
+                                                    }}
+                                                >
+                                                    Log in instead
+                                                </button>
+                                            </div>
+                                        ) : errors.signupEmail ? (
+                                            <span className="error">{errors.signupEmail}</span>
+                                        ) : null}
                                     </label>
 
                                     <div className="form-row signup-password-section form-row-2">

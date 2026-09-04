@@ -7,6 +7,7 @@ import UserClickableName from './UserClickableName';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
 import { studentMatchesSection } from '../utils/sections';
+import { EMAIL_ALREADY_REGISTERED_MESSAGE, EMAIL_ALREADY_REGISTERED_TITLE, isDuplicateEmailError } from '../utils/email';
 import './CoordinatorDashboard.css';
 
 interface AdviserWithSections extends Profile {
@@ -166,7 +167,9 @@ const CoordinatorAdvisersView: React.FC = () => {
             await loadData();
         } catch (err: any) {
             console.error('Error creating adviser:', err);
-            setError(err.message || 'Failed to create adviser account.');
+            setError(isDuplicateEmailError(err)
+                ? `${EMAIL_ALREADY_REGISTERED_TITLE} — ${EMAIL_ALREADY_REGISTERED_MESSAGE}`
+                : (err.message || 'Failed to create adviser account.'));
         } finally {
             setSubmitting(false);
         }

@@ -5,6 +5,7 @@ import type { Timesheet } from './timeTracking';
 import { notificationService } from './notificationService';
 import { createAuditLog } from './auditService';
 import { canonicalSectionName } from '../utils/sections';
+import { EMAIL_ALREADY_REGISTERED_MESSAGE, isDuplicateEmailError, normalizeEmail } from '../utils/email';
 
 /**
  * Student head count per canonical section name (upper-cased, e.g. "DIT-1A").
@@ -1542,31 +1543,17 @@ export const coordinatorService = {
         adviserType: 'HT Adviser' | 'IT Adviser';
     }) {
         const adviserType = data.course === 'DHT' ? 'HT Adviser' : 'IT Adviser';
-        const normalizedEmail = data.email.trim().toLowerCase();
-        
-        // 1. Check if user already exists
-        const { data: existingUser } = await supabase
-            .from('profiles')
-            .select('id, auth_user_id')
-            .eq('email', normalizedEmail)
-            .maybeSingle();
+        const normalizedEmail = normalizeEmail(data.email);
 
-        if (existingUser) {
-            // Update existing user to adviser
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({
-                    account_type: 'adviser',
-                    first_name: data.firstName.trim(),
-                    last_name: data.lastName.trim(),
-                    course: data.course,
-                    adviser_type: adviserType,
-                    is_active: true
-                })
-                .eq('id', existingUser.id);
-
-            if (updateError) throw updateError;
-            return existingUser;
+        // 1. One email = one account, system-wide. An address already held by a
+        //    student, coordinator, company or admin account is refused rather
+        //    than converted — silently repurposing someone's existing account
+        //    was how the same email ended up on two portals.
+        const { data: emailTaken, error: emailCheckError } = await supabase
+            .rpc('is_email_registered', { p_email: normalizedEmail });
+        if (emailCheckError) throw emailCheckError;
+        if (emailTaken) {
+            throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
         }
 
         // 2. Sign up via Supabase Auth
@@ -1587,12 +1574,21 @@ export const coordinatorService = {
 
         if (signUpError) {
             console.error('Error signing up adviser:', signUpError);
+            // Lost a race against another registration, or the check was
+            // bypassed — the database refused it. Same message either way.
+            if (isDuplicateEmailError(signUpError)) {
+                throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+            }
             throw signUpError;
+        }
+
+        if (signUpData.user && Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0) {
+            throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
         }
 
         if (signUpData.user) {
             // Upsert profile row to guarantee fields are set
-            await supabase.from('profiles').upsert({
+            const { error: profileError } = await supabase.from('profiles').upsert({
                 auth_user_id: signUpData.user.id,
                 email: normalizedEmail,
                 first_name: data.firstName.trim(),
@@ -1602,6 +1598,13 @@ export const coordinatorService = {
                 adviser_type: adviserType,
                 is_active: true
             }, { onConflict: 'auth_user_id' });
+
+            if (profileError) {
+                if (isDuplicateEmailError(profileError)) {
+                    throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+                }
+                throw profileError;
+            }
         }
 
         try {

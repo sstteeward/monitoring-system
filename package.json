@@ -10,8 +10,9 @@
     "test:redirect": "node --experimental-strip-types --test src/utils/authRedirect.test.ts",
     "test:onboarding": "node --experimental-strip-types --test src/components/onboarding/onboardingFields.test.ts",
     "test:sections": "node --experimental-strip-types --test src/utils/sections.test.ts",
+    "test:email": "node --experimental-strip-types --test src/utils/email.test.ts",
     "test:calendar": "node --experimental-strip-types --test supabase/functions/google-calendar/calendarMapping.test.ts",
-    "test": "node --experimental-strip-types --test src/utils/authRedirect.test.ts src/utils/sections.test.ts src/components/onboarding/onboardingFields.test.ts supabase/functions/google-calendar/calendarMapping.test.ts",
+    "test": "node --experimental-strip-types --test src/utils/authRedirect.test.ts src/utils/sections.test.ts src/utils/email.test.ts src/components/onboarding/onboardingFields.test.ts supabase/functions/google-calendar/calendarMapping.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
