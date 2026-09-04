@@ -37,6 +37,13 @@ const EyeOffIcon = () => (
     </svg>
 );
 
+/**
+ * Result of the live email-availability lookup. `error` means the check itself
+ * could not run — registration is not blocked on it, the server-side check at
+ * "Send code" is what decides.
+ */
+type EmailAvailability = "idle" | "checking" | "available" | "taken" | "error";
+
 const PortalBack = () => (
     <a className="portal-back" href="/">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
@@ -90,6 +97,10 @@ export default function AuthSignup() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
+    // Live "is this address free?" indicator, so a taken email is called out
+    // while the visitor is still typing rather than after they submit.
+    const [emailStatus, setEmailStatus] = useState<EmailAvailability>("idle");
+
     const passwordValidation = validatePassword(signupPassword, signupConfirm);
 
     const authPageRef = useRef<HTMLDivElement>(null);
@@ -132,7 +143,42 @@ export default function AuthSignup() {
     }, [otpSent, emailVerified]);
 
     const isEduPh = (value: string) => /\.edu\.ph$/i.test(value.trim());
+    const looksLikeEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
     const hasValidSignupEmail = Boolean(signupEmail.trim()) && (roleState === 'company' || roleState === 'admin' || isEduPh(signupEmail));
+
+    // Ask the server whether the address is already taken — in any portal — as
+    // soon as it is well-formed, debounced so it fires once the visitor pauses.
+    const canCheckEmail = mode === "signup" && !otpSent && !emailVerified
+        && hasValidSignupEmail && looksLikeEmail(signupEmail);
+
+    useEffect(() => {
+        if (!canCheckEmail) {
+            setEmailStatus("idle");
+            return;
+        }
+
+        let cancelled = false;
+        setEmailStatus("checking");
+        const timer = setTimeout(async () => {
+            try {
+                const taken = await isEmailRegistered(signupEmail);
+                if (cancelled) return;
+                setEmailStatus(taken ? "taken" : "available");
+                if (taken) {
+                    setErrors(prev => ({ ...prev, signupEmail: EMAIL_ALREADY_REGISTERED_MESSAGE }));
+                }
+            } catch {
+                // Offline or the check failed — stay quiet and let "Send code"
+                // do the authoritative check rather than blocking a valid signup.
+                if (!cancelled) setEmailStatus("error");
+            }
+        }, 500);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [canCheckEmail, signupEmail]);
     const canVerifyAndCreateAccount = Boolean(firstName.trim() && lastName.trim())
         && hasValidSignupEmail
         && passwordValidation.isValid
@@ -178,6 +224,7 @@ export default function AuthSignup() {
             // Postgres across every portal — student, adviser, coordinator,
             // company and admin — not just the one being registered from.
             if (await isEmailRegistered(signupEmail)) {
+                setEmailStatus('taken');
                 setErrors(prev => ({ ...prev, signupEmail: EMAIL_ALREADY_REGISTERED_MESSAGE }));
                 return;
             }
@@ -213,9 +260,11 @@ export default function AuthSignup() {
                 });
             }, 1000);
         } catch (err: any) {
+            const taken = isDuplicateEmailError(err);
+            if (taken) setEmailStatus('taken');
             setErrors(prev => ({
                 ...prev,
-                signupEmail: isDuplicateEmailError(err)
+                signupEmail: taken
                     ? EMAIL_ALREADY_REGISTERED_MESSAGE
                     : (err.message || "Failed to send verification email."),
             }));
@@ -414,6 +463,7 @@ export default function AuthSignup() {
                 setOtpSent(false);
                 setOtpDigits(["", "", "", "", "", ""]);
                 setInfoMessage(null);
+                setEmailStatus('taken');
                 setErrors(prev => ({ ...prev, otp: '', signupEmail: EMAIL_ALREADY_REGISTERED_MESSAGE }));
             } else {
                 setErrors(prev => ({ ...prev, otp: mapOtpError(err.message || '') }));
@@ -578,11 +628,20 @@ export default function AuthSignup() {
                                     <label className="full-width signup-email-section">
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span>Email Address *</span>
-                                            {emailVerified && <span style={{ color: 'var(--success)', fontSize: '0.75rem' }}>Verified ✓</span>}
+                                            {emailVerified ? (
+                                                <span style={{ color: 'var(--success)', fontSize: '0.75rem' }}>Verified ✓</span>
+                                            ) : emailStatus === 'checking' ? (
+                                                <span className="email-status checking">Checking availability…</span>
+                                            ) : emailStatus === 'taken' ? (
+                                                <span className="email-status taken">✕ Already registered</span>
+                                            ) : emailStatus === 'available' ? (
+                                                <span className="email-status available">✓ Available</span>
+                                            ) : null}
                                         </div>
                                         <div className="email-row">
                                             <input
                                                 type="email"
+                                                className={emailStatus === 'taken' ? 'input-taken' : undefined}
                                                 value={signupEmail}
                                                 onChange={e => {
                                                     setSignupEmail(e.target.value);
@@ -591,12 +650,13 @@ export default function AuthSignup() {
                                                 }}
                                                 placeholder={roleState === 'company' ? "name@company.com" : "name@school.edu.ph"}
                                                 aria-describedby="email-note"
+                                                aria-invalid={emailStatus === 'taken' || undefined}
                                             />
                                             <button
                                                 type="button"
                                                 className="verify-btn"
                                                 onClick={handleSendVerification}
-                                                disabled={sendingOtp || otpCooldown > 0 || emailVerified}
+                                                disabled={sendingOtp || otpCooldown > 0 || emailVerified || emailStatus === 'taken'}
                                             >
                                                 {emailVerified
                                                     ? "Verified ✓"
@@ -620,6 +680,7 @@ export default function AuthSignup() {
                                                     onClick={() => {
                                                         setErrors({});
                                                         setInfoMessage(null);
+                                                        setEmailStatus("idle");
                                                         setMode("login");
                                                         setLoginEmail(normalizeEmail(signupEmail));
                                                     }}

@@ -575,6 +575,35 @@ html[data-theme="dark"] .auth-page::before {
     font-size: 0.75rem;
 }
 
+/* Live availability indicator beside the "Email Address" label. */
+.email-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.email-status.checking {
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.email-status.available {
+    color: var(--success);
+}
+
+.email-status.taken {
+    color: var(--error);
+}
+
+/* The email input itself, once the address is known to be taken. */
+.email-row input.input-taken {
+    border-color: var(--error);
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+}
+
 /* Shown when the address already belongs to an account in any portal. */
 .email-taken-notice {
     display: flex;

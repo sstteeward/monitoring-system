@@ -203,7 +203,7 @@ export default function LandingPage() {
           <p className="lp-hero-tagline">Supervised Industry Learning Management Platform</p>
           <p className="lp-hero-desc">
             A centralized platform for managing SIL activities, attendance, journals, monitoring,
-            approvals, and OJT progress.
+            approvals, and internship progress.
           </p>
         </div>
       </section>
