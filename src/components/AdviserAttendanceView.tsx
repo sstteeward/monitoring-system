@@ -5,7 +5,15 @@ import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
 import { TableRowSkeleton } from './Skeletons';
 import AttendanceDetailModal from './AttendanceDetailModal';
-import { ATTENDANCE_STATUS_CONFIG, formatTime } from './attendanceConstants';
+import {
+    ATTENDANCE_STATUS_CONFIG,
+    formatTime,
+    formatHours,
+    toDateString,
+    shiftDate,
+    deriveAttendance,
+    type Derived,
+} from './attendanceConstants';
 import './AttendanceView.css';
 import './CoordinatorDashboard.css';
 import './AdviserDashboard.css';
@@ -65,53 +73,12 @@ const IconEye: React.FC<IconProps> = p => (
     <Svg {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></Svg>
 );
 
-/** A row plus the status and anomalies derived from its clock records. */
-interface DerivedRow extends AdviserAttendanceRow {
-    effective_status: AttendanceStatus | null;
-    anomalies: string[];
-}
-
-const toDateString = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-const shiftDate = (dateStr: string, days: number) => {
-    const d = new Date(`${dateStr}T00:00:00`);
-    d.setDate(d.getDate() + days);
-    return toDateString(d);
-};
-
-const formatHours = (hours: number) => `${(Math.round(hours * 100) / 100).toFixed(2)}h`;
-
-/**
- * Resolves the status shown for a student, and flags clock records that need a
- * second look.
- *
- * A recorded status always wins — it is the supervisor's explicit judgement.
- * Only when nothing has been recorded is a status inferred from the day's
- * timesheets, so an unrecorded student reads as "Not Recorded" rather than
- * being silently reported as absent.
- */
-function derive(row: AdviserAttendanceRow): DerivedRow {
-    const anomalies: string[] = [];
-
-    if (row.time_in && !row.time_out) anomalies.push('Clocked in without clocking out');
-    if (row.open_timesheet_count > 0) anomalies.push(`${row.open_timesheet_count} open timesheet entr${row.open_timesheet_count === 1 ? 'y' : 'ies'}`);
-    if (row.time_in && row.time_out && new Date(row.time_out) < new Date(row.time_in)) {
-        anomalies.push('Clock-out is before clock-in');
-    }
-    if (row.timesheet_count > 1) anomalies.push(`${row.timesheet_count} separate entries on this date`);
-    if (row.time_in && row.time_out && row.worked_hours > 0 && row.worked_hours < 1) {
-        anomalies.push('Unusually short rendered time');
-    }
-
-    let effective_status: AttendanceStatus | null = row.status;
-    if (!effective_status) {
-        if (row.open_timesheet_count > 0) effective_status = 'incomplete';
-        else if (row.time_in && row.time_out) effective_status = 'present';
-    }
-
-    return { ...row, effective_status, anomalies };
-}
+/* The status/anomaly rules, the date helpers and the hour formatter now live
+   in attendanceConstants so the adviser and admin monitors flag identically.
+   Behaviour here is unchanged apart from one added rule: a day over 16 hours
+   is now flagged as excessive. */
+type DerivedRow = Derived<AdviserAttendanceRow>;
+const derive = deriveAttendance<AdviserAttendanceRow>;
 
 const AdviserAttendanceView: React.FC = () => {
     const todayStr = toDateString(new Date());

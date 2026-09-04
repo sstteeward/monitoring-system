@@ -97,7 +97,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [department, setDepartment] = useState(profile.department ?? '');
     const [availableSections, setAvailableSections] = useState<{ id: string; name: string; course_code: string }[]>([]);
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
-    const [courses, setCourses] = useState<{ id: string; name: string; description?: string }[]>([]);
+    const [courses, setCourses] = useState<{ id: string; name: string; code: string; description?: string | null }[]>([]);
 
     // ── Step 4: Internship Company ──
     const [companies, setCompanies] = useState<Company[]>([]);
@@ -248,7 +248,10 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             setCompanies(data ?? []);
         });
         adminService.getDepartments().then(setDepartments);
-        adminService.getCourses().then(setCourses);
+        // Only active courses are offered, but the value this profile has
+        // already saved stays selectable so deactivating a course never blanks
+        // an existing student's record mid-onboarding.
+        adminService.getSelectableCourses(profile.course).then(setCourses);
         supabase.from('sections').select('id, name, course_code').order('name').then(({ data }) => {
             if (data && data.length > 0) {
                 setAvailableSections(data);
@@ -714,8 +717,10 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                 onChange={handleCourseChange}
                                 placeholder="Select Course"
                                 options={courses.map(c => ({
-                                    value: c.description || c.name,
-                                    label: c.description ? `${c.description} — ${c.name}` : c.name,
+                                    // The code is what profiles.course stores —
+                                    // see adminService.Course.
+                                    value: c.code,
+                                    label: c.name === c.code ? c.code : `${c.code} — ${c.name}`,
                                 }))}
                             />
                         </div>

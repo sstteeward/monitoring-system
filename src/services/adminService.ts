@@ -27,8 +27,33 @@ export interface Department {
 export interface Course {
     id: string;
     name: string;
-    description?: string;
+    /**
+     * The abbreviation, and the value that profiles.course and
+     * sections.course_code actually store. Those columns reference a course by
+     * text rather than by foreign key, so the code — never the name — is the
+     * stable identity. Renaming a course must leave this untouched.
+     */
+    code: string;
+    description?: string | null;
+    is_active: boolean;
+    created_at?: string;
+    updated_at?: string;
 }
+
+/** How many live records point at a given course code. */
+export interface CourseUsage {
+    /** Student profiles only — what the "Students" column shows. */
+    students: number;
+    /** Every profile, students plus advisers/coordinators. */
+    profiles: number;
+    /** Rows in `sections` whose course_code matches. */
+    sections: number;
+    /** True when anything at all references the course. */
+    inUse: boolean;
+}
+
+/** Codes are matched case-insensitively and trim-insensitively everywhere. */
+const normaliseCode = (value: string | null | undefined) => (value ?? '').trim().toUpperCase();
 
 export interface AuditLog {
     id: string;
@@ -406,17 +431,114 @@ export const adminService = {
             .select('*')
             .order('name', { ascending: true });
         if (error) return [];
-        return data as Course[];
+        // `code` and `is_active` were added after the table shipped; default
+        // them here so a client running against an un-migrated database still
+        // renders instead of blanking the course list.
+        return (data || []).map((row: any) => ({
+            ...row,
+            code: row.code ?? row.description ?? row.name,
+            is_active: row.is_active ?? true,
+        })) as Course[];
     },
 
-    async createCourse(name: string, description?: string) {
+    /**
+     * Courses offered to a student picking one for the first time.
+     *
+     * Deactivating a course withdraws it from new selections only — it stays in
+     * the table and keeps serving every record that already references it, so
+     * `keepCode` re-admits the value a profile has already saved and nothing is
+     * silently dropped from a half-finished onboarding form.
+     */
+    async getSelectableCourses(keepCode?: string | null) {
+        const courses = await this.getCourses();
+        const keep = normaliseCode(keepCode);
+        return courses.filter(c => c.is_active !== false || (!!keep && normaliseCode(c.code) === keep));
+    },
+
+    /**
+     * Counts the records pointing at each course code, keyed by upper-cased
+     * code. Both link columns are plain text, so this is the only way to know
+     * whether a course is safe to delete.
+     */
+    async getCourseUsage(): Promise<Record<string, CourseUsage>> {
+        const [{ data: profiles }, { data: sections }] = await Promise.all([
+            supabase.from('profiles').select('course, account_type'),
+            supabase.from('sections').select('course_code'),
+        ]);
+
+        const usage: Record<string, CourseUsage> = {};
+        const bucket = (code: string) => {
+            if (!usage[code]) usage[code] = { students: 0, profiles: 0, sections: 0, inUse: false };
+            return usage[code];
+        };
+
+        for (const p of profiles || []) {
+            const code = normaliseCode((p as any).course);
+            if (!code) continue;
+            const entry = bucket(code);
+            entry.profiles += 1;
+            if ((p as any).account_type === 'student') entry.students += 1;
+            entry.inUse = true;
+        }
+
+        for (const s of sections || []) {
+            const code = normaliseCode((s as any).course_code);
+            if (!code) continue;
+            const entry = bucket(code);
+            entry.sections += 1;
+            entry.inUse = true;
+        }
+
+        return usage;
+    },
+
+    async createCourse(input: { name: string; code: string; description?: string | null; isActive?: boolean }) {
         const { data, error } = await supabase
             .from('courses')
-            .insert([{ name, description }])
+            .insert([{
+                name: input.name.trim(),
+                code: input.code.trim().toUpperCase(),
+                description: input.description?.trim() || null,
+                is_active: input.isActive ?? true,
+            }])
             .select()
             .single();
         if (error) throw error;
-        await this.logAction('create_course', 'courses', data.id, { name });
+        await this.logAction('create_course', 'courses', data.id, { name: data.name });
+        return data as Course;
+    },
+
+    /**
+     * Updates a course in place. The row id is the key, so renaming is safe:
+     * only `code` is referenced by other tables, and changing it is what the
+     * caller must guard against (see AdminCoursesView's in-use check).
+     */
+    async updateCourse(id: string, input: { name: string; code: string; description?: string | null; isActive: boolean }) {
+        const { data, error } = await supabase
+            .from('courses')
+            .update({
+                name: input.name.trim(),
+                code: input.code.trim().toUpperCase(),
+                description: input.description?.trim() || null,
+                is_active: input.isActive,
+            })
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        await this.logAction('update_course', 'courses', id, { name: data.name });
+        return data as Course;
+    },
+
+    async setCourseStatus(id: string, isActive: boolean, name: string) {
+        const { data, error } = await supabase
+            .from('courses')
+            .update({ is_active: isActive })
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        await this.logAction(isActive ? 'activate_course' : 'deactivate_course', 'courses', id, { name, is_active: isActive });
         return data as Course;
     },
 
@@ -485,6 +607,9 @@ export const adminService = {
                 newModule = 'Courses';
                 if (newAction === 'CREATE') description = `Created course: ${details?.name || record_id}`;
                 else if (newAction === 'DELETE') description = `Deleted course: ${details?.name || record_id}`;
+                else if (newAction === 'STATUS_CHANGE') {
+                    description = `${details?.is_active ? 'Activated' : 'Deactivated'} course: ${details?.name || record_id}`;
+                } else if (newAction === 'UPDATE') description = `Updated course: ${details?.name || record_id}`;
             } else if (table_name === 'profiles') {
                 if (actUpper.includes('PERMISSION')) {
                     newModule = 'Role Permissions';

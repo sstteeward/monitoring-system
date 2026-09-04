@@ -104,6 +104,53 @@ export interface AdviserAttendanceRow extends AllAttendanceRow {
   open_timesheet_count: number;
 }
 
+/**
+ * One student on one date, for the system-wide admin monitor.
+ *
+ * Roster-based like the adviser view, but scoped to every student in the system
+ * rather than one adviser's sections, and it labels the section from the
+ * student's own fields when no `sections` row matches — otherwise students in
+ * unseeded sections would silently vanish from the admin's totals.
+ */
+export interface AdminAttendanceRow extends AdviserAttendanceRow {
+  /** Null when the student's section has no row in `sections`. */
+  section_id: string | null;
+}
+
+/** Lifetime attendance totals for one student. */
+export interface AdminStudentSummary {
+  present_count: number;
+  late_count: number;
+  absent_count: number;
+  on_leave_count: number;
+  incomplete_count: number;
+  /** Days that carry a recorded status. */
+  recorded_days: number;
+  /** Distinct days with at least one clock entry. */
+  logged_days: number;
+  total_rendered_hours: number;
+  required_hours: number;
+  first_record_date: string | null;
+  last_record_date: string | null;
+}
+
+/** One day in a student's attendance history. */
+export interface AdminStudentHistoryRow {
+  record_date: string;
+  attendance_id: string | null;
+  status: AttendanceStatus | null;
+  reason: string | null;
+  remarks: string | null;
+  time_in: string | null;
+  time_out: string | null;
+  worked_hours: number;
+  timesheet_count: number;
+  open_timesheet_count: number;
+  company_name: string | null;
+  /** Total rows available, for server-side pagination. */
+  total_count: number;
+}
+
 export interface AttendanceAuditEntry {
   id: string;
   action: 'created' | 'updated';
@@ -238,6 +285,98 @@ export const attendanceService = {
       timesheet_count: Number(row.timesheet_count ?? 0),
       open_timesheet_count: Number(row.open_timesheet_count ?? 0),
     })) as AdviserAttendanceRow[];
+  },
+
+  /**
+   * System-wide attendance for one date, for the admin monitor.
+   *
+   * Reads the same two sources every other portal writes to —
+   * `company_attendance` for the recorded status and `timesheets` for the clock
+   * entries. It is not a second attendance store.
+   *
+   * `getAllAttendance` cannot serve this page: its FROM is company_attendance,
+   * so students with no record for the date never appear, and showing exactly
+   * those gaps is the point of an admin monitor.
+   *
+   * Authorization is enforced inside the RPC (admin only), so a non-admin who
+   * calls it directly gets an exception rather than data.
+   */
+  async getAdminAttendance(date: string): Promise<AdminAttendanceRow[]> {
+    const { data, error } = await supabase.rpc('get_admin_attendance', {
+      p_attendance_date: date
+    });
+
+    if (error) {
+      console.error('Error fetching admin attendance:', error);
+      throw new Error(error.message || 'Failed to load attendance.');
+    }
+
+    // Postgres numerics arrive as strings over PostgREST.
+    return (data || []).map((row: Record<string, unknown>) => ({
+      ...row,
+      worked_hours: Number(row.worked_hours ?? 0),
+      total_rendered_hours: Number(row.total_rendered_hours ?? 0),
+      required_hours: Number(row.required_hours ?? 0),
+      timesheet_count: Number(row.timesheet_count ?? 0),
+      open_timesheet_count: Number(row.open_timesheet_count ?? 0),
+    })) as AdminAttendanceRow[];
+  },
+
+  /** Lifetime attendance totals for one student (admin only). */
+  async getAdminStudentSummary(studentAuthId: string): Promise<AdminStudentSummary> {
+    const { data, error } = await supabase.rpc('get_admin_student_attendance_summary', {
+      p_student_id: studentAuthId
+    });
+
+    if (error) {
+      console.error('Error fetching student attendance summary:', error);
+      throw new Error(error.message || 'Failed to load the attendance summary.');
+    }
+
+    const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+    return {
+      present_count: Number(row?.present_count ?? 0),
+      late_count: Number(row?.late_count ?? 0),
+      absent_count: Number(row?.absent_count ?? 0),
+      on_leave_count: Number(row?.on_leave_count ?? 0),
+      incomplete_count: Number(row?.incomplete_count ?? 0),
+      recorded_days: Number(row?.recorded_days ?? 0),
+      logged_days: Number(row?.logged_days ?? 0),
+      total_rendered_hours: Number(row?.total_rendered_hours ?? 0),
+      required_hours: Number(row?.required_hours ?? 0),
+      first_record_date: (row?.first_record_date as string) ?? null,
+      last_record_date: (row?.last_record_date as string) ?? null,
+    };
+  },
+
+  /**
+   * One page of a student's attendance history, newest first. Paged in the
+   * database rather than the browser, so a student with years of records does
+   * not ship thousands of rows to the client.
+   */
+  async getAdminStudentHistory(
+    studentAuthId: string,
+    limit = 10,
+    offset = 0
+  ): Promise<AdminStudentHistoryRow[]> {
+    const { data, error } = await supabase.rpc('get_admin_student_attendance_history', {
+      p_student_id: studentAuthId,
+      p_limit: limit,
+      p_offset: offset
+    });
+
+    if (error) {
+      console.error('Error fetching student attendance history:', error);
+      throw new Error(error.message || 'Failed to load the attendance history.');
+    }
+
+    return (data || []).map((row: Record<string, unknown>) => ({
+      ...row,
+      worked_hours: Number(row.worked_hours ?? 0),
+      timesheet_count: Number(row.timesheet_count ?? 0),
+      open_timesheet_count: Number(row.open_timesheet_count ?? 0),
+      total_count: Number(row.total_count ?? 0),
+    })) as AdminStudentHistoryRow[];
   },
 
   /** Change history for a single attendance record. */

@@ -1,0 +1,1200 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   COURSE MANAGEMENT  —  Admin portal
+   ───────────────────────────────────────────────────────────────────────────
+   Namespaced `acv-` (Admin Courses View) and scoped under `.acv-page`, so this
+   sheet cannot leak into another admin screen.
+
+   Every selector carries the `.acv-page` prefix on purpose. `index.css` styles
+   bare `button` under `html[data-theme="dark"]` — specificity (0,1,1) — which
+   outranks a lone class and would repaint every control on this page in dark
+   mode. The extra class puts these rules at (0,2,x) and settles it.
+
+   Colour comes only from tokens declared on `.acv-page` and re-declared for the
+   dark theme below; the primary stays the portal's teal/green
+   (--admin-primary, #10b981). No literal white or black anywhere.
+═══════════════════════════════════════════════════════════════════════════ */
+
+.acv-page {
+    /* ── Shape ── */
+    --acv-radius: 12px;
+    --acv-radius-md: 10px;
+    --acv-radius-sm: 8px;
+
+    /* ── Surfaces ── */
+    --acv-surface: var(--admin-card-bg, var(--bg-card));
+    --acv-surface-alt: var(--bg-elevated);
+    --acv-surface-sunken: var(--bg-page);
+    --acv-line: var(--admin-border, var(--border));
+    --acv-line-strong: var(--border-strong);
+    --acv-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.05);
+    --acv-shadow-pop: 0 12px 32px rgba(15, 23, 42, 0.16);
+
+    /* ── Semantic accents (light theme) ── */
+    --acv-brand: var(--admin-primary, #10b981);
+    --acv-brand-hover: var(--primary-hover, #059669);
+    --acv-brand-soft: rgba(16, 185, 129, 0.12);
+    --acv-ok: #047857;
+    --acv-ok-soft: rgba(16, 185, 129, 0.12);
+    --acv-warn: #b45309;
+    --acv-warn-soft: rgba(245, 158, 11, 0.13);
+    --acv-warn-line: rgba(245, 158, 11, 0.35);
+    --acv-danger: #b91c1c;
+    --acv-danger-soft: rgba(239, 68, 68, 0.1);
+    --acv-danger-line: rgba(239, 68, 68, 0.3);
+    --acv-muted-soft: rgba(100, 116, 139, 0.14);
+
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    min-width: 0;
+    /* An admin catalogue is a short list; letting it run to 2000px makes the
+       action column drift miles from the course name. */
+    max-width: 1280px;
+    width: 100%;
+}
+
+html[data-theme="dark"] .acv-page {
+    --acv-shadow: none;
+    --acv-shadow-pop: 0 18px 40px rgba(0, 0, 0, 0.55);
+
+    --acv-ok: #34d399;
+    --acv-warn: #fbbf24;
+    --acv-warn-soft: rgba(245, 158, 11, 0.14);
+    --acv-warn-line: rgba(245, 158, 11, 0.28);
+    --acv-danger: #f87171;
+    --acv-danger-soft: rgba(248, 113, 113, 0.14);
+    --acv-danger-line: rgba(248, 113, 113, 0.28);
+    --acv-muted-soft: rgba(166, 162, 154, 0.16);
+}
+
+/* One consistent focus ring for everything on the page. It is a ring, not a
+   hue swap, so it does not rely on colour perception. */
+.acv-page :focus-visible {
+    outline: 2px solid var(--acv-brand);
+    outline-offset: 2px;
+    border-radius: var(--acv-radius-sm);
+}
+
+/* ═══════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════ */
+.acv-page .acv-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.acv-page .acv-title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: var(--admin-text-primary, var(--text-primary));
+}
+
+.acv-page .acv-subtitle {
+    margin: 0.28rem 0 0;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--admin-text-secondary, var(--text-muted));
+    max-width: 62ch;
+}
+
+/* ═══════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════ */
+.acv-page .acv-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.52rem 0.95rem;
+    border-radius: var(--acv-radius-md);
+    border: 1px solid var(--acv-line-strong);
+    background: var(--acv-surface);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.84rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.acv-page .acv-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+.acv-page .acv-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.acv-page .acv-btn svg {
+    flex-shrink: 0;
+}
+
+.acv-page .acv-btn-primary {
+    background: var(--acv-brand);
+    border-color: var(--acv-brand);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.25);
+}
+
+.acv-page .acv-btn-primary:hover:not(:disabled) {
+    background: var(--acv-brand-hover);
+    border-color: var(--acv-brand-hover);
+    color: #fff;
+}
+
+.acv-page .acv-btn-danger {
+    background: var(--acv-danger);
+    border-color: var(--acv-danger);
+    color: #fff;
+}
+
+.acv-page .acv-btn-danger:hover:not(:disabled) {
+    filter: brightness(1.08);
+    color: #fff;
+}
+
+.acv-page .acv-btn-sm {
+    padding: 0.36rem 0.65rem;
+    font-size: 0.78rem;
+    border-radius: var(--acv-radius-sm);
+}
+
+.acv-page .acv-icon-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--acv-radius-sm);
+    border: 1px solid var(--acv-line-strong);
+    background: var(--acv-surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.acv-page .acv-icon-btn:hover,
+.acv-page .acv-icon-btn[aria-expanded="true"] {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
+
+/* ═══════════════════════════════════════════════════
+   TOASTS
+═══════════════════════════════════════════════════ */
+.acv-page .acv-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.7rem 0.95rem;
+    border-radius: var(--acv-radius-md);
+    border: 1px solid transparent;
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.acv-page .acv-toast svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.acv-page .acv-toast-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.acv-page .acv-toast-success {
+    background: var(--acv-ok-soft);
+    border-color: rgba(16, 185, 129, 0.28);
+    color: var(--acv-ok);
+}
+
+.acv-page .acv-toast-error {
+    background: var(--acv-danger-soft);
+    border-color: var(--acv-danger-line);
+    color: var(--acv-danger);
+}
+
+/* ═══════════════════════════════════════════════════
+   STAT CARDS — 4 up / 2 up / 1 up
+═══════════════════════════════════════════════════ */
+.acv-page .acv-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.acv-page .acv-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.9rem 1rem;
+    min-height: 74px;
+    background: var(--acv-surface);
+    border: 1px solid var(--acv-line);
+    border-radius: var(--acv-radius);
+    box-shadow: var(--acv-shadow);
+}
+
+.acv-page .acv-stat-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--acv-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--acv-surface-alt);
+    color: var(--text-muted);
+}
+
+.acv-page .acv-stat-icon[data-tone="brand"] {
+    background: var(--acv-brand-soft);
+    color: var(--acv-ok);
+}
+
+.acv-page .acv-stat-icon[data-tone="ok"] {
+    background: var(--acv-ok-soft);
+    color: var(--acv-ok);
+}
+
+.acv-page .acv-stat-icon[data-tone="muted"] {
+    background: var(--acv-muted-soft);
+    color: var(--text-muted);
+}
+
+.acv-page .acv-stat-body {
+    min-width: 0;
+}
+
+.acv-page .acv-stat-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--admin-text-secondary, var(--text-muted));
+}
+
+.acv-page .acv-stat-value {
+    margin-top: 0.22rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--admin-text-primary, var(--text-primary));
+}
+
+/* ═══════════════════════════════════════════════════
+   PANEL + TOOLBAR
+═══════════════════════════════════════════════════ */
+.acv-page .acv-panel {
+    background: var(--acv-surface);
+    border: 1px solid var(--acv-line);
+    border-radius: var(--acv-radius);
+    box-shadow: var(--acv-shadow);
+    overflow: hidden;
+    min-width: 0;
+}
+
+.acv-page .acv-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--acv-line);
+    background: var(--acv-surface-alt);
+    flex-wrap: wrap;
+}
+
+.acv-page .acv-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 200px;
+    max-width: 380px;
+}
+
+.acv-page .acv-search-icon {
+    position: absolute;
+    left: 0.65rem;
+    display: flex;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.acv-page .acv-search input {
+    width: 100%;
+    padding: 0.48rem 1.9rem 0.48rem 2.05rem;
+    border-radius: var(--acv-radius-md);
+    border: 1px solid var(--acv-line-strong);
+    background: var(--acv-surface);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.83rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.acv-page .acv-search input::placeholder {
+    color: var(--text-dim);
+}
+
+.acv-page .acv-search input:focus {
+    border-color: var(--acv-brand);
+    box-shadow: 0 0 0 3px var(--acv-brand-soft);
+}
+
+.acv-page .acv-search-clear {
+    position: absolute;
+    right: 0.35rem;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.acv-page .acv-search-clear:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.acv-page .acv-toolbar-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.acv-page .acv-select {
+    padding: 0.48rem 0.65rem;
+    border-radius: var(--acv-radius-md);
+    border: 1px solid var(--acv-line-strong);
+    background: var(--acv-surface);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.83rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    max-width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.acv-page .acv-select:focus {
+    border-color: var(--acv-brand);
+    box-shadow: 0 0 0 3px var(--acv-brand-soft);
+}
+
+/* ═══════════════════════════════════════════════════
+   TABLE
+═══════════════════════════════════════════════════ */
+.acv-page .acv-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.acv-page .acv-table {
+    width: 100%;
+    min-width: 820px;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.acv-page .acv-table thead th {
+    padding: 0.65rem 1rem;
+    text-align: left;
+    font-size: 0.67rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--admin-text-secondary, var(--text-muted));
+    background: var(--acv-surface-alt);
+    border-bottom: 1px solid var(--acv-line);
+    white-space: nowrap;
+}
+
+.acv-page .acv-table tbody td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--acv-line);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+.acv-page .acv-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.acv-page .acv-table tbody tr {
+    transition: background 0.12s;
+}
+
+.acv-page .acv-table tbody tr:hover td {
+    background: var(--acv-surface-alt);
+}
+
+/* An inactive course is dimmed as well as badged, so status reads at a glance
+   without depending on the badge colour alone. */
+.acv-page .acv-table tbody tr[data-inactive="true"] .acv-course-name,
+.acv-page .acv-card[data-inactive="true"] .acv-course-name {
+    color: var(--text-muted);
+}
+
+.acv-page .acv-col-actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.acv-page .acv-course-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.acv-page .acv-course-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--acv-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--acv-brand-soft);
+    color: var(--acv-ok);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.acv-page .acv-table tbody tr[data-inactive="true"] .acv-course-mark {
+    background: var(--acv-muted-soft);
+    color: var(--text-muted);
+}
+
+.acv-page .acv-course-name {
+    font-weight: 600;
+    color: var(--admin-text-primary, var(--text-primary));
+    line-height: 1.3;
+}
+
+.acv-page .acv-course-sub {
+    margin-top: 1px;
+    font-size: 0.73rem;
+    color: var(--text-muted);
+}
+
+.acv-page .acv-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 34ch;
+    font-size: 0.81rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.acv-page .acv-metric {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--admin-text-primary, var(--text-primary));
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.acv-page .acv-metric-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.acv-page .acv-muted {
+    color: var(--text-muted);
+    font-size: 0.81rem;
+    font-style: italic;
+}
+
+/* ── Badges ── */
+.acv-page .acv-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    padding: 0.2rem 0.52rem;
+    border-radius: 999px;
+    font-size: 0.71rem;
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
+.acv-page .acv-badge[data-tone="ok"] {
+    background: var(--acv-ok-soft);
+    color: var(--acv-ok);
+}
+
+.acv-page .acv-badge[data-tone="muted"] {
+    background: var(--acv-muted-soft);
+    color: var(--text-muted);
+}
+
+.acv-page .acv-badge[data-tone="code"] {
+    background: var(--acv-surface-alt);
+    color: var(--text-secondary);
+    border: 1px solid var(--acv-line);
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.acv-page .acv-badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+/* ── Row actions + menu ── */
+.acv-page .acv-row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
+.acv-page .acv-menu-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.acv-page .acv-menu-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+}
+
+.acv-page .acv-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 61;
+    min-width: 200px;
+    padding: 0.32rem;
+    border-radius: var(--acv-radius-md);
+    border: 1px solid var(--acv-line-strong);
+    background: var(--acv-surface);
+    box-shadow: var(--acv-shadow-pop);
+    text-align: left;
+}
+
+.acv-page .acv-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    border: none;
+    border-radius: var(--acv-radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.acv-page .acv-menu-item:hover {
+    background: var(--acv-surface-alt);
+    color: var(--text-primary);
+}
+
+.acv-page .acv-menu-item[data-tone="danger"] {
+    color: var(--acv-danger);
+}
+
+.acv-page .acv-menu-item[data-tone="ok"] {
+    color: var(--acv-ok);
+}
+
+.acv-page .acv-menu-sep {
+    height: 1px;
+    margin: 0.28rem 0.2rem;
+    background: var(--acv-line);
+}
+
+/* ═══════════════════════════════════════════════════
+   MOBILE CARDS
+═══════════════════════════════════════════════════ */
+.acv-page .acv-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.85rem;
+}
+
+.acv-page .acv-card {
+    border: 1px solid var(--acv-line);
+    border-radius: var(--acv-radius);
+    background: var(--acv-surface);
+    padding: 0.85rem;
+}
+
+.acv-page .acv-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+}
+
+.acv-page .acv-card-badges {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+}
+
+.acv-page .acv-card-meta {
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--acv-line);
+}
+
+.acv-page .acv-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+
+.acv-page .acv-card-actions .acv-btn {
+    flex: 1;
+}
+
+.acv-page .acv-card-actions .acv-icon-btn {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+}
+
+/* ═══════════════════════════════════════════════════
+   EMPTY / SKELETON
+═══════════════════════════════════════════════════ */
+.acv-page .acv-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.45rem;
+    padding: 3rem 1.5rem;
+}
+
+.acv-page .acv-empty-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--acv-brand-soft);
+    color: var(--acv-ok);
+    margin-bottom: 0.3rem;
+}
+
+.acv-page .acv-empty-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--admin-text-primary, var(--text-primary));
+}
+
+.acv-page .acv-empty-text {
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 42ch;
+}
+
+.acv-page .acv-empty-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.acv-page .acv-skeleton {
+    background: linear-gradient(90deg,
+            var(--acv-surface-alt) 25%,
+            var(--bg-hover) 37%,
+            var(--acv-surface-alt) 63%);
+    background-size: 400% 100%;
+    animation: acv-shimmer 1.4s ease infinite;
+    border-radius: 6px;
+}
+
+@keyframes acv-shimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+.acv-page .acv-skel-rows {
+    padding: 0.4rem 1rem 0.9rem;
+}
+
+.acv-page .acv-skel-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--acv-line);
+}
+
+.acv-page .acv-skel-row:last-child {
+    border-bottom: none;
+}
+
+/* ═══════════════════════════════════════════════════
+   DIALOGS
+═══════════════════════════════════════════════════ */
+.acv-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    animation: acv-fade 0.16s ease-out;
+}
+
+@keyframes acv-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.acv-page .acv-dialog {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 520px;
+    max-height: min(88vh, 800px);
+    background: var(--acv-surface);
+    border: 1px solid var(--acv-line);
+    border-radius: var(--acv-radius);
+    box-shadow: var(--acv-shadow-pop);
+    overflow: hidden;
+    animation: acv-rise 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.acv-page .acv-dialog-sm {
+    max-width: 440px;
+}
+
+@keyframes acv-rise {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.acv-page .acv-dialog-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.05rem 1.2rem;
+    border-bottom: 1px solid var(--acv-line);
+    flex-shrink: 0;
+}
+
+.acv-page .acv-dialog-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--admin-text-primary, var(--text-primary));
+}
+
+.acv-page .acv-dialog-sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.acv-page .acv-dialog-close {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--acv-radius-sm);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.acv-page .acv-dialog-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* The form owns the body/footer split, so `display: contents` is never needed. */
+.acv-page .acv-dialog-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.acv-page .acv-dialog-body {
+    padding: 1.2rem;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.acv-page .acv-dialog-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.55rem;
+    padding: 0.85rem 1.2rem;
+    border-top: 1px solid var(--acv-line);
+    background: var(--acv-surface-alt);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+/* ── Form fields ── */
+.acv-page .acv-field {
+    margin-bottom: 1.05rem;
+}
+
+.acv-page .acv-field:last-child {
+    margin-bottom: 0;
+}
+
+.acv-page .acv-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.05rem;
+}
+
+.acv-page .acv-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+}
+
+.acv-page .acv-req {
+    color: var(--acv-danger);
+    margin-left: 2px;
+}
+
+.acv-page .acv-input,
+.acv-page textarea.acv-input,
+.acv-page select.acv-input {
+    width: 100%;
+    padding: 0.6rem 0.72rem;
+    border-radius: var(--acv-radius-md);
+    border: 1px solid var(--acv-line-strong);
+    background: var(--acv-surface-sunken);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.acv-page .acv-input:focus {
+    border-color: var(--acv-brand);
+    box-shadow: 0 0 0 3px var(--acv-brand-soft);
+}
+
+.acv-page .acv-input::placeholder {
+    color: var(--text-dim);
+}
+
+.acv-page textarea.acv-input {
+    resize: vertical;
+    min-height: 76px;
+}
+
+.acv-page .acv-input[data-invalid="true"] {
+    border-color: var(--acv-danger);
+}
+
+.acv-page .acv-input[data-invalid="true"]:focus {
+    box-shadow: 0 0 0 3px var(--acv-danger-soft);
+}
+
+/* The code is stored upper-cased, so show it that way while typing. */
+.acv-page .acv-input-code {
+    text-transform: uppercase;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.04em;
+}
+
+.acv-page .acv-hint {
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.acv-page .acv-error-text {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin: 0.35rem 0 0;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--acv-danger);
+}
+
+.acv-page .acv-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: var(--acv-radius-md);
+    border: 1px solid transparent;
+    font-size: 0.81rem;
+    line-height: 1.5;
+}
+
+.acv-page .acv-note svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.acv-page .acv-note[data-tone="info"] {
+    background: var(--acv-surface-alt);
+    border-color: var(--acv-line);
+    color: var(--text-secondary);
+}
+
+.acv-page .acv-note[data-tone="warn"] {
+    background: var(--acv-warn-soft);
+    border-color: var(--acv-warn-line);
+    color: var(--acv-warn);
+}
+
+.acv-page .acv-note[data-tone="danger"] {
+    background: var(--acv-danger-soft);
+    border-color: var(--acv-danger-line);
+    color: var(--acv-danger);
+}
+
+/* ── Details dialog ── */
+.acv-page .acv-detail-head {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.acv-page .acv-detail-mark {
+    width: 46px;
+    height: 46px;
+    border-radius: var(--acv-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--acv-brand-soft);
+    color: var(--acv-ok);
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.acv-page .acv-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    margin-top: 1.1rem;
+}
+
+.acv-page .acv-detail-cell {
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--acv-line);
+    border-radius: var(--acv-radius-md);
+    background: var(--acv-surface-sunken);
+}
+
+.acv-page .acv-detail-key {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+}
+
+.acv-page .acv-detail-value {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--admin-text-primary, var(--text-primary));
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.acv-page .acv-detail-block {
+    margin-top: 1.1rem;
+}
+
+.acv-page .acv-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════ */
+
+/* Tablet — 2-up stats, toolbar wraps. */
+@media (max-width: 1024px) {
+    .acv-page .acv-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .acv-page .acv-header-actions {
+        width: 100%;
+    }
+
+    .acv-page .acv-header-actions .acv-btn {
+        width: 100%;
+    }
+
+    .acv-page .acv-search {
+        max-width: none;
+        flex-basis: 100%;
+    }
+
+    .acv-page .acv-toolbar-controls {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .acv-page .acv-toolbar-controls .acv-select {
+        flex: 1 1 45%;
+        min-width: 0;
+    }
+}
+
+/* Phone — 1-up stats, dialogs become bottom sheets. */
+@media (max-width: 560px) {
+    .acv-page .acv-stats {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .acv-page .acv-title {
+        font-size: 1.15rem;
+    }
+
+    .acv-page .acv-field-row,
+    .acv-page .acv-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .acv-scrim {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .acv-page .acv-dialog {
+        max-width: 100%;
+        max-height: 92vh;
+        border-radius: 16px 16px 0 0;
+        animation: acv-sheet 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes acv-sheet {
+        from {
+            transform: translateY(18px);
+            opacity: 0;
+        }
+
+        to {
+            transform: none;
+            opacity: 1;
+        }
+    }
+
+    .acv-page .acv-dialog-foot {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .acv-page .acv-dialog-foot .acv-btn {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .acv-page .acv-skeleton,
+    .acv-scrim,
+    .acv-page .acv-dialog {
+        animation: none;
+    }
+}

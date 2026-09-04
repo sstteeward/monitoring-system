@@ -1,0 +1,1685 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADVISER & SECTION MANAGEMENT  —  Coordinator portal
+   ───────────────────────────────────────────────────────────────────────────
+   Everything here is namespaced `cam-` (Coordinator Adviser Management) and
+   scoped under `.cam-page`, so this sheet can never leak into another view.
+
+   Why a dedicated sheet at all: this page used to lean on `.stats-grid`,
+   `.cd-btn`, `.modal-content` and `.modal-close-btn` — none of which are
+   defined anywhere in the app's CSS. The stat "grid" was therefore a plain
+   block that stacked four cards down the page (the tall empty column), and the
+   buttons/dialogs fell back to raw browser defaults. Rather than add global
+   classes that other views would inherit unpredictably, the page owns its own.
+
+   Colour is expressed only through the tokens declared on `.cam-page`, which
+   are re-declared for the dark theme below. No literal white/black anywhere.
+═══════════════════════════════════════════════════════════════════════════ */
+
+.cam-page {
+    /* ── Shape ── */
+    --cam-radius: 14px;
+    --cam-radius-md: 10px;
+    --cam-radius-sm: 8px;
+
+    /* ── Surfaces ── */
+    --cam-surface: var(--bg-card);
+    --cam-surface-alt: var(--bg-elevated);
+    --cam-surface-sunken: var(--bg-page);
+    --cam-line: var(--border);
+    --cam-line-strong: var(--border-strong);
+    --cam-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.05);
+    --cam-shadow-lift: 0 6px 18px rgba(15, 23, 42, 0.08);
+    --cam-shadow-pop: 0 12px 32px rgba(15, 23, 42, 0.16);
+
+    /* ── Semantic accents (light theme) ── */
+    --cam-brand: var(--primary);
+    --cam-brand-soft: rgba(16, 185, 129, 0.12);
+    --cam-ht: #4f46e5;
+    --cam-ht-soft: rgba(99, 102, 241, 0.12);
+    --cam-it: #0369a1;
+    --cam-it-soft: rgba(14, 165, 233, 0.13);
+    --cam-ok: #047857;
+    --cam-ok-soft: rgba(16, 185, 129, 0.12);
+    --cam-warn: #b45309;
+    --cam-warn-soft: rgba(245, 158, 11, 0.13);
+    --cam-warn-line: rgba(245, 158, 11, 0.35);
+    --cam-danger: #b91c1c;
+    --cam-danger-soft: rgba(239, 68, 68, 0.1);
+    --cam-danger-line: rgba(239, 68, 68, 0.3);
+
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+html[data-theme="dark"] .cam-page {
+    --cam-shadow: none;
+    --cam-shadow-lift: 0 4px 14px rgba(0, 0, 0, 0.4);
+    --cam-shadow-pop: 0 18px 40px rgba(0, 0, 0, 0.55);
+
+    --cam-ht: #a5b4fc;
+    --cam-ht-soft: rgba(129, 140, 248, 0.16);
+    --cam-it: #7dd3fc;
+    --cam-it-soft: rgba(56, 189, 248, 0.16);
+    --cam-ok: #34d399;
+    --cam-ok-soft: rgba(16, 185, 129, 0.16);
+    --cam-warn: #fbbf24;
+    --cam-warn-soft: rgba(245, 158, 11, 0.14);
+    --cam-warn-line: rgba(245, 158, 11, 0.28);
+    --cam-danger: #f87171;
+    --cam-danger-soft: rgba(248, 113, 113, 0.14);
+    --cam-danger-line: rgba(248, 113, 113, 0.28);
+}
+
+/* A single, consistent focus ring for every interactive element on the page.
+   Colour-blind safe: it is a ring, not a hue change. */
+.cam-page :focus-visible {
+    outline: 2px solid var(--cam-brand);
+    outline-offset: 2px;
+    border-radius: var(--cam-radius-sm);
+}
+
+/* ═══════════════════════════════════════════════════
+   PAGE HEADER
+═══════════════════════════════════════════════════ */
+.cam-page .cam-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.cam-page .cam-header-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.cam-page .cam-header-sub {
+    margin: 0.3rem 0 0;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+    max-width: 56ch;
+}
+
+.cam-page .cam-header-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════ */
+.cam-page .cam-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--cam-radius-md);
+    border: 1px solid var(--cam-line-strong);
+    background: var(--cam-surface);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.cam-page .cam-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+.cam-page .cam-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.cam-page .cam-btn svg {
+    flex-shrink: 0;
+}
+
+.cam-page .cam-btn-primary {
+    background: var(--cam-brand);
+    border-color: var(--cam-brand);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.25);
+}
+
+.cam-page .cam-btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    color: #fff;
+}
+
+.cam-page .cam-btn-ghost {
+    background: transparent;
+}
+
+.cam-page .cam-btn-danger {
+    color: var(--cam-danger);
+    border-color: var(--cam-danger-line);
+    background: transparent;
+}
+
+.cam-page .cam-btn-danger:hover:not(:disabled) {
+    background: var(--cam-danger-soft);
+    border-color: var(--cam-danger-line);
+}
+
+.cam-page .cam-btn-sm {
+    padding: 0.38rem 0.7rem;
+    font-size: 0.78rem;
+    border-radius: var(--cam-radius-sm);
+}
+
+/* Icon-only trigger (the row "more actions" ⋮ button). */
+.cam-page .cam-icon-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--cam-radius-sm);
+    border: 1px solid var(--cam-line-strong);
+    background: var(--cam-surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.cam-page .cam-icon-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
+
+.cam-page .cam-icon-btn[aria-expanded="true"] {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════
+   INLINE MESSAGES (success / error)
+═══════════════════════════════════════════════════ */
+.cam-page .cam-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--cam-radius-md);
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.45;
+    border: 1px solid transparent;
+}
+
+.cam-page .cam-toast-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.cam-page .cam-toast-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.cam-page .cam-toast-success {
+    background: var(--cam-ok-soft);
+    border-color: rgba(16, 185, 129, 0.28);
+    color: var(--cam-ok);
+}
+
+.cam-page .cam-toast-error {
+    background: var(--cam-danger-soft);
+    border-color: var(--cam-danger-line);
+    color: var(--cam-danger);
+}
+
+/* ═══════════════════════════════════════════════════
+   STAT CARDS
+   Desktop 4-up → tablet 2-up → mobile 1-up.
+═══════════════════════════════════════════════════ */
+.cam-page .cam-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.cam-page .cam-stat {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    min-height: 104px;
+    padding: 1rem 1.15rem;
+    background: var(--cam-surface);
+    border: 1px solid var(--cam-line);
+    border-radius: var(--cam-radius);
+    box-shadow: var(--cam-shadow);
+}
+
+.cam-page .cam-stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--cam-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--cam-surface-alt);
+    color: var(--text-muted);
+}
+
+.cam-page .cam-stat-icon[data-tone="brand"] {
+    background: var(--cam-brand-soft);
+    color: var(--cam-ok);
+}
+
+.cam-page .cam-stat-icon[data-tone="ht"] {
+    background: var(--cam-ht-soft);
+    color: var(--cam-ht);
+}
+
+.cam-page .cam-stat-icon[data-tone="it"] {
+    background: var(--cam-it-soft);
+    color: var(--cam-it);
+}
+
+.cam-page .cam-stat-body {
+    min-width: 0;
+    flex: 1;
+}
+
+.cam-page .cam-stat-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.cam-page .cam-stat-value {
+    margin-top: 0.3rem;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.cam-page .cam-stat-sub {
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+}
+
+.cam-page .cam-stat-sub[data-tone="warn"] {
+    color: var(--cam-warn);
+    font-weight: 600;
+}
+
+.cam-page .cam-stat-sub[data-tone="ok"] {
+    color: var(--cam-ok);
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════
+   ALERT STRIP (unassigned sections / all-clear)
+═══════════════════════════════════════════════════ */
+.cam-page .cam-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: var(--cam-radius);
+    border: 1px solid var(--cam-line);
+    background: var(--cam-surface);
+    flex-wrap: wrap;
+}
+
+.cam-page .cam-alert-warn {
+    background: var(--cam-warn-soft);
+    border-color: var(--cam-warn-line);
+}
+
+.cam-page .cam-alert-ok {
+    background: var(--cam-ok-soft);
+    border-color: rgba(16, 185, 129, 0.26);
+}
+
+.cam-page .cam-alert-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cam-page .cam-alert-warn .cam-alert-icon {
+    background: var(--cam-warn-soft);
+    color: var(--cam-warn);
+}
+
+.cam-page .cam-alert-ok .cam-alert-icon {
+    background: var(--cam-ok-soft);
+    color: var(--cam-ok);
+}
+
+.cam-page .cam-alert-body {
+    flex: 1;
+    min-width: 200px;
+}
+
+.cam-page .cam-alert-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.cam-page .cam-alert-warn .cam-alert-title {
+    color: var(--cam-warn);
+}
+
+.cam-page .cam-alert-ok .cam-alert-title {
+    color: var(--cam-ok);
+}
+
+.cam-page .cam-alert-text {
+    margin-top: 0.2rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════
+   MANAGEMENT PANEL
+═══════════════════════════════════════════════════ */
+.cam-page .cam-panel {
+    background: var(--cam-surface);
+    border: 1px solid var(--cam-line);
+    border-radius: var(--cam-radius);
+    box-shadow: var(--cam-shadow);
+    overflow: hidden;
+    min-width: 0;
+}
+
+.cam-page .cam-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.15rem;
+    border-bottom: 1px solid var(--cam-line);
+    background: var(--cam-surface-alt);
+    flex-wrap: wrap;
+}
+
+/* ── Tabs ── */
+.cam-page .cam-tabs {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--cam-surface-sunken);
+    border: 1px solid var(--cam-line);
+    border-radius: 999px;
+}
+
+.cam-page .cam-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.42rem 0.95rem;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.cam-page .cam-tab:hover {
+    color: var(--text-primary);
+}
+
+.cam-page .cam-tab[aria-selected="true"] {
+    background: var(--cam-brand);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+}
+
+.cam-page .cam-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    padding: 0 0.35rem;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--cam-surface-alt);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.cam-page .cam-tab[aria-selected="true"] .cam-tab-count {
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
+}
+
+/* ── Filter controls ── */
+.cam-page .cam-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.cam-page .cam-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 240px;
+}
+
+.cam-page .cam-search-icon {
+    position: absolute;
+    left: 0.7rem;
+    color: var(--text-muted);
+    pointer-events: none;
+    display: flex;
+}
+
+.cam-page .cam-search input {
+    width: 100%;
+    padding: 0.5rem 2rem 0.5rem 2.15rem;
+    border-radius: var(--cam-radius-md);
+    border: 1px solid var(--cam-line-strong);
+    background: var(--cam-surface);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.83rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cam-page .cam-search input::placeholder {
+    color: var(--text-dim);
+}
+
+.cam-page .cam-search input:focus {
+    border-color: var(--cam-brand);
+    box-shadow: 0 0 0 3px var(--cam-brand-soft);
+}
+
+.cam-page .cam-search-clear {
+    position: absolute;
+    right: 0.4rem;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.cam-page .cam-search-clear:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.cam-page .cam-select {
+    padding: 0.5rem 0.7rem;
+    border-radius: var(--cam-radius-md);
+    border: 1px solid var(--cam-line-strong);
+    background: var(--cam-surface);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.83rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    max-width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cam-page .cam-select:focus {
+    border-color: var(--cam-brand);
+    box-shadow: 0 0 0 3px var(--cam-brand-soft);
+}
+
+.cam-page .cam-field-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+}
+
+.cam-page .cam-input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--cam-radius-md);
+    border: 1px solid var(--cam-line-strong);
+    background: var(--cam-surface-sunken);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cam-page .cam-input:focus {
+    border-color: var(--cam-brand);
+    box-shadow: 0 0 0 3px var(--cam-brand-soft);
+}
+
+.cam-page .cam-input::placeholder {
+    color: var(--text-dim);
+}
+
+.cam-page .cam-hint {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+/* ── Bulk-selection bar ── */
+.cam-page .cam-bulkbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1.15rem;
+    background: var(--cam-brand-soft);
+    border-bottom: 1px solid var(--cam-line);
+    flex-wrap: wrap;
+}
+
+.cam-page .cam-bulkbar-count {
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: var(--cam-ok);
+}
+
+.cam-page .cam-bulkbar-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════
+   TABLE
+═══════════════════════════════════════════════════ */
+.cam-page .cam-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.cam-page .cam-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.cam-page .cam-table.cam-table-sections {
+    min-width: 860px;
+}
+
+.cam-page .cam-table thead th {
+    padding: 0.7rem 1.15rem;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--cam-surface-alt);
+    border-bottom: 1px solid var(--cam-line);
+    white-space: nowrap;
+}
+
+.cam-page .cam-table tbody td {
+    padding: 0.8rem 1.15rem;
+    border-bottom: 1px solid var(--cam-line);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+.cam-page .cam-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.cam-page .cam-table tbody tr {
+    transition: background 0.12s;
+}
+
+.cam-page .cam-table tbody tr:hover td {
+    background: var(--cam-surface-alt);
+}
+
+.cam-page .cam-table tbody tr[data-selected="true"] td {
+    background: var(--cam-brand-soft);
+}
+
+.cam-page .cam-col-actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.cam-page .cam-col-check {
+    width: 40px;
+    padding-right: 0 !important;
+}
+
+.cam-page .cam-checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--cam-brand);
+    cursor: pointer;
+}
+
+/* ── Person cell ── */
+.cam-page .cam-person {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.cam-page .cam-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    background: var(--cam-surface-alt);
+    color: var(--text-secondary);
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+}
+
+.cam-page .cam-avatar[data-tone="ht"] {
+    background-color: var(--cam-ht-soft);
+    color: var(--cam-ht);
+}
+
+.cam-page .cam-avatar[data-tone="it"] {
+    background-color: var(--cam-it-soft);
+    color: var(--cam-it);
+}
+
+.cam-page .cam-avatar-lg {
+    width: 52px;
+    height: 52px;
+    font-size: 1.1rem;
+}
+
+.cam-page .cam-person-text {
+    min-width: 0;
+}
+
+.cam-page .cam-person-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.cam-page .cam-person-meta {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 26ch;
+}
+
+/* ── Badges ── */
+.cam-page .cam-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.cam-page .cam-badge[data-tone="ht"] {
+    background: var(--cam-ht-soft);
+    color: var(--cam-ht);
+    border-color: var(--cam-ht-soft);
+}
+
+.cam-page .cam-badge[data-tone="it"] {
+    background: var(--cam-it-soft);
+    color: var(--cam-it);
+    border-color: var(--cam-it-soft);
+}
+
+.cam-page .cam-badge[data-tone="ok"] {
+    background: var(--cam-ok-soft);
+    color: var(--cam-ok);
+}
+
+.cam-page .cam-badge[data-tone="warn"] {
+    background: var(--cam-warn-soft);
+    color: var(--cam-warn);
+}
+
+.cam-page .cam-badge[data-tone="danger"] {
+    background: var(--cam-danger-soft);
+    color: var(--cam-danger);
+}
+
+.cam-page .cam-badge[data-tone="muted"] {
+    background: var(--cam-surface-alt);
+    color: var(--text-muted);
+}
+
+.cam-page .cam-badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+/* ── Section chips ── */
+.cam-page .cam-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.cam-page .cam-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.18rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--cam-line);
+    background: var(--cam-surface-sunken);
+    color: var(--text-secondary);
+    font-size: 0.74rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.cam-page .cam-chip-more {
+    border-style: dashed;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.cam-page .cam-chip-more:hover {
+    color: var(--cam-ok);
+    border-color: var(--cam-brand);
+}
+
+.cam-page .cam-muted {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* ── Numeric cell ── */
+.cam-page .cam-metric {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.cam-page .cam-metric-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* ── Row actions ── */
+.cam-page .cam-row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
+/* ── Dropdown menu ── */
+.cam-page .cam-menu-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.cam-page .cam-menu-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+}
+
+.cam-page .cam-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 61;
+    min-width: 208px;
+    padding: 0.35rem;
+    border-radius: var(--cam-radius-md);
+    border: 1px solid var(--cam-line-strong);
+    background: var(--cam-surface);
+    box-shadow: var(--cam-shadow-pop);
+    text-align: left;
+}
+
+.cam-page .cam-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: none;
+    border-radius: var(--cam-radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.cam-page .cam-menu-item:hover {
+    background: var(--cam-surface-alt);
+    color: var(--text-primary);
+}
+
+.cam-page .cam-menu-item[data-tone="danger"] {
+    color: var(--cam-danger);
+}
+
+.cam-page .cam-menu-item[data-tone="ok"] {
+    color: var(--cam-ok);
+}
+
+.cam-page .cam-menu-sep {
+    height: 1px;
+    margin: 0.3rem 0.2rem;
+    background: var(--cam-line);
+}
+
+/* ═══════════════════════════════════════════════════
+   MOBILE CARD LIST (replaces the table under 780px)
+═══════════════════════════════════════════════════ */
+.cam-page .cam-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.9rem;
+}
+
+.cam-page .cam-card {
+    border: 1px solid var(--cam-line);
+    border-radius: var(--cam-radius);
+    background: var(--cam-surface);
+    padding: 0.9rem;
+}
+
+.cam-page .cam-card[data-selected="true"] {
+    border-color: var(--cam-brand);
+    background: var(--cam-brand-soft);
+}
+
+.cam-page .cam-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+}
+
+.cam-page .cam-card-badges {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.65rem;
+}
+
+.cam-page .cam-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--cam-line);
+}
+
+.cam-page .cam-card-field-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+}
+
+.cam-page .cam-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+}
+
+.cam-page .cam-card-actions .cam-btn {
+    flex: 1;
+}
+
+/* ═══════════════════════════════════════════════════
+   EMPTY / ERROR STATES
+═══════════════════════════════════════════════════ */
+.cam-page .cam-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+    padding: 3rem 1.5rem;
+}
+
+.cam-page .cam-empty-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cam-surface-alt);
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.cam-page .cam-empty-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.cam-page .cam-empty-text {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    max-width: 44ch;
+    line-height: 1.5;
+}
+
+.cam-page .cam-empty-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* ── Skeletons ── */
+.cam-page .cam-skeleton {
+    background: linear-gradient(90deg,
+            var(--cam-surface-alt) 25%,
+            var(--bg-hover) 37%,
+            var(--cam-surface-alt) 63%);
+    background-size: 400% 100%;
+    animation: cam-shimmer 1.4s ease infinite;
+    border-radius: 6px;
+}
+
+@keyframes cam-shimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cam-page .cam-skeleton {
+        animation: none;
+    }
+}
+
+.cam-page .cam-skel-rows {
+    padding: 0.5rem 1.15rem 1rem;
+}
+
+.cam-page .cam-skel-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--cam-line);
+}
+
+.cam-page .cam-skel-row:last-child {
+    border-bottom: none;
+}
+
+/* ═══════════════════════════════════════════════════
+   DIALOG / DRAWER
+═══════════════════════════════════════════════════ */
+.cam-page .cam-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    animation: cam-fade 0.16s ease-out;
+}
+
+.cam-page .cam-scrim-right {
+    justify-content: flex-end;
+    padding: 0;
+}
+
+@keyframes cam-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.cam-page .cam-dialog {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 560px;
+    max-height: min(88vh, 820px);
+    background: var(--cam-surface);
+    border: 1px solid var(--cam-line);
+    border-radius: var(--cam-radius);
+    box-shadow: var(--cam-shadow-pop);
+    overflow: hidden;
+    animation: cam-rise 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cam-page .cam-dialog-lg {
+    max-width: 680px;
+}
+
+@keyframes cam-rise {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Right-hand drawer (adviser details). */
+.cam-page .cam-drawer {
+    display: flex;
+    flex-direction: column;
+    width: min(480px, 100vw);
+    height: 100%;
+    max-height: 100%;
+    background: var(--cam-surface);
+    border-left: 1px solid var(--cam-line);
+    box-shadow: var(--cam-shadow-pop);
+    animation: cam-slide 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cam-slide {
+    from {
+        transform: translateX(24px);
+        opacity: 0;
+    }
+
+    to {
+        transform: none;
+        opacity: 1;
+    }
+}
+
+.cam-page .cam-dialog-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid var(--cam-line);
+    flex-shrink: 0;
+}
+
+.cam-page .cam-dialog-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.cam-page .cam-dialog-sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.cam-page .cam-dialog-close {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--cam-radius-sm);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.cam-page .cam-dialog-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* The form owns the body/footer split so `display: contents` is never needed. */
+.cam-page .cam-dialog-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.cam-page .cam-dialog-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.cam-page .cam-dialog-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding: 0.9rem 1.25rem;
+    border-top: 1px solid var(--cam-line);
+    background: var(--cam-surface-alt);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.cam-page .cam-dialog-foot-note {
+    margin-right: auto;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.cam-page .cam-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.cam-page .cam-form-group {
+    margin-bottom: 1rem;
+}
+
+/* ── Choice cards (course picker) ── */
+.cam-page .cam-choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.cam-page .cam-choice {
+    padding: 0.85rem;
+    border-radius: var(--cam-radius-md);
+    border: 1.5px solid var(--cam-line-strong);
+    background: var(--cam-surface-sunken);
+    color: var(--text-primary);
+    font-family: inherit;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.cam-page .cam-choice:hover {
+    border-color: var(--border-hover);
+}
+
+.cam-page .cam-choice[aria-pressed="true"][data-tone="ht"] {
+    border-color: var(--cam-ht);
+    background: var(--cam-ht-soft);
+}
+
+.cam-page .cam-choice[aria-pressed="true"][data-tone="it"] {
+    border-color: var(--cam-it);
+    background: var(--cam-it-soft);
+}
+
+.cam-page .cam-choice-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.cam-page .cam-choice[aria-pressed="true"][data-tone="ht"] .cam-choice-title {
+    color: var(--cam-ht);
+}
+
+.cam-page .cam-choice[aria-pressed="true"][data-tone="it"] .cam-choice-title {
+    color: var(--cam-it);
+}
+
+.cam-page .cam-choice-sub {
+    margin-top: 0.2rem;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+}
+
+/* ── Section picker (assign dialog) ── */
+.cam-page .cam-picker {
+    border: 1px solid var(--cam-line);
+    border-radius: var(--cam-radius-md);
+    overflow: hidden;
+    background: var(--cam-surface-sunken);
+}
+
+.cam-page .cam-picker-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid var(--cam-line);
+    background: var(--cam-surface-alt);
+    flex-wrap: wrap;
+}
+
+.cam-page .cam-picker-list {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.cam-page .cam-picker-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--cam-line);
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.cam-page .cam-picker-option:last-child {
+    border-bottom: none;
+}
+
+.cam-page .cam-picker-option:hover {
+    background: var(--cam-surface-alt);
+}
+
+.cam-page .cam-picker-option[data-checked="true"] {
+    background: var(--cam-brand-soft);
+}
+
+.cam-page .cam-picker-option input {
+    margin-top: 2px;
+}
+
+.cam-page .cam-picker-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.cam-page .cam-picker-meta {
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.cam-page .cam-picker-warn {
+    color: var(--cam-warn);
+    font-weight: 600;
+}
+
+.cam-page .cam-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: var(--cam-radius-md);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    border: 1px solid transparent;
+}
+
+.cam-page .cam-note[data-tone="info"] {
+    background: var(--cam-surface-alt);
+    border-color: var(--cam-line);
+    color: var(--text-secondary);
+}
+
+.cam-page .cam-note[data-tone="warn"] {
+    background: var(--cam-warn-soft);
+    border-color: var(--cam-warn-line);
+    color: var(--cam-warn);
+}
+
+.cam-page .cam-note[data-tone="danger"] {
+    background: var(--cam-danger-soft);
+    border-color: var(--cam-danger-line);
+    color: var(--cam-danger);
+}
+
+.cam-page .cam-note svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* ── Drawer internals ── */
+.cam-page .cam-drawer-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.cam-page .cam-drawer-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    margin: 1.1rem 0;
+}
+
+.cam-page .cam-drawer-stat {
+    padding: 0.8rem 0.9rem;
+    border: 1px solid var(--cam-line);
+    border-radius: var(--cam-radius-md);
+    background: var(--cam-surface-sunken);
+}
+
+.cam-page .cam-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 1.25rem 0 0.6rem;
+}
+
+.cam-page .cam-section-title:first-child {
+    margin-top: 0;
+}
+
+.cam-page .cam-roster {
+    border: 1px solid var(--cam-line);
+    border-radius: var(--cam-radius-md);
+    overflow: hidden;
+}
+
+.cam-page .cam-roster-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--cam-line);
+}
+
+.cam-page .cam-roster-row:last-child {
+    border-bottom: none;
+}
+
+.cam-page .cam-roster-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.cam-page .cam-roster-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cam-page .cam-roster-meta {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Screen-reader-only text. */
+.cam-page .cam-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════ */
+
+/* Tablet — 2-up stats, toolbar wraps into two rows. */
+@media (max-width: 1100px) {
+    .cam-page .cam-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cam-page .cam-toolbar {
+        align-items: stretch;
+    }
+
+    .cam-page .cam-filters {
+        width: 100%;
+    }
+
+    .cam-page .cam-search {
+        flex: 1;
+        min-width: 200px;
+    }
+}
+
+/* Small tablet / large phone. */
+@media (max-width: 780px) {
+    .cam-page .cam-header-actions {
+        width: 100%;
+    }
+
+    .cam-page .cam-header-actions .cam-btn {
+        flex: 1;
+    }
+
+    .cam-page .cam-tabs {
+        width: 100%;
+    }
+
+    .cam-page .cam-tab {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .cam-page .cam-filters {
+        flex-direction: column;
+        /* A wrapping column container sizes its line to the widest item's
+           max-content width, which overflows the toolbar. Keep it single-line
+           so `stretch` measures against the container instead. */
+        flex-wrap: nowrap;
+        align-items: stretch;
+    }
+
+    .cam-page .cam-search {
+        min-width: 0;
+    }
+
+    /* Three selects on a phone would each be too narrow to read their own
+       label, so let them wrap two-per-row instead. */
+    .cam-page .cam-filter-row {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+
+    .cam-page .cam-filter-row .cam-select {
+        flex: 1 1 45%;
+        min-width: 0;
+    }
+
+    .cam-page .cam-bulkbar-actions {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .cam-page .cam-bulkbar-actions .cam-btn {
+        flex: 1;
+    }
+}
+
+/* Phone — 1-up stats, dialogs become bottom sheets. */
+@media (max-width: 560px) {
+    .cam-page .cam-stats {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cam-page .cam-stat {
+        min-height: 0;
+    }
+
+    .cam-page .cam-header-title {
+        font-size: 1.2rem;
+    }
+
+    .cam-page .cam-form-row,
+    .cam-page .cam-choices,
+    .cam-page .cam-drawer-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .cam-page .cam-scrim {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .cam-page .cam-dialog,
+    .cam-page .cam-drawer {
+        max-width: 100%;
+        width: 100%;
+        max-height: 92vh;
+        border-radius: 16px 16px 0 0;
+        border-left: none;
+        animation: cam-sheet 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .cam-page .cam-drawer {
+        height: 92vh;
+    }
+
+    @keyframes cam-sheet {
+        from {
+            transform: translateY(18px);
+            opacity: 0;
+        }
+
+        to {
+            transform: none;
+            opacity: 1;
+        }
+    }
+
+    /* Column, not column-reverse: the DOM order (count, Cancel, primary) is
+       already the right reading order for a bottom sheet. */
+    .cam-page .cam-dialog-foot {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cam-page .cam-dialog-foot .cam-btn {
+        width: 100%;
+    }
+
+    .cam-page .cam-dialog-foot-note {
+        margin-right: 0;
+        text-align: center;
+        padding-bottom: 0.35rem;
+    }
+
+    .cam-page .cam-cards {
+        padding: 0.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .cam-page .cam-scrim,
+    .cam-page .cam-dialog,
+    .cam-page .cam-drawer {
+        animation: none;
+    }
+}

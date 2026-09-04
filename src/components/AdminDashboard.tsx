@@ -12,13 +12,13 @@ import AdminAuditLogView from './AdminAuditLogView';
 import { getUnreadAuditLogsCount, markAuditLogsAsSeen, onUnreadAuditCountChange } from '../services/auditService';
 import AdminDepartmentsView from './AdminDepartmentsView';
 import AdminCoursesView from './AdminCoursesView';
+import AdminAttendanceView from './AdminAttendanceView';
 import AdminRoleManagementView from './AdminRoleManagementView';
 import AdminBackupRestoreView from './AdminBackupRestoreView';
 import AdminSystemHealthView from './AdminSystemHealthView';
 import ApprovalsView from './ApprovalsView';
 import StudentsView from './StudentsView';
 import SecurityAlertsView from './SecurityAlertsView';
-import CoordinatorAttendanceView from './CoordinatorAttendanceView';
 import UserProfileModal from './UserProfileModal';
 import UserClickableName from './UserClickableName';
 import CustomSelect from './CustomSelect';
@@ -92,7 +92,11 @@ const AdminDashboard: React.FC = () => {
 
     useEffect(() => {
         const path = location.pathname.replace('/admin/', '').replace('/admin', '');
-        const validSlugs: View[] = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'security', 'departments', 'courses', 'backup', 'health', 'approvals', 'students'];
+        // `navigateTo` only pushes the URL — the active view is derived here, so
+        // a slug missing from this list leaves the sidebar item inert. That is
+        // what made Attendance unclickable, and it also broke refresh and direct
+        // navigation to /admin/attendance. Every View must appear here.
+        const validSlugs: View[] = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'security', 'departments', 'courses', 'backup', 'health', 'approvals', 'students', 'attendance'];
 
         if (validSlugs.includes(path as View)) {
             setCurrentView(path as View);
@@ -791,7 +795,7 @@ const AdminDashboard: React.FC = () => {
 
                         {currentView === 'attendance' && (
                             <div className="fade-in">
-                                <CoordinatorAttendanceView />
+                                <AdminAttendanceView />
                             </div>
                         )}
                     </div>
