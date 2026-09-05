@@ -801,7 +801,8 @@ export const coordinatorService = {
                         studentId,
                         'Company Request Approved',
                         `Your request to add the company ${name} has been approved! You can now access your dashboard.`,
-                        'success'
+                        'success',
+                        { notificationType: 'company', relatedType: 'company', relatedId: company.id },
                     ).catch(err => console.error('Error sending approval notification:', err));
 
                 }
@@ -891,7 +892,8 @@ export const coordinatorService = {
                 request.requested_by,
                 'Company Account Verified',
                 `Your company application for ${company.name} has been reviewed and approved by the coordinator. You can now access the Company Portal.`,
-                'success'
+                'success',
+                { notificationType: 'company', relatedType: 'company', relatedId: company.id },
             ).catch(err => console.error('Error sending verification notification:', err));
 
         }
@@ -927,7 +929,8 @@ export const coordinatorService = {
                 isCompanyAccount
                     ? `Your company application for ${request.name} was reviewed but not approved. Please contact a coordinator for details or submit a new application.`
                     : `Your request to add the company ${request.name} was rejected. Please select or request a different company.`,
-                'warning'
+                'warning',
+                { notificationType: 'company', relatedType: 'company_request', relatedId: requestId },
             ).catch(err => console.error('Error sending rejection notification:', err));
 
         }
@@ -1251,7 +1254,8 @@ export const coordinatorService = {
                 studentId,
                 'Grade Updated',
                 `Your final grade has been updated to: ${grade}. View it in your Profile.`,
-                'success'
+                'success',
+                { notificationType: 'general', relatedType: 'grade', relatedId: studentId },
             );
         } catch (notifErr) {
             console.error('Failed to notify student about grade update:', notifErr);
@@ -1746,7 +1750,8 @@ export const coordinatorService = {
                 adviserId,
                 'New Section Assigned',
                 `You have been assigned as the Section Adviser for ${section.name} (${section.course_code}).`,
-                'info'
+                'info',
+                { notificationType: 'assignment', relatedType: 'section', relatedId: sectionId },
             );
         } catch (notifErr) {
             console.warn('Notification failed:', notifErr);

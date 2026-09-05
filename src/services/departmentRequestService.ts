@@ -43,23 +43,15 @@ export const departmentRequestService = {
 
         if (error) throw error;
 
-        // Notify admins about the new request
+        // Notify every admin. notify_roles resolves the recipients server-side,
+        // so the client never has to read the admin list.
         try {
-            const { data: admins } = await supabase
-                .from('profiles')
-                .select('auth_user_id')
-                .eq('account_type', 'admin');
-
-            if (admins) {
-                for (const admin of admins) {
-                    await notificationService.createNotification(
-                        admin.auth_user_id,
-                        'New Dept Change Request',
-                        `A student has submitted a department transfer request.`,
-                        'info'
-                    );
-                }
-            }
+            await notificationService.notifyRoles(
+                ['admin'],
+                'New Dept Change Request',
+                'A student has submitted a department transfer request.',
+                { notificationType: 'system', relatedType: 'department_request', relatedId: data?.id ?? null },
+            );
         } catch (err) {
             console.error("Failed to notify admins:", err);
         }
@@ -215,7 +207,8 @@ export const departmentRequestService = {
                 request.user_id,
                 `Dept Change ${status.charAt(0).toUpperCase() + status.slice(1)}`,
                 `Your department transfer request has been ${status}.${remarks ? ` Remarks: ${remarks}` : ''}`,
-                status === 'approved' ? 'success' : 'danger'
+                status === 'approved' ? 'success' : 'danger',
+                { notificationType: 'system', relatedType: 'department_request', relatedId: requestId },
             );
         } catch (err) {
             console.error("Failed to notify student:", err);

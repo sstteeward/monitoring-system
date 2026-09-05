@@ -6,6 +6,10 @@ import { coordinatorService } from '../services/coordinatorService';
 import StudentsView from './StudentsView';
 import GradesView from './GradesView';
 import ApprovalsView from './ApprovalsView';
+import { NotificationsProvider } from '../contexts/NotificationsContext';
+import NotificationBell from './NotificationBell';
+import NotificationToaster from './NotificationToaster';
+import StudentRequirementsView from './StudentRequirementsView';
 import AnnouncementsView from './AnnouncementsView';
 import CompaniesView from './CompaniesView';
 import CompanyAccountRequestsView from './CompanyAccountRequestsView';
@@ -43,7 +47,7 @@ const Icon = {
     clock: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
 };
 
-type View = 'overview' | 'companies' | 'company-accounts' | 'advisers' | 'students' | 'grades' | 'approvals' | 'attendance' | 'announcement' | 'departments' | 'security' | 'profile' | 'settings';
+type View = 'overview' | 'companies' | 'company-accounts' | 'advisers' | 'students' | 'grades' | 'approvals' | 'requirements' | 'attendance' | 'announcement' | 'departments' | 'security' | 'profile' | 'settings';
 
 interface NavItem { id: View; label: string; icon: React.ReactNode; badge?: number; }
 
@@ -185,6 +189,7 @@ const CoordinatorDashboard: React.FC = () => {
                 { id: 'students', label: 'Students', icon: Icon.users },
                 { id: 'grades', label: 'Grades', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
                 { id: 'approvals', label: 'Approvals', icon: Icon.file, badge: totalPendingCount > 0 ? totalPendingCount : undefined },
+                { id: 'requirements', label: 'Requirements', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="m9 15 2 2 4-4" /></svg> },
                 { id: 'attendance', label: 'Attendance', icon: Icon.clock },
             ],
         },
@@ -211,6 +216,7 @@ const CoordinatorDashboard: React.FC = () => {
         students: 'Student Management',
         grades: 'Student Grades by Section',
         approvals: 'Pending Approvals',
+        requirements: 'Student Requirements',
         attendance: 'Attendance Monitoring',
         announcement: 'Announcements',
         security: 'Security Alerts',
@@ -242,6 +248,7 @@ const CoordinatorDashboard: React.FC = () => {
     }
 
     return (
+        <NotificationsProvider role="coordinator">
         <div className={`dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
             {/* Mobile overlay */}
             <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)} />
@@ -306,6 +313,7 @@ const CoordinatorDashboard: React.FC = () => {
                     </div>
                     <div className="topbar-right">
                         <div className="topbar-actions">
+                            <NotificationBell />
                             <div className="topbar-divider" />
                             <div style={{ position: 'relative' }}>
                                 <button className="topbar-user-btn" onClick={() => setShowAccountMenu(!showAccountMenu)}>
@@ -415,7 +423,8 @@ const CoordinatorDashboard: React.FC = () => {
                     {currentView === 'students' && <StudentsView initialFilter={studentFilter} />}
                     {currentView === 'grades' && <GradesView />}
                     {currentView === 'approvals' && <ApprovalsView initialTab={approvalsTab} key={approvalsTab} onActionComplete={refreshStats} />}
-                    {currentView === 'announcement' && <AnnouncementsView isCoordinator={true} />}
+                    {currentView === 'requirements' && <StudentRequirementsView />}
+                    {currentView === 'announcement' && <AnnouncementsView canPublish />}
                     {currentView === 'attendance' && <CoordinatorAttendanceView />}
                     {currentView === 'security' && (
                         <SecurityAlertsView departmentId={coordinatorDepartment?.id} />
@@ -485,7 +494,10 @@ const CoordinatorDashboard: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <NotificationToaster />
         </div>
+        </NotificationsProvider>
     );
 };
 

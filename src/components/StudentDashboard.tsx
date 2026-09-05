@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { notificationService, type UserNotification } from '../services/notificationService';
+import { notificationService } from '../services/notificationService';
 import { timeTrackingService, type Timesheet } from '../services/timeTracking';
 import { profileService, type Profile } from '../services/profileService';
 import { runFullAntiCheatSuite, quickGeofenceCheck, startContinuousMonitor } from '../services/geofenceService';
@@ -11,6 +11,9 @@ import PerformanceView from './PerformanceView';
 import ProfileView from './ProfileView';
 import SettingsView from './SettingsView';
 import JournalView from './JournalView';
+import { NotificationsProvider } from '../contexts/NotificationsContext';
+import NotificationBell from './NotificationBell';
+import NotificationToaster from './NotificationToaster';
 import AnnouncementsView from './AnnouncementsView';
 import DocumentsView from './DocumentsView';
 import OnboardingView from './OnboardingView';
@@ -41,8 +44,6 @@ const StudentDashboard: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     const [hasNewAnnouncements, setHasNewAnnouncements] = useState(false);
-    const [notifications, setNotifications] = useState<any[]>([]);
-    const [showNotifications, setShowNotifications] = useState(false);
     const [showAccountMenu, setShowAccountMenu] = useState(false);
     const [settingsExpanded, setSettingsExpanded] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -77,8 +78,7 @@ const StudentDashboard: React.FC = () => {
         // Load everything required before dropping the loading screen
         Promise.all([
             loadSession(),
-            loadProfile(),
-            loadNotifications()
+            loadProfile()
         ]).finally(() => {
             setLoading(false);
         });
@@ -112,46 +112,6 @@ const StudentDashboard: React.FC = () => {
             }
         } finally {
             setPasskeyEnrollmentBusy(false);
-        }
-    };
-
-    const loadNotifications = async () => {
-        try {
-            const notifs = await notificationService.getUserNotifications();
-            setNotifications(notifs);
-        } catch (err) {
-            console.error('Failed to load notifications:', err);
-        }
-    };
-
-    useEffect(() => {
-        if (!user?.id) return;
-
-        return notificationService.subscribeToUserNotifications(user.id, (notification) => {
-            setNotifications(previous => (
-                previous.some(item => item.id === notification.id)
-                    ? previous
-                    : [notification, ...previous]
-            ));
-        });
-    }, [user?.id]);
-
-    const markNotificationAsRead = async (id: string) => {
-        try {
-            await notificationService.markAsRead(id);
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-        } catch (err) {
-            console.error('Failed to mark notification as read:', err);
-        }
-    };
-
-    const handleNotificationClick = (notification: UserNotification) => {
-        if (!notification.is_read) void markNotificationAsRead(notification.id);
-
-        if (notification.source_type === 'announcement') {
-            setShowNotifications(false);
-            navigateTo('announcement', notification.source_id ? { id: notification.source_id } : undefined);
-            markAnnouncementsSeen();
         }
     };
 
@@ -754,6 +714,7 @@ const StudentDashboard: React.FC = () => {
     }
 
     return (
+        <NotificationsProvider role="student">
         <>
             {showWelcome && (
                 <WelcomeCelebration
@@ -902,71 +863,7 @@ const StudentDashboard: React.FC = () => {
                                     </span>
                                 </div>
 
-                                <div style={{ position: 'relative' }}>
-                                    <button
-                                        className="topbar-user-btn"
-                                        onClick={() => setShowNotifications(!showNotifications)}
-                                        style={{ padding: '0.5rem', background: 'var(--bg-elevated)', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                    >
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                                        {notifications.filter(n => !n.is_read).length > 0 && (
-                                            <span style={{ position: 'absolute', top: -2, right: -2, background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 700, width: 16, height: 16, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                {notifications.filter(n => !n.is_read).length}
-                                            </span>
-                                        )}
-                                    </button>
-
-                                    {showNotifications && (
-                                        <>
-                                            <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setShowNotifications(false)} />
-                                            <div style={{
-                                                position: 'absolute', top: 'calc(100% + 10px)', right: 0,
-                                                width: 320, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                                                borderRadius: 16, zIndex: 999, boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
-                                                overflow: 'hidden', animation: 'fadeIn 0.2s ease'
-                                            }}>
-                                                <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-bright)' }}>Notifications</h4>
-                                                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>{notifications.filter(n => !n.is_read).length} new</span>
-                                                </div>
-                                                <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-                                                    {notifications.length === 0 ? (
-                                                        <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                                            No notifications yet.
-                                                        </div>
-                                                    ) : (
-                                                        notifications.map(n => (
-                                                            <div
-                                                                key={n.id}
-                                                                onClick={() => handleNotificationClick(n)}
-                                                                style={{
-                                                                    padding: '1rem', borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                                                                    background: n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)',
-                                                                    borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--primary)',
-                                                                    transition: 'background 0.2s'
-                                                                }}
-                                                                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                                                                onMouseOut={e => e.currentTarget.style.background = n.is_read ? 'transparent' : 'rgba(16,185,129,0.05)'}
-                                                            >
-                                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                                                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: n.is_read ? 'var(--text-primary)' : 'var(--text-bright)' }}>
-                                                                        {n.title}
-                                                                    </div>
-                                                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-                                                                        {new Date(n.created_at).toLocaleDateString()}
-                                                                    </div>
-                                                                </div>
-                                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                                                                    {n.message}
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
+                                <NotificationBell />
 
                                 <div className="topbar-divider" />
                                 <div style={{ position: 'relative' }}>
@@ -1479,7 +1376,10 @@ const StudentDashboard: React.FC = () => {
 
 
             </div>
+
+            <NotificationToaster />
         </>
+        </NotificationsProvider>
     );
 };
 

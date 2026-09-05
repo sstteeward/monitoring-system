@@ -4,7 +4,7 @@ import { usePasteBlocker } from '../hooks/usePasteBlocker';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
 import PasswordField from './PasswordField';
-import BrowserPushNotificationToggle from './BrowserPushNotificationToggle';
+import NotificationPreferencesPanel from './NotificationPreferencesPanel';
 import PasskeySettingsSection from './PasskeySettingsSection';
 
 interface CompanySettingsViewProps {
@@ -39,9 +39,6 @@ const CompanySettingsView: React.FC<CompanySettingsViewProps> = ({ sidebarMode, 
         setSearchParams({ tab }, { replace: true });
     };
 
-    const [emailNotifications, setEmailNotifications] = useState(true);
-    const [notifSaved, setNotifSaved] = useState(false);
-
     const [changingPassword, setChangingPassword] = useState(false);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -53,11 +50,6 @@ const CompanySettingsView: React.FC<CompanySettingsViewProps> = ({ sidebarMode, 
 
     const [showTerms, setShowTerms] = useState(false);
     const [showPrivacy, setShowPrivacy] = useState(false);
-
-    const handleSaveNotifications = () => {
-        setNotifSaved(true);
-        setTimeout(() => setNotifSaved(false), 2500);
-    };
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -87,12 +79,6 @@ const CompanySettingsView: React.FC<CompanySettingsViewProps> = ({ sidebarMode, 
     const sectionSub: React.CSSProperties = { fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.25rem' };
     const row: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--border)', marginTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' };
     const inputStyle: React.CSSProperties = { width: '100%', maxWidth: '100%', boxSizing: 'border-box', padding: '0.75rem 0.9rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: '0.75rem' };
-
-    const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
-        <div onClick={onChange} style={{ width: 44, height: 24, borderRadius: 12, background: checked ? '#10b981' : 'var(--border-strong)', cursor: 'pointer', position: 'relative', transition: 'background .2s', flexShrink: 0 }}>
-            <div style={{ position: 'absolute', top: 3, left: checked ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
-        </div>
-    );
 
     const tabs: { key: SettingsTab; label: string; icon: React.ReactNode; desc: string }[] = [
         {
@@ -253,20 +239,11 @@ const CompanySettingsView: React.FC<CompanySettingsViewProps> = ({ sidebarMode, 
                     {activeTab === 'notifications' && (
                         <div className="glass-card settings-card-body fade-in" style={card}>
                             <h3 style={sectionTitle}>Notifications</h3>
-                            <p style={sectionSub}>Control how you receive updates.</p>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-bright)', marginBottom: '0.2rem' }}>Email Notifications</div>
-                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Receive email summaries for intern attendance and evaluations.</div>
-                                </div>
-                                <Toggle checked={emailNotifications} onChange={() => setEmailNotifications(v => !v)} />
-                            </div>
-                            <BrowserPushNotificationToggle rowStyle={row} description="Receive alerts even when the SIL website is closed." />
-                            <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
-                                <button type="button" className="btn btn-secondary" onClick={handleSaveNotifications} style={{ minHeight: 42, padding: '0.5rem 1.25rem' }}>
-                                    {notifSaved ? '✓ Saved' : 'Save Preferences'}
-                                </button>
-                            </div>
+                            <p style={sectionSub}>Control how you receive updates. Changes save immediately.</p>
+                            <NotificationPreferencesPanel
+                                rowStyle={row}
+                                assignmentsDescription="Intern assignments and changes to your partnership."
+                            />
                         </div>
                     )}
 

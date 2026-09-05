@@ -336,7 +336,8 @@ export const adviserService = {
                 studentId,
                 'Account Approved!',
                 `Your student account has been approved by your Section Adviser. Welcome to the SIL/OJT Monitoring System!`,
-                'success'
+                'success',
+                { notificationType: 'assignment', relatedType: 'student', relatedId: studentId },
             );
         } catch (notifErr) {
             console.warn('Notification failed:', notifErr);
@@ -389,7 +390,8 @@ export const adviserService = {
                 studentId,
                 'Account Registration Update',
                 `Your account registration was not approved: ${reason}`,
-                'danger'
+                'danger',
+                { notificationType: 'assignment', relatedType: 'student', relatedId: studentId },
             );
         } catch (notifErr) {
             console.warn('Notification failed:', notifErr);
@@ -440,7 +442,8 @@ export const adviserService = {
                 studentId,
                 'Correction Requested for Registration',
                 `Your Section Adviser requested changes: ${instructions}`,
-                'warning'
+                'warning',
+                { notificationType: 'assignment', relatedType: 'student', relatedId: studentId },
             );
         } catch (notifErr) {
             console.warn('Notification failed:', notifErr);
@@ -716,12 +719,44 @@ export const adviserService = {
      * Update journal status
      */
     async updateJournalStatus(journalId: string, status: 'approved' | 'rejected'): Promise<boolean> {
+        // The author is needed for the notification, and reading it first means a
+        // failed update never notifies anyone.
+        const { data: journal } = await supabase
+            .from('daily_journals')
+            .select('user_id, entry_date')
+            .eq('id', journalId)
+            .maybeSingle();
+
         const { error } = await supabase
             .from('daily_journals')
             .update({ approval_status: status, updated_at: new Date().toISOString() })
             .eq('id', journalId);
 
         if (error) throw error;
+
+        if (journal?.user_id) {
+            const entryLabel = journal.entry_date
+                ? new Date(journal.entry_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                : 'your entry';
+            try {
+                await notificationService.createNotification(
+                    journal.user_id,
+                    status === 'approved' ? 'Journal Approved' : 'Journal Rejected',
+                    status === 'approved'
+                        ? `Your journal entry for ${entryLabel} has been approved by your Section Adviser.`
+                        : `Your journal entry for ${entryLabel} was rejected. Please review it and submit again.`,
+                    status === 'approved' ? 'success' : 'danger',
+                    {
+                        notificationType: status === 'approved' ? 'journal_approved' : 'journal_rejected',
+                        relatedType: 'journal',
+                        relatedId: journalId,
+                    },
+                );
+            } catch (notifErr) {
+                // A failed notification must not undo an approval that succeeded.
+                console.warn('Journal status notification failed:', notifErr);
+            }
+        }
 
         try {
             await createAuditLog({

@@ -551,3 +551,32 @@
         padding: 2.5rem 1.25rem;
     }
 }
+
+/* ── Controls used inside the shared AnnouncementsBoard modal shell ───────── */
+
+.ca-btn-danger {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.ca-btn-danger:hover:not(:disabled) {
+    filter: brightness(1.06);
+}
+
+.ca-confirm {
+    max-width: 420px;
+}
+
+.ca-confirm-text {
+    margin: 0.5rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
+.ca-attachment-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}

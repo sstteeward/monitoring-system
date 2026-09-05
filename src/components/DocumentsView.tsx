@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 import { CardGridSkeleton } from './Skeletons';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import WaiverRequirementCard from './WaiverRequirementCard';
+import { isRequirementComplete, type RequirementDocument } from '../services/requirementService';
 import './DocumentsView.css';
 
 const DocumentsView: React.FC = () => {
@@ -20,6 +22,8 @@ const DocumentsView: React.FC = () => {
     const [previewLoading, setPreviewLoading] = useState<string | null>(null);
     const [documentToDelete, setDocumentToDelete] = useState<{ id: string, path: string, name: string } | null>(null);
     const [showUploadForm, setShowUploadForm] = useState(false);
+    // Tracked here so the checklist can count the waiver without a second fetch.
+    const [waiver, setWaiver] = useState<RequirementDocument | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const {
@@ -142,11 +146,28 @@ const DocumentsView: React.FC = () => {
         setPreviewType(null);
     };
 
+    const waiverComplete = isRequirementComplete(waiver?.status);
+
     return (
         <div className="documents-container">
             <header className="view-header">
                 <p className="view-subtitle">Upload and manage your OJT requirements and certifications.</p>
             </header>
+
+            {/* ── Required OJT/SIL requirements ─────────────────────────────── */}
+            <section className="documents-list-section" style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                    <h3 className="section-title" style={{ margin: 0 }}>OJT / SIL Requirements</h3>
+                    <span style={{
+                        padding: '0.3rem 0.7rem', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
+                        background: waiverComplete ? 'rgba(16,185,129,0.12)' : 'var(--bg-elevated)',
+                        color: waiverComplete ? '#047857' : 'var(--text-muted)',
+                    }}>
+                        {waiverComplete ? '1' : '0'} / 1 Complete
+                    </span>
+                </div>
+                <WaiverRequirementCard onStatusChange={setWaiver} />
+            </section>
 
             <div className="documents-list-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>

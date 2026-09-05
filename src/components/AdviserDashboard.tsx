@@ -3,6 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { profileService, type Profile } from '../services/profileService';
 import { adviserService } from '../services/adviserService';
+import { NotificationsProvider } from '../contexts/NotificationsContext';
+import NotificationBell from './NotificationBell';
+import NotificationToaster from './NotificationToaster';
 import AdviserOverviewView from './AdviserOverviewView';
 import AdviserSectionsView from './AdviserSectionsView';
 import AdviserStudentsView from './AdviserStudentsView';
@@ -68,20 +71,6 @@ const AdviserDashboard: React.FC = () => {
         loadAdviserData();
     }, []);
 
-    useEffect(() => {
-        const titles: Record<string, string> = {
-            overview: 'Adviser Overview',
-            sections: 'My Sections',
-            students: 'Student Monitoring',
-            approvals: 'Pending Approvals',
-            attendance: 'Attendance Monitoring',
-            announcement: 'Announcements',
-            profile: 'My Profile',
-            settings: 'Settings',
-        };
-        document.title = `${titles[currentView] ?? 'Adviser Portal'} | SIL Monitoring`;
-    }, [currentView]);
-
     const loadAdviserData = async () => {
         setLoading(true);
         try {
@@ -110,7 +99,14 @@ const AdviserDashboard: React.FC = () => {
     };
 
     const navigateTo = (view: View, param?: any) => {
-        const query = view === 'settings' && param ? `?tab=${param}` : '';
+        let query = '';
+        if (view === 'settings' && param) {
+            query = `?tab=${param}`;
+        } else if (view === 'announcement' && param?.id) {
+            // Deep link from the bell; the announcements view opens this id and
+            // the server re-checks that the adviser may read it.
+            query = `?id=${encodeURIComponent(param.id)}`;
+        }
         routerNavigate((view === 'overview' ? '/adviser' : `/adviser/${view}`) + query);
 
         if (view === 'students' && param) {
@@ -205,6 +201,7 @@ const AdviserDashboard: React.FC = () => {
     }
 
     return (
+        <NotificationsProvider role="adviser">
         <div className={`dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
             {/* Mobile overlay */}
             <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)} />
@@ -268,6 +265,8 @@ const AdviserDashboard: React.FC = () => {
 
                     <div className="topbar-right">
                         <div className="topbar-actions">
+                            <NotificationBell />
+
                             <div className="topbar-divider" />
                             <div style={{ position: 'relative' }}>
                                 <button className="topbar-user-btn" onClick={() => setShowAccountMenu(!showAccountMenu)}>
@@ -387,7 +386,7 @@ const AdviserDashboard: React.FC = () => {
                         <AdviserAttendanceView />
                     )}
                     {currentView === 'announcement' && (
-                        <AnnouncementsView isCoordinator={false} />
+                        <AnnouncementsView />
                     )}
                     {currentView === 'profile' && (
                         <CoordinatorProfileView
@@ -461,7 +460,10 @@ const AdviserDashboard: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <NotificationToaster />
         </div>
+        </NotificationsProvider>
     );
 };
 

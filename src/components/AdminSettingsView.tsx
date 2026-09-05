@@ -3,11 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { usePasteBlocker } from '../hooks/usePasteBlocker';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../contexts/ThemeContext';
+import NotificationPreferencesPanel from './NotificationPreferencesPanel';
 import { adminService } from '../services/adminService';
 import PasswordField from './PasswordField';
 import PasskeySettingsSection from './PasskeySettingsSection';
 
-type AdminSettingsTab = 'system' | 'appearance' | 'layout' | 'security' | 'about';
+type AdminSettingsTab = 'system' | 'appearance' | 'layout' | 'notifications' | 'security' | 'about';
 
 const AdminSettingsView: React.FC<{ 
     profile: any;
@@ -21,14 +22,14 @@ const AdminSettingsView: React.FC<{
 
     const [searchParams, setSearchParams] = useSearchParams();
     const queryTab = searchParams.get('tab') as AdminSettingsTab | null;
-    const initialTab: AdminSettingsTab = queryTab && ['system', 'appearance', 'layout', 'security', 'about'].includes(queryTab)
+    const initialTab: AdminSettingsTab = queryTab && ['system', 'appearance', 'layout', 'notifications', 'security', 'about'].includes(queryTab)
         ? queryTab
         : 'system';
 
     const [activeTab, setActiveTab] = useState<AdminSettingsTab>(initialTab);
 
     useEffect(() => {
-        if (queryTab && ['system', 'appearance', 'layout', 'security', 'about'].includes(queryTab) && queryTab !== activeTab) {
+        if (queryTab && ['system', 'appearance', 'layout', 'notifications', 'security', 'about'].includes(queryTab) && queryTab !== activeTab) {
             setActiveTab(queryTab);
         }
     }, [queryTab]);
@@ -115,6 +116,7 @@ const AdminSettingsView: React.FC<{
     };
 
     const card: React.CSSProperties = { marginBottom: '1.25rem' };
+    const row: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--admin-border)', marginTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' };
     const sectionTitle: React.CSSProperties = { margin: '0 0 0.35rem', fontSize: '1.05rem', fontWeight: 700, color: 'var(--admin-text-primary)' };
     const sectionSub: React.CSSProperties = { fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '1.25rem' };
     const inputStyle: React.CSSProperties = { width: '100%', maxWidth: '100%', boxSizing: 'border-box', padding: '0.75rem 0.9rem', background: 'var(--admin-bg)', border: '1px solid var(--admin-border)', borderRadius: 10, color: 'var(--admin-text-primary)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: '0.75rem' };
@@ -131,6 +133,10 @@ const AdminSettingsView: React.FC<{
         {
             key: 'layout', label: 'Layout', desc: 'Sidebar behavior',
             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="3" x2="9" y2="21" /></svg>
+        },
+        {
+            key: 'notifications', label: 'Notifications', desc: 'Alerts & emails',
+            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
         },
         {
             key: 'security', label: 'Security', desc: 'Password & login',
@@ -327,6 +333,17 @@ const AdminSettingsView: React.FC<{
                             ) : (
                                 <p style={{ color: 'var(--admin-text-secondary)', fontSize: '0.85rem' }}>Sidebar layout settings are not available.</p>
                             )}
+                        </div>
+                    )}
+
+                    {activeTab === 'notifications' && (
+                        <div className="glass-card settings-card-body fade-in" style={card}>
+                            <h3 style={sectionTitle}>Notifications</h3>
+                            <p style={sectionSub}>Control how you receive updates. Changes save immediately.</p>
+                            <NotificationPreferencesPanel
+                                rowStyle={row}
+                                assignmentsDescription="Adviser, company and department assignment activity."
+                            />
                         </div>
                     )}
 
