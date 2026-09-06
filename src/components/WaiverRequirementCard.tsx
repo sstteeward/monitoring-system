@@ -393,7 +393,7 @@ const WaiverRequirementCard: React.FC<WaiverRequirementCardProps> = ({ onStatusC
                 <button type="button" className="req-btn req-btn-quiet" onClick={() => void downloadForm()} disabled={downloadingForm}>
                     {downloadingForm ? 'Preparing…' : 'Download Official Form'}
                 </button>
-                <button type="button" className="req-btn req-btn-ghost" onClick={() => openWaiverFormForPrinting(formData)}>
+                <button type="button" className="req-btn req-btn-ghost" onClick={() => void openWaiverFormForPrinting(formData)}>
                     Print
                 </button>
                 {document_ && (

@@ -4,7 +4,12 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getPostAuthRedirect, isOnboardingComplete, normalizeAccountType } from './authRedirect.ts';
+import {
+    getLoginRouteForAccountType,
+    getPostAuthRedirect,
+    isOnboardingComplete,
+    normalizeAccountType,
+} from './authRedirect.ts';
 
 test('signup (first-time) — every role reaches its own portal, never the Company Portal', () => {
     assert.equal(getPostAuthRedirect('student'), '/student');
@@ -80,4 +85,23 @@ test('onboarding completion is derived per role', () => {
 
     assert.equal(isOnboardingComplete(null), false);
     assert.equal(isOnboardingComplete({ account_type: 'nope' }), false);
+});
+
+test('password reset — each account type lands on its own portal login', () => {
+    assert.equal(getLoginRouteForAccountType('student'), '/login?portal=student');
+    assert.equal(getLoginRouteForAccountType('adviser'), '/login?portal=adviser');
+    assert.equal(getLoginRouteForAccountType('coordinator'), '/login?portal=coordinator');
+    assert.equal(getLoginRouteForAccountType('company'), '/login?portal=company');
+    assert.equal(getLoginRouteForAccountType('admin'), '/login?portal=admin');
+});
+
+test('password reset — role strings are normalized before routing', () => {
+    assert.equal(getLoginRouteForAccountType(' Student '), '/login?portal=student');
+    assert.equal(getLoginRouteForAccountType('ADVISER'), '/login?portal=adviser');
+});
+
+test('password reset — an unresolvable role goes to portal selection, never a portal', () => {
+    for (const value of [undefined, null, '', 'teacher', 'admin ; drop', 42, {}]) {
+        assert.equal(getLoginRouteForAccountType(value), '/');
+    }
 });

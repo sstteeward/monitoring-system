@@ -1,7 +1,33 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { supabase } from "../lib/supabaseClient";
+import { getLoginRouteForAccountType, normalizeAccountType, type AccountType } from "../utils/authRedirect";
 import "./AuthSignup.css"; // Reuse auth styles
+
+/** How long the success message stays on screen before the redirect fires. */
+const REDIRECT_DELAY_MS = 2500;
+
+/**
+ * Reads the account type off the account the recovery token authenticated us as.
+ *
+ * The reset link opens a short-lived Supabase recovery session, so `auth.getUser()`
+ * is the token's own identity — validated server-side — and the `profiles` row is
+ * read under RLS for that same user. Nothing here comes from the URL, so appending
+ * `?role=admin` to /change-password cannot change where the user is sent.
+ */
+async function resolveRecoveryAccountType(): Promise<AccountType | null> {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) return null;
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('account_type')
+        .eq('auth_user_id', user.id)
+        .single();
+
+    if (error || !data) return null;
+    return normalizeAccountType(data.account_type);
+}
 
 const EyeIcon = () => (
     <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="eye-icon">
@@ -19,19 +45,37 @@ const EyeOffIcon = () => (
     </svg>
 );
 
-export default function UpdatePasswordView({ onComplete }: { onComplete: () => void }) {
+export default function UpdatePasswordView({ onComplete }: { onComplete: (destination: string) => void }) {
     const blockPaste = usePasteBlocker();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
-    
+
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDone, setIsDone] = useState(false);
+
+    // Resolved once up front so the destination is known before the password is even
+    // submitted; re-resolved at submit time in case the first attempt raced the session.
+    const accountTypeRef = useRef<AccountType | null>(null);
+    const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        void resolveRecoveryAccountType().then((role) => {
+            if (!cancelled) accountTypeRef.current = role;
+        });
+        return () => {
+            cancelled = true;
+            if (redirectTimer.current) clearTimeout(redirectTimer.current);
+        };
+    }, []);
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting || isDone) return; // guard against duplicate submissions
         setError(null);
         setMessage(null);
 
@@ -47,12 +91,17 @@ export default function UpdatePasswordView({ onComplete }: { onComplete: () => v
 
         setIsSubmitting(true);
         try {
+            // Resolve the destination while the recovery session is still alive —
+            // after sign-out the profile is no longer readable.
+            const accountType = accountTypeRef.current ?? await resolveRecoveryAccountType();
+            accountTypeRef.current = accountType;
+
             const { error: updateError } = await supabase.auth.updateUser({
                 password: password
             });
 
             if (updateError) throw updateError;
-            
+
             try {
                 const { createAuditLog } = await import('../services/auditService');
                 await createAuditLog({
@@ -64,14 +113,29 @@ export default function UpdatePasswordView({ onComplete }: { onComplete: () => v
                 console.warn('Failed to log password change:', auditErr);
             }
 
+            // An unknown role goes to the portal-selection page, never to a guessed portal.
+            const destination = getLoginRouteForAccountType(accountType);
+            setIsDone(true);
             setMessage("Password updated successfully!");
-            setTimeout(async () => {
-                await supabase.auth.signOut();
-                onComplete();
-                window.location.href = '/login';
-            }, 2000);
+            redirectTimer.current = setTimeout(async () => {
+                // Consume the reset session: the recovery link is single-use on Supabase's
+                // side, and signing out drops the session it opened plus the local
+                // `is_recovery` flag (cleared by onComplete), so the link cannot be replayed.
+                try {
+                    await supabase.auth.signOut({ scope: 'global' });
+                } catch {
+                    try { await supabase.auth.signOut(); } catch { /* already gone */ }
+                }
+                onComplete(destination);
+            }, REDIRECT_DELAY_MS);
         } catch (err: any) {
-            setError(err.message || String(err));
+            // Failed update: stay on the page, no redirect.
+            const raw = err?.message || String(err);
+            setError(
+                /expired|invalid|not authenticated|session/i.test(raw)
+                    ? "This password reset link is invalid or has expired. Please request a new one from your portal's login page."
+                    : raw
+            );
             try {
                 const { createAuditLog } = await import('../services/auditService');
                 await createAuditLog({
@@ -146,11 +210,20 @@ export default function UpdatePasswordView({ onComplete }: { onComplete: () => v
                             </label>
 
                             {error && <div className="error" style={{ textAlign: 'center' }}>{error}</div>}
-                            {message && <div className="info-msg">{message}</div>}
+                            {message && (
+                                <div className="info-msg" role="status" aria-live="polite">
+                                    <strong>✓ {message}</strong>
+                                    {isDone && (
+                                        <div style={{ marginTop: '0.35rem', opacity: 0.85 }}>
+                                            Redirecting you to your login page...
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="cta-row" style={{ marginTop: '0.5rem' }}>
-                                <button className="primary" type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? "Updating..." : "Update Password"}
+                                <button className="primary" type="submit" disabled={isSubmitting || isDone}>
+                                    {isDone ? "Redirecting..." : isSubmitting ? "Updating password..." : "Update Password"}
                                 </button>
                             </div>
                         </div>

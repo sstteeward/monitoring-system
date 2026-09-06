@@ -40,6 +40,23 @@ export function getPostAuthRedirect(accountType: unknown): string {
 }
 
 /**
+ * The login page belonging to a role. There is one login component (`AuthSignup`,
+ * mounted at `/login`); the portal it presents comes from `?portal=<role>`, which is
+ * also what the landing page's portal cards link to. Nothing new is invented here.
+ *
+ * The caller must derive `accountType` from the account itself (the recovery session
+ * and the `profiles` row), never from the URL — otherwise `?role=admin` on the
+ * change-password link would steer the redirect.
+ *
+ * Unknown/missing roles fall back to `/`, the portal-selection landing page, so a
+ * student can never be dropped on the Admin/Adviser/Coordinator/Company login.
+ */
+export function getLoginRouteForAccountType(accountType: unknown): string {
+    const role = normalizeAccountType(accountType);
+    return role ? `/login?portal=${role}` : '/';
+}
+
+/**
  * Mirrors the per-role onboarding gates used by the dashboards
  * (StudentDashboard, AdviserDashboard, CompanyDashboard).
  * There is no `onboarding_completed` column; completion is derived from the

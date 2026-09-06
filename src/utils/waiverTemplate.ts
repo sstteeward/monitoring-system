@@ -13,6 +13,8 @@
  * generated.
  */
 
+import logoUrl from '../assets/ac-horizontal.webp';
+
 export const WAIVER_FORM_TITLE = "Parent's Clearance and Waiver Form";
 export const WAIVER_FORM_FILENAME = 'Parents-Clearance-and-Waiver-Form.pdf';
 
@@ -25,44 +27,34 @@ export interface WaiverFormData {
 }
 
 /**
- * The institutional Asian College logo, served from `public/`.
+ * Fetch the institutional logo as a data URL.
  *
- * Drop the official artwork in as `public/asian-college-logo.png` (or .jpg /
- * .svg) and the form picks it up automatically. Until then the header falls back
- * to the typeset school name, so the form is never blocked on the asset and
- * never prints a broken-image box.
- */
-const LOGO_CANDIDATES = [
-    '/asian-college-logo.png',
-    '/asian-college-logo.jpg',
-    '/asian-college-logo.svg',
-];
-
-/**
- * Fetch the logo as a data URL.
+ * The artwork is imported through the bundler rather than read from a public
+ * path, so it is content-hashed and cannot go missing in a deployed build.
  *
- * html2canvas rasterises whatever is in the DOM at capture time, so a plain
- * `<img src>` can be captured before it finishes loading and silently come out
- * blank. Inlining the bytes first removes that race.
+ * It is inlined rather than left as an `<img src>` for two reasons: html2canvas
+ * rasterises whatever is in the DOM at capture time, so a URL can be captured
+ * before it finishes loading and come out blank; and the print window is a
+ * blank document with no origin of its own, where a relative URL would not
+ * resolve at all.
  */
 async function loadLogoDataUrl(): Promise<string | null> {
-    for (const url of LOGO_CANDIDATES) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) continue;
-            const blob = await response.blob();
-            if (!blob.type.startsWith('image/')) continue;
-            return await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(String(reader.result));
-                reader.onerror = () => reject(reader.error);
-                reader.readAsDataURL(blob);
-            });
-        } catch {
-            // Try the next candidate; a missing logo is not an error.
-        }
+    try {
+        const response = await fetch(logoUrl);
+        if (!response.ok) return null;
+        const blob = await response.blob();
+        if (!blob.type.startsWith('image/')) return null;
+        return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+        });
+    } catch {
+        // The header falls back to the typeset school name, so a logo that
+        // fails to load never blocks a student from obtaining the form.
+        return null;
     }
-    return null;
 }
 
 function escapeHtml(value: string): string {
@@ -90,82 +82,80 @@ function inlineField(value: string | null | undefined, placeholder: string, widt
  * A4 page, print-first styling. Rendered off-screen and captured to PDF, so the
  * sizing is fixed in millimetres rather than viewport units.
  */
+/** Height the page is rasterised at, a millimetre short of A4. See downloadWaiverForm. */
+const CAPTURE_HEIGHT_MM = 296;
+
 const WAIVER_FORM_STYLE = `
   .wv-page {
     width: 210mm;
     height: 297mm;
-    padding: 12mm 16mm;
+    padding: 14mm 18mm;
     box-sizing: border-box;
     background: #ffffff;
-    color: #111827;
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 10pt;
-    line-height: 1.5;
+    color: #000000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    line-height: 1.55;
   }
-  .wv-head { text-align: center; border-bottom: 2px solid #047857; padding-bottom: 7px; margin-bottom: 9px; }
-  .wv-logo { display: block; height: 16mm; width: auto; max-width: 96mm; margin: 0 auto 4px; }
-  .wv-school { font-size: 15pt; font-weight: 700; letter-spacing: .5px; color: #065f46; margin: 0; }
-  .wv-sub { font-size: 8.5pt; color: #4b5563; margin: 1px 0 0; }
-  .wv-title { font-size: 12pt; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; margin: 10px 0 3px; text-align: center; }
-  .wv-title-rule { width: 64px; height: 2px; background: #047857; margin: 0 auto 10px; }
-  .wv-details { display: flex; flex-wrap: wrap; gap: 3px 18px; margin-bottom: 11px; padding: 7px 10px; border: 1px solid #d1d5db; background: #f9fafb; font-size: 8.5pt; }
-  .wv-details div { min-width: 45%; }
-  .wv-details b { color: #4b5563; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
-  .wv-p { margin: 0 0 9px; text-align: justify; }
-  .wv-fill { display: inline-block; border-bottom: 1px solid #111827; text-align: center; padding: 0 4px; }
-  .wv-ph { color: #6b7280; font-size: 8.5pt; letter-spacing: .3px; }
-  .wv-block-label { font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #065f46; border-bottom: 1px solid #047857; padding-bottom: 2px; margin: 12px 0 7px; }
-  .wv-sign-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 9px; font-size: 9.5pt; }
-  .wv-sign-row span { white-space: nowrap; }
-  .wv-sign-row i { flex: 1; display: block; border-bottom: 1px solid #111827; height: 15px; font-style: normal; }
-  .wv-notes { margin-top: 11px; border: 1px solid #d1d5db; background: #f9fafb; padding: 8px 11px; font-size: 8.5pt; }
-  .wv-notes-title { font-weight: 700; margin: 0 0 4px; color: #065f46; text-transform: uppercase; letter-spacing: .4px; }
-  .wv-notes ol { margin: 0; padding-left: 16px; }
-  .wv-notes li { margin-bottom: 3px; text-align: justify; }
-  .wv-notes p { margin: 5px 0 0; text-align: justify; }
-  .wv-footer { margin-top: 10px; padding-top: 7px; border-top: 1px solid #d1d5db; display: flex; gap: 12px; font-size: 7.5pt; color: #374151; }
+  .wv-head { margin-bottom: 12mm; text-align: center; }
+  /* Sized on width so the mark keeps a consistent presence whatever the
+     artwork's own aspect ratio; height follows. */
+  .wv-logo { display: block; margin: 0 auto; width: 66mm; height: auto; }
+  /*
+   * Typographic stand-in for the institutional wordmark, used only if the
+   * artwork fails to load. It follows the real mark: "Asian" in the school red,
+   * "College" in the school navy, set tight, with the bold italic tagline
+   * beneath. The crest is not reproduced — an approximated seal would be worse
+   * than none on an official document.
+   */
+  .wv-school { font-size: 21pt; font-weight: 700; margin: 0; letter-spacing: -.6px; line-height: 1.05; }
+  .wv-school .wv-a { color: #e2001a; }
+  .wv-school .wv-c { color: #00378a; }
+  .wv-school-tag { font-size: 9.5pt; font-weight: 700; font-style: italic; margin: 1px 0 0; color: #111; }
+  .wv-title { font-size: 12pt; font-weight: 400; margin: 0 0 7mm; }
+  .wv-p { margin: 0 0 6mm; }
+  .wv-fill { display: inline-block; border-bottom: 1px solid #000; text-align: center; padding: 0 5px; }
+  .wv-ph { font-size: 8.5pt; color: #6b7280; letter-spacing: .2px; }
+  /* Label plus open space to write in — the original prints no rule here. */
+  .wv-sign-row { margin-bottom: 3.5mm; }
+  .wv-sign-group { margin-bottom: 7mm; }
+  .wv-notes { margin-top: 2mm; padding-left: 9mm; }
+  .wv-notes li { margin-bottom: 2.5mm; padding-left: 2mm; }
+  .wv-footer { position: absolute; left: 18mm; right: 18mm; bottom: 14mm; display: flex; gap: 10mm; text-align: center; font-family: Georgia, 'Times New Roman', serif; font-size: 9pt; }
   .wv-footer > div { flex: 1; }
-  .wv-footer b { display: block; color: #065f46; font-size: 7.5pt; letter-spacing: .5px; margin-bottom: 2px; }
+  .wv-footer b { display: block; font-weight: 700; font-style: italic; margin-bottom: 1mm; }
   .wv-footer em { font-style: italic; }
+  .wv-footer span { display: block; font-style: italic; }
 `;
 
 function buildBody(data: WaiverFormData = {}, logo?: string | null): string {
-    const student = inlineField(data.studentName, '[NAME OF STUDENT]', '58mm');
+    const student = inlineField(data.studentName, '[NAME OF STUDENT]', '78mm');
     // The certification names the student twice; both are filled from the account.
-    const studentAgain = inlineField(data.studentName, '[NAME OF STUDENT]', '52mm');
-    const company = inlineField(data.companyName, '[NAME OF COMPANY / TRAINING ESTABLISHMENT]', '72mm');
-
-    const detail = (label: string, value: string | null | undefined) =>
-        `<div><b>${label}:</b> ${value?.trim() ? escapeHtml(value.trim()) : '—'}</div>`;
+    const studentAgain = inlineField(data.studentName, '[NAME OF STUDENT]', '58mm');
+    const company = inlineField(data.companyName, '[NAME OF COMPANY]', '68mm');
+    // The sentence ends in a full stop. A company name like "Acme, Inc." already
+    // carries one, so printing both would read as "Inc..".
+    const companyStop = data.companyName?.trim().endsWith('.') ? '' : '.';
 
     return `
-<div class="wv-page">
+<div class="wv-page" style="position:relative">
   <div class="wv-head">
     ${logo
         ? `<img class="wv-logo" src="${logo}" alt="Asian College">`
-        : '<p class="wv-school">ASIAN COLLEGE</p>'}
-    <p class="wv-sub">Dumaguete City, Negros Oriental</p>
-    <p class="wv-sub">Supervised Industry Learning (SIL) / On-the-Job Training Program</p>
+        : `<p class="wv-school"><span class="wv-a">Asian</span><span class="wv-c">College</span></p>
+           <p class="wv-school-tag">Developing Leaders in IT and Management</p>`}
   </div>
 
-  <div class="wv-title">Parent's Clearance and Waiver Form</div>
-  <div class="wv-title-rule"></div>
-
-  <div class="wv-details">
-    ${detail('Student', data.studentName)}
-    ${detail('SIL/OJT Company', data.companyName)}
-    ${detail('Course / Program', data.course)}
-    ${detail('Section', data.section)}
-  </div>
+  <p class="wv-title">PARENT'S CLEARANCE AND WAIVER FORM</p>
 
   <p class="wv-p">
-    This is to certify that I am allowing ${student} to undergo a
-    <strong>SUPERVISED INDUSTRY LEARNING</strong> at ${company}
+    This is to certify that I am allowing ${student} to undergo a<br>
+    <strong>SUPERVISED INDUSTRY LEARNING</strong> at ${company}${companyStop}
   </p>
 
   <p class="wv-p">
-    It is understood that ${studentAgain} will follow the safety protocols needed to avoid any
-    unwanted incident or transmitted infection.
+    It is understood that ${studentAgain} will follow the safety protocols needed
+    to avoid any unwanted incident or transmitted infection.
   </p>
 
   <p class="wv-p">
@@ -173,31 +163,29 @@ function buildBody(data: WaiverFormData = {}, logo?: string | null): string {
     untoward incident that may happen to the Student in the duration of the <strong>INTERNSHIP</strong>.
   </p>
 
-  <div class="wv-block-label">Student</div>
-  <div class="wv-sign-row"><span>Signature:</span><i></i></div>
-  <div class="wv-sign-row"><span>Name of the Student:</span><i></i></div>
-  <div class="wv-sign-row"><span>Date Signed:</span><i></i></div>
-
-  <div class="wv-block-label">Parent / Guardian</div>
-  <div class="wv-sign-row"><span>Signature:</span><i></i></div>
-  <div class="wv-sign-row"><span>Name of Signatory:</span><i></i></div>
-  <div class="wv-sign-row"><span>Relationship of Signatory to Intern:</span><i></i></div>
-  <div class="wv-sign-row"><span>Date Signed:</span><i></i></div>
-
-  <div class="wv-notes">
-    <p class="wv-notes-title">Important Notes</p>
-    <ol>
-      <li>The signature/s in this document must match the signatures of the parents on file.</li>
-      <li>In the event that a parent cannot sign the waiver form, it must be signed by the legitimate guardian, as evidenced by the letter of guardianship on file.</li>
-      <li>This document must be dated, signed and submitted within the week of practice.</li>
-    </ol>
-    <p>One copy shall be given to the DIPLOMA PROGRAM department, while the other copy must be kept by the parent/guardian.</p>
+  <div class="wv-sign-group">
+    <div class="wv-sign-row">Signature:</div>
+    <div class="wv-sign-row">Name of the Student:</div>
+    <div class="wv-sign-row">Date Signed:</div>
   </div>
 
+  <div class="wv-sign-group">
+    <div class="wv-sign-row">Signature:</div>
+    <div class="wv-sign-row">Name of Signatory :</div>
+    <div class="wv-sign-row">Relationship of Signatory to Intern :</div>
+    <div class="wv-sign-row">Date Signed:</div>
+  </div>
+
+  <ol class="wv-notes">
+    <li>The signature/s in this document must match the signatures of the parents on file.</li>
+    <li>In the event that a parent cannot sign the waiver form, it must be signed by the legitimate guardian, as evidenced by the letter of guardianship on file.</li>
+    <li>This document must be dated, signed and submitted within the week of practice. One copy shall be given to the DIPLOMA PROGRAM department, while the other copy must be kept by the parent/guardian.</li>
+  </ol>
+
   <div class="wv-footer">
-    <div><b>Vision</b><em>&ldquo;To be the leading educational Institution of choice dedicated to the Success of its graduates&rdquo;</em></div>
-    <div><b>Mission</b><em>&ldquo;To educate and develop globally competitive future teachers&rdquo;</em></div>
-    <div><b>Core Values</b>Self-Leadership<br>Integrity<br>Academic Excellence</div>
+    <div><b>VISION</b><em>&ldquo;To be a transformative educational institution committed to the success of its graduates through quality instruction, relevant research, and strong community engagement.&rdquo;</em></div>
+    <div><b>MISSION</b><em>&ldquo;To educate and develop globally competitive future teachers&rdquo;</em></div>
+    <div><b>CORE VALUES</b><span>Self-Leadership</span><span>Integrity</span><span>Academic Excellence</span></div>
   </div>
 </div>
 `;
@@ -214,7 +202,7 @@ export function buildWaiverFormHtml(data: WaiverFormData = {}, logo?: string | n
   @media print { body { background: #fff; } .wv-page { box-shadow: none; } }
   ${WAIVER_FORM_STYLE}
 </style></head>
-<body>${buildBody(data, logo ?? LOGO_CANDIDATES[0])}</body></html>`;
+<body>${buildBody(data, logo ?? null)}</body></html>`;
 }
 
 /**
@@ -232,6 +220,24 @@ export async function downloadWaiverForm(data: WaiverFormData = {}): Promise<voi
     host.innerHTML = `<style>${WAIVER_FORM_STYLE}</style>${buildBody(data, logo)}`;
     document.body.appendChild(host);
 
+    const page = host.querySelector<HTMLElement>('.wv-page');
+    /*
+     * The capture is rendered a millimetre short of A4, and that millimetre is
+     * why this form is one page instead of two.
+     *
+     * html2pdf scales the canvas to the page width and paginates on the
+     * resulting height. Millimetres do not land on whole CSS pixels, so a box
+     * declared as 210x297mm rasterises to 1588x2246 device pixels, which
+     * projects back to 297.015mm against a 297mm page. That 0.015mm of
+     * rounding error is enough for html2pdf to emit a second, blank page.
+     *
+     * The cushion only exists for the raster capture — CAPTURE_HEIGHT_MM is not
+     * used by the print stylesheet, which is true A4 and has no such problem.
+     * A millimetre is far more than the ~0.26mm worst case (one CSS pixel) and
+     * is invisible: the footer already sits 14mm above the bottom edge.
+     */
+    if (page) page.style.height = `${CAPTURE_HEIGHT_MM}mm`;
+
     try {
         const { default: html2pdf } = await import('html2pdf.js');
         await html2pdf()
@@ -242,21 +248,27 @@ export async function downloadWaiverForm(data: WaiverFormData = {}): Promise<voi
                 html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             })
-            .from(host.querySelector<HTMLElement>('.wv-page') ?? host)
+                .from(page ?? host)
             .save();
     } catch (error) {
         console.error('Falling back to the print view for the waiver form:', error);
-        openWaiverFormForPrinting(data);
+        await openWaiverFormForPrinting(data);
     } finally {
         host.remove();
     }
 }
 
 /** Open the form in a new tab, ready to print. */
-export function openWaiverFormForPrinting(data: WaiverFormData = {}): void {
+export async function openWaiverFormForPrinting(data: WaiverFormData = {}): Promise<void> {
+    // Opened before the await so the click is still the trigger, or pop-up
+    // blockers reject the window.
     const win = window.open('', '_blank', 'noopener,noreferrer');
     if (!win) return;
-    win.document.write(buildWaiverFormHtml(data));
+    // Inlined rather than left as a URL: the print window is a blank document
+    // with no origin of its own, and a missing file would print a broken-image
+    // box instead of falling back to the wordmark.
+    const logo = await loadLogoDataUrl();
+    win.document.write(buildWaiverFormHtml(data, logo));
     win.document.close();
     win.focus();
     // Give the layout a beat to settle before the print dialog appears.

@@ -116,9 +116,13 @@ function AppContent() {
   if (isRecovery) {
     return (
       <Routes>
-        <Route path="/change-password" element={<UpdatePasswordView onComplete={() => {
+        {/* The destination comes from UpdatePasswordView, which derives it from the
+            recovery session's own profile — not from anything in the URL. */}
+        <Route path="/change-password" element={<UpdatePasswordView onComplete={(destination) => {
             setIsRecovery(false);
-            navigate('/login', { replace: true });
+            // Hard replace: drops the recovery hash and any in-memory auth state, and
+            // keeps /change-password out of the history stack so it can't be revisited.
+            window.location.replace(destination || '/');
         }} />} />
         <Route path="*" element={<Navigate to="/change-password" replace />} />
       </Routes>
