@@ -2,7 +2,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { notificationService } from '../services/notificationService';
-import { timeTrackingService, type Timesheet } from '../services/timeTracking';
+import { timeTrackingService, DEFAULT_LIMIT_CONFIG, type DailyLimitConfig, type Timesheet } from '../services/timeTracking';
+import {
+    attendanceDayKey,
+    dailyRenderedMinutes,
+    formatMinutes,
+    summariseDailyLimit,
+} from '../utils/attendanceLimit';
 import { profileService, type Profile } from '../services/profileService';
 import { runFullAntiCheatSuite, quickGeofenceCheck, startContinuousMonitor } from '../services/geofenceService';
 import { dtrService } from '../services/dtrService';
@@ -39,10 +45,17 @@ const StudentDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [elapsed, setElapsed] = useState<string>('00:00:00');
-    const [elapsedSecs, setElapsedSecs] = useState(0);
+    // Not read directly — the per-second setState is what re-renders the
+    // rendered-time figures, which are derived from Date.now() each pass.
+    const [, setElapsedSecs] = useState(0);
     const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
+    // The daily limit comes from system_settings, so an admin can change it
+    // without a code change. Until it loads, the documented default applies.
+    const [limitConfig, setLimitConfig] = useState<DailyLimitConfig>(DEFAULT_LIMIT_CONFIG);
+    const [limitDismissed, setLimitDismissed] = useState(false);
+    const clockOutRef = useRef<HTMLButtonElement | null>(null);
     const [hasNewAnnouncements, setHasNewAnnouncements] = useState(false);
     const [showAccountMenu, setShowAccountMenu] = useState(false);
     const [settingsExpanded, setSettingsExpanded] = useState(false);
@@ -202,13 +215,58 @@ const StudentDashboard: React.FC = () => {
     const loadTodaySessions = async () => {
         try {
             const all = await timeTrackingService.getTimesheets();
-            const today = new Date().toLocaleDateString('en-US');
-            const filtered = all.filter(ts => new Date(ts.clock_in).toLocaleDateString('en-US') === today);
-            setTodaySessions(filtered);
+            // The attendance day is a Philippine day, not the device's — a phone
+            // set to another zone must not file a shift under the wrong date.
+            const today = attendanceDayKey(new Date(), limitConfig.timeZone);
+            setTodaySessions(all.filter(ts => attendanceDayKey(ts.clock_in, limitConfig.timeZone) === today));
         } catch (err) {
             console.error('Error loading today sessions:', err);
         }
     };
+
+    useEffect(() => {
+        void timeTrackingService.getDailyLimitConfig().then(setLimitConfig);
+    }, []);
+
+    /*
+     * The "Clock out now" button in the limit email lands here.
+     *
+     * The link carries no token and performs no write: it is an ordinary
+     * in-app path behind the normal auth guard, so following it from a
+     * forwarded email does nothing unless you are the signed-in student. All
+     * it does is bring the real clock-out control into view and focus it —
+     * clocking out stays a deliberate act, and the timestamp recorded is the
+     * moment the student actually presses it.
+     */
+    useEffect(() => {
+        if (new URLSearchParams(location.search).get('action') !== 'clock-out') return;
+        if (!session || session.status === 'completed') return;
+        const focus = window.setTimeout(() => {
+            clockOutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            clockOutRef.current?.focus();
+        }, 350);
+        return () => window.clearTimeout(focus);
+    }, [location.search, session?.id, session?.status]);
+
+    /*
+     * Ask the server to re-evaluate the limit while the page is open.
+     *
+     * The scheduled job is what guarantees the warning when the tab is closed;
+     * this is what makes it appear promptly when it is not. Both call the same
+     * function, and the alert row is what gates the email, so this can never
+     * produce a second one. Only runs while a session is genuinely open.
+     */
+    useEffect(() => {
+        if (!session || session.status === 'completed') return;
+        let cancelled = false;
+        const check = async () => {
+            const result = await timeTrackingService.checkDailyLimit();
+            if (!cancelled && result?.state && result.state !== 'NORMAL') void loadTodaySessions();
+        };
+        void check();
+        const timer = window.setInterval(check, 60_000);
+        return () => { cancelled = true; window.clearInterval(timer); };
+    }, [session?.id, session?.status]);
 
     useEffect(() => {
         if (session?.status === 'working') {
@@ -593,18 +651,24 @@ const StudentDashboard: React.FC = () => {
     const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
-    const MAX_SECS = 8 * 3600;
+    const MAX_SECS = limitConfig.limitMinutes * 60;
 
-    // Calculate total seconds worked today from completed sessions
     const completedSessions = todaySessions.filter(ts => ts.status === 'completed');
-    const completedSecsToday = completedSessions.reduce((acc, ts) => {
-        if (ts.clock_out) {
-            const start = new Date(ts.clock_in).getTime();
-            const end = new Date(ts.clock_out).getTime();
-            return acc + Math.floor((end - start) / 1000);
-        }
-        return acc;
-    }, 0);
+
+    // Everything rendered today, across every session and net of breaks — the
+    // same rule the server applies when it decides to send the warning email.
+    const today = attendanceDayKey(new Date(), limitConfig.timeZone);
+    const renderedMinutesToday = dailyRenderedMinutes(
+        todaySessions,
+        today,
+        Date.now(),
+        limitConfig.timeZone,
+    );
+    const dailyLimit = summariseDailyLimit(
+        renderedMinutesToday,
+        limitConfig.limitMinutes,
+        limitConfig.warningMinutes,
+    );
 
     // Dynamic Button Label for Clock Out
     let clockOutLabel = "Clock Out";
@@ -615,7 +679,7 @@ const StudentDashboard: React.FC = () => {
         else clockOutLabel = "Clock Out";
     }
 
-    const totalSecsWorkedToday = completedSecsToday + (session?.status === 'working' ? elapsedSecs : 0);
+    const totalSecsWorkedToday = renderedMinutesToday * 60;
     const progress = Math.min(totalSecsWorkedToday / MAX_SECS, 1);
     const progressPct = Math.round(progress * 100);
     const hoursWorkedStr = (totalSecsWorkedToday / 3600).toFixed(1);
@@ -1064,6 +1128,50 @@ const StudentDashboard: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* The daily limit is not a hint: while a session is open and the
+                                    day is at or past the limit, this sits above the timer and
+                                    cannot be dismissed until the student clocks out. */}
+                                {session && session.status !== 'completed' && dailyLimit.reached && (
+                                    <div className="daily-limit-alert" role="alert">
+                                        <div className="daily-limit-alert-icon" aria-hidden="true">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+                                                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12" y2="17" />
+                                            </svg>
+                                        </div>
+                                        <div className="daily-limit-alert-body">
+                                            <strong>{formatMinutes(dailyLimit.limitMinutes)} daily limit reached</strong>
+                                            <p>
+                                                You have reached your maximum daily working time. Please clock out now.
+                                                {dailyLimit.overLimitMinutes > 0 && ` You are ${formatMinutes(dailyLimit.overLimitMinutes)} over the limit.`}
+                                            </p>
+                                            <dl className="daily-limit-alert-facts">
+                                                <div><dt>Time in</dt><dd>{clockInTime}</dd></div>
+                                                <div><dt>Rendered</dt><dd>{formatMinutes(dailyLimit.renderedMinutes)}</dd></div>
+                                                <div><dt>Allowed</dt><dd>{formatMinutes(dailyLimit.limitMinutes)}</dd></div>
+                                            </dl>
+                                        </div>
+                                        <button
+                                            className="daily-limit-alert-action"
+                                            onClick={handleClockOut}
+                                            disabled={isActionLoading}
+                                        >
+                                            {isActionLoading ? 'Clocking Out…' : 'Clock Out Now'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* A quieter nudge in the last stretch before the limit. */}
+                                {session && session.status !== 'completed' && dailyLimit.state === 'APPROACHING' && !limitDismissed && (
+                                    <div className="daily-limit-notice" role="status">
+                                        <span>
+                                            Approaching your daily limit — {formatMinutes(dailyLimit.remainingMinutes)} left
+                                            of {formatMinutes(dailyLimit.limitMinutes)}.
+                                        </span>
+                                        <button onClick={() => setLimitDismissed(true)} aria-label="Dismiss">×</button>
+                                    </div>
+                                )}
+
                                 <div className="timer-hero">
                                     {/* Big timer */}
                                     <div className="timer-main-card glass-card">
@@ -1127,13 +1235,19 @@ const StudentDashboard: React.FC = () => {
                                                                 : <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg> Break</>
                                                         )}
                                                     </button>
-                                                    <button className={`btn btn-danger ${isActionLoading ? 'loading' : ''}`} onClick={handleClockOut} disabled={isActionLoading}>
+                                                    <button
+                                                        ref={clockOutRef}
+                                                        className={`btn btn-danger ${isActionLoading ? 'loading' : ''} ${dailyLimit.reached ? 'is-urgent' : ''}`}
+                                                        onClick={handleClockOut}
+                                                        disabled={isActionLoading}
+                                                    >
                                                         {isActionLoading ? (
                                                             <span className="btn-loading-text">Clocking Out...</span>
                                                         ) : (
                                                             <>
                                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
-                                                                {clockOutLabel}
+                                                                {/* Past the limit the action is no longer a routine end-of-shift. */}
+                                                                {dailyLimit.reached ? 'CLOCK OUT NOW' : clockOutLabel}
                                                             </>
                                                         )}
                                                     </button>
@@ -1151,8 +1265,13 @@ const StudentDashboard: React.FC = () => {
                                                 <span className="info-item-value">{clockInTime}</span>
                                             </div>
                                             <div className="info-item">
-                                                <span className="info-item-label">Hours Worked</span>
-                                                <span className="info-item-value">{hoursWorkedStr}h</span>
+                                                <span className="info-item-label">Rendered</span>
+                                                <span className={`info-item-value ${dailyLimit.reached ? 'is-over-limit' : ''}`}>
+                                                    {formatMinutes(dailyLimit.renderedMinutes)}
+                                                    {dailyLimit.overLimitMinutes > 0 && (
+                                                        <small> +{formatMinutes(dailyLimit.overLimitMinutes)} over</small>
+                                                    )}
+                                                </span>
                                             </div>
                                             <div className="info-item">
                                                 <span className="info-item-label">Status</span>

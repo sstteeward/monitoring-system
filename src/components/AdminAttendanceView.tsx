@@ -20,6 +20,14 @@ import {
     deriveAttendance,
     type Derived,
 } from './attendanceConstants';
+import {
+    DEFAULT_DAILY_LIMIT_MINUTES,
+    LIMIT_FILTER_LABELS,
+    describeDuration,
+    matchesLimitFilter,
+    type LimitFilter,
+} from '../utils/attendanceLimit';
+import { timeTrackingService, type LimitAlert } from '../services/timeTracking';
 // AttendanceRecordModal's styles live in AttendanceView.css. Imported here
 // explicitly rather than relying on another view happening to have loaded it.
 import './AttendanceView.css';
@@ -117,6 +125,13 @@ const AdminAttendanceView: React.FC = () => {
     const [sectionFilter, setSectionFilter] = useState('all');
     const [companyFilter, setCompanyFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    // Daily rendered-hours limit: the configured value, and the filter over it.
+    const [limitFilter, setLimitFilter] = useState<LimitFilter>('all');
+    const [limitMinutes, setLimitMinutes] = useState(DEFAULT_DAILY_LIMIT_MINUTES);
+    // The daily-limit warning log, opened from the toolbar.
+    const [alertsOpen, setAlertsOpen] = useState(false);
+    const [alerts, setAlerts] = useState<LimitAlert[]>([]);
+    const [alertsState, setAlertsState] = useState<'idle' | 'loading' | 'error'>('idle');
 
     // Drawer + correction
     const [drawer, setDrawer] = useState<DrawerState>(null);
@@ -185,6 +200,12 @@ const AdminAttendanceView: React.FC = () => {
         if (sectionFilter !== 'all' && r.section_name !== sectionFilter) return false;
         if (companyFilter !== 'all' && r.company_name !== companyFilter) return false;
 
+        // An open timesheet is what makes the student still active on this day.
+        if (limitFilter !== 'all' && !matchesLimitFilter(limitFilter, {
+            isActive: r.open_timesheet_count > 0,
+            renderedMinutes: Math.round(r.worked_hours * 60),
+        }, limitMinutes)) return false;
+
         if (statusFilter === 'flagged') {
             if (r.anomalies.length === 0) return false;
         } else if (statusFilter === 'not_recorded') {
@@ -199,7 +220,38 @@ const AdminAttendanceView: React.FC = () => {
             r.department, r.company_name, r.year_level,
         ].filter(Boolean).join(' ').toLowerCase();
         return haystack.includes(term);
-    }), [rows, courseFilter, sectionFilter, companyFilter, statusFilter, term]);
+    }), [rows, courseFilter, sectionFilter, companyFilter, statusFilter, limitFilter, limitMinutes, term]);
+
+    useEffect(() => {
+        void timeTrackingService.getDailyLimitConfig().then(config => setLimitMinutes(config.limitMinutes));
+    }, []);
+
+    /* The log is only fetched when the panel is opened — it is a review tool,
+       not something the attendance table needs on every date change. */
+    useEffect(() => {
+        if (!alertsOpen) return;
+        let cancelled = false;
+        setAlertsState('loading');
+        timeTrackingService.getLimitAlerts(shiftDate(date, -30), date)
+            .then(rows => { if (!cancelled) { setAlerts(rows); setAlertsState('idle'); } })
+            .catch(() => { if (!cancelled) setAlertsState('error'); });
+        return () => { cancelled = true; };
+    }, [alertsOpen, date]);
+
+    /** The duration cell, annotated once the day is at or past the limit. */
+    const renderDuration = (workedHours: number) => {
+        const duration = describeDuration(Math.round(workedHours * 60), limitMinutes);
+        return (
+            <>
+                <div className="aav-metric" data-limit={duration.tone}>{duration.label}</div>
+                {duration.note && (
+                    <div className="aav-metric-sub" data-limit={duration.tone}>
+                        {duration.tone !== 'approaching' && Icon.warn(10)} {duration.note}
+                    </div>
+                )}
+            </>
+        );
+    };
 
     const {
         currentPage, setCurrentPage, totalPages,
@@ -359,11 +411,11 @@ const AdminAttendanceView: React.FC = () => {
     };
 
     const hasFilters = term !== '' || courseFilter !== 'all' || sectionFilter !== 'all'
-        || companyFilter !== 'all' || statusFilter !== 'all';
+        || companyFilter !== 'all' || statusFilter !== 'all' || limitFilter !== 'all';
 
     const clearFilters = () => {
         setSearch(''); setCourseFilter('all'); setSectionFilter('all');
-        setCompanyFilter('all'); setStatusFilter('all');
+        setCompanyFilter('all'); setStatusFilter('all'); setLimitFilter('all');
     };
 
     const toggleStatFilter = (key: StatusFilter) =>
@@ -579,6 +631,20 @@ const AdminAttendanceView: React.FC = () => {
                             <option value="flagged">Needs attention</option>
                         </select>
 
+                        <label className="aav-sr" htmlFor="aav-limit">Filter by daily hour limit</label>
+                        <select id="aav-limit" className="aav-select" value={limitFilter}
+                            onChange={e => setLimitFilter(e.target.value as LimitFilter)}>
+                            {(Object.keys(LIMIT_FILTER_LABELS) as LimitFilter[]).map(key => (
+                                <option key={key} value={key}>
+                                    {key === 'all' ? 'All Rendered Time' : LIMIT_FILTER_LABELS[key]}
+                                </option>
+                            ))}
+                        </select>
+
+                        <button type="button" className="aav-btn aav-btn-sm" onClick={() => setAlertsOpen(true)}>
+                            {Icon.warn(11)} Limit alerts
+                        </button>
+
                         {hasFilters && (
                             <button type="button" className="aav-btn aav-btn-sm" onClick={clearFilters}>Clear</button>
                         )}
@@ -649,7 +715,7 @@ const AdminAttendanceView: React.FC = () => {
                                     <span className="aav-time">
                                         {r.time_in ? formatTime(r.time_in) : '—'} → {r.time_out ? formatTime(r.time_out) : '—'}
                                     </span>
-                                    <span className="aav-metric">{formatDuration(r.worked_hours)}</span>
+                                    <span className="aav-metric-group">{renderDuration(r.worked_hours)}</span>
                                 </div>
 
                                 {r.anomalies.length > 0 && (
@@ -718,7 +784,7 @@ const AdminAttendanceView: React.FC = () => {
                                                     : <span className="aav-muted">—</span>}
                                         </td>
                                         <td>
-                                            <div className="aav-metric">{formatDuration(r.worked_hours)}</div>
+                                            {renderDuration(r.worked_hours)}
                                             {r.anomalies.length > 0 && (
                                                 <div className="aav-metric-sub" style={{ color: 'var(--aav-late)' }}>
                                                     {r.anomalies.length} flag{r.anomalies.length === 1 ? '' : 's'}
@@ -1060,6 +1126,93 @@ const AdminAttendanceView: React.FC = () => {
                                 </>
                             );
                         })()}
+                    </div>
+                </div>
+            )}
+
+            {/* ══ DAILY LIMIT WARNING LOG ══
+                Every warning the detector has sent, and whether the email
+                actually left. A failed send shows as failed rather than
+                silently as sent, so it can be chased. ══ */}
+            {alertsOpen && (
+                <div className="aav-scrim" onMouseDown={() => setAlertsOpen(false)}>
+                    <div
+                        className="aav-drawer"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="aav-alerts-title"
+                        onMouseDown={e => e.stopPropagation()}
+                    >
+                        <div className="aav-drawer-head">
+                            <div>
+                                <h2 className="aav-drawer-title" id="aav-alerts-title">Daily Limit Warnings</h2>
+                                <p className="aav-drawer-sub">
+                                    {longDate(shiftDate(date, -30))} — {longDate(date)} · limit {describeDuration(limitMinutes, limitMinutes).label}
+                                </p>
+                            </div>
+                            <button type="button" className="aav-drawer-close" onClick={() => setAlertsOpen(false)} aria-label="Close warning log">
+                                {Icon.close()}
+                            </button>
+                        </div>
+
+                        <div className="aav-drawer-body">
+                            {alertsState === 'loading' && <p className="aav-muted">Loading warnings…</p>}
+                            {alertsState === 'error' && (
+                                <p className="aav-muted">
+                                    Unable to load the warning log. It becomes available once
+                                    supabase_attendance_daily_limit.sql has been applied.
+                                </p>
+                            )}
+                            {alertsState === 'idle' && alerts.length === 0 && (
+                                <p className="aav-muted">No daily limit warnings in this period.</p>
+                            )}
+                            {alertsState === 'idle' && alerts.length > 0 && (
+                                <table className="aav-table aav-alert-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Student</th>
+                                            <th>Date</th>
+                                            <th>Rendered</th>
+                                            <th>Sent to</th>
+                                            <th>Email</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {alerts.map(alert => {
+                                            const duration = describeDuration(alert.rendered_minutes, alert.limit_minutes);
+                                            return (
+                                                <tr key={alert.id}>
+                                                    <td>
+                                                        <div>{alert.student_name || 'Unnamed student'}</div>
+                                                        <div className="aav-metric-sub">
+                                                            {alert.alert_type === 'student_limit_reached' ? 'Student warning' : 'Coordinator alert'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="aav-time">{formatDate(alert.attendance_date)}</td>
+                                                    <td>
+                                                        <div className="aav-metric" data-limit={duration.tone}>{duration.label}</div>
+                                                        {duration.note && (
+                                                            <div className="aav-metric-sub" data-limit={duration.tone}>{duration.note}</div>
+                                                        )}
+                                                    </td>
+                                                    <td className="aav-student-sub">{alert.recipient_email || '—'}</td>
+                                                    <td>
+                                                        {alert.email_sent
+                                                            ? <span className="aav-badge" data-tone="ok">Sent</span>
+                                                            : <span className="aav-badge" data-tone="flag" title={alert.email_error || 'Not yet delivered'}>
+                                                                {alert.email_error ? 'Failed' : 'Pending'}
+                                                            </span>}
+                                                        {(alert.email_attempts ?? 0) > 1 && (
+                                                            <div className="aav-metric-sub">{alert.email_attempts} attempts</div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

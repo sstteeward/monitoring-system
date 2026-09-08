@@ -13,7 +13,9 @@
     "test:email": "node --experimental-strip-types --test src/utils/email.test.ts",
     "test:verification": "node --experimental-strip-types --test src/utils/verificationCode.test.ts",
     "test:calendar": "node --experimental-strip-types --test supabase/functions/google-calendar/calendarMapping.test.ts",
-    "test": "node --experimental-strip-types --test src/utils/authRedirect.test.ts src/utils/sections.test.ts src/utils/email.test.ts src/utils/verificationCode.test.ts src/components/onboarding/onboardingFields.test.ts supabase/functions/google-calendar/calendarMapping.test.ts",
+    "test:schedule-calendar": "node --experimental-strip-types --test src/utils/scheduleCalendar.test.ts",
+    "test:attendance-limit": "node --experimental-strip-types --test src/utils/attendanceLimit.test.ts",
+    "test": "node --experimental-strip-types --test src/utils/authRedirect.test.ts src/utils/sections.test.ts src/utils/email.test.ts src/utils/verificationCode.test.ts src/utils/scheduleCalendar.test.ts src/utils/attendanceLimit.test.ts src/components/onboarding/onboardingFields.test.ts supabase/functions/google-calendar/calendarMapping.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

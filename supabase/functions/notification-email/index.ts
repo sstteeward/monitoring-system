@@ -80,8 +80,22 @@ const PORTAL_PATH: Record<string, string> = {
   company: '/company',
 };
 
-function buildPortalUrl(baseUrl: string, role: string | null) {
+/**
+ * Where the email's button goes.
+ *
+ * A notification may name its own in-app destination — "please clock out" has
+ * to land on the clock-out control, not the portal root. Only an app-relative
+ * path is accepted: anything else (an absolute URL, a protocol-relative one, a
+ * traversal) falls back to the portal, so a notification row can never redirect
+ * a recipient to another site.
+ */
+function buildPortalUrl(baseUrl: string, role: string | null, actionPath?: string | null) {
   const root = baseUrl.replace(/\/+$/, '');
+  const isSafeRelativePath = typeof actionPath === 'string'
+    && /^\/[A-Za-z0-9/_\-?=&.]*$/.test(actionPath)
+    && !actionPath.startsWith('//')
+    && !actionPath.includes('..');
+  if (isSafeRelativePath) return `${root}${actionPath}`;
   return `${root}${PORTAL_PATH[role ?? ''] ?? ''}`;
 }
 
@@ -96,12 +110,14 @@ function renderEmail(options: {
   categoryLabel: string;
   createdAt: string;
   actionUrl: string;
+  actionLabel: string;
 }) {
   const title = escapeHtml(options.title);
   const message = escapeHtml(options.message).replace(/\n/g, '<br>');
   const name = escapeHtml(options.recipientName);
   const category = escapeHtml(options.categoryLabel);
   const date = escapeHtml(options.createdAt);
+  const actionLabel = escapeHtml(options.actionLabel);
 
   return `<!doctype html>
 <html lang="en">
@@ -125,7 +141,7 @@ function renderEmail(options: {
           <div style="color:#334155;font-size:14px;line-height:1.7;">${message}</div>
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 6px;">
             <tr><td style="border-radius:10px;background:#047857;">
-              <a href="${options.actionUrl}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">View in your portal</a>
+              <a href="${options.actionUrl}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">${actionLabel}</a>
             </td></tr>
           </table>
           <p style="margin:18px 0 0;color:#64748b;font-size:12px;">${date}</p>
@@ -193,7 +209,7 @@ Deno.serve(async (request) => {
   // Re-read the row rather than trusting the webhook body.
   const { data: notification, error: notificationError } = await supabase
     .from('user_notifications')
-    .select('id, user_id, title, message, notification_type, created_at, email_sent, email_attempts')
+    .select('id, user_id, title, message, notification_type, created_at, email_sent, email_attempts, action_path, action_label')
     .eq('id', notificationId)
     .maybeSingle();
 
@@ -300,7 +316,8 @@ Deno.serve(async (request) => {
             dateStyle: 'long',
             timeStyle: 'short',
           }),
-          actionUrl: buildPortalUrl(appBaseUrl, profile.account_type),
+          actionUrl: buildPortalUrl(appBaseUrl, profile.account_type, notification.action_path),
+          actionLabel: notification.action_label?.trim() || 'View in your portal',
         }),
       }),
     });

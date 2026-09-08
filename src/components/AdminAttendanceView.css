@@ -636,6 +636,20 @@ html[data-theme="dark"] .aav-page .aav-datebar input[type="date"] {
     color: var(--text-muted);
 }
 
+/* A bare "8h 25m" says nothing about whether it was allowed. */
+.aav-page .aav-metric[data-limit="reached"],
+.aav-page .aav-metric-sub[data-limit="reached"] { color: #b45309; }
+.aav-page .aav-metric[data-limit="over"],
+.aav-page .aav-metric-sub[data-limit="over"] { color: #b91c1c; }
+.aav-page .aav-metric-sub[data-limit="approaching"] { color: var(--text-muted); }
+.aav-page .aav-metric-sub[data-limit] { font-weight: 600; }
+.aav-page .aav-metric-group { display: block; }
+
+html[data-theme="dark"] .aav-page .aav-metric[data-limit="reached"],
+html[data-theme="dark"] .aav-page .aav-metric-sub[data-limit="reached"] { color: #fbbf24; }
+html[data-theme="dark"] .aav-page .aav-metric[data-limit="over"],
+html[data-theme="dark"] .aav-page .aav-metric-sub[data-limit="over"] { color: #fca5a5; }
+
 .aav-page .aav-time {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -693,6 +707,16 @@ html[data-theme="dark"] .aav-page .aav-datebar input[type="date"] {
     background: var(--aav-late-soft);
     color: var(--aav-late);
 }
+
+.aav-page .aav-badge[data-tone="ok"] {
+    background: var(--aav-ok-soft);
+    color: var(--aav-ok);
+}
+
+/* Daily-limit warning log */
+.aav-page .aav-alert-table { width: 100%; }
+.aav-page .aav-alert-table th,
+.aav-page .aav-alert-table td { padding: 0.55rem 0.6rem; vertical-align: top; }
 
 .aav-page .aav-badge-dot {
     width: 6px;
