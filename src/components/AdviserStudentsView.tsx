@@ -90,70 +90,43 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
         <div className="fade-in">
             {/* Top Filter Header */}
             <div className="admin-table-card">
-                <div className="admin-table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div className="admin-table-header">
                     <div>
-                        <div className="admin-table-title" style={{ fontSize: '1.2rem', fontWeight: 600 }}>
-                            Student Monitoring
-                        </div>
-                        <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.85rem' }}>
+                        <div className="admin-table-title">Student Monitoring</div>
+                        <div className="view-subtitle">
                             Track OJT progress, attendance, and requirements for your assigned sections.
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="ad-roster-controls">
                         {/* Section Selector */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Section:</span>
-                            <select
-                                value={selectedSection}
-                                onChange={e => { setSelectedSection(e.target.value); setCurrentPage(1); }}
-                                style={{
-                                    padding: '0.45rem 0.75rem',
-                                    borderRadius: 8,
-                                    border: '1px solid var(--border)',
-                                    background: 'var(--bg-page)',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 500
-                                }}
-                            >
-                                <option value="all">All My Sections ({students.length})</option>
-                                {sections.map(sec => (
-                                    <option key={sec.id} value={sec.name}>
-                                        {sec.name} ({sec.course_code}) — {sec.student_count} Students
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        <span className="ad-roster-label">Section</span>
+                        <select
+                            className="ad-roster-select"
+                            value={selectedSection}
+                            onChange={e => { setSelectedSection(e.target.value); setCurrentPage(1); }}
+                        >
+                            <option value="all">All My Sections ({students.length})</option>
+                            {sections.map(sec => (
+                                <option key={sec.id} value={sec.name}>
+                                    {sec.name} ({sec.course_code}) — {sec.student_count} Students
+                                </option>
+                            ))}
+                        </select>
 
                         {/* Search Bar */}
                         <input
+                            className="ad-roster-search"
                             type="text"
                             placeholder="Search by student or company…"
                             value={searchTerm}
                             onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                            style={{
-                                padding: '0.45rem 0.85rem',
-                                borderRadius: 8,
-                                border: '1px solid var(--border)',
-                                background: 'var(--bg-page)',
-                                color: 'var(--text-primary)',
-                                fontSize: '0.85rem',
-                                width: '220px'
-                            }}
                         />
                     </div>
                 </div>
 
                 {/* Sub-Filter Tabs */}
-                <div style={{
-                    padding: '0.75rem 1.5rem',
-                    borderBottom: '1px solid var(--admin-border)',
-                    display: 'flex',
-                    gap: '0.5rem',
-                    flexWrap: 'wrap',
-                    background: 'var(--bg-elevated)'
-                }}>
+                <div className="ad-filter-bar">
                     {[
                         { id: 'all', label: 'All Students' },
                         { id: 'assigned', label: 'On SIL / OJT' },
@@ -163,18 +136,9 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                     ].map(tab => (
                         <button
                             key={tab.id}
-                            className={`filter-tab ${filterTab === tab.id ? 'active' : ''}`}
+                            type="button"
+                            className={`ad-filter-tab ${filterTab === tab.id ? 'is-active' : ''}`}
                             onClick={() => { setFilterTab(tab.id as any); setCurrentPage(1); }}
-                            style={{
-                                padding: '0.35rem 0.85rem',
-                                borderRadius: 6,
-                                border: '1px solid var(--border)',
-                                background: filterTab === tab.id ? 'var(--primary)' : 'transparent',
-                                color: filterTab === tab.id ? '#fff' : 'var(--text-primary)',
-                                fontSize: '0.82rem',
-                                cursor: 'pointer',
-                                fontWeight: 500
-                            }}
                         >
                             {tab.label}
                         </button>
@@ -185,8 +149,11 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                 {loading ? (
                     <TableSkeleton rows={6} cols={6} />
                 ) : filteredStudents.length === 0 ? (
-                    <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        No students found matching the selected filters.
+                    <div className="ad-empty-state" style={{ border: 'none', borderRadius: 0, background: 'transparent' }}>
+                        <div className="ad-empty-title">No students match these filters</div>
+                        <div className="ad-empty-desc">
+                            Try a different section, clear the search, or switch back to “All Students”.
+                        </div>
                     </div>
                 ) : (
                     <>
@@ -229,25 +196,17 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                                             )}
                                         </td>
                                         <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <div>
-                                                    <span style={{ fontWeight: 700 }}>{st.rendered_hours}</span>
-                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}> / {st.required_ojt_hours || 500}h</span>
-                                                </div>
+                                            <div>
+                                                <span style={{ fontWeight: 600 }}>{st.rendered_hours}</span>
+                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}> / {st.required_ojt_hours || 500}h</span>
                                             </div>
-                                            <div style={{
-                                                width: '100px',
-                                                height: '5px',
-                                                background: 'var(--bg-elevated)',
-                                                borderRadius: 3,
-                                                overflow: 'hidden',
-                                                marginTop: '0.25rem'
-                                            }}>
-                                                <div style={{
-                                                    width: `${st.progress_percentage}%`,
-                                                    height: '100%',
-                                                    background: st.progress_percentage >= 100 ? '#10b981' : st.progress_percentage < 25 ? '#f59e0b' : 'var(--primary)'
-                                                }} />
+                                            <div className="ad-roster-progress">
+                                                <span
+                                                    style={{
+                                                        width: `${st.progress_percentage}%`,
+                                                        background: st.progress_percentage >= 100 ? '#10b981' : st.progress_percentage < 25 ? '#f59e0b' : 'var(--primary)'
+                                                    }}
+                                                />
                                             </div>
                                         </td>
                                         <td>
@@ -267,44 +226,17 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                                         </td>
                                         <td>
                                             {st.is_at_risk ? (
-                                                <span style={{
-                                                    fontSize: '0.7rem',
-                                                    padding: '0.2rem 0.45rem',
-                                                    borderRadius: 8,
-                                                    fontWeight: 600,
-                                                    background: 'rgba(239, 68, 68, 0.12)',
-                                                    color: '#ef4444'
-                                                }}>
-                                                    AT RISK
-                                                </span>
+                                                <span className="ad-roster-status is-risk">At risk</span>
                                             ) : st.is_active === false ? (
-                                                <span style={{
-                                                    fontSize: '0.7rem',
-                                                    padding: '0.2rem 0.45rem',
-                                                    borderRadius: 8,
-                                                    fontWeight: 600,
-                                                    background: 'rgba(245, 158, 11, 0.12)',
-                                                    color: '#f59e0b'
-                                                }}>
-                                                    PENDING
-                                                </span>
+                                                <span className="ad-roster-status is-pending">Pending</span>
                                             ) : (
-                                                <span style={{
-                                                    fontSize: '0.7rem',
-                                                    padding: '0.2rem 0.45rem',
-                                                    borderRadius: 8,
-                                                    fontWeight: 600,
-                                                    background: 'rgba(16, 185, 129, 0.12)',
-                                                    color: '#10b981'
-                                                }}>
-                                                    ON TRACK
-                                                </span>
+                                                <span className="ad-roster-status is-ontrack">On track</span>
                                             )}
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
                                             <button
+                                                type="button"
                                                 className="role-select"
-                                                style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
                                                 onClick={() => setSelectedStudentDetail(st)}
                                             >
                                                 Details
@@ -315,7 +247,7 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                             </tbody>
                         </table>
 
-                        <div style={{ padding: '1rem' }}>
+                        <div style={{ padding: '0.6rem 0.9rem', borderTop: '1px solid var(--border)' }}>
                             <Pagination
                                 currentPage={currentPage}
                                 totalPages={totalPages}
@@ -333,19 +265,19 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
             {selectedStudentDetail && (
                 <div className="modal-overlay" onClick={() => setSelectedStudentDetail(null)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '680px', width: '95%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
-                        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '1.25rem 1.5rem' }}>
+                        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)' }}>
                             <div>
-                                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>
+                                <h3 style={{ margin: 0 }}>
                                     {selectedStudentDetail.first_name} {selectedStudentDetail.last_name}
                                 </h3>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
                                     Section {selectedStudentDetail.section} · {selectedStudentDetail.course}
                                 </div>
                             </div>
-                            <button className="modal-close-btn" onClick={() => setSelectedStudentDetail(null)}>✕</button>
+                            <button type="button" className="modal-close-btn" onClick={() => setSelectedStudentDetail(null)}>✕</button>
                         </div>
 
-                        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+                        <div style={{ padding: '0.9rem 1.1rem', overflowY: 'auto', flex: 1 }}>
                             {/* Key Stats Cards */}
                             <div className="monitoring-detail-grid">
                                 <div className="monitoring-stat-box">
@@ -376,11 +308,11 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
 
                             {/* Placement Info */}
                             <div style={{
-                                padding: '1rem',
+                                padding: '0.75rem 0.85rem',
                                 background: 'var(--bg-elevated)',
                                 border: '1px solid var(--border)',
-                                borderRadius: 10,
-                                marginBottom: '1.25rem'
+                                borderRadius: 'var(--radius-xs)',
+                                marginBottom: '0.7rem'
                             }}>
                                 <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>Company Placement</div>
                                 {selectedStudentDetail.company?.name ? (
@@ -399,11 +331,11 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
 
                             {/* Contact Details */}
                             <div style={{
-                                padding: '1rem',
+                                padding: '0.75rem 0.85rem',
                                 background: 'var(--bg-elevated)',
                                 border: '1px solid var(--border)',
-                                borderRadius: 10,
-                                marginBottom: '1.25rem'
+                                borderRadius: 'var(--radius-xs)',
+                                marginBottom: '0.7rem'
                             }}>
                                 <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>Contact & Address</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
@@ -423,7 +355,7 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                             </div>
                         </div>
 
-                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-elevated)' }}>
+                        <div style={{ padding: '0.7rem 1.1rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', gap: '0.5rem', background: 'var(--bg-elevated)' }}>
                             <button
                                 className="cd-btn cd-btn-outline"
                                 onClick={() => {

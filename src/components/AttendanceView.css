@@ -222,7 +222,6 @@
 }
 
 .attendance-btn:hover {
-    border-color: var(--border-strong);
     background: var(--bg-elevated);
 }
 
@@ -234,7 +233,6 @@
 
 .attendance-btn-danger:hover {
     background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.55);
     color: #ef4444;
 }
 
@@ -246,7 +244,6 @@
 
 .attendance-btn-primary:hover {
     background: rgba(16, 185, 129, 0.22);
-    border-color: rgba(16, 185, 129, 0.55);
     color: #10b981;
 }
 

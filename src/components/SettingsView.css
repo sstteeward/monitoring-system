@@ -1,7 +1,7 @@
 .settings-view {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: var(--section-gap);
     width: 100%;
     animation: fadeIn 0.3s ease-out;
     max-width: 800px;
@@ -24,13 +24,13 @@
 .settings-content {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--section-gap);
 }
 
 .settings-card {
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem 2rem;
+    border-radius: var(--radius-lg);
+    padding: var(--card-pad) 1.25rem;
     background: var(--bg-card);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
@@ -71,14 +71,14 @@ html[data-theme="dark"] .settings-card {
 .settings-group {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--section-gap);
 }
 
 .setting-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 2rem;
+    gap: var(--section-gap);
 }
 
 .setting-info h4 {
@@ -151,7 +151,7 @@ html[data-theme="dark"] .settings-card {
     bottom: 0;
     background-color: var(--bg-elevated);
     transition: .3s;
-    border-radius: 24px;
+    border-radius: var(--radius-lg);
 }
 
 .toggle-slider:before {
@@ -211,7 +211,7 @@ input:checked+.toggle-slider:before {
 
 .btn-danger:hover {
     background-color: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.3);
+
 }
 
 /* Responsive */

@@ -1,12 +1,12 @@
 .documents-container {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--section-gap);
     animation: fadeIn 0.3s ease-out;
 }
 
 .upload-card {
-    padding: 1.5rem;
+    padding: var(--card-pad);
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -207,7 +207,7 @@
 
 .action-btn.delete:hover {
     background: rgba(239, 68, 68, 0.15);
-    border-color: #ff4d4d;
+
     transform: translateY(-2px) scale(1.1);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
@@ -230,7 +230,7 @@
 
 @media (max-width: 768px) {
     .upload-area {
-        padding: 1.5rem;
+        padding: var(--card-pad);
     }
 
     .upload-area p {

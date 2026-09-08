@@ -11,19 +11,25 @@
     display: inline-flex;
 }
 
+/*
+ * 32px to match `.topbar-icon-btn`, so every control in the bar is the same
+ * size and on the same centre line. It also buys the badge real clearance:
+ * inside a 56px bar a 40px bell left only 8px above it, and the badge hangs
+ * 3px higher still, which is what put it against the header's clip box.
+ */
 .ntf-bell {
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     /*
      * `padding: 0` is load-bearing, not tidiness.
      *
      * The app-wide `button` rule in index.css sets `padding: 0.6em 1.2em`
-     * (9.6px / 19.2px). Under border-box that leaves a 40px button roughly
-     * 0.4px of content width, and the icon — a flex item with the default
+     * (9.6px / 19.2px). Under border-box that leaves this button barely any
+     * content width, and the icon — a flex item with the default
      * `flex-shrink: 1` — collapsed to width 0. The circular background and the
      * badge still painted, so the bell rendered as an empty circle. Resetting
      * the inherited padding, and refusing to shrink the icon, is the fix.
@@ -44,14 +50,15 @@
 }
 
 /*
- * The global `button:hover` paints a green border and a green glow. That reads
- * as an error state on a neutral icon button, so the bell states are declared
- * explicitly instead of inheriting it.
+ * Declared explicitly rather than inheriting the global control hover.
+ * Background and icon colour only — the bell's edge is left alone so it does
+ * not flicker every time the pointer crosses the topbar. The open state below
+ * may move the border, because that is a state, not a hover.
  */
 .ntf-bell:hover {
     background: var(--bg-elevated);
     color: var(--text-primary);
-    border-color: var(--border-hover);
+    filter: none;
     box-shadow: none;
 }
 
@@ -92,29 +99,42 @@
     pointer-events: none;
 }
 
+/* Sits one step under the panel, in the same portalled layer. */
 .ntf-scrim {
     position: fixed;
     inset: 0;
-    z-index: 998;
+    z-index: calc(var(--z-notification-panel) - 1);
 }
 
 /* ── Bell dropdown ──────────────────────────────────────────────────────── */
 
+/*
+ * Rendered into <body> by NotificationBell, not beside the bell, so that no
+ * ancestor `overflow` can clip it and no ancestor stacking context can cap its
+ * z-index. `top`, `right` and `max-height` are supplied inline from the bell's
+ * measured position and re-measured on scroll, resize and layout changes, so
+ * the panel stays anchored to the bell and inside the viewport.
+ *
+ * `--ntf-max-height` is the space actually left below the bell, supplied
+ * inline. It goes through `min()` with the design caps rather than being set
+ * as `max-height` directly — an inline `max-height` would outrank this rule and
+ * silently drop the 520px ceiling, letting the panel grow to fill a tall
+ * screen. This way the panel keeps its designed size and only shrinks when the
+ * viewport genuinely cannot fit it.
+ */
 .ntf-panel {
-    position: absolute;
-    top: calc(100% + 10px);
-    right: 0;
-    z-index: 999;
+    position: fixed;
+    z-index: var(--z-notification-panel);
     display: flex;
     flex-direction: column;
-    width: min(360px, calc(100vw - 2rem));
-    max-height: min(70vh, 520px);
-    border-radius: 16px;
+    width: min(360px, calc(100vw - 1rem));
+    max-height: min(70vh, 520px, var(--ntf-max-height, 100vh));
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border);
     background: var(--bg-card);
     box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
     overflow: hidden;
-    animation: fadeIn 0.15s ease;
+    animation: ntf-fade-in 0.15s ease;
 }
 
 .ntf-panel-head {
@@ -274,14 +294,14 @@ html[data-theme="dark"] .ntf-panel-count { color: #34d399; }
 .ntf-center-overlay {
     position: fixed;
     inset: 0;
-    z-index: 1100;
+    z-index: var(--z-notification-center);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
+    padding: var(--card-pad);
     background: rgba(15, 23, 42, 0.5);
     backdrop-filter: blur(3px);
-    animation: fadeIn 0.15s ease;
+    animation: ntf-fade-in 0.15s ease;
 }
 
 .ntf-center {
@@ -290,7 +310,7 @@ html[data-theme="dark"] .ntf-panel-count { color: #34d399; }
     width: 100%;
     max-width: 760px;
     max-height: min(88vh, 820px);
-    border-radius: 18px;
+    border-radius: var(--radius-lg);
     background: var(--bg-card);
     box-shadow: 0 24px 64px rgba(15, 23, 42, 0.3);
     overflow: hidden;
@@ -464,12 +484,10 @@ html[data-theme="dark"] .ntf-panel-count { color: #34d399; }
 }
 
 .ntf-row-action:hover {
-    border-color: var(--border);
     color: var(--text-primary);
 }
 
 .ntf-row-action.danger:hover {
-    border-color: rgba(239, 68, 68, 0.35);
     color: #b91c1c;
 }
 
@@ -515,6 +533,19 @@ html[data-theme="dark"] .ntf-row-action.danger:hover { color: #fca5a5; }
     background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
     background-size: 200% 100%;
     animation: ntf-shimmer 1.4s ease-in-out infinite;
+}
+
+/*
+ * Namespaced on purpose. `fadeIn` is declared six times across this codebase
+ * (AdminDashboard, AnnouncementsView, JournalView, TimesheetView, index.css …)
+ * and `@keyframes` are global, so whichever copy lands last in the bundle wins
+ * for everyone. The panel was picking up a variant whose first frame carries
+ * `translateY(10px)`, which shifted it 10px off the position measured from the
+ * bell. A unique name makes the panel immune to bundle order.
+ */
+@keyframes ntf-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 @keyframes ntf-shimmer {
@@ -568,7 +599,7 @@ html[data-theme="dark"] .ntf-row-action.danger:hover { color: #fca5a5; }
     align-items: flex-start;
     gap: 0.35rem;
     padding: 0.4rem 0.5rem 0.4rem 0;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border);
     background: var(--bg-card);
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);

@@ -72,7 +72,7 @@
 
 .dtr-card-container:hover .dtr-card-front,
 .dtr-card-container:hover .dtr-card-back {
-  border-color: rgba(16, 185, 129, 0.4);
+
   box-shadow: 0 12px 48px rgba(16, 185, 129, 0.15);
 }
 
@@ -576,7 +576,7 @@
 
 .dtr-actions:hover {
   transform: translateY(-5px);
-  border-color: var(--primary-glow);
+
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15), 0 0 20px var(--primary-glow);
 }
 
@@ -947,7 +947,7 @@
 .dtr-btn-sign-day:hover {
   opacity: 1;
   background: rgba(16, 185, 129, 0.1);
-  border-color: #10b981;
+
 }
 
 .dtr-signature-stamp {

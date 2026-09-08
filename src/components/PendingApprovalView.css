@@ -202,7 +202,7 @@
   gap: 0.5rem;
   min-height: 48px;
   padding: 0.85rem 1.5rem;
-  border: 1px solid #047857;
+  border: 1px solid transparent;
   border-radius: 12px;
   /*
    * Flat colour, not a gradient image — see the note on `button` in index.css.
@@ -223,7 +223,7 @@
 
 .pav-btn:hover {
   background-color: #065f46;
-  border-color: #065f46;
+
   box-shadow: 0 6px 18px rgba(4, 120, 87, 0.4);
 }
 

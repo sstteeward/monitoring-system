@@ -5,60 +5,45 @@
 
 @import url('./StudentDashboard.css');
 
-/* ── Brand Colors & Badges (Emerald Green System) ── */
+/* ── Brand Colors & Badges (Emerald Green System) ──
+   Flat fills, no gradients and no coloured drop shadows: these are identity
+   marks in the chrome, not focal points. */
 .ad-logo-icon {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35) !important;
+    background: var(--secondary) !important;
+    box-shadow: none !important;
 }
 
+/* A static label. It used to pulse a glowing dot forever, which drew the eye
+   to the one thing on the page that never changes. */
 .ad-role-badge {
-    color: #10b981 !important;
-    font-weight: 700 !important;
-    font-size: 0.65rem !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+    font-size: 0.64rem !important;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     display: inline-flex !important;
     align-items: center;
-    gap: 0.35rem;
-}
-
-.ad-role-badge::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    background: #10b981;
-    border-radius: 50%;
-    box-shadow: 0 0 6px #10b981;
-    animation: ad-pulse 2s ease-in-out infinite;
-}
-
-@keyframes ad-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.85); }
+    gap: 0.3rem;
 }
 
 .ad-topbar-avatar {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    background: var(--primary) !important;
     color: #ffffff !important;
-    font-weight: 700 !important;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-}
-
-.ad-topbar-avatar:hover {
-    transform: scale(1.05);
+    font-weight: 600 !important;
+    box-shadow: none;
 }
 
 /* ── Course Badges ── */
 .adviser-course-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.25rem 0.65rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 700;
+    gap: 0.3rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.68rem;
+    font-weight: 600;
     letter-spacing: 0.02em;
+    white-space: nowrap;
 }
 
 .adviser-course-dht {
@@ -88,29 +73,33 @@ html[data-theme="dark"] .adviser-course-dit {
 /* ═══════════════════════════════════════════════════
    ADVISER WELCOME BANNER (Unified Emerald/Teal Gradient)
    ═══════════════════════════════════════════════════ */
+/*
+ * One flat band, matching the Student portal's greeting exactly so the two
+ * read as the same product. The three-stop gradient, the two radial washes
+ * layered on top of it, and the coloured drop shadow are all gone — they cost
+ * ~110px of vertical space and told the adviser nothing.
+ */
 .ad-welcome-banner {
     position: relative;
-    background: linear-gradient(135deg, #10b981 0%, #0d9488 60%, #059669 100%);
-    border-radius: 20px;
-    padding: 2rem 2.25rem;
+    background: #0f766e;
+    border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    padding: 0.9rem 1.15rem;
     overflow: hidden;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+    margin-bottom: var(--section-gap);
+    box-shadow: none;
 }
 
 html[data-theme="dark"] .ad-welcome-banner {
     background: #1e2b26;
-    border: 1px solid #2b3a33;
+    border-color: #2b3a33;
     box-shadow: none;
 }
 
+/* Kept as an element so the markup does not have to change; it simply paints
+   nothing now. */
 .ad-welcome-bg {
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(ellipse at 85% 30%, rgba(255, 255, 255, 0.12) 0%, transparent 60%),
-        radial-gradient(ellipse at 15% 85%, rgba(16, 185, 129, 0.25) 0%, transparent 50%);
-    pointer-events: none;
+    display: none;
 }
 
 .ad-welcome-content {
@@ -118,54 +107,52 @@ html[data-theme="dark"] .ad-welcome-banner {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1.25rem;
+    gap: 1rem;
     flex-wrap: wrap;
 }
 
 .ad-welcome-greeting {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.92);
-    margin-bottom: 0.25rem;
+    font-size: 0.74rem;
+    color: rgba(209, 250, 229, 0.8);
+    margin-bottom: 0.1rem;
     letter-spacing: 0.02em;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .ad-welcome-name {
-    font-size: clamp(1.4rem, 4vw, 1.85rem);
-    font-weight: 800;
+    font-size: 1.15rem;
+    font-weight: 700;
     color: #ffffff;
-    margin-bottom: 0.35rem;
-    line-height: 1.2;
+    margin-bottom: 0.15rem;
+    line-height: 1.25;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .ad-welcome-badge {
-    background: rgba(255, 255, 255, 0.22) !important;
+    background: rgba(255, 255, 255, 0.18) !important;
     color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.4) !important;
-    backdrop-filter: blur(8px);
-    font-size: 0.85rem !important;
-    font-weight: 700 !important;
-    padding: 0.28rem 0.75rem !important;
-    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    padding: 0.1rem 0.5rem !important;
+    border-radius: var(--radius-pill);
     letter-spacing: 0.02em;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
 }
 
 .ad-welcome-sub {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.74rem;
+    color: rgba(209, 250, 229, 0.75);
     margin: 0;
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .ad-welcome-actions {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.4rem;
     flex-wrap: wrap;
 }
 
@@ -175,8 +162,8 @@ html[data-theme="dark"] .ad-welcome-banner {
 .ad-stats-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.75rem;
+    gap: 0.6rem;
+    margin-bottom: var(--section-gap);
     width: 100%;
 }
 
@@ -201,36 +188,37 @@ html[data-theme="dark"] .ad-welcome-banner {
 .ad-stat-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.25rem 1.15rem;
+    border-radius: var(--radius-md);
+    padding: 0.7rem 0.8rem;
     display: flex;
-    align-items: flex-start;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.65rem;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: var(--hover-transition);
     position: relative;
     overflow: hidden;
 }
 
+/* These cards are links to a filtered roster, so they do get a hover — one
+   step of background, nothing else. No lift, no emerald edge, no icon scale. */
 .ad-stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--glow, rgba(16, 185, 129, 0.12));
-    border-color: #10b981;
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-sm);
 }
 
 .ad-stat-icon-wrap {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-xs);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: transform 0.2s ease;
 }
 
-.ad-stat-card:hover .ad-stat-icon-wrap {
-    transform: scale(1.08);
+.ad-stat-icon-wrap svg {
+    width: 16px;
+    height: 16px;
 }
 
 .ad-stat-body {
@@ -239,27 +227,25 @@ html[data-theme="dark"] .ad-welcome-banner {
 }
 
 .ad-stat-label {
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: 0.66rem;
+    font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 0.25rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .ad-stat-value {
-    font-size: 1.75rem;
-    font-weight: 800;
-    line-height: 1.1;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.15;
     font-variant-numeric: tabular-nums;
-    margin-bottom: 0.2rem;
 }
 
 .ad-stat-sub {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
@@ -272,8 +258,8 @@ html[data-theme="dark"] .ad-welcome-banner {
 .ad-overview-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.2fr);
-    gap: 1.5rem;
-    margin-bottom: 1.75rem;
+    gap: var(--section-gap);
+    margin-bottom: var(--section-gap);
     align-items: start;
     width: 100%;
 }
@@ -287,27 +273,26 @@ html[data-theme="dark"] .ad-welcome-banner {
 /* ── Section Cards Layout ── */
 .ad-sections-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 0.6rem;
 }
 
 .section-card {
     background: var(--bg-elevated);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.25rem;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: var(--radius-md);
+    padding: 0.8rem 0.9rem;
+    transition: var(--hover-transition);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    gap: 0.5rem;
     cursor: pointer;
 }
 
 .section-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
-    border-color: #10b981;
     background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
 }
 
 .section-card-header {
@@ -315,168 +300,189 @@ html[data-theme="dark"] .ad-welcome-banner {
     justify-content: space-between;
     align-items: flex-start;
     gap: 0.5rem;
-    margin-bottom: 0.85rem;
+    margin-bottom: 0;
 }
 
 .section-card-title {
-    font-size: 1.15rem;
-    font-weight: 800;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: var(--text-bright);
+    line-height: 1.25;
 }
 
 .section-card-meta {
-    font-size: 0.78rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
-    margin-top: 0.15rem;
+    margin-top: 0.1rem;
 }
 
 .section-card-count {
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: 1.4rem;
+    font-weight: 700;
     color: var(--text-bright);
-    line-height: 1;
-    margin-bottom: 0.25rem;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
 }
 
 .section-card-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 1rem;
-    padding-top: 0.75rem;
+    margin-top: 0;
+    padding-top: 0.5rem;
     border-top: 1px solid var(--border);
 }
 
 /* ── Approval Queue Items ── */
+/* A review queue reads best as a divided list: three rows, one hairline
+   between them, no individual boxes. */
 .ad-queue-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
 }
 
 .ad-queue-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.9rem 1.1rem;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    gap: 0.75rem;
+    padding: 0.55rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    border-radius: var(--radius-xs);
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition: var(--hover-transition);
+}
+
+.ad-queue-item:last-child {
+    border-bottom: none;
 }
 
 .ad-queue-item:hover {
-    background: var(--bg-card);
-    border-color: #10b981;
-    transform: translateX(3px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+    background: var(--bg-elevated);
 }
 
 .ad-queue-info {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.65rem;
+    min-width: 0;
 }
 
 .ad-queue-icon-wrap {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-xs);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 }
 
+.ad-queue-icon-wrap svg {
+    width: 15px;
+    height: 15px;
+}
+
 .ad-queue-title {
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 0.83rem;
+    font-weight: 600;
     color: var(--text-bright);
+    line-height: 1.3;
 }
 
 .ad-queue-sub {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
-    margin-top: 0.15rem;
+    margin-top: 0.05rem;
 }
 
 .ad-queue-badge {
-    padding: 0.25rem 0.65rem;
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 700;
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.72rem;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
 }
 
 /* ── At Risk Banner ── */
 .ad-risk-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
+    border-radius: var(--radius-md);
+    padding: var(--card-pad);
+    margin-bottom: var(--section-gap);
 }
 
 .ad-risk-healthy {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.85rem 1rem;
+    gap: 0.55rem;
+    padding: 0.55rem 0.7rem;
     background: rgba(16, 185, 129, 0.08);
     border: 1px solid rgba(16, 185, 129, 0.25);
-    border-radius: 12px;
-    color: #059669;
-    font-size: 0.88rem;
-    font-weight: 600;
+    border-radius: var(--radius-xs);
+    color: #047857;
+    font-size: 0.8rem;
+    font-weight: 500;
 }
 
 .ad-risk-alert {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 0.85rem 1rem;
+    gap: 0.75rem;
+    padding: 0.55rem 0.7rem;
     background: rgba(239, 68, 68, 0.08);
     border: 1px solid rgba(239, 68, 68, 0.25);
-    border-radius: 12px;
-    color: #dc2626;
-    font-size: 0.88rem;
-    font-weight: 600;
+    border-radius: var(--radius-xs);
+    color: #b91c1c;
+    font-size: 0.8rem;
+    font-weight: 500;
     flex-wrap: wrap;
 }
 
+.ad-risk-healthy svg,
+.ad-risk-alert svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+html[data-theme="dark"] .ad-risk-healthy { color: #34d399; }
+html[data-theme="dark"] .ad-risk-alert   { color: #f87171; }
+
 /* ── Empty State Component ── */
 .ad-empty-state {
-    padding: 3rem 1.5rem;
+    padding: 1.5rem 1rem;
     text-align: center;
     color: var(--text-muted);
     background: var(--bg-elevated);
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     border: 1px dashed var(--border);
 }
 
 .ad-empty-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-xs);
     background: var(--bg-card);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1rem;
-    color: #10b981;
+    margin: 0 auto 0.55rem;
+    color: var(--text-muted);
 }
 
 .ad-empty-title {
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: 0.88rem;
+    font-weight: 600;
     color: var(--text-bright);
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.2rem;
 }
 
 .ad-empty-desc {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     color: var(--text-muted);
     max-width: 320px;
     margin: 0 auto;
@@ -502,7 +508,7 @@ html[data-theme="dark"] .ad-welcome-banner {
     max-height: min(88vh, 760px);
     background: var(--bg-card);
     border: 1px solid var(--border-strong);
-    border-radius: 18px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
     overflow: hidden;
     animation: ad-dialog-in 0.18s cubic-bezier(0.4, 0, 0.2, 1);
@@ -566,8 +572,8 @@ html[data-theme="dark"] .ad-welcome-banner {
 
 .ad-dialog .ad-dialog__close:hover {
     background: var(--bg-elevated);
-    border-color: var(--border);
     color: var(--text-primary);
+    filter: none;
     box-shadow: none;
 }
 
@@ -600,7 +606,7 @@ html[data-theme="dark"] .ad-welcome-banner {
     padding: 1rem;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
 }
 
 .ad-student-avatar {
@@ -610,7 +616,7 @@ html[data-theme="dark"] .ad-welcome-banner {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     background: var(--ad-accent-soft);
     color: var(--ad-accent);
     font-size: 0.9rem;
@@ -689,7 +695,7 @@ html[data-theme="dark"] .ad-welcome-banner {
     padding: 0.8rem 0.9rem;
     box-sizing: border-box;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     background: var(--bg-page);
     color: var(--text-primary);
     font-family: inherit;
@@ -741,7 +747,7 @@ html[data-theme="dark"] .ad-welcome-banner {
     min-height: 42px;
     padding: 0.6rem 1.15rem;
     border: 1px solid transparent;
-    border-radius: 11px;
+    border-radius: var(--radius-lg);
     font-family: inherit;
     font-size: 0.87rem;
     font-weight: 600;
@@ -763,8 +769,8 @@ html[data-theme="dark"] .ad-welcome-banner {
 
 .ad-dialog .ad-dialog__btn--secondary:hover:not(:disabled) {
     background: var(--bg-elevated);
-    border-color: var(--text-muted);
     color: var(--text-primary);
+    filter: none;
     box-shadow: none;
 }
 
@@ -777,6 +783,12 @@ html[data-theme="dark"] .ad-welcome-banner {
 .ad-dialog .ad-dialog__btn--primary:hover:not(:disabled) {
     filter: brightness(0.93);
     box-shadow: none;
+}
+
+/* The dialog's own buttons are already sized; keep them off the shared `.btn`
+   rhythm but on the shared radius. */
+.ad-dialog .ad-dialog__btn {
+    border-radius: var(--radius-xs);
 }
 
 .ad-dialog .ad-dialog__btn--primary:active:not(:disabled) {
@@ -845,7 +857,7 @@ html[data-theme="dark"] .ad-welcome-banner {
     margin-bottom: 1rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .ad-att-field {
@@ -903,7 +915,7 @@ html[data-theme="dark"] .ad-welcome-banner {
 .ad-att-btn.ad-att-btn:hover:not(:disabled) {
     background: var(--bg-elevated);
     color: var(--text-primary);
-    border-color: var(--primary);
+    filter: none;
     box-shadow: none;
 }
 
@@ -929,7 +941,7 @@ html[data-theme="dark"] .ad-welcome-banner {
     padding: 0.75rem 0.9rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .ad-att-kpi-icon {
@@ -975,7 +987,7 @@ html[data-theme="dark"] .ad-welcome-banner {
 .ad-att-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     margin-bottom: 1rem;
 }
@@ -1159,7 +1171,7 @@ html[data-theme="dark"] .ad-att-badge.is-on-leave   { color: #93c5fd; }
 .ad-att-view.ad-att-view:hover {
     background: var(--bg-elevated);
     color: var(--primary);
-    border-color: var(--primary);
+    filter: none;
     box-shadow: none;
 }
 
@@ -1264,4 +1276,212 @@ html[data-theme="dark"] .ad-att-badge.is-on-leave   { color: #93c5fd; }
 @media (max-width: 460px) {
     .ad-att-kpis { grid-template-columns: 1fr; }
     .ad-att-kpi { min-height: 0; }
+}
+
+/* ═══════════════════════════════════════════════════
+   ADMIN-TABLE CLASSES INSIDE THE ADVISER SHELL
+
+   AdviserOverviewView / AdviserStudentsView / AdviserApprovalsView reuse the
+   `.admin-table*` classes that AdminDashboard.css defines for the Admin
+   portal, where cells are padded 1rem 1.5rem — a ~52px row. On a supervision
+   roster that means five students per screen.
+
+   Scoping to `.dashboard-container` (the Student/Adviser/Coordinator shell,
+   never `.admin-dashboard-container`) lets the roster breathe at admin-panel
+   density without changing the Admin portal at all.
+═══════════════════════════════════════════════════ */
+.dashboard-container .admin-table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.dashboard-container .admin-table-header {
+    padding: 0.7rem 0.9rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-container .admin-table-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.dashboard-container .admin-table {
+    font-size: 0.82rem;
+}
+
+.dashboard-container .admin-table th {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+}
+
+.dashboard-container .admin-table td {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+    vertical-align: middle;
+}
+
+/* Row hover is a background step on the whole row — no border movement. */
+.dashboard-container .admin-table tbody tr {
+    transition: background-color 0.12s ease;
+}
+
+.dashboard-container .admin-table tbody tr:hover td {
+    background: var(--bg-elevated);
+}
+
+/* `.role-select` doubles as the small action button in these views. */
+.dashboard-container .role-select {
+    min-height: 28px;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--radius-xs);
+    font-size: 0.76rem;
+    font-weight: 600;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    transition: var(--hover-transition);
+}
+
+.dashboard-container .role-select:hover:not(:disabled) {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    filter: none;
+    box-shadow: none;
+}
+
+/* ── Roster filter tabs ── */
+.ad-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    padding: 0.5rem 0.9rem;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+}
+
+.ad-filter-tab {
+    min-height: 28px;
+    padding: 0.25rem 0.65rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: var(--hover-transition);
+}
+
+.ad-filter-tab:hover:not(.is-active) {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    filter: none;
+    box-shadow: none;
+}
+
+/* Selected is a state, so it may fill. */
+.ad-filter-tab.is-active {
+    background: var(--primary);
+    border-color: transparent;
+    color: #ffffff;
+}
+
+.ad-filter-tab.is-active:hover {
+    background: var(--primary-hover);
+}
+
+/* ── Roster toolbar controls ── */
+.ad-roster-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ad-roster-label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.ad-roster-select,
+.ad-roster-search {
+    min-height: 32px;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.82rem;
+}
+
+.ad-roster-search {
+    width: min(220px, 100%);
+}
+
+.ad-roster-select:focus-visible,
+.ad-roster-search:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+}
+
+/* ── Roster progress cell ── */
+.ad-roster-progress {
+    width: 96px;
+    height: 4px;
+    margin-top: 0.2rem;
+    border-radius: var(--radius-pill);
+    background: var(--bg-elevated);
+    overflow: hidden;
+}
+
+.ad-roster-progress > span {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+}
+
+/* ── Roster status badge ── */
+.ad-roster-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.45rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.ad-roster-status.is-risk    { background: rgba(239, 68, 68, 0.12);  color: #b91c1c; }
+.ad-roster-status.is-pending { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+.ad-roster-status.is-ontrack { background: rgba(16, 185, 129, 0.12); color: #047857; }
+
+html[data-theme="dark"] .ad-roster-status.is-risk    { color: #f87171; }
+html[data-theme="dark"] .ad-roster-status.is-pending { color: #fbbf24; }
+html[data-theme="dark"] .ad-roster-status.is-ontrack { color: #34d399; }
+
+@media (max-width: 720px) {
+    .ad-roster-search {
+        width: 100%;
+    }
+
+    .ad-roster-controls {
+        width: 100%;
+    }
 }

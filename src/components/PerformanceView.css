@@ -1,7 +1,7 @@
 .performance-view {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: var(--section-gap);
     width: 100%;
     animation: fadeIn 0.3s ease-out;
 }
@@ -27,7 +27,7 @@
 }
 
 .kpi-card {
-    padding: 1.5rem;
+    padding: var(--card-pad);
     display: flex;
     align-items: flex-start;
     gap: 1rem;
@@ -137,7 +137,7 @@
 }
 
 .performance-card {
-    padding: 1.5rem;
+    padding: var(--card-pad);
     min-height: 300px;
 }
 

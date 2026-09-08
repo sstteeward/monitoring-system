@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../contexts/NotificationsContext';
 import {
@@ -140,7 +141,11 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
         }
     };
 
-    return (
+    /* Portalled for the same reason as the bell's panel: this modal is rendered
+       from inside `.topbar`, a sticky element with a z-index, so its own
+       z-index was confined to that stacking context and it painted *under* the
+       sidebar and the chat widget. */
+    return createPortal(
         <div className="ntf-center-overlay" onClick={onClose} role="presentation">
             <div
                 className="ntf-center"
@@ -294,7 +299,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

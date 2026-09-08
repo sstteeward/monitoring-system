@@ -1,7 +1,7 @@
 .announcements-container {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--section-gap);
     animation: fadeIn 0.3s ease-out;
 }
 
@@ -34,11 +34,11 @@
 
 .empty-state,
 .loading-state {
-    padding: 4rem 2rem;
+    padding: 2rem 1.25rem;
     text-align: center;
     color: var(--text-muted);
     border: 1px dashed var(--border);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
 }
 
 /* Reactions Modal */

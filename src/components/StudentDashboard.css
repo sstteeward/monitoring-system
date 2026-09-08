@@ -142,12 +142,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem;
-    /* Reduced from 1.25rem left */
+    padding: 0.75rem 0.85rem;
     gap: 0.25rem;
-    /* Reduced from 0.5rem */
     border-bottom: 1px solid var(--border);
-    height: 70px;
+    /* Matches the topbar height so the two rules line up across the seam.
+       `flex-shrink: 0` for the same reason as `.topbar`: this is a flex item of
+       the column-flex `.sidebar`, next to a `flex: 1` scroll area. */
+    min-height: 56px;
+    flex-shrink: 0;
     position: relative;
 }
 
@@ -216,9 +218,9 @@
 }
 
 .sidebar-section-label {
-    padding: 1.25rem 1.25rem 0.4rem;
-    font-size: 0.65rem;
-    font-weight: 800;
+    padding: 0.9rem 1rem 0.3rem;
+    font-size: 0.64rem;
+    font-weight: 700;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -229,29 +231,30 @@
 .sidebar-nav {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.5rem 0.75rem;
+    gap: 0.125rem;
+    padding: 0.35rem 0.6rem;
 }
 
 .sidebar-nav-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
+    gap: 0.7rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: var(--radius-xs);
+    font-size: 0.84rem;
     font-weight: 500;
     color: var(--text-muted);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: var(--hover-transition);
     user-select: none;
-    height: 40px;
+    height: 34px;
 }
 
+/* No sideways slide: nav items that shuffle on hover make the whole rail
+   restless when the pointer travels down it. */
 .sidebar-nav-item:hover {
     background: var(--bg-elevated);
     color: var(--text-primary);
-    transform: translateX(4px);
 }
 
 .sidebar-nav-item.active {
@@ -281,33 +284,37 @@
 /* Logout at bottom */
 .sidebar-bottom {
     margin-top: auto;
-    padding: 1rem 0.5rem;
+    padding: 0.6rem;
     border-top: 1px solid var(--border);
 }
 
 .logout-btn {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.7rem;
     width: 100%;
-    padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: var(--radius-xs);
+    font-size: 0.84rem;
     font-weight: 500;
     color: var(--text-muted);
     background: transparent;
     border: none;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    transition: all 0.15s ease;
+    transition: var(--hover-transition);
     text-align: left;
-    height: 40px;
+    height: 34px;
 }
 
 .logout-btn:hover {
     background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    filter: none;
+}
+
+html[data-theme="dark"] .logout-btn:hover {
     color: #f87171;
-    transform: translateX(4px);
 }
 
 /* Sidebar Control Popover */
@@ -377,10 +384,8 @@
     transition: border-color 0.1s;
 }
 
-.sidebar-control-option:hover .sidebar-control-radio {
-    border-color: var(--text-muted);
-}
-
+/* The row's own background change is the hover signal; the radio ring only
+   moves when the option is actually selected. */
 .sidebar-control-radio:has(.sidebar-control-radio-inner) {
     border-color: var(--text-bright);
 }
@@ -417,13 +422,27 @@
 }
 
 /* Top bar */
+/*
+ * 56px tall, matching the sidebar header, so the two chrome bars share a line.
+ * The page ground is opaque, so a blur here rendered nothing.
+ *
+ * `flex-shrink: 0` is load-bearing. `.dashboard-main` is a column flex
+ * container, so the topbar is a flex item; with the default `flex-shrink: 1`
+ * and a tall `.page-content` sibling, the browser squeezed this bar from 56px
+ * down to ~41px. The 40px notification bell then sat flush against y=0 and its
+ * badge — offset `top: -3px` — fell outside `.dashboard-main`'s `overflow`
+ * box and was clipped. `min-height` rather than `height` so the bar can still
+ * grow if its contents wrap.
+ */
 .topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 2rem;
+    gap: 1rem;
+    min-height: 56px;
+    flex-shrink: 0;
+    padding: 0 var(--page-pad);
     background: var(--bg-page);
-    backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
@@ -431,27 +450,28 @@
 }
 
 .topbar-title {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-primary);
+    line-height: 1.25;
 }
 
 .topbar-date {
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     color: var(--text-muted);
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 .topbar-right {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.4rem;
 }
 
 .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.25rem;
 }
 
 .topbar-icon-btn {
@@ -463,10 +483,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    transition: all 0.2s;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-xs);
+    transition: var(--hover-transition);
     position: relative;
 }
 
@@ -512,14 +532,14 @@
 .topbar-user-btn {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.55rem;
     background: none;
     border: none;
     outline: none;
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    transition: background 0.2s;
+    padding: 0.2rem 0.4rem;
+    border-radius: var(--radius-sm);
+    transition: var(--hover-transition);
     text-align: right;
 }
 
@@ -552,26 +572,26 @@
 }
 
 .topbar-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-xs);
+    background: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 0.78rem;
+    font-weight: 600;
     color: white;
     flex-shrink: 0;
 }
 
 .topbar-badge {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    padding: 0.3rem 0.8rem;
-    border-radius: 99px;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-xs);
     background: var(--bg-elevated);
-    color: var(--primary);
+    color: var(--text-secondary);
     border: 1px solid var(--border);
 }
 
@@ -579,16 +599,17 @@
    PAGE CONTENT
    ══════════════════════════════════════════ */
 .page-content {
-    padding: 2rem;
+    padding: var(--page-pad);
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--section-gap);
     flex: 1;
 }
 
 /* ── DTR View Wrapper ── */
 .dtr-view-wrapper {
-    margin: -2rem;
+    /* Cancels .page-content's padding so the DTR sheet can go edge to edge. */
+    margin: calc(var(--page-pad) * -1);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -618,7 +639,7 @@
     padding: 1.1rem 1.25rem;
     border: 1px solid #fca5a5;
     border-left: 5px solid #dc2626;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     background: #fef2f2;
     box-shadow: 0 6px 20px rgba(220, 38, 38, 0.12);
     animation: dailyLimitIn 0.25s ease-out;
@@ -704,7 +725,7 @@
     gap: 0.75rem;
     padding: 0.65rem 0.9rem;
     border: 1px solid #fcd34d;
-    border-radius: 11px;
+    border-radius: var(--radius-lg);
     background: #fffbeb;
     color: #92400e;
     font-size: 0.84rem;
@@ -766,99 +787,97 @@ html[data-theme="dark"] .info-item-value.is-over-limit { color: #fca5a5; }
 /* ── Hero Timer Section ── */
 .timer-hero {
     display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 1.5rem;
+    grid-template-columns: 1fr 300px;
+    gap: var(--section-gap);
     align-items: stretch;
     isolation: isolate;
 }
 
+/* Flat surface. The old radial emerald bloom above the clock was decoration
+   with no state behind it, and it fought the hero background it sat on. */
 .timer-main-card {
-    background: var(--bg-hero); /* Keep special hero background */
-    padding: 2.5rem;
+    background: var(--bg-hero);
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1.5rem;
+    gap: 0.85rem;
     position: relative;
-    min-height: 280px;
-}
-
-.timer-main-card::before {
-    content: '';
-    position: absolute;
-    top: -60px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 400px;
-    height: 200px;
-    background: radial-gradient(ellipse, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
-    pointer-events: none;
+    min-height: 0;
 }
 
 .timer-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-}
-
-.timer-clock {
-    font-size: 5.5rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -3px;
-    color: var(--text-primary);
-    line-height: 1;
-    text-shadow: 0 0 40px var(--primary-glow);
-}
-
-.timer-clock.on-break {
-    font-size: 2.5rem;
-    color: var(--warning);
-    text-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
-    letter-spacing: -1px;
-}
-
-.timer-controls {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-top: 1.5rem;
-    flex-wrap: wrap;
-}
-
-/* ── Side Info Card ── */
-.timer-side-card {
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
-.side-card-title {
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 0.66rem;
+    font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-muted);
 }
 
+/* Big enough to read across a room, small enough that the card beneath it
+   still fits on screen. The glow is gone: numerals do not need a halo. */
+.timer-clock {
+    font-size: 3.25rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.timer-clock.on-break {
+    font-size: 1.9rem;
+    color: #b45309;
+    letter-spacing: -0.01em;
+}
+
+html[data-theme="dark"] .timer-clock.on-break {
+    color: var(--warning);
+}
+
+.timer-controls {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+}
+
+/* ── Side Info Card ── */
+.timer-side-card {
+    padding: var(--card-pad);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.side-card-title {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* A plain divided list, not four nested boxes: the side card is already the
+   container, so each row only needs a hairline to separate it from the next. */
 .info-row {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
 }
 
 .info-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1rem;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.info-item:last-child {
+    border-bottom: none;
 }
 
 .info-item-label {
@@ -899,43 +918,46 @@ html[data-theme="dark"] .info-item-value.is-over-limit { color: #fca5a5; }
 }
 
 .progress-bar-bg {
-    height: 6px;
+    height: 5px;
     background: var(--bg-elevated);
-    border-radius: 99px;
+    border-radius: var(--radius-pill);
     overflow: hidden;
 }
 
 .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    border-radius: 99px;
-    transition: width 1s ease;
-    box-shadow: 0 0 8px var(--primary-glow);
+    background: var(--primary);
+    border-radius: var(--radius-pill);
+    transition: width 0.6s ease;
 }
 
-/* ── Stats Row ── */
+/* ── Stats Row ──
+   One self-sizing rule instead of an override per breakpoint: 4 up on desktop,
+   2 up on a tablet, 2 up on a phone, and it never needs a media query to say
+   so. The previous per-breakpoint overrides fought each other by source order
+   — the ≤1024px rule sat after the ≤400px one and won on a phone. */
 .stats-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.6rem;
 }
 
 .stat-card {
-    padding: 1.25rem 1.5rem;
+    padding: 0.8rem 0.95rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
 }
 
 .stat-icon {
-    font-size: 1.2rem;
-    margin-bottom: 0.25rem;
+    font-size: 1rem;
+    margin-bottom: 0.1rem;
 }
 
 .stat-label {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-muted);
 }
@@ -944,22 +966,24 @@ html[data-theme="dark"] .stat-label {
     color: var(--text-dim);
 }
 
+/* Restrained, not oversized: the number carries the weight, the card does
+   not have to shout it. */
 .stat-value {
-    font-size: 1.8rem;
-    font-weight: 800;
+    font-size: 1.35rem;
+    font-weight: 700;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
-    line-height: 1;
+    line-height: 1.1;
 }
 
 .stat-sub {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
 }
 
 /* ── Activity Section ── */
 .activity-card {
-    padding: 1.5rem;
+    padding: var(--card-pad);
     flex: 1;
 }
 
@@ -967,13 +991,13 @@ html[data-theme="dark"] .stat-label {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.75rem;
 }
 
 .activity-title {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--text-muted);
 }
@@ -983,13 +1007,13 @@ html[data-theme="dark"] .stat-label {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 3rem 0;
-    gap: 0.75rem;
+    padding: 1.5rem 0;
+    gap: 0.4rem;
     color: var(--text-dim);
 }
 
 .activity-empty-icon {
-    font-size: 2.5rem;
+    font-size: 1.5rem;
 }
 
 .activity-empty p {
@@ -1002,61 +1026,64 @@ html[data-theme="dark"] .stat-label {
     margin-top: 0.5rem;
 }
 
+/* A divided list rather than a stack of bordered tiles — the activity card is
+   already a container, so the rows inside it do not each need their own box. */
 .activity-items {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
 }
 
 .activity-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    transition: all 0.2s ease;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--border);
+    transition: var(--hover-transition);
 }
 
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+/* An in-progress shift is a status, so it earns the accent — as a left rule
+   and a tinted ground, not a full outline. */
 .activity-item.active {
-    border-color: var(--primary);
-    background: rgba(16, 185, 129, 0.04);
+    box-shadow: inset 2px 0 0 var(--primary);
+    padding-left: 0.6rem;
+    background: rgba(16, 185, 129, 0.05);
 }
 
 .activity-item-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.1rem;
+    min-width: 0;
 }
 
 .activity-item-time {
-    font-size: 0.88rem;
+    font-size: 0.84rem;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .activity-item-status {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
     font-weight: 500;
 }
 
 .activity-item-duration {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--primary);
-    background: var(--bg-page);
-    padding: 0.4rem 0.8rem;
-    border-radius: 8px;
-    border: 1px solid var(--border);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
 }
 
 .activity-item.active .activity-item-duration {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-    box-shadow: 0 4px 12px var(--primary-glow);
+    color: var(--primary);
 }
 
 /* ══════════════════════════════════════════
@@ -1154,19 +1181,26 @@ html[data-theme="dark"] .status-pill.inactive .status-dot {
 /* ══════════════════════════════════════════
    BUTTONS
    ══════════════════════════════════════════ */
+/*
+ * Three tiers, one geometry. Primary is the only filled control in a group;
+ * secondary is a bordered surface; danger is tinted. None of them lift, glow,
+ * or recolour their border on hover.
+ */
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    padding: 0.7rem 1.75rem;
-    border-radius: 10px;
-    font-size: 0.88rem;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 34px;
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--radius-xs);
+    font-size: 0.84rem;
     font-weight: 600;
     cursor: pointer;
-    border: none;
+    border: 1px solid transparent;
     font-family: 'Inter', sans-serif;
-    transition: all 0.18s ease;
-    letter-spacing: 0.01em;
+    transition: var(--hover-transition);
+    line-height: 1.2;
     white-space: nowrap;
 }
 
@@ -1176,35 +1210,47 @@ html[data-theme="dark"] .status-pill.inactive .status-dot {
 }
 
 .btn:active:not(:disabled) {
-    transform: scale(0.97);
+    transform: translateY(1px);
 }
 
+/* Transparent border, not an emerald one: the fill can then darken on hover
+   with no edge colour to keep in step. */
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    box-shadow: 0 4px 18px var(--primary-glow);
+    background: var(--primary);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: none;
 }
 
 .btn-primary:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.55);
+    background: var(--primary-hover);
+
+    filter: none;
+    box-shadow: none;
 }
 
 .btn-secondary {
-    background: var(--bg-elevated);
+    background: var(--bg-card);
     color: var(--text-secondary);
-    border: 1px solid var(--border);
+    border-color: var(--border-strong);
 }
 
+/* Background and text only — the border stays exactly where it was. */
 .btn-secondary:hover:not(:disabled) {
+    background: var(--bg-elevated);
     color: var(--text-primary);
-    border-color: var(--primary);
+    filter: none;
 }
 
+/* "Active" here is a toggled state (e.g. on break), so amber is meaningful. */
 .btn-secondary.active {
-    background: rgba(251, 191, 36, 0.1);
+    background: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+html[data-theme="dark"] .btn-secondary.active {
     color: #fbbf24;
-    border-color: rgba(251, 191, 36, 0.25);
 }
 
 .status-pill.working {
@@ -1281,41 +1327,40 @@ html[data-theme="dark"] .btn-danger {
 
 html[data-theme="dark"] .btn-danger:hover:not(:disabled) {
     background: rgba(239, 68, 68, 0.18);
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
+    box-shadow: none;
 }
 
-/* ── Shift Specific Buttons ── */
+/* ── Shift Specific Buttons ──
+   `.suggested` marks the shift the schedule expects next, so it keeps the
+   accent border as a genuine state. Hover only changes the fill. */
 .btn-shift {
-    background: var(--bg-elevated) !important;
-    border: 1px solid var(--border) !important;
-    color: var(--text-dim) !important;
-    min-width: 190px;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-strong) !important;
+    color: var(--text-secondary) !important;
+    min-width: 150px;
     justify-content: center;
-    padding: 0.8rem 1.5rem !important;
-    font-size: 0.88rem !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    opacity: 0.8;
+    padding: 0.45rem 1rem !important;
+    font-size: 0.84rem !important;
+    transition: var(--hover-transition) !important;
 }
 
 .btn-shift:hover:not(:disabled) {
+    background: var(--bg-elevated) !important;
     color: var(--text-primary) !important;
-    border-color: var(--border-hover) !important;
-    opacity: 1;
-    transform: translateY(-2px);
+    filter: none;
 }
 
 .btn-shift.suggested {
     background: rgba(16, 185, 129, 0.08) !important;
-    border: 1px solid var(--primary) !important;
+    border: 1px solid rgba(16, 185, 129, 0.45) !important;
     color: var(--primary) !important;
-    opacity: 1;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+    box-shadow: none;
 }
 
-.btn-shift.suggested:hover {
-    background: var(--primary) !important;
-    color: white !important;
-    box-shadow: 0 6px 22px var(--primary-glow);
+.btn-shift.suggested:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.16) !important;
+    color: var(--primary) !important;
+    box-shadow: none;
 }
 
 /* ══════════════════════════════════════════
@@ -1419,23 +1464,29 @@ html[data-theme="dark"] .btn-danger:hover:not(:disabled) {
 /* ══════════════════════════════════════════
    GREETING BANNER
    ══════════════════════════════════════════ */
+/*
+ * One flat emerald band, not a three-stop gradient under a coloured drop
+ * shadow. It still reads as the page's welcome, but it no longer takes 120px
+ * of vertical space to say the student's name.
+ */
 .greeting-banner {
-    background: linear-gradient(135deg, #10b981 0%, #0d9488 60%, #059669 100%);
-    border-radius: 16px;
-    padding: 1.5rem 2rem;
-    margin-bottom: 1.5rem;
+    background: #0f766e;
+    border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    padding: 0.9rem 1.15rem;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1.25rem;
-    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.2);
+    gap: 1rem;
+    box-shadow: none;
     flex-wrap: wrap;
 }
 
 /* Flat, deep green-grey panel — no gradient wash, no coloured glow. */
 html[data-theme="dark"] .greeting-banner {
     background: #1e2b26;
-    border: 1px solid #2b3a33;
+    border-color: #2b3a33;
     box-shadow: none;
 }
 
@@ -1445,52 +1496,53 @@ html[data-theme="dark"] .greeting-banner {
 }
 
 .greeting-banner-sub {
-    font-size: 0.82rem;
-    color: rgba(167, 243, 208, 0.8);
-    margin-bottom: 0.25rem;
+    font-size: 0.74rem;
+    color: rgba(209, 250, 229, 0.8);
+    margin-bottom: 0.1rem;
     font-weight: 500;
 }
 
 .greeting-banner-name {
-    font-size: 1.4rem;
-    font-weight: 800;
+    font-size: 1.15rem;
+    font-weight: 700;
     color: #ffffff;
     letter-spacing: -0.01em;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.15rem;
+    line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .greeting-banner-date {
-    font-size: 0.78rem;
-    color: rgba(167, 243, 208, 0.65);
+    font-size: 0.74rem;
+    color: rgba(209, 250, 229, 0.7);
 }
 
 .greeting-banner-actions {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.4rem;
     flex-shrink: 0;
     flex-wrap: wrap;
 }
 
 .greeting-banner-btn {
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     color: #fff;
-    border-radius: 10px;
-    padding: 0.5rem 1.1rem;
-    font-size: 0.82rem;
+    border-radius: var(--radius-xs);
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
-    backdrop-filter: blur(4px);
     font-family: 'Inter', sans-serif;
     white-space: nowrap;
-    transition: background 0.15s;
+    transition: var(--hover-transition);
 }
 
 .greeting-banner-btn:hover {
-    background: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.24);
+    filter: none;
 }
 
 /* ── Greeting banner: tablet ── */
@@ -1547,6 +1599,33 @@ html[data-theme="dark"] .greeting-banner {
 /* Helper utilities */
 .d-none-mobile {
     display: flex;
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE RHYTHM
+
+   Page padding shrinks by moving the token, never by overriding
+   `.page-content` directly — `.dtr-view-wrapper` cancels that padding with a
+   negative margin derived from the same token, so the two must not drift.
+   ══════════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .dashboard-container {
+        --page-pad: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .dashboard-container {
+        --page-pad: 0.75rem;
+        --section-gap: 0.75rem;
+        --card-pad: 0.9rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .dashboard-container {
+        --page-pad: 0.6rem;
+    }
 }
 
 /* ══════════════════════════════════════════
@@ -1643,16 +1722,8 @@ html[data-theme="dark"] .greeting-banner {
         margin-left: 0 !important;
     }
 
-    .topbar {
-        padding: 0.75rem 1rem;
-    }
-
     .topbar-date {
         display: none;
-    }
-
-    .page-content {
-        padding: 1rem;
     }
 
     .d-none-mobile {
@@ -1662,10 +1733,6 @@ html[data-theme="dark"] .greeting-banner {
     /* Timer layout single column */
     .timer-hero {
         grid-template-columns: 1fr;
-    }
-
-    .stats-row {
-        grid-template-columns: 1fr 1fr;
     }
 
     /* Table scroll */
@@ -1689,44 +1756,26 @@ html[data-theme="dark"] .greeting-banner {
    MOBILE (≤ 640px)
    ══════════════════════════════════════════ */
 @media (max-width: 640px) {
-    .topbar {
-        padding: 0.65rem 0.85rem;
-    }
-
     .topbar-right {
-        gap: 0.5rem;
+        gap: 0.35rem;
     }
 
     .topbar-date {
         display: none;
     }
 
-    .page-content {
-        padding: 0.75rem;
-    }
-
     /* Timer */
     .timer-main-card {
-        padding: 1.25rem;
+        padding: 1.1rem;
         min-height: auto;
     }
 
     .timer-clock {
-        font-size: 3rem !important;
-    }
-
-    .timer-hero {
-        gap: 0.75rem;
-    }
-
-    /* Stats */
-    .stats-row {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.6rem;
+        font-size: 2.5rem !important;
     }
 
     .stat-card {
-        padding: 0.85rem 0.75rem;
+        padding: 0.7rem 0.75rem;
     }
 
     /* Buttons */
@@ -1785,26 +1834,15 @@ html[data-theme="dark"] .greeting-banner {
    ══════════════════════════════════════════ */
 @media (max-width: 400px) {
     .timer-clock {
-        font-size: 2.4rem !important;
-    }
-
-    .stats-row {
-        grid-template-columns: 1fr;
+        font-size: 2.1rem !important;
     }
 
     .stat-card {
-        flex-direction: row;
-        gap: 0.75rem;
-        align-items: center;
-        padding: 0.75rem 1rem;
+        padding: 0.6rem 0.7rem;
     }
 
     .topbar-title {
-        font-size: 0.9rem;
-    }
-
-    .page-content {
-        padding: 0.5rem;
+        font-size: 0.88rem;
     }
 }
 
@@ -1836,8 +1874,7 @@ html[data-theme="dark"] .greeting-banner {
     }
 
     .mobile-menu-toggle:hover {
-        border-color: var(--primary);
-        transform: translateY(-1px);
+        background: var(--bg-hover);
     }
 
     .sidebar-header {
@@ -1869,51 +1906,29 @@ html[data-theme="dark"] .greeting-banner {
         display: none !important;
     }
 
-    .topbar {
-        padding: 1rem;
-    }
-
-    .page-content {
-        padding: 1rem;
-    }
-
     .timer-hero {
         grid-template-columns: 1fr;
+        gap: var(--section-gap);
     }
 
     .timer-main-card {
-        padding: 1.5rem;
+        padding: 1.25rem;
         min-height: auto;
     }
 
     .timer-clock {
-        font-size: 4rem;
+        font-size: 2.9rem;
     }
 
-    .stats-row {
-        grid-template-columns: 1fr 1fr;
-    }
 }
 
 @media (max-width: 640px) {
-    .stats-row {
-        grid-template-columns: 1fr;
-    }
-
-    .timer-clock {
-        font-size: 3rem;
-    }
-
     .topbar-date {
         display: none;
     }
 
-    .topbar-right {
-        gap: 0.5rem;
-    }
-
     .btn {
-        padding: 0.6rem 1rem;
+        padding: 0.4rem 0.75rem;
         font-size: 0.8rem;
     }
 }
@@ -1991,11 +2006,6 @@ html[data-theme="dark"] .greeting-banner {
         bottom: 0;
         left: 0;
         right: 0;
-    }
-
-    /* Topbar on very small screens */
-    .topbar {
-        padding: 0.6rem 0.75rem;
     }
 
     .topbar-badge {
@@ -2182,31 +2192,26 @@ html[data-theme="dark"] .greeting-banner {
 }
 
 .loading-pulse-logo {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     background: var(--secondary);
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    animation: pulse-glow 2s infinite ease-in-out;
+    box-shadow: none;
+    animation: pulse-glow 1.6s infinite ease-in-out;
 }
 
+/* Opacity, not an expanding coloured ring — it still reads as "working" and
+   costs no paint area. */
 @keyframes pulse-glow {
-    0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-    }
-    70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
-    }
-    100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-    }
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loading-pulse-logo { animation: none; }
 }
 
 .btn.loading {
@@ -2239,32 +2244,42 @@ html[data-theme="dark"] .greeting-banner {
 .status-pill {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0.8rem;
-    border-radius: 50px;
-    font-size: 0.8rem;
+    gap: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.74rem;
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: var(--hover-transition);
     border: 1px solid transparent;
+    white-space: nowrap;
 }
 
 .pill-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
+    flex-shrink: 0;
 }
 
 /* Working State */
 .pill-working {
     background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-    border-color: rgba(16, 185, 129, 0.2);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.25);
 }
 
+html[data-theme="dark"] .pill-working {
+    color: #34d399;
+}
+
+/* The dot pulses because the clock is genuinely running; it does not glow. */
 .pill-working .pill-dot {
     background: #10b981;
-    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
     animation: pulse-dot 2s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pill-working .pill-dot { animation: none; }
 }
 
 /* Break State */

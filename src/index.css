@@ -15,6 +15,52 @@
   --form-col-gap: 1.125rem; /* 18px desktop */
   --form-row-gap: 1rem;     /* 16px between rows */
   --form-label-gap: 0.5rem;
+
+  /* ── Geometry ──
+     One radius language for the whole product. Anything above --radius-lg
+     reads as decoration rather than structure, so panels stop at 12px and
+     only true pills (badges, progress tracks) use --radius-pill. */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* ── Elevation ──
+     Four steps, all neutral. Colour never appears in a shadow: a coloured
+     glow is decoration, and it makes the surface underneath look tinted. */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.14);
+
+  /* ── Layout rhythm ──
+     Page padding, gap between page sections, and default card padding. Used
+     by both the Student and Adviser shells so the two portals breathe alike. */
+  --page-pad: 1.25rem;
+  --section-gap: 1rem;
+  --card-pad: 1.1rem;
+
+  /* Hover is a background step, never a border change. */
+  --hover-transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+
+  /* ── Stacking ──
+     Only the layers that are portalled to <body> to escape a parent stacking
+     context. They have to clear the values already in play there, the highest
+     of which is the chat widget at 9999 / 10000. Recorded as tokens so the
+     next person can see the order instead of guessing a bigger number:
+       sidebar 110 · mobile drawer 200 · chat widget 9999-10000
+       notification panel 10100 · notification centre 10200
+       paste-blocked toast 99999 */
+  --z-notification-panel: 10100;
+  --z-notification-center: 10200;
+}
+
+html[data-theme="dark"] {
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
 /* One shared scrollbar treatment for every page and nested scroll container. */
@@ -267,47 +313,98 @@ h1 {
 }
 
 /*
- * Base button.
+ * Inside a portal shell the 3.2em above is display type from the Vite starter,
+ * not a page title. Bring it back to something a dense admin screen can carry.
+ * Scoped to the shells so the marketing hero on the landing page is untouched.
+ */
+.dashboard-container h1,
+.admin-dashboard-container h1 {
+  font-size: 1.4rem;
+  line-height: 1.25;
+}
+
+.dashboard-container h2,
+.admin-dashboard-container h2 {
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+
+.dashboard-container h3,
+.admin-dashboard-container h3 {
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+/*
+ * Base button — split deliberately into GEOMETRY and COLOUR.
  *
- * Uses `background-color`, never the `background` shorthand or a
- * `background-image` gradient. A gradient here is a background-IMAGE, and an
- * image is painted on top of the background-color — so a component that sets
- * only `backgroundColor` inline (React's usual way) would keep this rule's
- * opaque near-white image and render as a blank button, hiding white label
- * text entirely. That is what made "Return to Login" on the pending-approval
- * page invisible. Keeping this flat means any inline background-color wins,
- * and the bug cannot come back on other buttons.
+ * Geometry keeps normal element specificity (0,0,1). Colour is wrapped in
+ * `:where()`, which contributes nothing, so both colour rules land at (0,0,0).
+ *
+ * Why: `html[data-theme="dark"] button` used to be (0,1,2), which outranks any
+ * single-class component rule. So in dark mode a bare control that had said
+ * `background: none; border: none` — `.topbar-user-btn`, `.logout-btn`,
+ * `.ntf-bell`, `.ntf-item`, `.settings-tab`, `.cd-action-row` and a dozen more
+ * — was silently repainted as a raised grey box with a border. The Coordinator
+ * topbar's account button was the visible symptom; the cause was global.
+ *
+ * At (0,0,0) these are a floor, not an override: a component that declares its
+ * own background or border always wins, in BOTH themes, while a button that
+ * declares neither still gets a sensible default. Specificity only arbitrates
+ * properties that actually collide, so a class setting only `color` keeps the
+ * default surface exactly as before. The two colour rules tie, and the dark
+ * one wins in dark mode purely by coming second.
+ *
+ * `background-color`, never the `background` shorthand or a `background-image`
+ * gradient: an image paints on top of the colour, so a component setting only
+ * `backgroundColor` inline (React's usual way) would keep an opaque near-white
+ * image and render as a blank button, hiding white label text. That is what
+ * made "Return to Login" on the pending-approval page invisible.
  */
 button {
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-sm);
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #ffffff;
-  background-image: none;
-  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: var(--hover-transition);
 }
 
-html[data-theme="dark"] button {
+:where(button) {
+  background-color: #ffffff;
+  background-image: none;
+  border: 1px solid #e2e8f0;
+  color: var(--text-primary);
+}
+
+:where(html[data-theme="dark"] button) {
   background-color: var(--surface-3);
   background-image: none;
   border: 1px solid var(--border-strong);
   color: var(--text-primary);
 }
 
-button:hover {
-  border-color: rgba(16, 185, 129, 0.5);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+/*
+ * Hover never touches the border.
+ *
+ * A control that recolours its edge on hover makes the whole page twitch as
+ * the pointer crosses it, and it competes with the border colours that carry
+ * real meaning (focus, validation, selected). A one-step tonal shift says
+ * "this is interactive" just as clearly and stays put.
+ *
+ * `filter` rather than `background-color` on purpose: this rule is (0,1,1) and
+ * would otherwise outrank every single-class component button (.btn-primary,
+ * .cd-btn, …) and repaint it on hover. Brightness composes with whatever
+ * background the component already set, so nothing has to fight it.
+ */
+button:hover:not(:disabled) {
+  filter: brightness(0.97);
+  box-shadow: none;
 }
 
-/* Dark controls respond with a brighter edge, not a coloured halo. */
-html[data-theme="dark"] button:hover {
-  background-color: var(--surface-4);
-  border-color: var(--border-hover);
+html[data-theme="dark"] button:hover:not(:disabled) {
+  filter: brightness(1.12);
   box-shadow: none;
 }
 
@@ -321,41 +418,32 @@ button:focus-visible {
 }
 
 /* ══ PRIMARY BUTTON ══ */
+/*
+ * Flat emerald, one weight down from the old 700, no gradient and no sweeping
+ * shine. The button is the strongest thing on its form because it is the only
+ * filled element there — it does not also need to glow.
+ */
 .primary {
   width: 100%;
-  padding: 0.9rem;
-  border-radius: 10px;
-  border: none;
-  font-size: 0.95rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background-color: var(--primary);
+  background-image: none;
   color: #ffffff;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+  transition: var(--hover-transition);
+  box-shadow: none;
   font-family: var(--font-inter);
   position: relative;
-  overflow: hidden;
-}
-
-.primary::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left 0.5s ease;
-}
-
-.primary:hover::before {
-  left: 100%;
 }
 
 .primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+  background-color: var(--primary-hover);
+  filter: none;
+  box-shadow: none;
 }
 
 .primary:disabled {
@@ -385,11 +473,8 @@ html[data-theme="dark"] button.primary {
 
 html[data-theme="dark"] button.primary:hover:not(:disabled) {
   background-color: #34d399;
+  filter: none;
   box-shadow: none;
-}
-
-html[data-theme="dark"] .primary::before {
-  content: none;
 }
 
 /* Theme is managed manually via data-theme attribute. */
@@ -565,70 +650,34 @@ html[data-theme="dark"] .skeleton::after {
 /* ═══════════════════════════════════════════════════ 
    GLOBAL GLASS CARD
    ═══════════════════════════════════════════════════ */
+/*
+ * The panel every portal is built from. It is a plain surface, not an effect:
+ *
+ *  - No backdrop blur. Nothing sits behind these cards but the page ground, so
+ *    the blur cost bought a look, not a result.
+ *  - No accent bar on hover, no radial wash, no 4px lift, no emerald halo.
+ *    Most of these cards are not even clickable — they were animating on hover
+ *    to advertise interactivity they do not have.
+ *  - Cards that ARE clickable opt into `.glass-card--interactive` below and get
+ *    one calm step of background + shadow. The border never moves.
+ */
 .glass-card {
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: var(--shadow-xs);
+  transition: var(--hover-transition);
 }
 
-html[data-theme="dark"] .glass-card {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+.glass-card--interactive {
+  cursor: pointer;
 }
 
-.glass-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, var(--primary), transparent);
-  opacity: 0;
-  transition: opacity 0.4s;
-  pointer-events: none;
-}
-
-.glass-card:hover::before {
-  opacity: 1;
-}
-
-.glass-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(0,0,0,0.02) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity 0.4s;
-  pointer-events: none;
-}
-
-html[data-theme="dark"] .glass-card::after {
-  background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
-}
-
-.glass-card:hover::after {
-  opacity: 1;
-}
-
-.glass-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15), 0 0 20px var(--primary-glow);
-  border-color: var(--primary-glow);
-}
-
-/* Dark surfaces lift with a border, not a coloured halo. */
-html[data-theme="dark"] .glass-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-  border-color: var(--border-hover);
+.glass-card--interactive:hover {
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ══════════════════════════════════════════
@@ -724,7 +773,6 @@ html[data-theme="dark"] .account-dropdown {
 
 .account-dropdown-link:hover {
   background: var(--nav-active-bg);
-  border-color: var(--primary);
 }
 
 .account-dropdown-divider {
@@ -870,13 +918,13 @@ html[data-theme="dark"] .account-dropdown {
 .settings-tab {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
+  gap: 0.7rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--hover-transition);
   text-align: left;
   width: 100%;
   font-family: 'Inter', sans-serif;
@@ -884,12 +932,15 @@ html[data-theme="dark"] .account-dropdown {
   touch-action: manipulation;
 }
 
+/* Background only — the transparent border stays transparent on hover so the
+   tab does not gain an outline the moment the pointer passes over it. */
 .settings-tab:hover {
   background: var(--bg-elevated);
-  border-color: var(--border);
+  filter: none;
   box-shadow: none;
 }
 
+/* Selected is a state, not a hover, so it may carry the accent. */
 .settings-tab.active {
   background: var(--nav-active-bg);
   border-color: rgba(16, 185, 129, 0.25);
@@ -897,9 +948,9 @@ html[data-theme="dark"] .account-dropdown {
 }
 
 .settings-tab-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-xs);
   background: var(--bg-elevated);
   display: flex;
   align-items: center;
@@ -958,9 +1009,9 @@ html[data-theme="dark"] .account-dropdown {
 }
 
 .settings-card-body {
-  padding: 1.75rem 2rem;
-  margin-bottom: 1.25rem;
-  border-radius: 16px;
+  padding: 1.15rem 1.35rem;
+  margin-bottom: 0.9rem;
+  border-radius: var(--radius-lg);
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
@@ -1083,8 +1134,8 @@ html[data-theme="dark"] .account-dropdown {
 
   .settings-tab.active {
     background: var(--nav-active-bg, rgba(16, 185, 129, 0.15)) !important;
-    border-color: var(--primary, #10b981) !important;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+    box-shadow: none !important;
   }
 
   .settings-tab.active .settings-tab-label {
