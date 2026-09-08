@@ -3,6 +3,7 @@ import type { Profile } from './profileService';
 import { notificationService } from './notificationService';
 import { createAuditLog } from './auditService';
 import { canonicalSectionName, studentMatchesSection } from '../utils/sections';
+import { dtrSubmissionService } from './dtrSubmissionService';
 
 /**
  * True when a Postgres function is not deployed yet, as opposed to a real
@@ -479,7 +480,7 @@ export const adviserService = {
                 studentsAtRiskCount: 0,
                 pendingJournalsCount: 0,
                 pendingDocsCount: 0,
-                pendingTimesheetsCount: 0,
+                pendingDtrCount: 0,
                 totalPendingCount: 0,
                 sections: [],
                 recentActivity: []
@@ -497,24 +498,34 @@ export const adviserService = {
         const studentsNotDeployed = students.filter(s => !s.company_id && s.is_active !== false);
         const studentsAtRisk = students.filter(s => (s.absences || 0) >= 3);
 
-        // Timesheets, journals, documents for assigned students
+        // Journals, documents and DTR submissions for assigned students.
+        //
+        // Note what is NOT counted here: individual timesheets. Clocking in and
+        // out is automatic record-keeping, not an approval task — the adviser is
+        // involved once, when the student submits their COMPLETE DTR. A student
+        // with 25 attendance days therefore contributes one pending item, not 25.
         let pendingJournalsCount = 0;
         let pendingDocsCount = 0;
-        let pendingTimesheetsCount = 0;
+        let pendingDtrCount = 0;
         let recentJournals: any[] = [];
 
         if (studentUserIds.length > 0) {
-            const [jRes, dRes, tRes, recJRes] = await Promise.all([
+            const [jRes, dRes, recJRes] = await Promise.all([
                 supabase.from('daily_journals').select('id', { count: 'exact', head: true }).eq('approval_status', 'pending').in('user_id', studentUserIds),
                 supabase.from('student_documents').select('id', { count: 'exact', head: true }).eq('status', 'pending').in('user_id', studentUserIds),
-                supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'completed').eq('approval_status', 'pending').in('user_id', studentUserIds),
                 supabase.from('daily_journals').select('id, user_id, entry_date, tasks, created_at').in('user_id', studentUserIds).order('created_at', { ascending: false }).limit(5)
             ]);
 
             pendingJournalsCount = jRes.count || 0;
             pendingDocsCount = dRes.count || 0;
-            pendingTimesheetsCount = tRes.count || 0;
             recentJournals = recJRes.data || [];
+        }
+
+        // A missing migration must not blank the whole dashboard.
+        try {
+            pendingDtrCount = await dtrSubmissionService.pendingCount();
+        } catch (err) {
+            console.warn('Pending DTR submissions could not be counted:', err);
         }
 
         const studentMap = new Map(students.map(s => [s.auth_user_id, s]));
@@ -528,7 +539,7 @@ export const adviserService = {
             };
         });
 
-        const totalPendingCount = pendingStudents.length + pendingJournalsCount + pendingDocsCount + pendingTimesheetsCount;
+        const totalPendingCount = pendingStudents.length + pendingJournalsCount + pendingDocsCount + pendingDtrCount;
 
         return {
             mySectionsCount: sections.length,
@@ -539,7 +550,7 @@ export const adviserService = {
             studentsAtRiskCount: studentsAtRisk.length,
             pendingJournalsCount,
             pendingDocsCount,
-            pendingTimesheetsCount,
+            pendingDtrCount,
             totalPendingCount,
             sections,
             recentActivity
@@ -689,31 +700,18 @@ export const adviserService = {
         }));
     },
 
-    /**
-     * Fetch pending timesheets for assigned students
+    /*
+     * getPendingTimesheets() and updateTimesheetStatus() are deliberately gone.
+     *
+     * Clocking in and out is automatic attendance recording, not something the
+     * adviser signs off record by record. The adviser reviews the student's
+     * COMPLETE Daily Time Record once it is submitted — see
+     * src/services/dtrSubmissionService.ts and supabase_dtr_submissions.sql.
+     *
+     * `timesheets.approval_status` is left untouched: the coordinator portal
+     * still uses it, and the attendance and daily-limit queries still exclude
+     * 'rejected' rows.
      */
-    async getPendingTimesheets(): Promise<any[]> {
-        const students = await this.getMyStudents();
-        const studentUserIds = students.map(s => s.auth_user_id).filter(Boolean);
-
-        if (studentUserIds.length === 0) return [];
-
-        const { data, error } = await supabase
-            .from('timesheets')
-            .select('*')
-            .in('user_id', studentUserIds)
-            .eq('status', 'completed')
-            .eq('approval_status', 'pending')
-            .order('clock_out', { ascending: false });
-
-        if (error) throw error;
-
-        const studentMap = new Map(students.map(s => [s.auth_user_id, s]));
-        return (data || []).map(t => ({
-            ...t,
-            profiles: studentMap.get(t.user_id) || null
-        }));
-    },
 
     /**
      * Update journal status
@@ -796,23 +794,27 @@ export const adviserService = {
     },
 
     /**
-     * Update timesheet status
+     * Approve, or send back for revision, a student's COMPLETE submitted DTR.
+     *
+     * This is the adviser's only attendance-related approval. It replaces the
+     * per-timesheet approve/reject that used to live here.
      */
-    async updateTimesheetStatus(timesheetId: string, status: 'approved' | 'rejected'): Promise<boolean> {
-        const { error } = await supabase
-            .from('timesheets')
-            .update({ approval_status: status })
-            .eq('id', timesheetId);
-
-        if (error) throw error;
+    async reviewDtrSubmission(
+        submissionId: string,
+        action: 'approve' | 'request_revision',
+        remarks?: string,
+    ): Promise<boolean> {
+        await dtrSubmissionService.review(submissionId, action, remarks);
 
         try {
             await createAuditLog({
-                action: status === 'approved' ? 'APPROVE' : 'REJECT',
+                action: action === 'approve' ? 'APPROVE' : 'REJECT',
                 module: 'Attendance',
-                description: `${status === 'approved' ? 'Approved' : 'Rejected'} student timesheet`,
-                targetType: 'timesheet',
-                targetId: timesheetId,
+                description: action === 'approve'
+                    ? 'Approved a student\'s complete Daily Time Record'
+                    : 'Requested a revision to a student\'s Daily Time Record',
+                targetType: 'dtr_submission',
+                targetId: submissionId,
             });
         } catch {}
 

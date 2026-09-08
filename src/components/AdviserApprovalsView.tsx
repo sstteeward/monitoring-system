@@ -7,8 +7,17 @@ import UserProfileModal from './UserProfileModal';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
 import { canonicalSectionName } from '../utils/sections';
+import {
+    dtrSubmissionService,
+    type DtrStatus,
+    type DtrSubmissionRow,
+} from '../services/dtrSubmissionService';
+import { formatDtrHours, formatDtrPeriod } from '../utils/dtrFormat';
+import DtrStatusBadge from './DtrStatusBadge';
+import AdviserDtrReviewModal from './AdviserDtrReviewModal';
 import './CoordinatorDashboard.css';
 import './AdviserDashboard.css';
+import './DtrSubmission.css';
 
 /**
  * Per-action wording and colour for the student account dialog. The three
@@ -55,7 +64,7 @@ const STUDENT_ACTION_COPY = {
 } as const;
 
 interface AdviserApprovalsViewProps {
-    initialTab?: 'students' | 'journals' | 'documents' | 'timesheets';
+    initialTab?: 'students' | 'journals' | 'documents' | 'dtr';
     onActionComplete?: () => void;
 }
 
@@ -63,11 +72,23 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
     initialTab = 'students',
     onActionComplete
 }) => {
-    const [activeTab, setActiveTab] = useState<'students' | 'journals' | 'documents' | 'timesheets'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'students' | 'journals' | 'documents' | 'dtr'>(initialTab);
     const [pendingStudents, setPendingStudents] = useState<Profile[]>([]);
     const [pendingJournals, setPendingJournals] = useState<any[]>([]);
     const [pendingDocuments, setPendingDocuments] = useState<any[]>([]);
-    const [pendingTimesheets, setPendingTimesheets] = useState<any[]>([]);
+    /*
+     * DTR SUBMISSIONS — one item per submitted Daily Time Record.
+     *
+     * This replaces the old per-timesheet queue. Clocking in and out is
+     * automatic attendance recording; the adviser reviews the COMPLETE record
+     * once, after the student submits it.
+     */
+    const [dtrSubmissions, setDtrSubmissions] = useState<DtrSubmissionRow[]>([]);
+    const [dtrFilter, setDtrFilter] = useState<DtrStatus | 'all'>('pending');
+    const [reviewingId, setReviewingId] = useState<string | null>(null);
+    const [pendingDtrCount, setPendingDtrCount] = useState(0);
+    /** Bumped after a review so both the list and the badge refetch. */
+    const [dtrReloadKey, setDtrReloadKey] = useState(0);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -86,20 +107,38 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
         loadApprovals();
     }, []);
 
+    // The DTR list owns its own fetch: it runs on mount and again whenever the
+    // status filter changes, without re-fetching the other three queues.
+    useEffect(() => {
+        dtrSubmissionService.listForAdviser(dtrFilter)
+            .then(setDtrSubmissions)
+            .catch(err => console.error('Failed to load DTR submissions:', err));
+    }, [dtrFilter, dtrReloadKey]);
+
+    /*
+     * The tab badge counts what is WAITING, so it is fetched separately from the
+     * list. Deriving it from the visible rows would drop it to zero the moment
+     * the adviser filtered to "Approved" — the queue would look empty while work
+     * was still outstanding.
+     */
+    useEffect(() => {
+        dtrSubmissionService.pendingCount()
+            .then(setPendingDtrCount)
+            .catch(err => console.error('Failed to count pending DTR submissions:', err));
+    }, [dtrReloadKey]);
+
     const loadApprovals = async () => {
         setLoading(true);
         setError(null);
         try {
-            const [stData, jData, dData, tData] = await Promise.all([
+            const [stData, jData, dData] = await Promise.all([
                 adviserService.getPendingStudentApprovals(),
                 adviserService.getPendingJournals(),
-                adviserService.getPendingDocuments(),
-                adviserService.getPendingTimesheets()
+                adviserService.getPendingDocuments()
             ]);
             setPendingStudents(stData);
             setPendingJournals(jData);
             setPendingDocuments(dData);
-            setPendingTimesheets(tData);
         } catch (err: any) {
             console.error('Failed to load pending approvals:', err);
             setError(err.message || 'Failed to load approvals queue');
@@ -144,10 +183,10 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
         currentPage: tPage,
         setCurrentPage: setTPage,
         totalPages: tTotalPages,
-        paginatedItems: paginatedTimesheets,
+        paginatedItems: paginatedSubmissions,
         totalItems: tTotalItems,
         itemsPerPage: tItemsPerPage
-    } = usePagination(pendingTimesheets, 8);
+    } = usePagination(dtrSubmissions, 8);
 
     // Escape closes the student action dialog, except while a request is in
     // flight — the approval has already been sent at that point.
@@ -240,19 +279,20 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
         }
     };
 
-    // Handlers for Timesheets
-    const handleTimesheetAction = async (timesheetId: string, status: 'approved' | 'rejected') => {
-        setActionLoading(timesheetId);
-        try {
-            await adviserService.updateTimesheetStatus(timesheetId, status);
-            showSuccess(`Timesheet ${status}.`);
-            await loadApprovals();
-            if (onActionComplete) onActionComplete();
-        } catch (err: any) {
-            alert(`Failed to update timesheet: ${err.message}`);
-        } finally {
-            setActionLoading(null);
-        }
+    /*
+     * There is no per-timesheet handler any more.
+     *
+     * A DTR is approved or returned as one complete record, from the review
+     * screen — the adviser has to be able to inspect the whole thing before
+     * deciding, so there are no Approve/Reject buttons on the list rows.
+     */
+    const handleReviewed = async (action: 'approve' | 'request_revision') => {
+        setReviewingId(null);
+        showSuccess(action === 'approve'
+            ? 'DTR approved. The student has been notified.'
+            : 'Revision requested. The student has been notified.');
+        setDtrReloadKey(k => k + 1);
+        if (onActionComplete) onActionComplete();
     };
 
     return (
@@ -291,7 +331,7 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                         Pending Approvals
                     </div>
                     <div style={{ color: 'var(--admin-text-secondary)', fontSize: '0.85rem' }}>
-                        Review and approve student account registrations, daily journals, requirements, and timesheets.
+                        Review student account registrations, daily journals, requirements, and complete DTR submissions.
                     </div>
                 </div>
 
@@ -308,7 +348,7 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                         { id: 'students', label: 'Student Accounts', count: pendingStudents.length },
                         { id: 'journals', label: 'Daily Journals', count: pendingJournals.length },
                         { id: 'documents', label: 'Documents', count: pendingDocuments.length },
-                        { id: 'timesheets', label: 'Timesheets', count: pendingTimesheets.length },
+                        { id: 'dtr', label: 'DTR Submissions', count: pendingDtrCount },
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -593,62 +633,85 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                         </div>
                     </>
                 ) : (
-                    /* ── TAB 4: Timesheets ── */
+                    /* ── TAB 4: DTR Submissions ──
+                       One row per submitted Daily Time Record. Deliberately no
+                       Approve/Reject on the row: the adviser opens the complete
+                       record first. */
                     <>
-                        {paginatedTimesheets.length === 0 ? (
+                        <div className="dtr-filter-bar">
+                            <span className="dtr-filter-label">Show</span>
+                            {([
+                                { id: 'pending', label: 'Pending Review' },
+                                { id: 'revision_requested', label: 'Revision Required' },
+                                { id: 'approved', label: 'Approved' },
+                                { id: 'all', label: 'All' },
+                            ] as const).map(f => (
+                                <button
+                                    key={f.id}
+                                    type="button"
+                                    className={`dtr-filter-chip${dtrFilter === f.id ? ' is-active' : ''}`}
+                                    onClick={() => { setDtrFilter(f.id); setTPage(1); }}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {paginatedSubmissions.length === 0 ? (
                             <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                No pending timesheets to review.
+                                {dtrFilter === 'pending'
+                                    ? 'No DTR submissions are waiting for your review. Students submit their complete DTR once they finish their required SIL hours.'
+                                    : 'No DTR submissions match this filter.'}
                             </div>
                         ) : (
                             <table className="admin-table">
                                 <thead>
                                     <tr>
                                         <th>Student</th>
-                                        <th>Date</th>
-                                        <th>Clock In</th>
-                                        <th>Clock Out</th>
-                                        <th style={{ textAlign: 'right' }}>Actions</th>
+                                        <th>Section</th>
+                                        <th>SIL Period</th>
+                                        <th style={{ textAlign: 'right' }}>Hours</th>
+                                        <th>Submitted</th>
+                                        <th>Status</th>
+                                        <th style={{ textAlign: 'right' }}>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {paginatedTimesheets.map(t => (
-                                        <tr key={t.id}>
+                                    {paginatedSubmissions.map(s => (
+                                        <tr key={s.id}>
                                             <td>
                                                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                                                    {t.profiles?.first_name} {t.profiles?.last_name}
+                                                    {s.student_name || '—'}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                    Section {t.profiles?.section || '—'}
+                                                    {s.company_name || 'No company assigned'}
+                                                </div>
+                                            </td>
+                                            <td>{s.section_name || '—'}</td>
+                                            <td>{formatDtrPeriod(s.period_start, s.period_end)}</td>
+                                            <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                                                <div style={{ fontWeight: 600 }}>{formatDtrHours(s.total_minutes)}</div>
+                                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                                    of {s.required_hours}h
                                                 </div>
                                             </td>
                                             <td>
-                                                <div style={{ fontWeight: 600 }}>
-                                                    {new Date(t.clock_in).toLocaleDateString()}
-                                                </div>
+                                                <div>{new Date(s.submitted_at).toLocaleDateString()}</div>
+                                                {s.attempt > 1 && (
+                                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                                        Attempt {s.attempt}
+                                                    </div>
+                                                )}
                                             </td>
-                                            <td>
-                                                <div>{new Date(t.clock_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                            </td>
-                                            <td>
-                                                <div>{t.clock_out ? new Date(t.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                                            </td>
+                                            <td><DtrStatusBadge status={s.status} /></td>
                                             <td style={{ textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                                                    <button
-                                                        className="approval-action-btn approval-btn-approve"
-                                                        onClick={() => handleTimesheetAction(t.id, 'approved')}
-                                                        disabled={actionLoading === t.id}
-                                                    >
-                                                        Approve
-                                                    </button>
-                                                    <button
-                                                        className="approval-action-btn approval-btn-reject"
-                                                        onClick={() => handleTimesheetAction(t.id, 'rejected')}
-                                                        disabled={actionLoading === t.id}
-                                                    >
-                                                        Reject
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="approval-action-btn approval-btn-approve"
+                                                    onClick={() => setReviewingId(s.id)}
+                                                >
+                                                    {s.status === 'pending' ? 'Review DTR' : 'View DTR'}
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -662,7 +725,7 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                 totalItems={tTotalItems}
                                 itemsPerPage={tItemsPerPage}
                                 onPageChange={setTPage}
-                                itemName="timesheets"
+                                itemName="submissions"
                             />
                         </div>
                     </>
@@ -806,6 +869,15 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                 <UserProfileModal
                     profileId={viewProfileId}
                     onClose={() => setViewProfileId(null)}
+                />
+            )}
+
+            {/* The complete DTR review — where approve / request revision live. */}
+            {reviewingId && (
+                <AdviserDtrReviewModal
+                    submissionId={reviewingId}
+                    onClose={() => setReviewingId(null)}
+                    onReviewed={handleReviewed}
                 />
             )}
         </div>

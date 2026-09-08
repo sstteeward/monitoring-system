@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Section } from '../services/adviserService';
+import AdviserDailyReportCard from './AdviserDailyReportCard';
 import './CoordinatorDashboard.css';
 import './AdviserDashboard.css';
 
@@ -133,6 +134,12 @@ const AdviserOverviewView: React.FC<AdviserOverviewViewProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* ══ Automated Daily Report ══
+                One click, one consolidated report across every assigned
+                section — placed above the KPI row because reviewing the day's
+                exceptions is the adviser's first task, not their last. */}
+            <AdviserDailyReportCard onOpenReport={() => navigateTo('reports')} />
 
             {/* ══ 5-Card Statistics Row (Full Width) ══ */}
             <div className="ad-stats-grid">

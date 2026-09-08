@@ -30,6 +30,7 @@ import ChatWidget from './ChatWidget';
 import FeedbackModal from './FeedbackModal';
 import GroupStudentsModal from './GroupStudentsModal';
 import { DTRCard } from './DTRCard';
+import StudentDtrSubmission from './StudentDtrSubmission';
 import { formatPasskeyError, isPasskeySupported, listCurrentUserPasskeys, registerCurrentUserPasskey } from '../services/passkeyAuth';
 import './StudentDashboard.css';
 
@@ -726,6 +727,9 @@ const StudentDashboard: React.FC = () => {
             case 'documents': return <DocumentsView />;
             case 'dtr': return (
                 <div className="dtr-view-wrapper">
+                    {/* The student submits the COMPLETE record here; the card
+                        below stays the read-only view of the days it contains. */}
+                    <StudentDtrSubmission />
                     <DTRCard
                         employeeName={displayName}
                         department={profile?.department || profile?.course || ''}
