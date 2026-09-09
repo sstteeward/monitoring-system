@@ -1,647 +1,651 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { companyService, type Evaluation } from '../services/companyService';
-import { profileService, type Profile } from '../services/profileService';
-import UserClickableName from './UserClickableName';
-import { ListSkeleton } from './Skeletons';
+import { profileService } from '../services/profileService';
+import {
+    evaluationService,
+    type CompanyTemplate,
+    type EvaluationWorklistRow,
+} from '../services/evaluationService';
+import {
+    DOCUMENT_LABEL,
+    EVALUATION_CRITERIA,
+    EVALUATION_SECTIONS,
+    RATING_SCALE,
+    STATUS_LABEL,
+    computeScore,
+    describeDeadline,
+    formatDate,
+    isComplete,
+    isPending,
+    ratedCount,
+    ratingLabel,
+    type EvaluationScoreKey,
+    type EvaluationScores,
+    type EvaluationStatus,
+} from '../utils/evaluationForms';
+import './Evaluations.css';
 
-const EvaluationCriteria = [
-    { key: 'attendance_score', label: 'Attendance' },
-    { key: 'punctuality_score', label: 'Punctuality' },
-    { key: 'communication_score', label: 'Communication' },
-    { key: 'professionalism_score', label: 'Professionalism' },
-    { key: 'technical_skills_score', label: 'Technical Skills' },
-    { key: 'problem_solving_score', label: 'Problem Solving' },
-    { key: 'teamwork_score', label: 'Teamwork' },
-    { key: 'initiative_score', label: 'Initiative' },
-    { key: 'adaptability_score', label: 'Adaptability' },
-    { key: 'work_quality_score', label: 'Quality of Work' },
-    { key: 'responsibility_score', label: 'Responsibility' }
+/**
+ * Company — student evaluations.
+ *
+ * The coordinator's PDF is the official form; this is where it actually gets
+ * answered. Nobody downloads it, fills it in by hand and uploads it back — the
+ * company rates each student here, and the result reaches the student, their
+ * adviser and the coordinator the moment it is submitted.
+ *
+ * The PDF stays one click away as the reference it is meant to be.
+ */
+
+const Icon = {
+    close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+    search: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
+    file: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>,
+};
+
+const FILTERS: { value: EvaluationStatus | 'all' | 'pending'; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'submitted', label: 'Submitted' },
+    { value: 'reviewed', label: 'Reviewed' },
 ];
 
 const CompanyEvaluationView: React.FC = () => {
     const location = useLocation();
-    const [students, setStudents] = useState<Profile[]>([]);
-    const [selectedStudent, setSelectedStudent] = useState<Profile | null>(null);
-    const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+    const [companyId, setCompanyId] = useState<string | null>(null);
+    const [rows, setRows] = useState<EvaluationWorklistRow[]>([]);
+    const [templates, setTemplates] = useState<CompanyTemplate[]>([]);
     const [loading, setLoading] = useState(true);
-    const [loadingEvaluations, setLoadingEvaluations] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [evaluatorProfile, setEvaluatorProfile] = useState<Profile | null>(null);
-    
-    const [showForm, setShowForm] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [formData, setFormData] = useState<any>({});
-    const [expandedEvalId, setExpandedEvalId] = useState<string | null>(null);
 
-    useEffect(() => { loadStudents(); }, []);
+    const [filter, setFilter] = useState<EvaluationStatus | 'all' | 'pending'>('all');
+    const [search, setSearch] = useState('');
 
-    const loadStudents = async () => {
+    const [evaluating, setEvaluating] = useState<EvaluationWorklistRow | null>(null);
+    const [viewingPdf, setViewingPdf] = useState(false);
+    const [toast, setToast] = useState<{ tone: 'success' | 'warning'; title: string; detail?: string } | null>(null);
+
+    const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const profile = await profileService.getCurrentProfile();
-            if (!profile?.company_id) {
-                throw new Error("You are not associated with any company.");
-            }
-            setEvaluatorProfile(profile);
-            const data = await companyService.getAssignedStudents(profile.company_id);
-            setStudents(data);
-            
-            // Check if a student ID was passed in navigation state
-            const stateStudentId = location.state?.studentId;
-            if (stateStudentId) {
-                const targetStudent = data.find(s => s.id === stateStudentId);
-                if (targetStudent) {
-                    setSelectedStudent(targetStudent);
-                    setLoadingEvaluations(true);
-                    const studentEvals = await companyService.getStudentEvaluations(stateStudentId);
-                    setEvaluations(studentEvals as Evaluation[]);
-                    setLoadingEvaluations(false);
-                    
-                    if (location.state?.openForm) {
-                        const initialData: any = {};
-                        EvaluationCriteria.forEach(c => initialData[c.key] = 0);
-                        initialData.overall_rating = 0;
-                        initialData.comments = '';
-                        initialData.strengths = '';
-                        initialData.weaknesses = '';
-                        initialData.recommendations = '';
-                        setFormData(initialData);
-                        setShowForm(true);
-                    }
-                    return;
-                }
-            }
-            
-            // Load all company evaluations initially if no student was selected via state
-            setLoadingEvaluations(true);
-            const allEvals = await companyService.getCompanyEvaluations(profile.company_id);
-            setEvaluations(allEvals as Evaluation[]);
-            setLoadingEvaluations(false);
-            
-        } catch (err: any) {
-            console.error('Failed to load students:', err);
-            setError(err?.message || JSON.stringify(err));
-            setLoadingEvaluations(false);
+            if (!profile?.company_id) throw new Error('You are not associated with any company.');
+            setCompanyId(profile.company_id);
+
+            const [worklist, templateRows] = await Promise.all([
+                evaluationService.getWorklist(profile.company_id),
+                evaluationService.getCompanyTemplates(profile.company_id),
+            ]);
+            setRows(worklist);
+            setTemplates(templateRows);
+        } catch (err) {
+            console.error('Failed to load the evaluation worklist:', err);
+            setError(err instanceof Error ? err.message : 'We could not load your student evaluations.');
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const handleSelectStudent = async (student: Profile | null) => {
-        setSelectedStudent(student);
-        setShowForm(false);
-        setExpandedEvalId(null);
-        setLoadingEvaluations(true);
-        try {
-            if (student) {
-                const data = await companyService.getStudentEvaluations(student.id);
-                setEvaluations(data as Evaluation[]);
-            } else if (evaluatorProfile?.company_id) {
-                const data = await companyService.getCompanyEvaluations(evaluatorProfile.company_id);
-                setEvaluations(data as Evaluation[]);
-            }
-        } catch (err) {
-            console.error('Failed to load evaluations:', err);
-        } finally {
-            setLoadingEvaluations(false);
-        }
-    };
+    useEffect(() => { void load(); }, [load]);
 
-    const handleOpenForm = () => {
-        const initialData: any = {};
-        EvaluationCriteria.forEach(c => initialData[c.key] = 0);
-        initialData.overall_rating = 0;
-        initialData.comments = '';
-        initialData.strengths = '';
-        initialData.weaknesses = '';
-        initialData.recommendations = '';
-        setFormData(initialData);
-        setShowForm(true);
-        setExpandedEvalId(null);
-    };
+    // A notification or the dashboard can send the company straight to one student.
+    useEffect(() => {
+        const targetId = (location.state as { studentId?: string } | null)?.studentId;
+        if (!targetId || rows.length === 0) return;
+        const match = rows.find(row => row.student_id === targetId);
+        if (match?.evaluation_id) setEvaluating(match);
+    }, [location.state, rows]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedStudent) return;
-        
-        const unrated = EvaluationCriteria.filter(c => formData[c.key] === 0);
-        if (unrated.length > 0 || formData.overall_rating === 0) {
-            alert('Please rate all criteria, including the overall rating.');
-            return;
-        }
+    useEffect(() => {
+        if (!toast) return;
+        const timer = window.setTimeout(() => setToast(null), 8000);
+        return () => window.clearTimeout(timer);
+    }, [toast]);
 
-        setSubmitting(true);
-        try {
-            const profile = await profileService.getCurrentProfile();
-            if (!profile?.company_id) throw new Error("No company associated");
-            
-            await companyService.submitEvaluation({
-                ...formData,
-                student_id: selectedStudent.id,
-                company_id: profile.company_id,
-                evaluator_id: profile.id
-            });
-            
-            setShowForm(false);
-            handleSelectStudent(selectedStudent);
-        } catch (err: any) {
-            console.error('Failed to submit evaluation:', err);
-            alert(`Failed to submit evaluation: ${err.message}`);
-        } finally {
-            setSubmitting(false);
-        }
-    };
+    const evaluationTemplate = templates.find(row => row.document_type === 'evaluation' && row.template_id);
+    const pendingRows = rows.filter(row => isPending(row.status));
 
-    const renderStars = (key: string, value: number) => (
-        <div style={{ display: 'flex', gap: '0.25rem' }}>
-            {[1, 2, 3, 4, 5].map(star => (
-                <button
-                    key={star}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, [key]: star })}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        color: star <= value ? '#f59e0b' : 'var(--border)'
-                    }}
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill={star <= value ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                </button>
-            ))}
-        </div>
-    );
+    const visible = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        return rows.filter(row => {
+            if (filter === 'pending' && !isPending(row.status)) return false;
+            if (filter !== 'all' && filter !== 'pending' && row.status !== filter) return false;
+            if (!term) return true;
+            return [row.student_name, row.student_email, row.course, row.section]
+                .some(field => (field || '').toLowerCase().includes(term));
+        });
+    }, [rows, filter, search]);
 
-    const renderReadonlyStars = (value: number, size: number = 16) => (
-        <div style={{ display: 'flex', gap: '0.1rem', color: '#f59e0b' }}>
-            {[...Array(value)].map((_, i) => (
-                <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-            ))}
-        </div>
-    );
-
-    if (error) return (
-        <div className="view-container fade-in">
-            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '1.5rem 2rem', color: '#f87171' }}>
-                <strong>Error:</strong> {error}
-            </div>
-        </div>
-    );
-
-    const filteredStudents = students.filter(student => 
-        `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
-
-    const evaluatorName = evaluatorProfile ? `${evaluatorProfile.first_name} ${evaluatorProfile.last_name}` : 'Evaluator';
-
+    const deadline = evaluationTemplate?.evaluation_deadline
+        ? describeDeadline(evaluationTemplate.evaluation_deadline)
+        : null;
 
     return (
-        <div className="view-container fade-in">
-            <style dangerouslySetInnerHTML={{__html: `
-                .evaluation-layout {
-                    display: flex;
-                    gap: 24px;
-                    height: 100%;
-                    flex-direction: row;
-                }
-                .left-panel {
-                    width: 30%;
-                    min-width: 250px;
-                }
-                .right-panel {
-                    width: 70%;
-                }
-                @media (max-width: 1024px) {
-                    .left-panel {
-                        width: 35%;
-                    }
-                    .right-panel {
-                        width: 65%;
-                    }
-                }
-                @media (max-width: 768px) {
-                    .evaluation-layout {
-                        flex-direction: column;
-                    }
-                    .left-panel, .right-panel {
-                        width: 100%;
-                        height: auto;
-                        min-height: 400px;
-                    }
-                }
-                
-                .panel {
-                    background: var(--bg-card);
-                    border-radius: 16px;
-                    border: 1px solid var(--border);
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                    padding: 24px;
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-                }
-                .panel:hover {
-                    border-color: var(--primary-glow);
-                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 0 16px var(--primary-glow);
-                }
-
-                .scrollable-content {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding-right: 8px;
-                }
-                .intern-card {
-                    padding: 8px 4px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    margin-bottom: 4px;
-                }
-                .intern-card:hover {
-                    opacity: 0.8;
-                }
-                .intern-card.selected {
-                    /* Selected styling handled inline via text weight/color */
-                }
-                
-                .intern-number {
-                    width: 24px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: flex-end;
-                    font-weight: 600;
-                    color: var(--text-muted);
-                    font-size: 0.95rem;
-                    flex-shrink: 0;
-                }
-
-                .intern-search-wrapper {
-                    position: relative;
-                    margin-bottom: 1.5rem;
-                }
-                .intern-search-icon {
-                    position: absolute;
-                    left: 12px;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: var(--text-muted);
-                }
-                .intern-search {
-                    width: 100%;
-                    padding: 10px 16px 10px 38px;
-                    border-radius: 8px;
-                    background-color: var(--bg-elevated);
-                    border: 1px solid var(--border);
-                    color: var(--text-primary);
-                    outline: none;
-                    transition: border-color 0.2s;
-                    box-sizing: border-box;
-                    font-size: 0.9rem;
-                }
-                .intern-search:focus {
-                    border-color: var(--primary);
-                }
-                
-                .eval-card {
-                    padding: 16px 20px;
-                    margin-bottom: 16px;
-                }
-                .eval-card-header {
-                    display: flex;
-                    align-items: flex-start;
-                    gap: 16px;
-                }
-
-                .btn-new-eval {
-                    background: var(--primary) !important;
-                    color: white;
-                    border-radius: 12px;
-                    padding: 10px 16px;
-                    border: none;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    font-size: 0.9rem;
-                }
-                .btn-new-eval:hover {
-                    opacity: 0.9;
-                    transform: translateY(-1px);
-                }
-                
-                .btn-outline {
-                    border: 1px solid var(--border);
-                    background: transparent;
-                    color: var(--text-primary);
-                    border-radius: 8px;
-                    padding: 6px 16px;
-                    font-size: 0.85rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .btn-outline:hover {
-                    background: var(--bg-elevated);
-                }
-
-                .status-icon-circle {
-                    width: 44px;
-                    height: 44px;
-                    border-radius: 50%;
-                    background: rgba(16,185,129,0.15);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                    color: #10b981;
-                }
-                
-                .status-badge {
-                    padding: 4px 10px;
-                    border-radius: 6px;
-                    font-size: 0.75rem;
-                    font-weight: 600;
-                    background: rgba(16,185,129,0.15);
-                    color: #10b981;
-                    border: 1px solid rgba(16,185,129,0.3);
-                    display: inline-block;
-                }
-                
-                .empty-state {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    flex: 1;
-                    text-align: center;
-                    padding: 40px;
-                }
-                .empty-icon {
-                    width: 64px;
-                    height: 64px;
-                    background: var(--bg-elevated);
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin-bottom: 16px;
-                    color: var(--text-muted);
-                }
-            `}} />
-
-            <div className="evaluation-layout">
-                {/* Left Panel - Intern List */}
-                <div className="panel left-panel">
-                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', fontWeight: 600 }}>Interns</h3>
-                    
-                    <div className="intern-search-wrapper">
-                        <span className="intern-search-icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        </span>
-                        <input 
-                            type="text" 
-                            className="intern-search"
-                            placeholder="Search interns..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    
-                    <div className="scrollable-content">
-                        {loading ? (
-                            <ListSkeleton items={4} />
-                        ) : filteredStudents.length === 0 ? (
-                            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', marginTop: '2rem' }}>
-                                {students.length === 0 ? 'No interns assigned.' : 'No interns match your search.'}
-                            </div>
-                        ) : (
-                            filteredStudents.map((student, index) => {
-                                const isSelected = selectedStudent?.id === student.id;
-                                return (
-                                    <div 
-                                        key={student.id} 
-                                        className={`intern-card ${selectedStudent?.id === student.id ? 'selected' : ''}`}
-                                        onClick={() => handleSelectStudent(selectedStudent?.id === student.id ? null : student)}
-                                        style={{
-                                            color: selectedStudent?.id === student.id ? 'var(--primary)' : 'var(--text-primary)',
-                                            fontWeight: selectedStudent?.id === student.id ? 600 : 400
-                                        }}
-                                    >
-                                        <div className="intern-number">
-                                            {index + 1}.
-                                        </div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontWeight: isSelected ? 700 : 500, fontSize: '0.95rem', color: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {student.first_name} {student.last_name}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
+        <div className="evx fade-in">
+            <header className="evx-head">
+                <div>
+                    <h2 className="evx-title">Student Evaluations</h2>
+                    <p className="evx-sub">
+                        Complete each assigned student&apos;s SIL/OJT evaluation here. The official form stays
+                        available for reference.
+                    </p>
                 </div>
+                {evaluationTemplate && (
+                    <button type="button" className="evx-btn evx-btn-quiet" onClick={() => setViewingPdf(true)}>
+                        {Icon.file} View Official Form
+                    </button>
+                )}
+            </header>
 
-                {/* Right Panel - Evaluation Details */}
-                <div className="panel right-panel">
-                    {!selectedStudent ? (
-                        <div className="empty-state fade-in">
-                            <div className="empty-icon">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                            </div>
-                            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.2rem' }}>Select an intern</h3>
-                            <p style={{ margin: 0, color: 'var(--text-muted)' }}>Choose an intern from the list to view or submit evaluations.</p>
-                        </div>
+            {pendingRows.length > 0 && (
+                <div className="evx-pending">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span className="evx-pending-count">{pendingRows.length}</span>
+                        <span className="evx-pending-text">
+                            student evaluation{pendingRows.length === 1 ? '' : 's'} require{pendingRows.length === 1 ? 's' : ''} your attention.
+                        </span>
+                    </div>
+                    {deadline && (
+                        <span className={`evx-deadline evx-deadline-${deadline.tone}`}>{deadline.text}</span>
+                    )}
+                </div>
+            )}
+
+            <div className="evx-toolbar">
+                <div className="evx-search" style={{ flex: '1 1 240px', padding: 0, border: 0 }}>
+                    <span className="evx-search-icon" aria-hidden="true" style={{ left: '0.65rem' }}>{Icon.search}</span>
+                    <input
+                        type="search"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Search student…"
+                        aria-label="Search students"
+                    />
+                </div>
+                <div className="evx-filters" role="group" aria-label="Filter by status">
+                    {FILTERS.map(option => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            className={`evx-filter${filter === option.value ? ' active' : ''}`}
+                            aria-pressed={filter === option.value}
+                            onClick={() => setFilter(option.value)}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="evx-table-wrap">
+                {loading ? (
+                    <div className="evx-state">Loading your student evaluations…</div>
+                ) : error ? (
+                    <div className="evx-state">
+                        <p>{error}</p>
+                        <button type="button" className="evx-btn evx-btn-quiet" onClick={() => void load()}>Try again</button>
+                    </div>
+                ) : rows.length === 0 ? (
+                    <div className="evx-state">No students are currently assigned to your company.</div>
+                ) : !evaluationTemplate ? (
+                    <div className="evx-state">
+                        The SIL Coordinator has not published an evaluation form for your company yet.
+                        You will be emailed as soon as they do.
+                    </div>
+                ) : visible.length === 0 ? (
+                    <div className="evx-state">No students match this filter.</div>
+                ) : (
+                    <table className="evx-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Program</th>
+                                <th>Evaluation</th>
+                                <th>Status</th>
+                                <th aria-label="Actions" />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {visible.map(row => (
+                                <tr key={row.student_id}>
+                                    <td>
+                                        <span className="evx-doc-name">{row.student_name || 'Unnamed student'}</span>
+                                        <span className="evx-doc-file">{row.student_email}</span>
+                                    </td>
+                                    <td>
+                                        {row.course || '—'}
+                                        <span className="evx-doc-file">{row.section || 'No section'}</span>
+                                    </td>
+                                    <td>
+                                        {row.evaluation_id ? 'Available' : 'Not available'}
+                                        {row.submitted_at && <span className="evx-doc-file">{formatDate(row.submitted_at)}</span>}
+                                    </td>
+                                    <td>
+                                        <span className={`evx-status evx-status-${row.status}`}>
+                                            <span className="evx-status-dot" aria-hidden="true" />
+                                            {STATUS_LABEL[row.status]}
+                                        </span>
+                                        {row.total_score !== null && row.total_score !== undefined && (
+                                            <span className="evx-doc-file">{Number(row.total_score).toFixed(0)}%</span>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <div className="evx-row-actions">
+                                            {!row.evaluation_id ? (
+                                                <span className="evx-doc-file">—</span>
+                                            ) : isPending(row.status) ? (
+                                                <button type="button" className="evx-btn evx-btn-primary" onClick={() => setEvaluating(row)}>
+                                                    {row.status === 'in_progress' ? 'Continue' : 'Evaluate'}
+                                                </button>
+                                            ) : (
+                                                <button type="button" className="evx-btn evx-btn-quiet" onClick={() => setEvaluating(row)}>View</button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+
+            {toast && (
+                <div className={`evx-toast evx-toast-${toast.tone}`} role="status">
+                    <div>
+                        <strong>{toast.title}</strong>
+                        {toast.detail && <p>{toast.detail}</p>}
+                    </div>
+                    <button type="button" onClick={() => setToast(null)} aria-label="Dismiss">{Icon.close}</button>
+                </div>
+            )}
+
+            {evaluating?.evaluation_id && (
+                <EvaluationForm
+                    row={evaluating}
+                    template={evaluationTemplate ?? null}
+                    onClose={() => setEvaluating(null)}
+                    onSubmitted={(score) => {
+                        setEvaluating(null);
+                        void load();
+                        setToast({
+                            tone: 'success',
+                            title: `Evaluation submitted for ${evaluating.student_name ?? 'the student'}.`,
+                            detail: `Overall score ${score !== null ? `${score.toFixed(0)}%` : '—'}. The student, their adviser and the coordinator have been notified.`,
+                        });
+                    }}
+                    onSaved={() => {
+                        void load();
+                        setToast({ tone: 'success', title: 'Draft saved.', detail: 'You can come back and finish this evaluation later.' });
+                    }}
+                />
+            )}
+
+            {viewingPdf && evaluationTemplate?.file_path && companyId && (
+                <PdfViewer template={evaluationTemplate} onClose={() => setViewingPdf(false)} />
+            )}
+        </div>
+    );
+};
+
+// ─── The digital form ────────────────────────────────────────────────────────
+
+const EvaluationForm: React.FC<{
+    row: EvaluationWorklistRow;
+    template: CompanyTemplate | null;
+    onClose: () => void;
+    onSubmitted: (score: number | null) => void;
+    onSaved: () => void;
+}> = ({ row, template, onClose, onSubmitted, onSaved }) => {
+    const [scores, setScores] = useState<EvaluationScores>({});
+    const [comments, setComments] = useState('');
+    const [strengths, setStrengths] = useState('');
+    const [weaknesses, setWeaknesses] = useState('');
+    const [recommendations, setRecommendations] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState<'save' | 'submit' | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [confirming, setConfirming] = useState(false);
+
+    // A submitted evaluation is the company's final answer, so it opens read-only.
+    const readOnly = row.status === 'submitted' || row.status === 'reviewed';
+
+    useEffect(() => {
+        if (!row.evaluation_id) return;
+        let cancelled = false;
+        setLoading(true);
+        evaluationService.getEvaluation(row.evaluation_id)
+            .then(saved => {
+                if (cancelled || !saved) return;
+                setScores(saved.scores);
+                setComments(saved.comments ?? '');
+                setStrengths(saved.strengths ?? '');
+                setWeaknesses(saved.weaknesses ?? '');
+                setRecommendations(saved.recommendations ?? '');
+            })
+            .catch(err => {
+                if (cancelled) return;
+                console.error('Failed to load the saved answers:', err);
+                setError('We could not load this evaluation.');
+            })
+            .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
+    }, [row.evaluation_id]);
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape' && !busy) onClose(); };
+        window.addEventListener('keydown', onKeyDown);
+        document.body.style.overflow = 'hidden';
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = '';
+        };
+    }, [onClose, busy]);
+
+    const rated = ratedCount(scores);
+    const score = computeScore(scores);
+    const complete = isComplete(scores);
+
+    const answers = () => ({
+        scores,
+        comments: comments.trim() || null,
+        strengths: strengths.trim() || null,
+        weaknesses: weaknesses.trim() || null,
+        recommendations: recommendations.trim() || null,
+    });
+
+    const save = async () => {
+        if (!row.evaluation_id) return;
+        setBusy('save');
+        setError(null);
+        try {
+            await evaluationService.saveDraft(row.evaluation_id, answers());
+            onSaved();
+        } catch (err) {
+            console.error('Save failed:', err);
+            setError(err instanceof Error ? err.message : 'We could not save this draft.');
+        } finally {
+            setBusy(null);
+        }
+    };
+
+    const submit = async () => {
+        if (!row.evaluation_id) return;
+        setBusy('submit');
+        setError(null);
+        try {
+            const result = await evaluationService.submit(row.evaluation_id, answers());
+            onSubmitted(result.totalScore);
+        } catch (err) {
+            console.error('Submit failed:', err);
+            setError(err instanceof Error ? err.message : 'We could not submit this evaluation.');
+            setBusy(null);
+            setConfirming(false);
+        }
+    };
+
+    return (
+        <div className="evx-overlay" role="presentation" onClick={() => !busy && onClose()}>
+            <div
+                className="evx-modal tall"
+                style={{ maxWidth: 720 }}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="evx-form-title"
+                onClick={e => e.stopPropagation()}
+            >
+                <header className="evx-modal-head">
+                    <div>
+                        <h3 id="evx-form-title">{readOnly ? 'Submitted Evaluation' : 'Student Evaluation'}</h3>
+                        <p className="evx-modal-sub">
+                            {row.student_name} · {[row.course, row.section].filter(Boolean).join(' · ') || 'No program on file'}
+                        </p>
+                    </div>
+                    <button type="button" className="evx-icon-btn" onClick={onClose} disabled={Boolean(busy)} aria-label="Close">{Icon.close}</button>
+                </header>
+
+                <div className="evx-modal-body">
+                    {loading ? (
+                        <div className="evx-state">Loading the evaluation…</div>
                     ) : (
                         <>
-                            {/* Header Bar */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
-                                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
-                                    {selectedStudent 
-                                        ? <>Evaluations for <UserClickableName userId={selectedStudent.id} userName={`${selectedStudent.first_name} ${selectedStudent.last_name}`} /></>
-                                        : "All Recent Evaluations"
-                                    }
-                                </h3>
-                                {!showForm && selectedStudent && (
-                                    <button 
-                                        className="btn-new-eval"
-                                        onClick={handleOpenForm}
-                                    >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                                        New Evaluation
-                                    </button>
+                            <div className="evx-form-head">
+                                <div>
+                                    <div className="evx-form-student">{row.student_name}</div>
+                                    <p className="evx-form-sub">
+                                        {readOnly
+                                            ? `Submitted ${formatDate(row.submitted_at)}${row.evaluator_name ? ` by ${row.evaluator_name}` : ''}`
+                                            : 'Rate every criterion, then submit. You can save a draft at any point.'}
+                                    </p>
+                                </div>
+                                {score && (
+                                    <div className="evx-score-chip">
+                                        <span className="evx-score-value">{score.percentage.toFixed(0)}%</span>
+                                        <span className="evx-score-label">Overall · {score.rating.toFixed(2)} / 5</span>
+                                    </div>
                                 )}
                             </div>
 
-                            <div className="scrollable-content">
-                                {showForm ? (
-                                    <form className="fade-in" style={{ padding: '0 8px 24px 8px' }} onSubmit={handleSubmit}>
-                                        <h3 style={{ margin: '0 0 1.5rem 0', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>New Performance Evaluation</h3>
-                                        
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                                            {EvaluationCriteria.map(criteria => (
-                                                <div key={criteria.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                    <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{criteria.label}</label>
-                                                    {renderStars(criteria.key, formData[criteria.key])}
-                                                </div>
-                                            ))}
-                                        </div>
+                            {!readOnly && (
+                                <div className="evx-progress-line" style={{ marginTop: '0.6rem' }}>
+                                    <span className="evx-progress-track">
+                                        <span className="evx-progress-fill" style={{ width: `${(rated / EVALUATION_CRITERIA.length) * 100}%` }} />
+                                    </span>
+                                    <span>{rated} of {EVALUATION_CRITERIA.length} rated</span>
+                                </div>
+                            )}
 
-                                        <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                                            <h4 style={{ margin: '0 0 1rem 0' }}>Overall Rating</h4>
-                                            <div style={{ transform: 'scale(1.2)', transformOrigin: 'left center' }}>
-                                                {renderStars('overall_rating', formData.overall_rating)}
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Strengths</label>
-                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '8px', padding: '12px' }} value={formData.strengths} onChange={e => setFormData({...formData, strengths: e.target.value})} placeholder="What does this intern do well?" required />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Areas for Improvement (Weaknesses)</label>
-                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '8px', padding: '12px' }} value={formData.weaknesses} onChange={e => setFormData({...formData, weaknesses: e.target.value})} placeholder="Where can this intern improve?" required />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Recommendations / Additional Comments</label>
-                                                <textarea className="form-input" style={{ width: '100%', minHeight: '80px', resize: 'vertical', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '8px', padding: '12px' }} value={formData.recommendations} onChange={e => setFormData({...formData, recommendations: e.target.value})} placeholder="Any other feedback?" />
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-                                            <button type="button" className="btn-outline" onClick={() => setShowForm(false)} disabled={submitting}>Cancel</button>
-                                            <button type="submit" className="btn-new-eval" disabled={submitting}>
-                                                {submitting ? 'Submitting...' : 'Submit Evaluation'}
-                                            </button>
-                                        </div>
-                                    </form>
-                                ) : loadingEvaluations ? (
-                                    <ListSkeleton items={4} />
-                                ) : evaluations.length === 0 ? (
-                                    <div className="empty-state fade-in">
-                                        <div className="empty-icon">
-                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-                                        </div>
-                                        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.2rem' }}>No evaluations found</h3>
-                                        <p style={{ margin: '0 0 16px 0', color: 'var(--text-muted)' }}>
-                                            No evaluations have been submitted yet for this intern.
-                                        </p>
-                                        {selectedStudent && (
-                                            <button 
-                                                className="btn-new-eval"
-                                                onClick={handleOpenForm}
-                                                style={{ marginTop: '0.5rem' }}
+                            {EVALUATION_SECTIONS.map(section => (
+                                <div key={section.title} className="evx-section">
+                                    <h4 className="evx-section-title">{section.title}</h4>
+                                    {section.criteria.map(criterion => {
+                                        const value = scores[criterion.key] ?? null;
+                                        return (
+                                            <div
+                                                key={criterion.key}
+                                                className={`evx-criterion ${value ? 'rated' : 'unrated'}`}
                                             >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                                                Add Evaluation
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        {evaluations.map(evaluation => {
-                                            const isExpanded = expandedEvalId === evaluation.id;
-                                            const evalDate = new Date(evaluation.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-
-                                            return (
-                                                <div key={evaluation.id} className="eval-card glass-card">
-                                                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                                                        <div className="eval-card-header">
-                                                            {/* Status Icon */}
-                                                            <div className="status-icon-circle">
-                                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-                                                            </div>
-                                                            
-                                                            {/* Center Info */}
-                                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                                <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
-                                                                    Performance Evaluation
-                                                                </div>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                                                    <span>{evalDate}</span>
-                                                                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--border)' }}></span>
-                                                                    <span>Evaluator: {evaluatorName}</span>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            {/* Right Actions */}
-                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', flexShrink: 0 }}>
-                                                                <div className="status-badge">Completed</div>
-                                                                <button 
-                                                                    className="btn-outline"
-                                                                    onClick={(e) => { e.stopPropagation(); setExpandedEvalId(isExpanded ? null : evaluation.id); }}
-                                                                >
-                                                                    {isExpanded ? 'Close' : 'View'}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* Expanded Content */}
-                                                        {isExpanded && (
-                                                            <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border)' }} className="fade-in">
-                                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                                                                    {/* Scores Grid */}
-                                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                                                                        {EvaluationCriteria.map(c => (
-                                                                            <div key={c.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{c.label}</span>
-                                                                                {renderReadonlyStars((evaluation as any)[c.key])}
-                                                                            </div>
-                                                                        ))}
-                                                                        <div style={{ padding: '8px 12px', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                            <span style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: 600 }}>Overall Rating</span>
-                                                                            {renderReadonlyStars(evaluation.overall_rating, 18)}
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Text Feedback */}
-                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                                                        {evaluation.strengths && (
-                                                                            <div>
-                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Strengths</h4>
-                                                                                <p style={{ margin: 0, background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.strengths}</p>
-                                                                            </div>
-                                                                        )}
-                                                                        {evaluation.weaknesses && (
-                                                                            <div>
-                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Areas for Improvement</h4>
-                                                                                <p style={{ margin: 0, background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.weaknesses}</p>
-                                                                            </div>
-                                                                        )}
-                                                                        {evaluation.recommendations && (
-                                                                            <div>
-                                                                                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Recommendations / Comments</h4>
-                                                                                <p style={{ margin: 0, background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{evaluation.recommendations}</p>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                <div>
+                                                    <div className="evx-criterion-label">{criterion.label}</div>
+                                                    <p className="evx-criterion-hint">{criterion.hint}</p>
                                                 </div>
-                                            );
-                                        })}
+                                                {readOnly ? (
+                                                    <span className="evx-status evx-status-submitted">{ratingLabel(value)}</span>
+                                                ) : (
+                                                    <div className="evx-ratings" role="radiogroup" aria-label={criterion.label}>
+                                                        {RATING_SCALE.map(option => (
+                                                            <button
+                                                                key={option.value}
+                                                                type="button"
+                                                                role="radio"
+                                                                aria-checked={value === option.value}
+                                                                className={`evx-rating${value === option.value ? ' selected' : ''}`}
+                                                                disabled={Boolean(busy)}
+                                                                onClick={() => setScores(current => ({
+                                                                    ...current,
+                                                                    [criterion.key as EvaluationScoreKey]: option.value,
+                                                                }))}
+                                                            >
+                                                                {option.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
+
+                            <div className="evx-section">
+                                <h4 className="evx-section-title">Comments</h4>
+                                <textarea
+                                    className="evx-textarea"
+                                    value={comments}
+                                    readOnly={readOnly}
+                                    disabled={Boolean(busy)}
+                                    placeholder="Overall remarks on this student's performance…"
+                                    onChange={e => setComments(e.target.value)}
+                                />
+                                <div className="evx-form-grid">
+                                    <div>
+                                        <label className="evx-field-label" htmlFor="evx-strengths">Strengths</label>
+                                        <textarea
+                                            id="evx-strengths"
+                                            className="evx-textarea"
+                                            value={strengths}
+                                            readOnly={readOnly}
+                                            disabled={Boolean(busy)}
+                                            onChange={e => setStrengths(e.target.value)}
+                                        />
                                     </div>
-                                )}
+                                    <div>
+                                        <label className="evx-field-label" htmlFor="evx-weaknesses">Areas to improve</label>
+                                        <textarea
+                                            id="evx-weaknesses"
+                                            className="evx-textarea"
+                                            value={weaknesses}
+                                            readOnly={readOnly}
+                                            disabled={Boolean(busy)}
+                                            onChange={e => setWeaknesses(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="evx-field-label" htmlFor="evx-recommendations">Recommendations</label>
+                                        <textarea
+                                            id="evx-recommendations"
+                                            className="evx-textarea"
+                                            value={recommendations}
+                                            readOnly={readOnly}
+                                            disabled={Boolean(busy)}
+                                            onChange={e => setRecommendations(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
                             </div>
+
+                            {confirming && (
+                                <p className="evx-warning" style={{ marginTop: '1rem', marginBottom: 0 }}>
+                                    Submitting is final — the evaluation cannot be edited afterwards, and
+                                    {' '}{row.student_name}, their adviser and the coordinator are notified straight away.
+                                </p>
+                            )}
+
+                            {error && <p className="evx-error">{error}</p>}
                         </>
                     )}
                 </div>
+
+                <footer className="evx-modal-foot">
+                    {template?.file_path && (
+                        <span className="evx-doc-file" style={{ marginRight: 'auto' }}>
+                            Official form: {template.file_name}
+                        </span>
+                    )}
+                    {readOnly ? (
+                        <button type="button" className="evx-btn evx-btn-primary" onClick={onClose}>Close</button>
+                    ) : confirming ? (
+                        <>
+                            <button type="button" className="evx-btn evx-btn-ghost" onClick={() => setConfirming(false)} disabled={Boolean(busy)}>
+                                Go back
+                            </button>
+                            <button type="button" className="evx-btn evx-btn-primary" onClick={() => void submit()} disabled={Boolean(busy)}>
+                                {busy === 'submit' ? 'Submitting…' : 'Yes, submit evaluation'}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button type="button" className="evx-btn evx-btn-ghost" onClick={() => void save()} disabled={Boolean(busy) || loading}>
+                                {busy === 'save' ? 'Saving…' : 'Save Draft'}
+                            </button>
+                            <button
+                                type="button"
+                                className="evx-btn evx-btn-primary"
+                                onClick={() => setConfirming(true)}
+                                disabled={!complete || Boolean(busy) || loading}
+                                title={complete ? undefined : 'Rate every criterion first'}
+                            >
+                                Submit Evaluation
+                            </button>
+                        </>
+                    )}
+                </footer>
+            </div>
+        </div>
+    );
+};
+
+// ─── The official PDF, as reference ──────────────────────────────────────────
+
+const PdfViewer: React.FC<{ template: CompanyTemplate; onClose: () => void }> = ({ template, onClose }) => {
+    const [url, setUrl] = useState<string | null>(null);
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!template.file_path) return;
+        let cancelled = false;
+        void Promise.all([
+            evaluationService.getTemplateUrl(template.file_path),
+            evaluationService.getTemplateDownloadUrl(template.file_path, template.file_name ?? 'evaluation.pdf'),
+        ]).then(([viewLink, saveLink]) => {
+            if (cancelled) return;
+            setUrl(viewLink);
+            setDownloadUrl(saveLink);
+        }).catch(err => {
+            if (cancelled) return;
+            console.error('Failed to open the official form:', err);
+            setError('We could not open the official form.');
+        });
+        return () => { cancelled = true; };
+    }, [template]);
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', onKeyDown);
+        document.body.style.overflow = 'hidden';
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = '';
+        };
+    }, [onClose]);
+
+    return (
+        <div className="evx-overlay" role="presentation" onClick={onClose}>
+            <div
+                className="evx-modal tall"
+                style={{ maxWidth: 900 }}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Official evaluation form"
+                onClick={e => e.stopPropagation()}
+            >
+                <header className="evx-modal-head">
+                    <div>
+                        <h3>Official {DOCUMENT_LABEL[template.document_type]} Form</h3>
+                        <p className="evx-modal-sub">
+                            Reference only — complete the evaluation using the form in the system.
+                        </p>
+                    </div>
+                    <button type="button" className="evx-icon-btn" onClick={onClose} aria-label="Close">{Icon.close}</button>
+                </header>
+
+                <div className="evx-viewer">
+                    {error ? (
+                        <div className="evx-state">{error}</div>
+                    ) : !url ? (
+                        <div className="evx-state">Opening the official form…</div>
+                    ) : (
+                        <iframe src={url} title="Official evaluation form" />
+                    )}
+                </div>
+
+                <footer className="evx-modal-foot">
+                    {downloadUrl && (
+                        <a className="evx-btn evx-btn-ghost" href={downloadUrl} target="_blank" rel="noopener noreferrer">Download</a>
+                    )}
+                    <button type="button" className="evx-btn evx-btn-primary" onClick={onClose}>Done</button>
+                </footer>
             </div>
         </div>
     );

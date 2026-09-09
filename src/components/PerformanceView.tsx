@@ -4,6 +4,8 @@ import { profileService, type Profile } from '../services/profileService';
 import { CardGridSkeleton, TableSkeleton } from './Skeletons';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import StudentEvaluationPanel from './StudentEvaluationPanel';
+import { supabase } from '../lib/supabaseClient';
 import './PerformanceView.css';
 
 interface DailyRecord {
@@ -18,9 +20,12 @@ const PerformanceView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [profile, setProfile] = useState<Profile | null>(null);
+    // The company's evaluation is filed against the auth user, not the profile row.
+    const [authUserId, setAuthUserId] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
+        supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id ?? null));
     }, []);
 
     const loadData = async () => {
@@ -130,6 +135,13 @@ const PerformanceView: React.FC = () => {
                     Refresh
                 </button>
             </div>
+
+            {/* ── The company's evaluation of this student, read-only ───────── */}
+            {authUserId && (
+                <div style={{ marginBottom: '2rem' }}>
+                    <StudentEvaluationPanel studentId={authUserId} />
+                </div>
+            )}
 
             {/* KPI Cards */}
             {loading ? (

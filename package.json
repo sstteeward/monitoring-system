@@ -16,9 +16,10 @@
     "test:schedule-calendar": "node --experimental-strip-types --test src/utils/scheduleCalendar.test.ts",
     "test:attendance-limit": "node --experimental-strip-types --test src/utils/attendanceLimit.test.ts",
     "test:adviser-report": "node --experimental-strip-types --test src/utils/adviserReport.test.ts",
-    "test": "node --experimental-strip-types --test src/utils/authRedirect.test.ts src/utils/sections.test.ts src/utils/email.test.ts src/utils/verificationCode.test.ts src/utils/scheduleCalendar.test.ts src/utils/attendanceLimit.test.ts src/utils/adviserReport.test.ts src/utils/dtrFormat.test.ts src/components/onboarding/onboardingFields.test.ts supabase/functions/google-calendar/calendarMapping.test.ts",
+    "test": "node --experimental-strip-types --test src/utils/authRedirect.test.ts src/utils/sections.test.ts src/utils/email.test.ts src/utils/verificationCode.test.ts src/utils/scheduleCalendar.test.ts src/utils/attendanceLimit.test.ts src/utils/adviserReport.test.ts src/utils/dtrFormat.test.ts src/utils/evaluationForms.test.ts src/components/onboarding/onboardingFields.test.ts supabase/functions/google-calendar/calendarMapping.test.ts",
     "preview": "vite preview",
-    "test:dtr-format": "node --experimental-strip-types --test src/utils/dtrFormat.test.ts"
+    "test:dtr-format": "node --experimental-strip-types --test src/utils/dtrFormat.test.ts",
+    "test:evaluations": "node --experimental-strip-types --test src/utils/evaluationForms.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.0",

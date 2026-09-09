@@ -3,7 +3,10 @@ import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { profileService, type Profile } from '../services/profileService';
 import { useTheme } from '../contexts/ThemeContext';
+import { evaluationService, type EvaluationWorklistRow } from '../services/evaluationService';
+import { isPending } from '../utils/evaluationForms';
 import './CompanyDashboard.css';
+import './Evaluations.css';
 
 import CompanyStudentsView from './CompanyStudentsView';
 
@@ -48,6 +51,24 @@ const Icon = {
 type View = 'overview' | 'students' | 'attendance' | 'journals' | 'evaluations' | 'announcements' | 'schedule' | 'documents' | 'profile' | 'security' | 'settings';
 
 const CompanyOverview = ({ profile }: { profile: Profile | null }) => {
+    const navigate = useNavigate();
+    const [pending, setPending] = useState<EvaluationWorklistRow[]>([]);
+
+    // Outstanding evaluations are the one thing on this page the company has to
+    // act on, so the card that counts them is filled from the same worklist the
+    // Evaluations page uses rather than being left at zero.
+    useEffect(() => {
+        if (!profile?.company_id) return;
+        let cancelled = false;
+        evaluationService.getWorklist(profile.company_id)
+            .then(rows => {
+                if (cancelled) return;
+                setPending(rows.filter(row => row.evaluation_id && isPending(row.status)));
+            })
+            .catch(err => console.error('Failed to load pending evaluations:', err));
+        return () => { cancelled = true; };
+    }, [profile?.company_id]);
+
     return (
         <div className="fade-in">
             <div className="company-welcome-banner">
@@ -86,11 +107,59 @@ const CompanyOverview = ({ profile }: { profile: Profile | null }) => {
                 <div className="company-stat-card glass-card">
                     <div className="company-stat-icon-wrap" style={{ background: 'var(--bg-elevated)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)' }}>{Icon.star}</div>
                     <div>
-                        <div className="company-stat-value">0</div>
+                        <div className="company-stat-value">{pending.length}</div>
                         <div className="company-stat-label">Pending Evaluations</div>
                     </div>
                 </div>
             </div>
+
+            {pending.length > 0 && (
+                <div className="evx" style={{ marginTop: '1.25rem' }}>
+                    <div className="evx-pending">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span className="evx-pending-count">{pending.length}</span>
+                            <span className="evx-pending-text">
+                                student evaluation{pending.length === 1 ? '' : 's'} require{pending.length === 1 ? 's' : ''} your attention.
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            className="evx-btn evx-btn-quiet"
+                            onClick={() => navigate('/company/evaluations')}
+                        >
+                            Open evaluations
+                        </button>
+                    </div>
+
+                    <div className="evx-table-wrap" style={{ marginTop: '0.75rem' }}>
+                        <table className="evx-table" style={{ minWidth: 0 }}>
+                            <tbody>
+                                {pending.map(row => (
+                                    <tr key={row.student_id}>
+                                        <td>
+                                            <span className="evx-doc-name">{row.student_name || 'Unnamed student'}</span>
+                                            <span className="evx-doc-file">
+                                                {[row.course, row.section].filter(Boolean).join(' · ') || 'No program on file'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="evx-row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="evx-btn evx-btn-primary"
+                                                    onClick={() => navigate('/company/evaluations', { state: { studentId: row.student_id } })}
+                                                >
+                                                    {row.status === 'in_progress' ? 'Continue' : 'Evaluate'}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

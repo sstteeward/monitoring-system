@@ -256,51 +256,12 @@ export const companyService = {
     return true;
   },
 
-  async submitEvaluation(evaluationData: Omit<Evaluation, 'id' | 'created_at' | 'updated_at'>) {
-    const { error } = await supabase
-      .from('evaluations')
-      .insert(evaluationData);
-    if (error) throw error;
-
-    try {
-      await createAuditLog({
-        action: 'SUBMIT',
-        module: 'Evaluations',
-        description: `Submitted performance evaluation for student ${evaluationData.student_id}`,
-        targetType: 'student',
-        targetId: evaluationData.student_id,
-        newValues: { overall_rating: evaluationData.overall_rating },
-      });
-    } catch {}
-
-    return true;
-  },
-  
-  async getStudentEvaluations(studentId: string) {
-    const { data, error } = await supabase
-      .from('evaluations')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error("Error fetching evaluations:", error);
-      return [];
-    }
-    return data;
-  },
-
-  async getCompanyEvaluations(companyId: string) {
-    const { data, error } = await supabase
-      .from('evaluations')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error("Error fetching company evaluations:", error);
-      return [];
-    }
-    return data;
-  },
+  // Evaluations moved to src/services/evaluationService.ts when they became
+  // instances of a company-level template. The three helpers that used to live
+  // here wrote to public.evaluations directly, which now means bypassing the
+  // template link, the status lifecycle and the notifications a submission
+  // raises — and they passed profiles.id where the column holds an
+  // auth_user_id, so an insert could never have satisfied the foreign key.
 
   async getAnnouncements(companyId: string) {
     const { data, error } = await supabase
