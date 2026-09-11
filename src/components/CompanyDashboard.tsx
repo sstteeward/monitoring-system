@@ -131,32 +131,32 @@ const CompanyOverview = ({ profile }: { profile: Profile | null }) => {
                         </button>
                     </div>
 
-                    <div className="evx-table-wrap" style={{ marginTop: '0.75rem' }}>
-                        <table className="evx-table" style={{ minWidth: 0 }}>
-                            <tbody>
-                                {pending.map(row => (
-                                    <tr key={row.student_id}>
-                                        <td>
-                                            <span className="evx-doc-name">{row.student_name || 'Unnamed student'}</span>
-                                            <span className="evx-doc-file">
-                                                {[row.course, row.section].filter(Boolean).join(' · ') || 'No program on file'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="evx-row-actions">
-                                                <button
-                                                    type="button"
-                                                    className="evx-btn evx-btn-primary"
-                                                    onClick={() => navigate('/company/evaluations', { state: { studentId: row.student_id } })}
-                                                >
-                                                    {row.status === 'in_progress' ? 'Continue' : 'Evaluate'}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div className="evx-docs" style={{ marginTop: '0.75rem' }}>
+                        {pending.map(row => (
+                            <div key={row.student_id} className="evx-doc">
+                                <div className="evx-doc-main">
+                                    <span className="evx-doc-name">{row.student_name || 'Unnamed student'}</span>
+                                    <span className="evx-doc-file">
+                                        {[row.course, row.section].filter(Boolean).join(' · ') || 'No program on file'}
+                                    </span>
+                                </div>
+                                <div className="evx-doc-side">
+                                    <span className={`evx-status evx-status-${row.status}`}>
+                                        <span className="evx-status-dot" aria-hidden="true" />
+                                        {row.status === 'in_progress' ? 'In Progress' : 'Not Started'}
+                                    </span>
+                                </div>
+                                <div className="evx-row-actions">
+                                    <button
+                                        type="button"
+                                        className="evx-btn evx-btn-primary evx-btn-sm"
+                                        onClick={() => navigate('/company/evaluations', { state: { studentId: row.student_id } })}
+                                    >
+                                        {row.status === 'in_progress' ? 'Continue' : 'Evaluate'}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

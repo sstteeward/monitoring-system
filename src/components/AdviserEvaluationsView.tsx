@@ -15,27 +15,40 @@ import './Evaluations.css';
  * The adviser does not upload the form and does not fill it in; they read what
  * the company submitted and use it for monitoring and grading. Marking a result
  * reviewed is the only write here, and it changes nothing the company answered.
+ *
+ * Same shell as the company's page — roster left, the open result right — so
+ * reading an evaluation costs a click rather than a dialog.
  */
 
 const Icon = {
     search: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
-    close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+    award: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></svg>,
+    users: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /></svg>,
+    refresh: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>,
 };
 
-const FILTERS: { value: EvaluationStatus | 'all' | 'pending'; label: string }[] = [
+type Filter = EvaluationStatus | 'all' | 'pending';
+
+const FILTERS: { value: Filter; label: string }[] = [
     { value: 'all', label: 'All' },
-    { value: 'pending', label: 'Pending' },
+    { value: 'pending', label: 'Awaiting' },
     { value: 'submitted', label: 'Submitted' },
     { value: 'reviewed', label: 'Reviewed' },
 ];
+
+function initials(name: string | null): string {
+    const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '—';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
 
 const AdviserEvaluationsView: React.FC = () => {
     const [rows, setRows] = useState<AdviserEvaluationRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [filter, setFilter] = useState<EvaluationStatus | 'all' | 'pending'>('all');
+    const [filter, setFilter] = useState<Filter>('all');
     const [search, setSearch] = useState('');
-    const [opened, setOpened] = useState<AdviserEvaluationRow | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
     const [marking, setMarking] = useState<string | null>(null);
 
     const load = useCallback(async () => {
@@ -53,16 +66,22 @@ const AdviserEvaluationsView: React.FC = () => {
 
     useEffect(() => { void load(); }, [load]);
 
-    useEffect(() => {
-        if (!opened) return;
-        const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpened(null); };
-        window.addEventListener('keydown', onKeyDown);
-        document.body.style.overflow = 'hidden';
-        return () => {
-            window.removeEventListener('keydown', onKeyDown);
-            document.body.style.overflow = '';
-        };
-    }, [opened]);
+    const counts = useMemo(() => ({
+        all: rows.length,
+        pending: rows.filter(row => isPending(row.status)).length,
+        submitted: rows.filter(row => row.status === 'submitted').length,
+        reviewed: rows.filter(row => row.status === 'reviewed').length,
+        not_started: rows.filter(row => row.status === 'not_started').length,
+        in_progress: rows.filter(row => row.status === 'in_progress').length,
+    }), [rows]);
+
+    const evaluated = counts.submitted + counts.reviewed;
+
+    const average = useMemo(() => {
+        const scored = rows.filter(row => typeof row.total_score === 'number');
+        if (scored.length === 0) return null;
+        return scored.reduce((sum, row) => sum + Number(row.total_score), 0) / scored.length;
+    }, [rows]);
 
     const visible = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -75,7 +94,15 @@ const AdviserEvaluationsView: React.FC = () => {
         });
     }, [rows, filter, search]);
 
-    const submitted = rows.filter(row => row.status === 'submitted' || row.status === 'reviewed').length;
+    // Open something useful rather than an empty pane: the first result that is
+    // actually readable, otherwise whoever is at the top.
+    useEffect(() => {
+        if (selectedId || visible.length === 0) return;
+        const first = visible.find(row => !isPending(row.status)) ?? visible[0];
+        setSelectedId(first.student_id);
+    }, [visible, selectedId]);
+
+    const selected = rows.find(row => row.student_id === selectedId) ?? null;
 
     const markReviewed = async (row: AdviserEvaluationRow) => {
         if (!row.evaluation_id) return;
@@ -93,146 +120,175 @@ const AdviserEvaluationsView: React.FC = () => {
 
     return (
         <div className="evx fade-in">
-            <header className="evx-head">
-                <div>
-                    <h2 className="evx-title">Student Evaluations</h2>
+            <header className="evx-hero">
+                <div className="evx-hero-main">
+                    <h2 className="evx-title">
+                        <span className="evx-title-icon" aria-hidden="true">{Icon.award}</span>
+                        Student Evaluations
+                    </h2>
                     <p className="evx-sub">
                         Company evaluations for the students in your sections. Companies complete these; you
-                        review the results.
+                        read the results and mark them reviewed.
                     </p>
+                </div>
+
+                <ul className="evx-rail">
+                    <li className="evx-rail-item">
+                        <span className="evx-rail-value">{counts.all}</span>
+                        <span className="evx-rail-label">Students</span>
+                    </li>
+                    <li className="evx-rail-item">
+                        <span className="evx-rail-value accent">{evaluated}</span>
+                        <span className="evx-rail-label">Evaluated</span>
+                    </li>
+                    <li className="evx-rail-item">
+                        <span className={`evx-rail-value${counts.pending > 0 ? ' warn' : ''}`}>{counts.pending}</span>
+                        <span className="evx-rail-label">Awaiting</span>
+                    </li>
+                    <li className="evx-rail-item">
+                        <span className="evx-rail-value">{average === null ? '—' : `${average.toFixed(0)}%`}</span>
+                        <span className="evx-rail-label">Average</span>
+                    </li>
+                </ul>
+
+                <div className="evx-hero-actions">
+                    <button type="button" className="evx-btn evx-btn-quiet" onClick={() => void load()} disabled={loading}>
+                        {Icon.refresh} {loading ? 'Refreshing…' : 'Refresh'}
+                    </button>
                 </div>
             </header>
 
-            <div className="evx-stats">
-                <div className="evx-stat"><div className="evx-stat-value">{rows.length}</div><div className="evx-stat-label">Students</div></div>
-                <div className="evx-stat"><div className="evx-stat-value">{submitted}</div><div className="evx-stat-label">Evaluated</div></div>
-                <div className="evx-stat"><div className="evx-stat-value">{rows.length - submitted}</div><div className="evx-stat-label">Awaiting company</div></div>
-            </div>
+            {error && <p className="evx-error" style={{ marginTop: 0 }}>{error}</p>}
 
-            <div className="evx-toolbar">
-                <div className="evx-search" style={{ flex: '1 1 240px', padding: 0, border: 0 }}>
-                    <span className="evx-search-icon" aria-hidden="true" style={{ left: '0.65rem' }}>{Icon.search}</span>
-                    <input
-                        type="search"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder="Search student, section or company…"
-                        aria-label="Search students"
-                    />
+            {loading ? (
+                <div className="evx-work">
+                    <div className="evx-roster"><div className="evx-state">Loading students…</div></div>
+                    <div className="evx-canvas"><div className="evx-state">Loading evaluations…</div></div>
                 </div>
-                <div className="evx-filters" role="group" aria-label="Filter by status">
-                    {FILTERS.map(option => (
-                        <button
-                            key={option.value}
-                            type="button"
-                            className={`evx-filter${filter === option.value ? ' active' : ''}`}
-                            aria-pressed={filter === option.value}
-                            onClick={() => setFilter(option.value)}
-                        >
-                            {option.label}
-                        </button>
-                    ))}
+            ) : rows.length === 0 ? (
+                <div className="evx-canvas">
+                    <div className="evx-empty">
+                        <span className="evx-empty-icon" aria-hidden="true">{Icon.users}</span>
+                        <p className="evx-empty-title">No students in your sections</p>
+                        <p className="evx-empty-sub">
+                            Students appear here once they are assigned to a section you advise.
+                        </p>
+                    </div>
                 </div>
-            </div>
-
-            <div className="evx-table-wrap">
-                {loading ? (
-                    <div className="evx-state">Loading evaluations…</div>
-                ) : error ? (
-                    <div className="evx-state">
-                        <p>{error}</p>
-                        <button type="button" className="evx-btn evx-btn-quiet" onClick={() => void load()}>Try again</button>
-                    </div>
-                ) : visible.length === 0 ? (
-                    <div className="evx-state">
-                        {rows.length === 0 ? 'No students are assigned to your sections yet.' : 'No students match this filter.'}
-                    </div>
-                ) : (
-                    <table className="evx-table">
-                        <thead>
-                            <tr>
-                                <th>Student</th>
-                                <th>Company</th>
-                                <th>Status</th>
-                                <th>Score</th>
-                                <th aria-label="Actions" />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {visible.map(row => (
-                                <tr key={row.student_id}>
-                                    <td>
-                                        <span className="evx-doc-name">{row.student_name || 'Unnamed student'}</span>
-                                        <span className="evx-doc-file">{row.section || 'No section'}</span>
-                                    </td>
-                                    <td>
-                                        {row.company_name || 'Not assigned'}
-                                        {row.evaluator_name && <span className="evx-doc-file">by {row.evaluator_name}</span>}
-                                    </td>
-                                    <td>
-                                        <span className={`evx-status evx-status-${row.status}`}>
-                                            <span className="evx-status-dot" aria-hidden="true" />
-                                            {STATUS_LABEL[row.status]}
-                                        </span>
-                                        {row.submitted_at && <span className="evx-doc-file">{formatDate(row.submitted_at)}</span>}
-                                    </td>
-                                    <td>
-                                        {row.total_score !== null && row.total_score !== undefined
-                                            ? <strong>{Number(row.total_score).toFixed(0)}%</strong>
-                                            : <span className="evx-doc-file">—</span>}
-                                    </td>
-                                    <td>
-                                        <div className="evx-row-actions">
-                                            {row.status === 'submitted' && (
-                                                <button
-                                                    type="button"
-                                                    className="evx-btn evx-btn-quiet"
-                                                    disabled={marking === row.evaluation_id}
-                                                    onClick={() => void markReviewed(row)}
-                                                >
-                                                    {marking === row.evaluation_id ? 'Saving…' : 'Mark reviewed'}
-                                                </button>
-                                            )}
-                                            {(row.status === 'submitted' || row.status === 'reviewed') ? (
-                                                <button type="button" className="evx-btn evx-btn-primary" onClick={() => setOpened(row)}>
-                                                    View Full Evaluation
-                                                </button>
-                                            ) : (
-                                                <span className="evx-doc-file">Awaiting the company</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
-
-            {opened && (
-                <div className="evx-overlay" role="presentation" onClick={() => setOpened(null)}>
-                    <div
-                        className="evx-modal"
-                        style={{ maxWidth: 680 }}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label={`Evaluation for ${opened.student_name ?? 'student'}`}
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <header className="evx-modal-head">
-                            <div>
-                                <h3>{opened.student_name}</h3>
-                                <p className="evx-modal-sub">{[opened.section, opened.company_name].filter(Boolean).join(' · ')}</p>
+            ) : (
+                <div className="evx-work">
+                    {/* ── Roster ───────────────────────────────────────────── */}
+                    <aside className="evx-roster">
+                        <div className="evx-roster-head">
+                            <div className="evx-search">
+                                <span className="evx-search-icon" aria-hidden="true">{Icon.search}</span>
+                                <input
+                                    type="search"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    placeholder="Student, section or company…"
+                                    aria-label="Search students"
+                                />
                             </div>
-                            <button type="button" className="evx-icon-btn" onClick={() => setOpened(null)} aria-label="Close">{Icon.close}</button>
-                        </header>
-                        <div className="evx-modal-body">
-                            <StudentEvaluationPanel studentId={opened.student_id} voice="staff" />
+                            <div className="evx-chips" role="group" aria-label="Filter by status">
+                                {FILTERS.map(option => (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        className={`evx-chip${filter === option.value ? ' active' : ''}`}
+                                        aria-pressed={filter === option.value}
+                                        onClick={() => setFilter(option.value)}
+                                    >
+                                        {option.label}
+                                        <span className="evx-chip-count">{counts[option.value]}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <footer className="evx-modal-foot">
-                            <button type="button" className="evx-btn evx-btn-primary" onClick={() => setOpened(null)}>Close</button>
-                        </footer>
-                    </div>
+
+                        <div className="evx-roster-list" role="listbox" aria-label="Students">
+                            {visible.length === 0 ? (
+                                <div className="evx-state">No students match this filter.</div>
+                            ) : visible.map(row => (
+                                <button
+                                    key={row.student_id}
+                                    type="button"
+                                    role="option"
+                                    aria-selected={row.student_id === selectedId}
+                                    className={`evx-roster-item${row.student_id === selectedId ? ' active' : ''}`}
+                                    onClick={() => setSelectedId(row.student_id)}
+                                >
+                                    <span className="evx-avatar" aria-hidden="true">{initials(row.student_name)}</span>
+                                    <span className="evx-roster-main">
+                                        <span className="evx-roster-name">{row.student_name || 'Unnamed student'}</span>
+                                        <span className="evx-roster-meta">
+                                            {[row.section, row.company_name].filter(Boolean).join(' · ') || 'No section'}
+                                        </span>
+                                    </span>
+                                    <span className="evx-roster-side">
+                                        <span
+                                            className={`evx-dot evx-dot-${row.status}`}
+                                            title={STATUS_LABEL[row.status]}
+                                            aria-label={STATUS_LABEL[row.status]}
+                                        />
+                                        {row.total_score !== null && row.total_score !== undefined && (
+                                            <span className="evx-roster-score">{Number(row.total_score).toFixed(0)}%</span>
+                                        )}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="evx-roster-foot">
+                            {visible.length} of {rows.length} shown · {evaluated}/{rows.length} evaluated
+                        </div>
+                    </aside>
+
+                    {/* ── Result ───────────────────────────────────────────── */}
+                    {!selected ? (
+                        <section className="evx-canvas">
+                            <div className="evx-empty">
+                                <span className="evx-empty-icon" aria-hidden="true">{Icon.users}</span>
+                                <p className="evx-empty-title">Select a student</p>
+                                <p className="evx-empty-sub">Pick anyone from the roster to read their evaluation.</p>
+                            </div>
+                        </section>
+                    ) : (
+                        <section className="evx-canvas">
+                            <header className="evx-canvas-head">
+                                <div className="evx-canvas-id">
+                                    <span className="evx-avatar" aria-hidden="true">{initials(selected.student_name)}</span>
+                                    <div>
+                                        <div className="evx-canvas-name">{selected.student_name || 'Unnamed student'}</div>
+                                        <span className="evx-canvas-meta">
+                                            {[selected.section, selected.company_name || 'No company'].filter(Boolean).join(' · ')}
+                                            {selected.submitted_at ? ` · submitted ${formatDate(selected.submitted_at)}` : ''}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {selected.status === 'submitted' && (
+                                    <button
+                                        type="button"
+                                        className="evx-btn evx-btn-primary"
+                                        disabled={marking === selected.evaluation_id}
+                                        onClick={() => void markReviewed(selected)}
+                                    >
+                                        {marking === selected.evaluation_id ? 'Saving…' : 'Mark reviewed'}
+                                    </button>
+                                )}
+                            </header>
+
+                            <div className="evx-canvas-body">
+                                <StudentEvaluationPanel
+                                    key={selected.student_id}
+                                    studentId={selected.student_id}
+                                    voice="staff"
+                                    variant="embedded"
+                                />
+                            </div>
+                        </section>
+                    )}
                 </div>
             )}
         </div>

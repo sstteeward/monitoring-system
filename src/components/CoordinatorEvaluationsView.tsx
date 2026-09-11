@@ -35,7 +35,9 @@ import './Evaluations.css';
 const Icon = {
     search: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
     upload: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>,
-    building: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>,
+    building: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>,
+    file: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>,
+    clipboard: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" /></svg>,
     close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
 };
 
@@ -44,10 +46,17 @@ type Tab = 'documents' | 'monitoring';
 const MONITOR_FILTERS: { value: EvaluationStatus | 'all' | 'pending'; label: string }[] = [
     { value: 'all', label: 'All' },
     { value: 'pending', label: 'Pending' },
-    { value: 'in_progress', label: 'In Progress' },
+    { value: 'in_progress', label: 'Started' },
     { value: 'submitted', label: 'Submitted' },
     { value: 'reviewed', label: 'Reviewed' },
 ];
+
+/** Two letters of the company name, for the roster tile. */
+function initials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '—';
+    return (parts[0][0] + (parts.length > 1 ? parts[1][0] : '')).toUpperCase();
+}
 
 const CoordinatorEvaluationsView: React.FC = () => {
     const [companies, setCompanies] = useState<EvaluationCompany[]>([]);
@@ -131,6 +140,14 @@ const CoordinatorEvaluationsView: React.FC = () => {
 
     const submitted = worklist.filter(row => row.status === 'submitted' || row.status === 'reviewed').length;
 
+    // The rail answers the question the coordinator opens this page with:
+    // how much of the cohort has actually been evaluated.
+    const totals = useMemo(() => companies.reduce((acc, company) => ({
+        published: acc.published + (company.has_evaluation ? 1 : 0),
+        evaluations: acc.evaluations + company.total_evaluations,
+        submitted: acc.submitted + company.submitted_count,
+    }), { published: 0, evaluations: 0, submitted: 0 }), [companies]);
+
     const onPublished = async (documentType: EvaluationDocumentType, version: number, studentCount: number) => {
         setPublishFor(null);
         if (selected) await loadDetail(selected.company_id);
@@ -148,31 +165,57 @@ const CoordinatorEvaluationsView: React.FC = () => {
 
     return (
         <div className="evx fade-in">
-            <header className="evx-head">
-                <div>
-                    <h2 className="evx-title">Company Evaluations</h2>
+            <header className="evx-hero">
+                <div className="evx-hero-main">
+                    <h2 className="evx-title">
+                        <span className="evx-title-icon" aria-hidden="true">{Icon.clipboard}</span>
+                        Company Evaluations
+                    </h2>
                     <p className="evx-sub">
                         Publish the official Evaluation, Annex B and Annex C once per company — the system
                         creates an evaluation for every student it hosts.
                     </p>
                 </div>
+
+                <ul className="evx-rail">
+                    <li className="evx-rail-item">
+                        <span className="evx-rail-value">{companies.length}</span>
+                        <span className="evx-rail-label">Companies</span>
+                    </li>
+                    <li className="evx-rail-item">
+                        <span className="evx-rail-value">{totals.published}</span>
+                        <span className="evx-rail-label">Forms published</span>
+                    </li>
+                    <li className="evx-rail-item">
+                        <span className="evx-rail-value accent">{totals.submitted}</span>
+                        <span className="evx-rail-label">Submitted</span>
+                    </li>
+                    <li className="evx-rail-item">
+                        <span className={`evx-rail-value${totals.evaluations - totals.submitted > 0 ? ' warn' : ''}`}>
+                            {Math.max(0, totals.evaluations - totals.submitted)}
+                        </span>
+                        <span className="evx-rail-label">Outstanding</span>
+                    </li>
+                </ul>
             </header>
 
-            <div className="evx-layout">
-                {/* ── Company picker ─────────────────────────────────────── */}
-                <aside className="evx-picker">
-                    <div className="evx-search">
-                        <span className="evx-search-icon" aria-hidden="true">{Icon.search}</span>
-                        <input
-                            type="search"
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Search companies"
-                            aria-label="Search companies"
-                        />
+            <div className="evx-work wide">
+                {/* ── Company roster ─────────────────────────────────────── */}
+                <aside className="evx-roster">
+                    <div className="evx-roster-head">
+                        <div className="evx-search">
+                            <span className="evx-search-icon" aria-hidden="true">{Icon.search}</span>
+                            <input
+                                type="search"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Search companies"
+                                aria-label="Search companies"
+                            />
+                        </div>
                     </div>
 
-                    <div className="evx-picker-list" role="listbox" aria-label="Companies">
+                    <div className="evx-roster-list" role="listbox" aria-label="Companies">
                         {loading ? (
                             <div className="evx-state">Loading companies…</div>
                         ) : loadError ? (
@@ -188,36 +231,42 @@ const CoordinatorEvaluationsView: React.FC = () => {
                                 type="button"
                                 role="option"
                                 aria-selected={selected?.company_id === company.company_id}
-                                className={`evx-picker-item${selected?.company_id === company.company_id ? ' active' : ''}`}
+                                className={`evx-roster-item${selected?.company_id === company.company_id ? ' active' : ''}`}
                                 onClick={() => setSelected(company)}
                             >
-                                <span className="evx-picker-name">{company.company_name}</span>
-                                <span className="evx-picker-meta">
-                                    {company.student_count} student{company.student_count === 1 ? '' : 's'}
-                                    {company.templates_on_file > 0 && ` · ${company.templates_on_file}/3 documents`}
-                                </span>
-                                {company.total_evaluations > 0 && (
-                                    <span className="evx-meter">
-                                        <span className="evx-meter-track">
-                                            <span
-                                                className="evx-meter-fill"
-                                                style={{ width: `${(company.submitted_count / company.total_evaluations) * 100}%` }}
-                                            />
-                                        </span>
-                                        <span className="evx-meter-text">{company.submitted_count}/{company.total_evaluations}</span>
+                                <span className="evx-avatar" aria-hidden="true">{initials(company.company_name)}</span>
+                                <span className="evx-roster-main">
+                                    <span className="evx-roster-name">{company.company_name}</span>
+                                    <span className="evx-roster-meta">
+                                        {company.student_count} student{company.student_count === 1 ? '' : 's'} · {company.templates_on_file}/3 documents
                                     </span>
-                                )}
-                                <span className={`evx-count${company.templates_on_file === 3 ? ' complete' : ''}`}>
-                                    {company.templates_on_file}/3
+                                    {company.total_evaluations > 0 && (
+                                        <span className="evx-meter">
+                                            <span className="evx-meter-track">
+                                                <span
+                                                    className="evx-meter-fill"
+                                                    style={{ width: `${(company.submitted_count / company.total_evaluations) * 100}%` }}
+                                                />
+                                            </span>
+                                            <span className="evx-meter-text">{company.submitted_count}/{company.total_evaluations}</span>
+                                        </span>
+                                    )}
+                                </span>
+                                <span className="evx-roster-side">
+                                    <span className={`evx-dot ${company.has_evaluation ? 'evx-dot-submitted' : 'evx-dot-not_started'}`} aria-hidden="true" />
                                 </span>
                             </button>
                         ))}
                     </div>
+
+                    <div className="evx-roster-foot">
+                        {visibleCompanies.length} of {companies.length} companies
+                    </div>
                 </aside>
 
                 {/* ── Company detail ─────────────────────────────────────── */}
-                <section className="evx-panel">
-                    {!selected ? (
+                {!selected ? (
+                    <section className="evx-canvas">
                         <div className="evx-empty">
                             <span className="evx-empty-icon" aria-hidden="true">{Icon.building}</span>
                             <p className="evx-empty-title">Select a company</p>
@@ -226,108 +275,112 @@ const CoordinatorEvaluationsView: React.FC = () => {
                                 student evaluations have got.
                             </p>
                         </div>
-                    ) : (
-                        <>
-                            <div className="evx-context">
-                                <div className="evx-context-name">
-                                    {selected.company_name}
-                                    <span className="evx-context-email">
+                    </section>
+                ) : (
+                    <section className="evx-canvas">
+                        <header className="evx-canvas-head">
+                            <div className="evx-canvas-id">
+                                <span className="evx-avatar" aria-hidden="true">{initials(selected.company_name)}</span>
+                                <div>
+                                    <div className="evx-canvas-name">{selected.company_name}</div>
+                                    <span className="evx-canvas-meta">
                                         {selected.student_count} assigned student{selected.student_count === 1 ? '' : 's'}
+                                        {worklist.length > 0 && ` · ${submitted}/${worklist.length} evaluated`}
                                     </span>
-                                </div>
-                                <div className="evx-row-actions">
-                                    <button
-                                        type="button"
-                                        className={`evx-tab${tab === 'documents' ? ' active' : ''}`}
-                                        onClick={() => setTab('documents')}
-                                    >
-                                        Documents
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`evx-tab${tab === 'monitoring' ? ' active' : ''}`}
-                                        onClick={() => setTab('monitoring')}
-                                    >
-                                        Evaluations {worklist.length > 0 && `(${submitted}/${worklist.length})`}
-                                    </button>
                                 </div>
                             </div>
 
+                            <div className="evx-tabs" role="tablist" aria-label="Company detail">
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={tab === 'documents'}
+                                    className={`evx-tab${tab === 'documents' ? ' active' : ''}`}
+                                    onClick={() => setTab('documents')}
+                                >
+                                    Documents {selected.templates_on_file}/3
+                                </button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={tab === 'monitoring'}
+                                    className={`evx-tab${tab === 'monitoring' ? ' active' : ''}`}
+                                    onClick={() => setTab('monitoring')}
+                                >
+                                    Evaluations {worklist.length > 0 ? `${submitted}/${worklist.length}` : ''}
+                                </button>
+                            </div>
+                        </header>
+
+                        <div className="evx-canvas-body">
                             {!selected.has_portal_account && (
-                                <p className="evx-hint">
+                                <p className="evx-hint" style={{ marginBottom: '0.75rem' }}>
                                     This company has no portal account, so nobody there can sign in to complete
                                     an evaluation. Approve or create their account under Companies first.
                                 </p>
                             )}
 
                             {tab === 'documents' ? (
-                                <div className="evx-table-wrap">
-                                    <table className="evx-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Document</th>
-                                                <th>Status</th>
-                                                <th>Published</th>
-                                                <th aria-label="Actions" />
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {detailLoading && templates.length === 0 ? (
-                                                <tr><td colSpan={4}><div className="evx-state">Loading documents…</div></td></tr>
-                                            ) : templates.map(row => (
-                                                <tr key={row.document_type}>
-                                                    <td>
+                                detailLoading && templates.length === 0 ? (
+                                    <div className="evx-state">Loading documents…</div>
+                                ) : (
+                                    <div className="evx-docs">
+                                        {templates.map(row => {
+                                            const due = row.document_type === 'evaluation' && row.evaluation_deadline
+                                                ? describeDeadline(row.evaluation_deadline)
+                                                : null;
+                                            return (
+                                                <div key={row.document_type} className={`evx-doc${row.template_id ? ' filed' : ''}`}>
+                                                    <span className="evx-doc-icon" aria-hidden="true">{Icon.file}</span>
+
+                                                    <div className="evx-doc-main">
                                                         <span className="evx-doc-name">{DOCUMENT_LABEL[row.document_type]}</span>
                                                         <span className="evx-doc-file">
                                                             {row.file_name
                                                                 ? `${row.file_name} · ${formatFileSize(row.file_size)}${(row.version ?? 1) > 1 ? ` · v${row.version}` : ''}`
                                                                 : DOCUMENT_DESCRIPTION[row.document_type]}
                                                         </span>
-                                                    </td>
-                                                    <td>
+                                                        {row.template_id && (
+                                                            <span className="evx-doc-file">
+                                                                Published {formatDate(row.uploaded_at)}
+                                                                {row.uploaded_by_name ? ` by ${row.uploaded_by_name}` : ''}
+                                                                {row.previous_versions > 0
+                                                                    ? ` · ${row.previous_versions} earlier version${row.previous_versions === 1 ? '' : 's'} kept`
+                                                                    : ''}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="evx-doc-side">
                                                         <span className={`evx-status evx-status-${row.template_id ? 'uploaded' : 'not_uploaded'}`}>
                                                             <span className="evx-status-dot" aria-hidden="true" />
-                                                            {row.template_id ? 'Published' : 'Not Uploaded'}
+                                                            {row.template_id ? 'Published' : 'Not uploaded'}
                                                         </span>
-                                                        {row.document_type === 'evaluation' && row.evaluation_deadline && (
-                                                            <span className={`evx-deadline evx-deadline-${describeDeadline(row.evaluation_deadline).tone}`} style={{ marginTop: '0.3rem' }}>
-                                                                {describeDeadline(row.evaluation_deadline).text}
-                                                            </span>
+                                                        {due && <span className={`evx-deadline evx-deadline-${due.tone}`}>{due.text}</span>}
+                                                    </div>
+
+                                                    <div className="evx-row-actions">
+                                                        {row.template_id ? (
+                                                            <>
+                                                                <button type="button" className="evx-btn evx-btn-quiet evx-btn-sm" onClick={() => setViewing(row)}>View</button>
+                                                                <button type="button" className="evx-btn evx-btn-ghost evx-btn-sm" onClick={() => setPublishFor(row.document_type)}>Replace</button>
+                                                            </>
+                                                        ) : (
+                                                            <button type="button" className="evx-btn evx-btn-primary evx-btn-sm" onClick={() => setPublishFor(row.document_type)}>
+                                                                {Icon.upload} Upload
+                                                            </button>
                                                         )}
-                                                    </td>
-                                                    <td>
-                                                        {formatDate(row.uploaded_at)}
-                                                        {row.uploaded_by_name && <span className="evx-doc-file">by {row.uploaded_by_name}</span>}
-                                                        {row.previous_versions > 0 && (
-                                                            <span className="evx-doc-file">
-                                                                {row.previous_versions} earlier version{row.previous_versions === 1 ? '' : 's'} kept
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td>
-                                                        <div className="evx-row-actions">
-                                                            {row.template_id ? (
-                                                                <>
-                                                                    <button type="button" className="evx-btn evx-btn-quiet" onClick={() => setViewing(row)}>View</button>
-                                                                    <button type="button" className="evx-btn evx-btn-quiet" onClick={() => setPublishFor(row.document_type)}>Replace</button>
-                                                                </>
-                                                            ) : (
-                                                                <button type="button" className="evx-btn evx-btn-primary" onClick={() => setPublishFor(row.document_type)}>
-                                                                    {Icon.upload} Upload
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )
                             ) : (
                                 <>
-                                    <div className="evx-toolbar">
-                                        <div className="evx-search" style={{ flex: '1 1 220px', padding: 0, border: 0 }}>
-                                            <span className="evx-search-icon" aria-hidden="true" style={{ left: '0.65rem' }}>{Icon.search}</span>
+                                    <div className="evx-monitor-bar">
+                                        <div className="evx-search" style={{ flex: '1 1 200px' }}>
+                                            <span className="evx-search-icon" aria-hidden="true">{Icon.search}</span>
                                             <input
                                                 type="search"
                                                 value={monitorSearch}
@@ -336,12 +389,12 @@ const CoordinatorEvaluationsView: React.FC = () => {
                                                 aria-label="Search students"
                                             />
                                         </div>
-                                        <div className="evx-filters" role="group" aria-label="Filter by status">
+                                        <div className="evx-chips" role="group" aria-label="Filter by status">
                                             {MONITOR_FILTERS.map(option => (
                                                 <button
                                                     key={option.value}
                                                     type="button"
-                                                    className={`evx-filter${monitorFilter === option.value ? ' active' : ''}`}
+                                                    className={`evx-chip${monitorFilter === option.value ? ' active' : ''}`}
                                                     aria-pressed={monitorFilter === option.value}
                                                     onClick={() => setMonitorFilter(option.value)}
                                                 >
@@ -350,6 +403,18 @@ const CoordinatorEvaluationsView: React.FC = () => {
                                             ))}
                                         </div>
                                     </div>
+
+                                    {worklist.length > 0 && (
+                                        <div className="evx-progress-line" style={{ marginBottom: '0.6rem' }}>
+                                            <span className="evx-progress-track">
+                                                <span
+                                                    className="evx-progress-fill"
+                                                    style={{ width: `${(submitted / worklist.length) * 100}%` }}
+                                                />
+                                            </span>
+                                            <span>{submitted} of {worklist.length} evaluated</span>
+                                        </div>
+                                    )}
 
                                     <div className="evx-table-wrap">
                                         <table className="evx-table">
@@ -404,17 +469,11 @@ const CoordinatorEvaluationsView: React.FC = () => {
                                             </tbody>
                                         </table>
                                     </div>
-
-                                    {selected.has_evaluation && worklist.length > 0 && (
-                                        <p className="evx-sub" style={{ margin: 0 }}>
-                                            Completion: {submitted} / {worklist.length}
-                                        </p>
-                                    )}
                                 </>
                             )}
-                        </>
-                    )}
-                </section>
+                        </div>
+                    </section>
+                )}
             </div>
 
             {toast && (
@@ -526,7 +585,7 @@ const PublishDialog: React.FC<{
                         </p>
                     )}
 
-                    <label className="evx-field-label" htmlFor="evx-file">PDF file</label>
+                    <label className="evx-field-label" htmlFor="evx-file" style={{ marginTop: '0.9rem' }}>PDF file</label>
                     <div className="evx-file-row">
                         <input
                             ref={inputRef}
