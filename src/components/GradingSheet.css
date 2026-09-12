@@ -1,0 +1,1488 @@
+/*
+ * Official Grading Sheet — portal styles.
+ *
+ * The brief for this module is a registrar's tool, not a dashboard: compact,
+ * information-dense, restrained. Three rules keep it that way.
+ *
+ *   1. One surface per screen. The table is the page; headers, steppers and
+ *      summaries are bars above it, not a collection of floating cards.
+ *   2. Hierarchy by type, not by chrome. Weight and colour separate a section
+ *      code from its programme — borders and shadows are a last resort.
+ *   3. An 8px spacing grid. Every padding and gap below is a multiple of 4px
+ *      expressed in rem, so rows line up across the four tables in this module.
+ *
+ * Only the grading-specific pieces live here; the page shell, buttons
+ * (`cd-btn`) and table chrome (`admin-table`, `admin-table-card`) come from
+ * CoordinatorDashboard.css / AdminDashboard.css, so this module looks like the
+ * rest of the portal rather than a separate product.
+ *
+ * The printed document has its own stylesheet in utils/gradingSheetDocument.ts.
+ * Nothing in this file applies to it — that document is always black on white
+ * paper, whichever theme the portal is in.
+ */
+
+/* ── Module tokens ───────────────────────────────────────────────────────────
+ *
+ * Declared on the module's own roots rather than on `:root`, so the grading
+ * screens can be tuned without reaching into any other view.
+ *
+ * The selector list is all three places a `gs-` class can be the outermost
+ * element: `.gs-scope`, which AdviserGradingView and CoordinatorGradingView put
+ * on their top-level `<div>`, and the two shells — `.gs-modal` and
+ * `.gs-preview-shell` — which must also stand on their own, because a
+ * `var()` that resolves to nothing is invalid at computed-value time and would
+ * silently drop the font-size off every rule that used it.
+ */
+
+.gs-scope,
+.gs-modal,
+.gs-preview-shell {
+    /* Vertical rhythm — 8px grid. */
+    --gs-gap: 0.75rem;
+    /* 12px between stacked bars */
+    --gs-pad-x: 0.875rem;
+    /* 14px table gutter */
+    --gs-pad-y: 0.5rem;
+
+    /* Type scale. */
+    --gs-fs-title: 1.3rem;
+    /* ~21px page titles */
+    --gs-fs-label: 0.8125rem;
+    /* 13px section labels */
+    --gs-fs-body: 0.8125rem;
+    /* 13px table text */
+    --gs-fs-micro: 0.6875rem;
+    /* 11px badges, eyebrow labels */
+
+    /* Rows. Set as a floor, not a fixed height: a wrapped student name must be
+       allowed to grow the row rather than overflow it. */
+    --gs-row-h: 48px;
+    --gs-row-h-list: 52px;
+
+    --gs-radius: 6px;
+    --gs-transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+
+    /* Semantic colours. Kept as tokens so the four workflow states read the
+       same in the badge, the stepper and the alert, and so the dark theme
+       restates six values instead of thirty. */
+    --gs-ink-draft: #64748b;
+    --gs-ink-review: #b45309;
+    --gs-ink-verified: #1d4ed8;
+    --gs-ink-final: #047857;
+    --gs-ink-danger: #b91c1c;
+    --gs-ink-pass: #047857;
+
+    --gs-tint-draft: rgba(100, 116, 139, 0.10);
+    --gs-tint-review: rgba(245, 158, 11, 0.12);
+    --gs-tint-verified: rgba(37, 99, 235, 0.10);
+    --gs-tint-final: rgba(5, 150, 105, 0.10);
+    --gs-tint-danger: rgba(220, 38, 38, 0.09);
+
+    /* `--primary` is a single fixed hex in index.css, so the focus ring is
+       written out here rather than mixed at paint time — no `color-mix()`
+       dependency for a value that never changes. */
+    --gs-focus-ring: rgba(16, 185, 129, 0.18);
+    --gs-primary-soft: rgba(16, 185, 129, 0.08);
+    --gs-danger-edge: rgba(220, 38, 38, 0.40);
+}
+
+[data-theme="dark"] .gs-scope,
+[data-theme="dark"] .gs-modal,
+[data-theme="dark"] .gs-preview-shell {
+    --gs-ink-draft: #94a3b8;
+    --gs-ink-review: #fbbf24;
+    --gs-ink-verified: #93c5fd;
+    --gs-ink-final: #6ee7b7;
+    --gs-ink-danger: #fca5a5;
+    --gs-ink-pass: #6ee7b7;
+
+    --gs-tint-draft: rgba(148, 163, 184, 0.14);
+    --gs-tint-review: rgba(251, 191, 36, 0.14);
+    --gs-tint-verified: rgba(147, 197, 253, 0.14);
+    --gs-tint-final: rgba(110, 231, 183, 0.13);
+    --gs-tint-danger: rgba(252, 165, 165, 0.14);
+}
+
+/* ── View header ─────────────────────────────────────────────────────────── */
+
+.gs-view-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: var(--gs-gap);
+}
+
+.gs-view-title {
+    font-size: var(--gs-fs-title);
+    font-weight: 650;
+    letter-spacing: -0.011em;
+    color: var(--text-primary);
+    line-height: 1.25;
+}
+
+.gs-view-sub {
+    color: var(--text-muted);
+    font-size: var(--gs-fs-label);
+    margin-top: 0.125rem;
+    max-width: 68ch;
+    line-height: 1.45;
+}
+
+.gs-term-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: min(272px, 100%);
+}
+
+.gs-term-label,
+.gs-eyebrow {
+    font-size: var(--gs-fs-micro);
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.gs-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: none;
+    padding: 0 0 0.25rem;
+    margin-left: -0.125rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    transition: color 0.12s ease;
+}
+
+.gs-back:hover {
+    color: var(--primary);
+}
+
+.gs-sheet-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem 1.25rem;
+    flex-wrap: wrap;
+    margin-bottom: var(--gs-gap);
+}
+
+/*
+ * The sheet title carries two facts of different rank — the section, and the
+ * document it is. A middot rather than two lines: the section is what the
+ * adviser scans for, "Official Grading Sheet" is only context.
+ */
+.gs-sheet-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: var(--gs-fs-title);
+    line-height: 1.25;
+    letter-spacing: -0.011em;
+    color: var(--text-primary);
+}
+
+.gs-sheet-title b {
+    font-weight: 650;
+}
+
+.gs-sheet-title span {
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.gs-head-actions,
+.gs-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+/* The compact control size for this module: 30px tall, 13px label. Every
+   button inside the grading screens carries it, so no two rows of controls
+   have different heights. */
+.gs-btn-sm.cd-btn {
+    min-height: 30px;
+    padding: 0.3125rem 0.6875rem;
+    font-size: var(--gs-fs-body);
+    font-weight: 600;
+    border-radius: var(--gs-radius);
+}
+
+.gs-btn-danger {
+    color: var(--gs-ink-danger);
+    border-color: var(--gs-danger-edge);
+}
+
+.gs-btn-danger:hover:not(:disabled) {
+    background: var(--gs-tint-danger);
+    color: var(--gs-ink-danger);
+}
+
+/* ── Status stepper ──────────────────────────────────────────────────────────
+ *
+ * Four states on one line. It reports where the sheet is; it is not the
+ * subject of the page, so it gets a rule and a caption rather than a card.
+ */
+
+.gs-rail {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 0.4375rem 0;
+    margin-bottom: var(--gs-gap);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.gs-rail-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+
+/* The connector between steps is drawn, not typed, so it never lands in a
+   screen reader's output as a stray character. */
+.gs-rail-step:not(:last-of-type)::after {
+    content: '';
+    width: 16px;
+    height: 1px;
+    background: var(--border-strong);
+    margin-left: 0.375rem;
+}
+
+.gs-rail-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    border: 1px solid var(--border-strong);
+    font-size: 0.625rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.gs-rail-step.is-done {
+    color: var(--text-muted);
+}
+
+.gs-rail-step.is-done .gs-rail-dot {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.gs-rail-step.is-current {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.gs-rail-step.is-current .gs-rail-dot {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.gs-rail-note {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+/* ── Status badges ───────────────────────────────────────────────────────────
+ *
+ * Small and low-saturation. Sentence case, not shouted caps: five of these
+ * stacked down a column should read as data, not as warnings.
+ */
+
+.gs-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    padding: 0.125rem 0.4375rem;
+    border-radius: 4px;
+    font-size: var(--gs-fs-micro);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    line-height: 1.45;
+}
+
+/* The dot carries the colour so the label can stay near-neutral. */
+.gs-status::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.gs-status.is-draft {
+    background: var(--gs-tint-draft);
+    color: var(--gs-ink-draft);
+}
+
+.gs-status.is-review {
+    background: var(--gs-tint-review);
+    color: var(--gs-ink-review);
+}
+
+.gs-status.is-verified {
+    background: var(--gs-tint-verified);
+    color: var(--gs-ink-verified);
+}
+
+.gs-status.is-final {
+    background: var(--gs-tint-final);
+    color: var(--gs-ink-final);
+}
+
+.gs-status.is-none {
+    background: transparent;
+    color: var(--text-dim);
+    padding-left: 0;
+}
+
+.gs-status.is-none::before {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+}
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+
+.gs-table-card {
+    overflow: hidden;
+}
+
+/*
+ * On a narrow screen the grading table scrolls sideways inside its own box
+ * rather than reflowing: a grading sheet whose columns move around is no longer
+ * a grading sheet. The page itself never scrolls horizontally.
+ */
+.gs-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.gs-list-table,
+.gs-grade-table {
+    min-width: 680px;
+}
+
+/*
+ * Density overrides for this module. `.dashboard-container .admin-table` already
+ * tightens the Admin defaults for the adviser shell; these go one step further
+ * because a grading sheet is read as a column of numbers, not browsed.
+ */
+.gs-scope .admin-table th {
+    padding: 0.4375rem var(--gs-pad-x);
+    font-size: var(--gs-fs-micro);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.gs-scope .admin-table td {
+    padding: var(--gs-pad-y) var(--gs-pad-x);
+    font-size: var(--gs-fs-body);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+}
+
+.gs-list-table tbody tr {
+    height: var(--gs-row-h-list);
+}
+
+.gs-grade-table tbody tr {
+    height: var(--gs-row-h);
+}
+
+.gs-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.gs-right {
+    text-align: right;
+}
+
+.gs-strong {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.gs-muted {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+}
+
+/* The section cell: code on top at full weight, programme beneath, muted. */
+.gs-cell-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.0625rem;
+    min-width: 0;
+}
+
+.gs-cell-title {
+    font-size: 0.875rem;
+    font-weight: 650;
+    letter-spacing: -0.005em;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.gs-cell-sub {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    line-height: 1.35;
+    /* The programme name is context; it truncates before it wraps the row. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 30ch;
+}
+
+/* Counts read as a fraction, with the total subordinate to the part. */
+.gs-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.gs-count-total {
+    font-weight: 400;
+    color: var(--text-dim);
+}
+
+.gs-c-index {
+    width: 44px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.gs-c-sno {
+    width: 148px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+.gs-c-sno-edit {
+    width: 196px;
+}
+
+.gs-c-term {
+    width: 200px;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+.gs-c-count {
+    width: 88px;
+}
+
+.gs-c-status {
+    width: 120px;
+}
+
+/* Wide enough that the "must be between 0 and 100" message under an invalid
+   field breaks over two lines rather than three, and the row grows by one line
+   instead of two while it is being corrected. */
+.gs-c-grade {
+    width: 150px;
+    text-align: center;
+}
+
+.gs-c-remark {
+    width: 108px;
+    text-align: center;
+}
+
+.gs-c-history {
+    width: 72px;
+}
+
+/* The student's name is the row's subject and carries the most weight in it. */
+.gs-c-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.005em;
+}
+
+.gs-row-dirty {
+    /* An unsaved row is marked, so nobody submits believing a typed grade is
+       already stored. A left rule rather than a fill: it survives the row hover
+       background without fighting it. */
+    box-shadow: inset 2px 0 0 var(--warning);
+}
+
+.gs-empty-row {
+    padding: 2.25rem 1rem;
+    text-align: center;
+    color: var(--text-dim);
+}
+
+/* ── Summary bar ─────────────────────────────────────────────────────────────
+ *
+ * "2 Students · 0 Graded · 2 Remaining · Passing Mark 75 · Range 0–100".
+ * One line of facts, weighted by type — figures dark, labels muted — instead
+ * of five stat cards saying the same thing in ten times the space.
+ */
+
+.gs-summary {
+    display: flex;
+    align-items: center;
+    gap: 0 1rem;
+    flex-wrap: wrap;
+    padding: 0.5rem var(--gs-pad-x);
+    margin-bottom: var(--gs-gap);
+    border: 1px solid var(--border);
+    border-radius: var(--gs-radius);
+    background: var(--bg-card);
+    font-size: var(--gs-fs-body);
+    color: var(--text-dim);
+}
+
+.gs-summary-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3125rem;
+    white-space: nowrap;
+}
+
+.gs-summary-item + .gs-summary-item::before {
+    content: '·';
+    margin-right: 0.3125rem;
+    color: var(--border-strong);
+}
+
+.gs-summary-value {
+    font-weight: 650;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.gs-summary-item.is-pending .gs-summary-value {
+    color: var(--gs-ink-review);
+}
+
+/* The scale sits at the end, set apart — it is policy, not progress. */
+.gs-summary-scale {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    white-space: nowrap;
+}
+
+/* ── Editor toolbar ──────────────────────────────────────────────────────────
+ *
+ * Search and Save share one bar with the progress read-out, directly above the
+ * table and flush with its gutter, so the controls and the data they act on
+ * line up on the same left and right edges.
+ */
+
+.gs-editor-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+    flex-wrap: wrap;
+    min-height: 46px;
+    padding: 0.4375rem var(--gs-pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+}
+
+.gs-editor-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+    font-size: var(--gs-fs-body);
+    color: var(--text-dim);
+}
+
+.gs-editor-stats strong {
+    color: var(--text-primary);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.gs-pending {
+    color: var(--gs-ink-review);
+    font-weight: 600;
+}
+
+/* A thin bar is enough to make "11 of 24" legible at a glance. */
+.gs-progress {
+    width: 88px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--bg-hover);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.gs-progress-fill {
+    display: block;
+    height: 100%;
+    background: var(--primary);
+    border-radius: 2px;
+    transition: width 0.25s ease;
+}
+
+/* Unsaved work is stated in words next to the Save button, not only implied by
+   the button's own enabled state. */
+.gs-unsaved {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gs-ink-review);
+    white-space: nowrap;
+}
+
+.gs-unsaved::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.gs-editor-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.gs-search {
+    height: 30px;
+    padding: 0 0.625rem;
+    border-radius: var(--gs-radius);
+    border: 1px solid var(--border);
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-size: var(--gs-fs-body);
+    /* A plain width, not `min(220px, 100%)`: a percentage here resolves against
+       an indefinite container while the toolbar computes its own max-content
+       width, which measured the field short and wrapped Save onto a second row
+       on a 1440px screen. `max-width` does the same job safely. */
+    width: 220px;
+    max-width: 100%;
+    transition: var(--gs-transition);
+}
+
+.gs-search::placeholder {
+    color: var(--text-dim);
+}
+
+.gs-search:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--gs-focus-ring);
+}
+
+/* ── Grade input ─────────────────────────────────────────────────────────── */
+
+.gs-grade-input {
+    width: 72px;
+    height: 30px;
+    padding: 0 0.375rem;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--gs-radius);
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 650;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    transition: var(--gs-transition);
+}
+
+.gs-grade-input:hover:not(:focus) {
+    border-color: var(--border-hover);
+}
+
+.gs-grade-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--gs-focus-ring);
+}
+
+.gs-grade-input.has-error {
+    border-color: var(--gs-ink-danger);
+}
+
+.gs-grade-input.has-error:focus {
+    box-shadow: 0 0 0 3px var(--gs-tint-danger);
+}
+
+.gs-sno-input {
+    width: 100%;
+    max-width: 180px;
+    height: 30px;
+    padding: 0 0.5rem;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--gs-radius);
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-size: var(--gs-fs-body);
+    font-variant-numeric: tabular-nums;
+    box-sizing: border-box;
+    transition: var(--gs-transition);
+}
+
+.gs-sno-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--gs-focus-ring);
+}
+
+.gs-sno-input.has-error {
+    border-color: var(--gs-ink-danger);
+}
+
+.gs-grade-static {
+    font-size: 0.875rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+
+.gs-field-error {
+    margin-top: 0.125rem;
+    font-size: 0.6875rem;
+    color: var(--gs-ink-danger);
+    text-align: center;
+    line-height: 1.3;
+}
+
+/*
+ * PASSED / FAILED is derived, never typed. Set as small caps-weight text with
+ * no pill: it appears on every filled row, and 24 filled badges down a column
+ * would read louder than the grades that produced them.
+ */
+.gs-remark {
+    display: inline-block;
+    font-size: var(--gs-fs-micro);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+.gs-remark.is-pass {
+    color: var(--gs-ink-pass);
+}
+
+.gs-remark.is-fail {
+    color: var(--gs-ink-danger);
+}
+
+.gs-link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    transition: color 0.12s ease;
+}
+
+.gs-link-btn:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.gs-link-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+/* ── Filters ─────────────────────────────────────────────────────────────── */
+
+.gs-filter-row {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.gs-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    height: 30px;
+    padding: 0 0.6875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--gs-radius);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: var(--gs-fs-body);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--gs-transition);
+}
+
+.gs-filter:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+.gs-filter.is-active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--gs-primary-soft);
+}
+
+.gs-filter-count {
+    padding: 0 0.3125rem;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.625rem;
+}
+
+/* ── Alerts ──────────────────────────────────────────────────────────────── */
+
+.gs-alert {
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--gs-radius);
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    font-size: var(--gs-fs-body);
+    line-height: 1.45;
+    color: var(--text-secondary);
+    margin-bottom: var(--gs-gap);
+}
+
+.gs-alert strong {
+    color: var(--text-primary);
+    font-weight: 650;
+}
+
+.gs-alert-spaced {
+    margin-top: var(--gs-gap);
+    margin-bottom: 0;
+}
+
+.gs-alert-inline {
+    margin: 0.5rem var(--gs-pad-x) 0;
+}
+
+/* An alert that carries its own call to action, e.g. missing student numbers. */
+.gs-alert-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.gs-modal-lead {
+    margin: 0;
+    padding: 0.75rem 1rem 0;
+    font-size: var(--gs-fs-body);
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.gs-alert-ok {
+    border-color: var(--border);
+    border-left-color: var(--gs-ink-final);
+    background: var(--gs-tint-final);
+}
+
+.gs-alert-warning {
+    border-color: var(--border);
+    border-left-color: var(--gs-ink-review);
+    background: var(--gs-tint-review);
+}
+
+.gs-alert-danger {
+    border-color: var(--border);
+    border-left-color: var(--gs-ink-danger);
+    background: var(--gs-tint-danger);
+}
+
+.gs-alert-locked {
+    border-color: var(--border);
+    border-left-color: var(--gs-ink-verified);
+    background: var(--gs-tint-verified);
+}
+
+/* The coordinator's return note, quoted back inside a row. */
+.gs-return-reason {
+    margin-top: 0.1875rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-dim);
+    max-width: 46ch;
+}
+
+.gs-center-card {
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.gs-center-card h3 {
+    margin: 0 0 0.375rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 650;
+}
+
+.gs-center-card p {
+    margin: 0 auto 1rem;
+    max-width: 52ch;
+    color: var(--text-muted);
+    font-size: var(--gs-fs-body);
+    line-height: 1.55;
+}
+
+.gs-empty {
+    padding: 2.25rem 1rem;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: var(--gs-fs-body);
+}
+
+/* ── Toasts ──────────────────────────────────────────────────────────────────
+ *
+ * Save and submit report here rather than by pushing a banner into the layout:
+ * a bar that appears above the table shifts every row down at the moment the
+ * adviser is reading them.
+ */
+
+.gs-toasts {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.gs-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    max-width: min(380px, calc(100vw - 2rem));
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: var(--gs-radius);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-md);
+    color: var(--text-secondary);
+    font-size: var(--gs-fs-body);
+    line-height: 1.45;
+    pointer-events: auto;
+    animation: gs-toast-in 0.18s ease-out;
+}
+
+.gs-toast.is-ok {
+    border-left-color: var(--gs-ink-final);
+}
+
+.gs-toast.is-error {
+    border-left-color: var(--gs-ink-danger);
+}
+
+.gs-toast-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-dim);
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.gs-toast-close:hover {
+    color: var(--text-primary);
+}
+
+@keyframes gs-toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gs-toast {
+        animation: none;
+    }
+
+    .gs-progress-fill {
+        transition: none;
+    }
+}
+
+/* ── Modals ──────────────────────────────────────────────────────────────── */
+
+.gs-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.gs-modal {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 460px;
+    max-height: min(88vh, 900px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.gs-modal-wide {
+    max-width: 860px;
+}
+
+.gs-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.gs-modal-title {
+    font-size: 0.9375rem;
+    font-weight: 650;
+    color: var(--text-primary);
+}
+
+.gs-modal-sub {
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.gs-modal-body {
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.gs-modal-body-table {
+    padding: 0;
+    overflow: auto;
+}
+
+.gs-modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.gs-modal-foot-split {
+    justify-content: space-between;
+}
+
+.gs-modal-note {
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+    margin-right: auto;
+}
+
+.gs-modal-warning {
+    margin: 0.75rem 0 0;
+    font-size: var(--gs-fs-body);
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.gs-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: var(--gs-radius);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: var(--gs-transition);
+}
+
+.gs-icon-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+}
+
+.gs-confirm-list {
+    margin: 0;
+}
+
+.gs-confirm-list > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.375rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.gs-confirm-list dt {
+    font-size: var(--gs-fs-body);
+    color: var(--text-dim);
+}
+
+.gs-confirm-list dd {
+    margin: 0;
+    font-size: var(--gs-fs-body);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.gs-field-label {
+    display: block;
+    margin-bottom: 0.3125rem;
+    font-size: var(--gs-fs-body);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.gs-textarea {
+    width: 100%;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--gs-radius);
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-size: var(--gs-fs-body);
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+    transition: var(--gs-transition);
+}
+
+.gs-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--gs-focus-ring);
+}
+
+/* ── Grade history timeline ──────────────────────────────────────────────── */
+
+.gs-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.gs-timeline-item {
+    position: relative;
+    display: flex;
+    gap: 0.625rem;
+    padding-bottom: 0.875rem;
+}
+
+.gs-timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 16px;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+}
+
+.gs-timeline-dot {
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+    width: 9px;
+    height: 9px;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: var(--text-dim);
+}
+
+.gs-dot-grade-entered,
+.gs-dot-grade-changed {
+    background: #f59e0b;
+}
+
+.gs-dot-verify {
+    background: #2563eb;
+}
+
+.gs-dot-finalize {
+    background: #059669;
+}
+
+.gs-dot-return {
+    background: #dc2626;
+}
+
+.gs-timeline-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.gs-timeline-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.gs-timeline-action {
+    font-size: var(--gs-fs-body);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.gs-timeline-time {
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+}
+
+.gs-timeline-student {
+    margin-top: 0.0625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.gs-grade-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.25rem;
+    padding: 0.125rem 0.4375rem;
+    border-radius: 4px;
+    background: var(--bg-elevated);
+    font-size: var(--gs-fs-body);
+    font-variant-numeric: tabular-nums;
+}
+
+.gs-grade-old {
+    color: var(--text-dim);
+    text-decoration: line-through;
+}
+
+.gs-grade-arrow {
+    color: var(--text-dim);
+}
+
+.gs-grade-new {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.gs-timeline-meta {
+    margin-top: 0.1875rem;
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+    text-transform: capitalize;
+}
+
+.gs-timeline-reason {
+    margin-top: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-left: 2px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+.gs-timeline-reason span {
+    font-weight: 600;
+}
+
+/* ── Official sheet preview ──────────────────────────────────────────────── */
+
+.gs-preview-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 960px;
+    max-height: 92vh;
+    border-radius: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.gs-preview-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.6875rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.gs-preview-title {
+    font-size: 0.9375rem;
+    font-weight: 650;
+    color: var(--text-primary);
+}
+
+.gs-preview-sub {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 0.0625rem;
+}
+
+.gs-preview-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+/*
+ * The paper itself sits on a neutral grey desk so the white page edge is
+ * visible in both themes. `.gs-doc` carries its own print styles and must not
+ * inherit any portal colour.
+ */
+.gs-preview-page {
+    flex: 1;
+    overflow: auto;
+    padding: 1.25rem;
+    background: #525659;
+    display: flex;
+    justify-content: center;
+}
+
+/*
+ * The page keeps its true 210mm width and scrolls when the pane is narrower.
+ * Without `flex-shrink: 0` the flex parent squeezes it — measured at 459px in a
+ * 420px pane — and the preview then shows proportions the PDF will not have,
+ * which is the one thing this preview exists to rule out.
+ */
+.gs-preview-page > div {
+    flex-shrink: 0;
+}
+
+.gs-preview-page > div:last-child {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.gs-preview-loading {
+    color: #e5e7eb;
+    font-size: var(--gs-fs-body);
+    padding: 3rem 1rem;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .gs-summary-scale {
+        margin-left: 0;
+        width: 100%;
+        padding-top: 0.25rem;
+    }
+}
+
+@media (max-width: 720px) {
+    .gs-scope {
+        --gs-pad-x: 0.75rem;
+    }
+
+    .gs-view-head,
+    .gs-sheet-head {
+        align-items: flex-start;
+    }
+
+    /* Head actions become a full-width row that wraps instead of overflowing;
+       each button keeps its 30px height. */
+    .gs-head-actions {
+        width: 100%;
+    }
+
+    .gs-head-actions .cd-btn {
+        flex: 1 1 auto;
+    }
+
+    .gs-rail-note {
+        margin-left: 0;
+        width: 100%;
+        padding-top: 0.125rem;
+    }
+
+    .gs-editor-tools {
+        width: 100%;
+    }
+
+    .gs-search {
+        flex: 1 1 140px;
+        width: auto;
+    }
+
+    /* The A4 page is wider than a phone; it scrolls inside the pane rather than
+       shrinking the type below what the adviser can proof-read. */
+    .gs-preview-page {
+        padding: 0.5rem;
+    }
+
+    .gs-toasts {
+        left: 1rem;
+        right: 1rem;
+        align-items: stretch;
+    }
+
+    .gs-toast {
+        max-width: none;
+    }
+}

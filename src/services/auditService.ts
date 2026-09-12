@@ -55,6 +55,7 @@ export type AuditModule =
     | 'Timesheets'
     | 'Journals'
     | 'Evaluations'
+    | 'Grading'
     | 'Documents'
     | 'Approvals'
     | 'Announcements'

@@ -13,6 +13,7 @@ import AdviserApprovalsView from './AdviserApprovalsView';
 import AdviserAttendanceView from './AdviserAttendanceView';
 import AdviserReportView from './AdviserReportView';
 import AdviserEvaluationsView from './AdviserEvaluationsView';
+import AdviserGradingView from './AdviserGradingView';
 import AnnouncementsView from './AnnouncementsView';
 import CoordinatorProfileView from './CoordinatorProfileView';
 import CoordinatorSettingsView from './CoordinatorSettingsView';
@@ -39,7 +40,7 @@ const Icon = {
     close: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
 };
 
-type View = 'overview' | 'sections' | 'students' | 'approvals' | 'attendance' | 'evaluations' | 'reports' | 'announcement' | 'profile' | 'settings';
+type View = 'overview' | 'sections' | 'students' | 'approvals' | 'attendance' | 'evaluations' | 'grading' | 'reports' | 'announcement' | 'profile' | 'settings';
 
 interface NavItem { id: View; label: string; icon: React.ReactNode; badge?: number; }
 
@@ -169,6 +170,7 @@ const AdviserDashboard: React.FC = () => {
                 { id: 'approvals', label: 'Pending Approvals', icon: Icon.fileCheck, badge: totalPendingCount > 0 ? totalPendingCount : undefined },
                 { id: 'attendance', label: 'Attendance', icon: Icon.clock },
                 { id: 'evaluations', label: 'Evaluations', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg> },
+                { id: 'grading', label: 'SIL Grading', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="13" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /><path d="m16 12 1.5 1.5L20 11" /></svg> },
                 { id: 'reports', label: 'Daily Report', icon: Icon.report },
             ],
         },
@@ -187,6 +189,7 @@ const AdviserDashboard: React.FC = () => {
         approvals: 'Pending Approvals',
         attendance: 'Attendance Monitoring',
         evaluations: 'Student Evaluations',
+        grading: 'Official SIL Grading Sheet',
         reports: 'Automated Daily Report',
         announcement: 'Announcements',
         profile: 'My Profile',
@@ -221,7 +224,11 @@ const AdviserDashboard: React.FC = () => {
 
     return (
         <NotificationsProvider role="adviser">
-        <div className={`dashboard-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
+        {/* `adviser-shell` scopes the sidebar and topbar refinements in
+            AdviserDashboard.css to this portal. The shell classes themselves
+            (`.sidebar`, `.topbar`) are shared with the Student, Company and
+            Coordinator dashboards and are not touched. */}
+        <div className={`dashboard-container adviser-shell ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
             {/* Mobile overlay */}
             <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)} />
 
@@ -410,6 +417,9 @@ const AdviserDashboard: React.FC = () => {
                     )}
                     {currentView === 'evaluations' && (
                         <AdviserEvaluationsView />
+                    )}
+                    {currentView === 'grading' && (
+                        <AdviserGradingView />
                     )}
                     {currentView === 'reports' && (
                         <AdviserReportView

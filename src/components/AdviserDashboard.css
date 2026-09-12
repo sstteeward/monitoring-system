@@ -1485,3 +1485,97 @@ html[data-theme="dark"] .ad-roster-status.is-ontrack { color: #34d399; }
         width: 100%;
     }
 }
+
+/* ═══════════════════════════════════════════════════
+   ADVISER SHELL REFINEMENTS
+
+   `.sidebar` and `.topbar` are defined once in StudentDashboard.css and shared
+   by the Student, Company, Coordinator and Adviser portals. Everything below is
+   scoped to `.adviser-shell` — the class AdviserDashboard.tsx puts on its own
+   `.dashboard-container` — so the rail tightens here without moving a pixel in
+   the other four dashboards.
+
+   Specificity note: the desktop widths below are written against the two
+   *modal* selectors (`.sidebar-mode-expanded`, `.sidebar-mode-hover:hover`)
+   rather than against `.sidebar` itself. The collapsed rules in
+   StudentDashboard.css sit at (0,4,0) and must keep winning, so the 72px rail
+   is deliberately left alone.
+═══════════════════════════════════════════════════ */
+
+@media (min-width: 1025px) {
+    .adviser-shell .sidebar.sidebar-mode-expanded,
+    .adviser-shell .sidebar.sidebar-mode-hover:hover {
+        width: 224px;
+    }
+
+    .adviser-shell .dashboard-main {
+        margin-left: 224px;
+    }
+
+    /* A hairline edge plus a soft lift, in place of the 24px drop shadow: the
+       rail is a sibling of the page, not a panel floating over it. */
+    .adviser-shell .sidebar.sidebar-mode-expanded,
+    .adviser-shell .sidebar.sidebar-mode-hover:hover {
+        box-shadow: 2px 0 12px rgba(15, 23, 42, 0.06);
+    }
+}
+
+/* Topbar and sidebar header share one height so the two rules meet across the
+   seam — 52px rather than 56px, four pixels back to the content. */
+.adviser-shell .topbar,
+.adviser-shell .sidebar-header {
+    min-height: 52px;
+}
+
+.adviser-shell .sidebar-header {
+    padding: 0.5rem 0.75rem;
+}
+
+.adviser-shell .topbar-title {
+    font-size: 0.9rem;
+    letter-spacing: -0.006em;
+}
+
+.adviser-shell .topbar-date {
+    font-size: 0.7rem;
+}
+
+/* Group labels are signposts, not headings: smaller, and closer to the items
+   they introduce than to the group above. */
+.adviser-shell .sidebar-section-label {
+    padding: 0.75rem 0.75rem 0.25rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.11em;
+}
+
+.adviser-shell .sidebar-nav {
+    padding: 0.125rem 0.5rem;
+    gap: 0.0625rem;
+}
+
+.adviser-shell .sidebar-nav-item {
+    height: 32px;
+    padding: 0 0.5rem;
+    gap: 0.625rem;
+    font-size: 0.825rem;
+}
+
+/*
+ * The active item reads from two cues, not one: the tinted row it already had,
+ * plus a rule against the rail's inner edge. On a list of eleven items the tint
+ * alone is easy to lose, and the rule survives a theme change that flattens it.
+ */
+.adviser-shell .sidebar-nav-item.active {
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.adviser-shell .nav-icon {
+    width: 17px;
+    height: 17px;
+}
+
+.adviser-shell .nav-icon svg {
+    width: 17px;
+    height: 17px;
+}

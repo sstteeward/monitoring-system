@@ -41,6 +41,12 @@ export interface Profile {
     course?: string | null;
     department?: string | null;
     grade?: string | null;
+    /**
+     * Official school student number, e.g. "2023-24610795". Printed on the
+     * Official Grading Sheet, which reads it from here rather than storing its
+     * own copy.
+     */
+    student_number?: string | null;
     // Adviser & Approval fields
     adviser_type?: 'HT Adviser' | 'IT Adviser' | string | null;
     approval_status?: 'pending' | 'approved' | 'rejected' | 'correction_requested' | null;

@@ -38,6 +38,7 @@ import {
     type NameLevels,
 } from './onboarding/onboardingFields';
 import { YEAR_LEVELS, buildSectionOptions } from '../utils/sections';
+import { validateStudentNumber } from '../utils/studentNumber';
 
 const STEPS =['Personal', 'Address', 'Academic', 'Company', 'Review'];
 
@@ -94,6 +95,15 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [yearLevel, setYearLevel] = useState(profile.year_level ?? '');
     const [section, setSection] = useState(profile.section ?? '');
     const [course, setCourse] = useState(profile.course ?? '');
+    /*
+     * The number printed beside the student's name on the Official Grading
+     * Sheet. Optional here on purpose: the registrar issues it, and a student
+     * who does not have it to hand must still be able to finish registering —
+     * the adviser fills any gaps from the grading sheet, which is where a
+     * missing number actually matters.
+     */
+    const [studentNumber, setStudentNumber] = useState(profile.student_number ?? '');
+    const [studentNumberError, setStudentNumberError] = useState<string | null>(null);
     const [department, setDepartment] = useState(profile.department ?? '');
     const [availableSections, setAvailableSections] = useState<{ id: string; name: string; course_code: string }[]>([]);
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
@@ -169,7 +179,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
 
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('first_name, middle_name, last_name, suffix, birthday, address, country, region, region_code, province, province_code, city_municipality, city_municipality_code, barangay, barangay_code, house_street, contact_number, year_level, section, course, department, required_ojt_hours')
+                    .select('first_name, middle_name, last_name, suffix, birthday, address, country, region, region_code, province, province_code, city_municipality, city_municipality_code, barangay, barangay_code, house_street, contact_number, year_level, section, course, department, student_number, required_ojt_hours')
                     .eq('auth_user_id', user.id)
                     .maybeSingle();
 
@@ -198,6 +208,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 setYearLevel(data.year_level ?? '');
                 setSection(data.section ?? '');
                 setCourse(data.course ?? '');
+                setStudentNumber(data.student_number ?? '');
                 setDepartment(data.department ?? '');
                 setRequiredHours(data.required_ojt_hours ?? 500);
             } catch (err) {
@@ -339,6 +350,14 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             setError('Please complete your course, department, year level and section.');
             return false;
         }
+        // Blank is allowed; a value that was typed has to be a real number.
+        const studentNumberCheck = validateStudentNumber(studentNumber);
+        if (!studentNumberCheck.ok) {
+            setStudentNumberError(studentNumberCheck.error);
+            setError(studentNumberCheck.error);
+            return false;
+        }
+        setStudentNumberError(null);
         setError(null);
         return true;
     };
@@ -482,6 +501,9 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 section: section.trim() || null,
                 course: course.trim() || null,
                 department: department.trim() || null,
+                // Normalised, so a pasted en dash is stored the same way the
+                // official grading sheet will print it.
+                student_number: validateStudentNumber(studentNumber).value,
                 required_ojt_hours: Number.isFinite(requiredHours) ? requiredHours : 500,
             };
             if (selectedDept?.id) profilePayload.department_id = selectedDept.id;
@@ -620,6 +642,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 { label: 'Department', value: department },
                 { label: 'Year Level', value: yearLevel },
                 { label: 'Section', value: section },
+                { label: 'Student No.', value: studentNumber || 'Not provided' },
             ],
         },
         {
@@ -753,6 +776,32 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                 placeholder="Select Section"
                                 options={sectionOptions}
                             />
+                        </div>
+                    </div>
+
+                    <div className="onb-field">
+                        <label className="onb-label" htmlFor="onb-student-number">Student Number</label>
+                        <input
+                            id="onb-student-number"
+                            className={`onb-input${studentNumberError ? ' invalid' : ''}`}
+                            type="text"
+                            inputMode="numeric"
+                            value={studentNumber}
+                            onChange={e => {
+                                setStudentNumber(e.target.value);
+                                setStudentNumberError(null);
+                            }}
+                            placeholder="2023-24610795"
+                            aria-invalid={Boolean(studentNumberError)}
+                            aria-describedby="onb-student-number-help"
+                        />
+                        <div
+                            id="onb-student-number-help"
+                            className="onb-hint"
+                            style={studentNumberError ? { color: '#dc2626' } : undefined}
+                        >
+                            {studentNumberError
+                                ?? 'As printed on your registration form. Optional — your adviser can add it later. It appears on your official grading sheet.'}
                         </div>
                     </div>
 
