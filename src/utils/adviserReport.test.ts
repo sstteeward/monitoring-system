@@ -55,7 +55,7 @@ test('issueTone escalates with the specification priority order', () => {
   assert.equal(issueTone(2), 'danger');   // missing clock-in
   assert.equal(issueTone(3), 'warning');  // exceeded the daily limit
   assert.equal(issueTone(5), 'warning');  // absent
-  assert.equal(issueTone(6), 'info');     // behind OJT progress
+  assert.equal(issueTone(6), 'info');     // behind SIL progress
   assert.equal(issueTone(8), 'info');     // incomplete log
 });
 

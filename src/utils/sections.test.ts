@@ -12,6 +12,7 @@ import {
     courseCodeFromValue,
     parseSectionName,
     studentMatchesSection,
+    validateNewSectionName,
     yearNumberFromLevel,
 } from './sections.ts';
 
@@ -156,4 +157,50 @@ test('studentMatchesSection scopes a roster to exactly one section', () => {
 
     // Same letter, different course must never bleed across.
     assert.ok(!studentMatchesSection({ section: 'D', course: 'DHT', year_level: '3rd Year' }, 'DIT-3D'));
+});
+
+// ─── validateNewSectionName ─────────────────────────────────────────────────
+// The client mirror of the guard in public.adviser_create_section. The SQL
+// refuses the same names; these cases keep the two in step.
+
+test('validateNewSectionName accepts a name in the adviser own course', () => {
+    assert.equal(validateNewSectionName('DIT-3B', 'DIT'), null);
+    assert.equal(validateNewSectionName('DHT-1A', 'DHT'), null);
+    assert.equal(validateNewSectionName('DIT-4J', 'DIT'), null);
+    // Composed names are upper-cased and trimmed before they are checked.
+    assert.equal(validateNewSectionName(' dit-3b ', 'dit'), null);
+});
+
+test('validateNewSectionName rejects a year outside 1–4', () => {
+    assert.ok(validateNewSectionName('DIT-5A', 'DIT'));
+    assert.ok(validateNewSectionName('DIT-0A', 'DIT'));
+});
+
+test('validateNewSectionName accepts a letter past J', () => {
+    // SECTION_LETTERS is what the dropdowns offer, not the limit of what a cohort
+    // may be called. A–Z is the grammar parseSectionName and the SQL both use.
+    assert.equal(validateNewSectionName('DIT-3K', 'DIT'), null);
+    assert.equal(validateNewSectionName('DIT-3Z', 'DIT'), null);
+});
+
+test('validateNewSectionName still rejects a non-letter section', () => {
+    assert.ok(validateNewSectionName('DIT-33', 'DIT'));
+    assert.ok(validateNewSectionName('DIT-3-', 'DIT'));
+});
+
+test('validateNewSectionName rejects another course', () => {
+    // An HT Adviser must never be able to compose a DIT section, and vice versa.
+    assert.ok(validateNewSectionName('DHT-3B', 'DIT'));
+    assert.ok(validateNewSectionName('DIT-3B', 'DHT'));
+});
+
+test('validateNewSectionName rejects a malformed name', () => {
+    assert.ok(validateNewSectionName('3B', 'DIT'));
+    assert.ok(validateNewSectionName('DIT3A', 'DIT'));
+    assert.ok(validateNewSectionName('', 'DIT'));
+});
+
+test('validateNewSectionName refuses when the adviser has no course code', () => {
+    assert.ok(validateNewSectionName('DIT-3B', ''));
+    assert.ok(validateNewSectionName('DIT-3B', 'Diploma in Information Technology'));
 });

@@ -25,7 +25,7 @@
 --     report flags exactly the rows the attendance monitors flag.
 --
 -- Contents
---   1. Settings readers for expected OJT progress
+--   1. Settings readers for expected SIL progress
 --   2. adviser_daily_reports — one stored report per adviser per day
 --   3. build_adviser_daily_report() — the analysis, one set-based pass
 --   4. generate_my_daily_report() / get_my_daily_report() / history
@@ -49,7 +49,7 @@
 --    Both inputs are configurable in system_settings -> ojt_hours alongside the
 --    existing `required` and `max_daily` keys, so the rule can be tuned without
 --    touching this file:
---      working_dows : ISO weekdays that count as OJT days, default Mon-Fri
+--      working_dows : ISO weekdays that count as SIL days, default Mon-Fri
 --      required     : fallback required hours when a profile has none
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.ojt_working_dows()
@@ -70,7 +70,7 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.ojt_working_dows() IS
-  'ISO weekdays (1=Mon .. 7=Sun) counted as OJT working days when projecting expected progress. system_settings -> ojt_hours -> working_dows, default Mon-Fri.';
+  'ISO weekdays (1=Mon .. 7=Sun) counted as SIL working days when projecting expected progress. system_settings -> ojt_hours -> working_dows, default Mon-Fri.';
 
 REVOKE EXECUTE ON FUNCTION public.ojt_working_dows() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.ojt_working_dows() TO authenticated;
@@ -91,12 +91,12 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.ojt_default_required_hours() IS
-  'Required OJT hours used when a student profile carries none. system_settings -> ojt_hours -> required.';
+  'Required SIL hours used when a student profile carries none. system_settings -> ojt_hours -> required.';
 
 REVOKE EXECUTE ON FUNCTION public.ojt_default_required_hours() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.ojt_default_required_hours() TO authenticated;
 
--- How many OJT working days fall in a closed date range. NULL start (a student
+-- How many SIL working days fall in a closed date range. NULL start (a student
 -- who has never clocked in) yields 0 — they have no elapsed schedule to be
 -- behind against.
 CREATE OR REPLACE FUNCTION public.ojt_working_days_between(
@@ -119,7 +119,7 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.ojt_working_days_between(date, date, integer[]) IS
-  'Count of OJT working days in [p_from, p_to]. Used to project the hours a student is expected to have rendered by a given date.';
+  'Count of SIL working days in [p_from, p_to]. Used to project the hours a student is expected to have rendered by a given date.';
 
 
 -- ----------------------------------------------------------------------------
@@ -265,7 +265,7 @@ BEGIN
        AND (ts.clock_in AT TIME ZONE v_tz)::date = p_date
      GROUP BY ts.user_id
   ),
-  -- ── Accumulated OJT: closed sessions only, matching the attendance monitors ──
+  -- ── Accumulated SIL: closed sessions only, matching the attendance monitors ──
   life_ts AS (
     SELECT ts.user_id AS uid,
            COALESCE(sum(public.timesheet_worked_minutes(
@@ -404,7 +404,7 @@ BEGIN
           (3, sc.f_over_limit,  'over_limit',        'Exceeded ' || (v_limit_minutes / 60) || ' Hours'),
           (4, sc.f_suspicious,  'suspicious',        'Suspicious Attendance'),
           (5, sc.f_absent,      'absent',            'Absent Today'),
-          (6, sc.f_behind,      'behind_ojt',        'Behind OJT Hours'),
+          (6, sc.f_behind,      'behind_ojt',        'Behind SIL Hours'),
           (7, sc.f_journal,     'journal',           'Journal Needs Revision'),
           (8, sc.f_incomplete,  'incomplete',        'Incomplete Log')
       ) AS v(ord, hit, code, label)
@@ -687,7 +687,7 @@ BEGIN
             (5, 'absent',            'danger',  t.absent,
              t.absent || ' student(s) are absent today.'),
             (6, 'behind_ojt',        'warning', t.ojt_behind,
-             t.ojt_behind || ' student(s) are behind expected OJT progress.'),
+             t.ojt_behind || ' student(s) are behind expected SIL progress.'),
             (7, 'journals_pending',  'info',    t.journals_pending,
              t.journals_pending || ' journal(s) are pending approval.'),
             (8, 'journals_revision', 'info',    t.journals_revision,
@@ -766,7 +766,7 @@ BEGIN
 
   -- Adviser-only by design: this report exists for the adviser's daily round.
   IF v_role IS DISTINCT FROM 'adviser' THEN
-    RAISE EXCEPTION 'Only advisers can generate the daily SIL/OJT report.';
+    RAISE EXCEPTION 'Only advisers can generate the daily SIL report.';
   END IF;
 
   IF v_date > v_today THEN
@@ -914,7 +914,7 @@ RETURNS text
 LANGUAGE sql
 IMMUTABLE
 AS $$
-  SELECT 'Daily SIL/OJT Monitoring Report' || E'\n\n'
+  SELECT 'Daily SIL Monitoring Report' || E'\n\n'
       || 'Adviser: ' || COALESCE(p_adviser_name, 'Section Adviser') || E'\n'
       || 'Date: ' || to_char(p_row.report_date, 'FMMonth FMDD, YYYY') || E'\n'
       || 'Sections: ' || p_row.sections_count || E'\n'
@@ -955,7 +955,7 @@ BEGIN
     FROM public.profiles WHERE auth_user_id = v_uid;
 
   IF v_role IS DISTINCT FROM 'adviser' THEN
-    RAISE EXCEPTION 'Only advisers can email the daily SIL/OJT report.';
+    RAISE EXCEPTION 'Only advisers can email the daily SIL report.';
   END IF;
 
   SELECT * INTO v_row
@@ -975,7 +975,7 @@ BEGIN
     notification_type, related_type, related_id, action_path, action_label
   ) VALUES (
     v_uid,
-    'Daily SIL/OJT Report — ' || to_char(v_row.report_date, 'FMMonth FMDD, YYYY'),
+    'Daily SIL Report — ' || to_char(v_row.report_date, 'FMMonth FMDD, YYYY'),
     public.adviser_daily_report_email_body(v_name, v_row),
     CASE WHEN v_row.attention_count > 0 THEN 'warning' ELSE 'info' END,
     false,
@@ -1079,7 +1079,7 @@ BEGIN
           notification_type, related_type, related_id, action_path, action_label
         ) VALUES (
           v_adviser.uid,
-          'Daily SIL/OJT Report — ' || to_char(v_date, 'FMMonth FMDD, YYYY'),
+          'Daily SIL Report — ' || to_char(v_date, 'FMMonth FMDD, YYYY'),
           public.adviser_daily_report_email_body(v_adviser.name, v_row),
           CASE WHEN v_row.attention_count > 0 THEN 'warning' ELSE 'info' END,
           false,

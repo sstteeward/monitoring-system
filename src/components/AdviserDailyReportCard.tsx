@@ -69,7 +69,7 @@ const STAGES = [
     'Identifying your assigned sections',
     'Collecting students',
     'Reading today\'s attendance',
-    'Calculating OJT progress',
+    'Calculating SIL progress',
     'Checking journal activity',
     'Reviewing companies',
     'Detecting students who need attention',
@@ -174,7 +174,7 @@ const AdviserDailyReportCard: React.FC<Props> = ({ onOpenReport }) => {
                 <div className="adr-card-title">
                     <span className="adr-card-icon"><IconReport size={17} /></span>
                     <div>
-                        <h2>Today&apos;s SIL/OJT Report</h2>
+                        <h2>Today&apos;s SIL Report</h2>
                         <p>{formatReportDate(today)} · every section assigned to you, in one report</p>
                     </div>
                 </div>
@@ -239,7 +239,7 @@ const AdviserDailyReportCard: React.FC<Props> = ({ onOpenReport }) => {
                     <div className="adr-empty">
                         <p>Today&apos;s report isn&apos;t ready yet.</p>
                         <span>
-                            One click checks attendance, clock-in and clock-out records, OJT progress,
+                            One click checks attendance, clock-in and clock-out records, SIL progress,
                             journals and companies across every section assigned to you.
                         </span>
                     </div>
@@ -298,7 +298,7 @@ const AdviserDailyReportCard: React.FC<Props> = ({ onOpenReport }) => {
                     >
                         <h3 id="adr-regen-title">Regenerate today&apos;s report?</h3>
                         <p>
-                            This rebuilds the report using the latest attendance, OJT, journal and
+                            This rebuilds the report using the latest attendance, SIL, journal and
                             company data. The version you are looking at now will be replaced.
                         </p>
                         <div className="adr-modal-actions">

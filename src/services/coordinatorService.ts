@@ -1475,39 +1475,6 @@ export const coordinatorService = {
     },
 
     /**
-     * Create a new section
-     */
-    async createSection(name: string, courseCode: 'DHT' | 'DIT', departmentId?: string) {
-        const { data, error } = await supabase
-            .from('sections')
-            .insert([{
-                name: name.trim().toUpperCase(),
-                course_code: courseCode,
-                department_id: departmentId || null
-            }])
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error creating section:', error);
-            throw error;
-        }
-
-        try {
-            await createAuditLog({
-                action: 'CREATE',
-                module: 'User Management',
-                description: `Created section ${data.name} for course ${courseCode}`,
-                targetType: 'section',
-                targetId: data.id,
-                targetName: data.name
-            });
-        } catch {}
-
-        return data;
-    },
-
-    /**
      * Delete a section
      */
     async deleteSection(sectionId: string, sectionName: string) {

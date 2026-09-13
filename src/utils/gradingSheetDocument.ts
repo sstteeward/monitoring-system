@@ -122,6 +122,17 @@ export const GRADING_SHEET_STYLE = `
                   text-transform: uppercase; color: #666; }
 `;
 
+/**
+ * The office holders printed above the Verified and Noted rules.
+ *
+ * The paper form carries their names, so an unsigned copy already shows who is
+ * expected to sign it. They are posts rather than accounts — no profile in the
+ * system corresponds to the TVET Director — so they are named here, and this is
+ * the one place to change when a post changes hands.
+ */
+const DIPLOMA_PROGRAM_COORDINATOR = 'Ms. Reyna Fegan Ruth T. Villadores';
+const TVET_DIRECTOR = 'Ms. Melody C. Prado';
+
 const SEMESTER_WORDS: Record<string, string> = {
     FIRST: 'FIRST',
     SECOND: 'SECOND',
@@ -234,7 +245,7 @@ export function buildGradingSheetHtml(
       <div class="gs-sig">
         <div class="gs-sig-caption">Verified:</div>
         <div class="gs-sig-line">
-          <div class="gs-sig-name">${escapeHtml(sheet.verified_by_name || '')}</div>
+          <div class="gs-sig-name">${escapeHtml(sheet.verified_by_name?.trim() || DIPLOMA_PROGRAM_COORDINATOR)}</div>
           <div class="gs-sig-role">Diploma Program Coordinator</div>
         </div>
         <div class="gs-sig-date">Date: ${escapeHtml(signatureDate(sheet.verified_at))}</div>
@@ -242,8 +253,8 @@ export function buildGradingSheetHtml(
       <div class="gs-sig">
         <div class="gs-sig-caption">Noted:</div>
         <div class="gs-sig-line">
-          <div class="gs-sig-name"></div>
-          <div class="gs-sig-role">Dean / Academic Head</div>
+          <div class="gs-sig-name">${escapeHtml(TVET_DIRECTOR)}</div>
+          <div class="gs-sig-role">TVET Director</div>
         </div>
         <div class="gs-sig-date">Date: ____________________</div>
       </div>

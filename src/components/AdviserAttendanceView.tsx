@@ -274,7 +274,7 @@ const AdviserAttendanceView: React.FC = () => {
             <div className="fade-in ad-att-card">
                 <div className="ad-att-empty">
                     <h3>No Sections Assigned</h3>
-                    <p>You currently don't have any sections assigned to you. Please contact the SIL/OJT Coordinator.</p>
+                    <p>You currently don't have any sections assigned to you. Please contact the SIL Coordinator.</p>
                 </div>
             </div>
         );
@@ -368,7 +368,7 @@ const AdviserAttendanceView: React.FC = () => {
                 <div className="ad-att-card-head">
                     <div>
                         <h2>Daily Attendance Monitoring</h2>
-                        <p>{selectedSection?.name} · time records and OJT progress</p>
+                        <p>{selectedSection?.name} · time records and SIL progress</p>
                     </div>
                     <div className="ad-att-tools">
                         <input
@@ -432,7 +432,7 @@ const AdviserAttendanceView: React.FC = () => {
                                         <th>Time In</th>
                                         <th>Time Out</th>
                                         <th>Hours</th>
-                                        <th>OJT Progress</th>
+                                        <th>SIL Progress</th>
                                         <th>Status</th>
                                         <th style={{ textAlign: 'right' }}>Action</th>
                                     </tr>

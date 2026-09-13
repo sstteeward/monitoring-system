@@ -8,6 +8,7 @@ import {
   canReturn,
   canSubmit,
   canVerify,
+  canWithdraw,
   formatGrade,
   formatTerm,
   gradingProgress,
@@ -92,6 +93,22 @@ test('verification, return and finalization follow the workflow order', () => {
   assert.equal(canFinalize('verified'), true);
   assert.equal(canFinalize('for_review'), false);
   assert.equal(canFinalize('finalized'), false);
+});
+
+test('an adviser can withdraw their submission, but only before the Coordinator acts', () => {
+  assert.equal(canWithdraw('for_review'), true);
+  // A draft has nothing to withdraw; a verified or finalized sheet is the
+  // Coordinator's to return.
+  for (const status of ['draft', 'verified', 'finalized'] as const) {
+    assert.equal(canWithdraw(status), false, `${status} must not be withdrawable`);
+  }
+});
+
+test('withdrawing does not make a submitted sheet editable', () => {
+  // The way back to editing is draft, never for_review — the same rule the SQL
+  // enforces in save_grading_sheet_grades.
+  assert.equal(canWithdraw('for_review'), true);
+  assert.equal(canEditGrades('for_review'), false);
 });
 
 const WEIGHTS: GradingComponents = {

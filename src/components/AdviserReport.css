@@ -514,7 +514,7 @@ html[data-theme="dark"] .adr-kpi.is-good { --adr-tone: #34d399; }
 html[data-theme="dark"] .adr-kpi.is-warn { --adr-tone: #fbbf24; }
 html[data-theme="dark"] .adr-kpi.is-bad  { --adr-tone: #f87171; }
 
-/* ── Overall OJT status: one compact horizontal strip ───────────────────── */
+/* ── Overall SIL status: one compact horizontal strip ───────────────────── */
 .adr-ojt-strip {
     display: flex;
     flex-wrap: wrap;

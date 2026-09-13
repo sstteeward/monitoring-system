@@ -217,7 +217,7 @@ const WaiverRequirementCard: React.FC<WaiverRequirementCardProps> = ({ onStatusC
                     <span className="req-icon" aria-hidden="true">📄</span>
                     <div>
                         <h3 id="req-waiver-title" className="req-title">Parent&apos;s Clearance &amp; Waiver Form</h3>
-                        <p className="req-sub">Required OJT/SIL document</p>
+                        <p className="req-sub">Required SIL document</p>
                     </div>
                 </div>
                 <span className={`req-status req-status-${status}`}>

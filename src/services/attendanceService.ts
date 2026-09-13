@@ -95,7 +95,7 @@ export interface AdviserAttendanceRow extends AllAttendanceRow {
   year_level: string | null;
   /** Hours clocked on the selected date, breaks excluded. */
   worked_hours: number;
-  /** Lifetime rendered hours, for OJT progress. */
+  /** Lifetime rendered hours, for SIL progress. */
   total_rendered_hours: number;
   required_hours: number;
   /** Timesheet entries on the selected date. */

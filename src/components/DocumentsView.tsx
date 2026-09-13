@@ -151,13 +151,13 @@ const DocumentsView: React.FC = () => {
     return (
         <div className="documents-container">
             <header className="view-header">
-                <p className="view-subtitle">Upload and manage your OJT requirements and certifications.</p>
+                <p className="view-subtitle">Upload and manage your SIL requirements and certifications.</p>
             </header>
 
-            {/* ── Required OJT/SIL requirements ─────────────────────────────── */}
+            {/* ── Required SIL requirements ─────────────────────────────── */}
             <section className="documents-list-section" style={{ marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                    <h3 className="section-title" style={{ margin: 0 }}>OJT / SIL Requirements</h3>
+                    <h3 className="section-title" style={{ margin: 0 }}>SIL Requirements</h3>
                     <span style={{
                         padding: '0.3rem 0.7rem', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
                         background: waiverComplete ? 'rgba(16,185,129,0.12)' : 'var(--bg-elevated)',

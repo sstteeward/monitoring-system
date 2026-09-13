@@ -92,7 +92,7 @@ const PREFERENCES_KEY = 'sil.schedule-calendar.preferences';
 const VIEW_ORDER: CalendarView[] = ['day', 'week', 'month', 'year', 'schedule', 'four_days'];
 /** Fallback until the rendered value of --gcal-hour has been read. */
 const FALLBACK_HOUR_HEIGHT = 52;
-/** Where a time view opens: the start of the OJT working day. */
+/** Where a time view opens: the start of the SIL working day. */
 const FOCUS_MINUTES = 7 * 60;
 const SNAP_MINUTES = 15;
 const MONTH_CHIP_LIMIT = 3;
@@ -311,7 +311,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
   const title = rangeTitle(view, columns, anchor);
 
   /*
-   * A time view opens on the OJT working day rather than at midnight, and
+   * A time view opens on the SIL working day rather than at midnight, and
    * earlier than 7 AM only when something is actually scheduled up there — so
    * nothing is hidden above the fold, and a normal day needs no scrolling.
    */

@@ -1,5 +1,5 @@
 -- ==============================================================================
--- OJT/SIL Requirements — Parent's Clearance & Waiver
+-- SIL Requirements — Parent's Clearance & Waiver
 -- Run this once in the Supabase SQL Editor, after supabase_notifications_system.sql.
 --
 -- Design notes
@@ -206,7 +206,7 @@ BEGIN
 
   v_label := CASE NEW.document_type
                WHEN 'PARENT_CLEARANCE_WAIVER' THEN 'Parent''s Clearance & Waiver'
-               ELSE 'OJT requirement'
+               ELSE 'SIL requirement'
              END;
 
   INSERT INTO public.user_notifications (
@@ -300,7 +300,7 @@ BEGIN
 
   v_label := CASE v_doc.document_type
                WHEN 'PARENT_CLEARANCE_WAIVER' THEN 'Parent''s Clearance & Waiver'
-               ELSE COALESCE(v_doc.title, 'OJT requirement')
+               ELSE COALESCE(v_doc.title, 'SIL requirement')
              END;
 
   INSERT INTO public.user_notifications (

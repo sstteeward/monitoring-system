@@ -123,7 +123,7 @@ const AdminSettingsView: React.FC<{
 
     const tabs: { key: AdminSettingsTab; label: string; icon: React.ReactNode; desc: string }[] = [
         {
-            key: 'system', label: 'System', desc: 'OJT rules & config',
+            key: 'system', label: 'System', desc: 'SIL rules & config',
             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
         },
         {
@@ -189,9 +189,9 @@ const AdminSettingsView: React.FC<{
                                 </div>
                             )}
 
-                            {/* OJT Hours */}
+                            {/* SIL Hours */}
                             <div style={{ padding: '1.25rem 1rem', background: 'var(--bg-elevated)', border: '1px solid var(--admin-border)', borderRadius: 12, marginBottom: '1rem', boxSizing: 'border-box' }}>
-                                <h4 style={{ margin: '0 0 1rem', fontSize: '0.92rem', color: 'var(--admin-text-primary)' }}>OJT Requirements</h4>
+                                <h4 style={{ margin: '0 0 1rem', fontSize: '0.92rem', color: 'var(--admin-text-primary)' }}>SIL Requirements</h4>
                                 <div className="admin-settings-inner-grid">
                                     <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--admin-text-secondary)' }}>
                                         Total Required Hours

@@ -172,7 +172,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                             <th>Email</th>
                             <th>Company</th>
                             <th>Department</th>
-                            <th>OJT Hours</th>
+                            <th>SIL Hours</th>
                             <th>Absences</th>
                             <th>Enrolled</th>
                             {isAdmin && <th style={{ textAlign: 'right' }}>Actions</th>}

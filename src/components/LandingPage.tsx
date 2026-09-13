@@ -95,7 +95,7 @@ const PORTALS: {
     role: 'student',
     label: 'Student',
     title: 'Student Portal',
-    description: 'Manage your SIL activities, attendance, journals, requirements, and OJT progress.',
+    description: 'Manage your SIL activities, attendance, journals, requirements, and SIL progress.',
     Icon: GraduationCapIcon,
   },
   {

@@ -196,6 +196,51 @@ export const adviserService = {
     },
 
     /**
+     * Creates a section in the adviser's own course family and assigns it to them.
+     *
+     * Advisers hold no INSERT privilege on `sections`, so this is an RPC-only path —
+     * there is deliberately no table-insert fallback: if the function is not deployed,
+     * a direct insert would fail on RLS anyway, so say what is actually wrong.
+     */
+    async createSection(name: string): Promise<Section> {
+        const { data, error } = await supabase.rpc('adviser_create_section', {
+            p_name: name.trim().toUpperCase(),
+        });
+
+        if (error) {
+            if (isMissingFunction(error)) {
+                throw new Error('Adding sections is not available yet — run supabase_adviser_create_section.sql.');
+            }
+            console.error('Error creating section:', error);
+            throw asError(error, 'Failed to create the section.');
+        }
+
+        const row = data as { id: string; name: string; course_code: 'DHT' | 'DIT'; department_id: string | null };
+
+        try {
+            await createAuditLog({
+                action: 'CREATE',
+                module: 'User Management',
+                description: `Created section ${row.name} (${row.course_code}) and self-assigned as its Section Adviser`,
+                targetType: 'section',
+                targetId: row.id,
+                targetName: row.name,
+            });
+        } catch { /* a failed activity log must never undo the section */ }
+
+        try {
+            await notificationService.notifyRoles(
+                ['coordinator'],
+                'New Section Created by an Adviser',
+                `Section ${row.name} (${row.course_code}) was created by its Section Adviser.`,
+                { notificationType: 'assignment', relatedType: 'section', relatedId: row.id },
+            );
+        } catch { /* the coordinator's notice is not worth failing the create over */ }
+
+        return { ...row, student_count: 0, created_at: new Date().toISOString() };
+    },
+
+    /**
      * Students belonging to the Adviser's assigned sections, optionally narrowed
      * to a single one of those sections.
      */
@@ -336,7 +381,7 @@ export const adviserService = {
             await notificationService.createNotification(
                 studentId,
                 'Account Approved!',
-                `Your student account has been approved by your Section Adviser. Welcome to the SIL/OJT Monitoring System!`,
+                `Your student account has been approved by your Section Adviser. Welcome to the SIL Monitoring System!`,
                 'success',
                 { notificationType: 'assignment', relatedType: 'student', relatedId: studentId },
             );

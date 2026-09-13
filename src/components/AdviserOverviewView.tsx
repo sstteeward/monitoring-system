@@ -23,11 +23,28 @@ const AdviserOverviewView: React.FC<AdviserOverviewViewProps> = ({
 }) => {
     const isDHT = course === 'DHT' || adviserType === 'HT Adviser';
 
+    /*
+     * The overview is a summary, not the roster.
+     *
+     * Every assigned section used to render as a full card, so an adviser
+     * holding thirty of them got eight rows of cards to scroll past before
+     * reaching anything else — and most of those cards read "0 Supervised
+     * Students", which is precisely the section needing no attention. The
+     * sections carrying students lead, the rest are one click away.
+     */
+    const OVERVIEW_SECTION_LIMIT = 8;
+    const allSections: Section[] = stats?.sections ?? [];
+    const topSections = [...allSections]
+        .sort((a, b) => (b.student_count || 0) - (a.student_count || 0) || a.name.localeCompare(b.name))
+        .slice(0, OVERVIEW_SECTION_LIMIT);
+    const hiddenSectionCount = allSections.length - topSections.length;
+
     const kpiStats = [
         {
             label: 'My Sections',
             value: stats?.mySectionsCount || 0,
-            sub: 'Assigned by Coordinator',
+            // Not "Assigned by Coordinator" any more — advisers add their own.
+            sub: 'Across all year levels',
             color: '#0d9488',
             glow: 'rgba(13, 148, 136, 0.15)',
             icon: (
@@ -71,8 +88,8 @@ const AdviserOverviewView: React.FC<AdviserOverviewViewProps> = ({
             action: () => navigateTo('approvals', 'students'),
         },
         {
-            label: 'On SIL / OJT',
-            value: stats?.studentsOnOjtCount || 0,
+            label: 'On SIL',
+            value: stats?.studentsOnSilCount || 0,
             sub: `${stats?.studentsNotDeployedCount || 0} not yet deployed`,
             color: '#059669',
             glow: 'rgba(5, 150, 105, 0.15)',
@@ -170,7 +187,10 @@ const AdviserOverviewView: React.FC<AdviserOverviewViewProps> = ({
                         <div>
                             <div className="admin-table-title">My Assigned Sections</div>
                             <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.15rem' }}>
-                                Sections assigned to you by the Coordinator
+                                {allSections.length} section{allSections.length !== 1 ? 's' : ''}
+                                {' · '}
+                                {stats?.myStudentsCount || 0} student{(stats?.myStudentsCount || 0) !== 1 ? 's' : ''} supervised
+                                {hiddenSectionCount > 0 && ' · busiest first'}
                             </div>
                         </div>
                         <button
@@ -198,38 +218,47 @@ const AdviserOverviewView: React.FC<AdviserOverviewViewProps> = ({
                                 </div>
                             </div>
                         ) : (
-                            <div className="ad-sections-grid">
-                                {stats.sections.map((sec: Section) => (
-                                    <div
-                                        key={sec.id}
-                                        className="section-card"
-                                        onClick={() => navigateTo('students', sec.name)}
+                            <>
+                                <div className="ad-sec-rows">
+                                    {topSections.map((sec: Section) => {
+                                        const count = sec.student_count || 0;
+                                        return (
+                                            <button
+                                                key={sec.id}
+                                                type="button"
+                                                className="ad-sec-row"
+                                                onClick={() => navigateTo('students', sec.name)}
+                                                aria-label={`${sec.name}, ${count} students, manage`}
+                                            >
+                                                <span className="ad-sec-row-count" data-empty={count === 0}>
+                                                    {count}
+                                                </span>
+                                                <span className="ad-sec-row-body">
+                                                    <span className="ad-sec-row-name">{sec.name}</span>
+                                                    <span className="ad-sec-row-meta">
+                                                        {count === 0
+                                                            ? 'No students yet'
+                                                            : `${count} student${count !== 1 ? 's' : ''}`}
+                                                    </span>
+                                                </span>
+                                                <span className={`adviser-course-pill ${sec.course_code === 'DHT' ? 'adviser-course-dht' : 'adviser-course-dit'}`}>
+                                                    {sec.course_code}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {hiddenSectionCount > 0 && (
+                                    <button
+                                        type="button"
+                                        className="ad-sec-more"
+                                        onClick={() => navigateTo('sections')}
                                     >
-                                        <div className="section-card-header">
-                                            <div>
-                                                <div className="section-card-title">{sec.name}</div>
-                                                <div className="section-card-meta">
-                                                    {sec.course_code === 'DHT' ? 'Hospitality Technology' : 'Information Technology'}
-                                                </div>
-                                            </div>
-                                            <span className={`adviser-course-pill ${sec.course_code === 'DHT' ? 'adviser-course-dht' : 'adviser-course-dit'}`}>
-                                                {sec.course_code}
-                                            </span>
-                                        </div>
-
-                                        <div>
-                                            <div className="section-card-count">{sec.student_count || 0}</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Supervised Students</div>
-                                        </div>
-
-                                        <div className="section-card-footer">
-                                            <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>
-                                                Manage Students →
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                                        +{hiddenSectionCount} more section{hiddenSectionCount !== 1 ? 's' : ''} — view all by year level →
+                                    </button>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

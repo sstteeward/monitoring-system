@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabaseClient';
 import { createAuditLog } from './auditService';
 
 /**
- * OJT/SIL requirement documents.
+ * SIL requirement documents.
  *
  * Built on the existing `student_documents` table and the private `documents`
  * storage bucket — no parallel table, no second bucket. What is new here is the
@@ -312,8 +312,8 @@ export const requirementService = {
             action: decision === 'approved' ? 'APPROVE' : 'REJECT',
             module: 'Documents',
             description: decision === 'approved'
-                ? 'Approved a student OJT requirement'
-                : `Requested a revision on a student OJT requirement: ${remarks ?? ''}`.trim(),
+                ? 'Approved a student SIL requirement'
+                : `Requested a revision on a student SIL requirement: ${remarks ?? ''}`.trim(),
             targetType: 'student_document',
             targetId: documentId,
         }).catch(() => undefined);

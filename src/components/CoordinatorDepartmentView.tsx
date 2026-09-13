@@ -267,7 +267,7 @@ const CoordinatorDepartmentView: React.FC = () => {
                             <th>Student</th>
                             <th>Email</th>
                             <th>Company</th>
-                            <th>OJT Hours</th>
+                            <th>SIL Hours</th>
                             <th>Absences</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
                         </tr>

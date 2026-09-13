@@ -9,7 +9,7 @@ import {
 import './Requirements.css';
 
 /**
- * Coordinator / Admin — OJT requirement verification.
+ * Coordinator / Admin — SIL requirement verification.
  *
  * Lists every student for a requirement, including those who have not submitted
  * (which is what makes it a compliance view rather than an inbox), and opens a

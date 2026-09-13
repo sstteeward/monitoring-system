@@ -270,6 +270,108 @@ html[data-theme="dark"] .ad-welcome-banner {
     }
 }
 
+/* ── Overview: compact section list ──
+ *
+ * The overview rendered every assigned section as a full card. At thirty
+ * sections that was eight rows of cards to scroll past before anything else on
+ * the page, and most of them read "0 Supervised Students" — the sections that
+ * need no attention were taking up the most room.
+ *
+ * One dense row each instead, several to a line, with the count leading so the
+ * eye can run down the numbers. The overview shows the busiest handful; the
+ * full list lives in My Sections.
+ */
+.ad-sec-rows {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+    gap: 0.4rem;
+}
+
+.dashboard-container .ad-sec-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    background: var(--bg-card);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    min-width: 0;
+    transition: var(--hover-transition);
+}
+
+.dashboard-container .ad-sec-row:hover {
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-xs);
+}
+
+/* The number leads: it is the only value on the row that varies usefully. */
+.ad-sec-row-count {
+    flex-shrink: 0;
+    min-width: 1.6rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+}
+
+.ad-sec-row-count[data-empty='true'] {
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+.ad-sec-row-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.ad-sec-row-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ad-sec-row-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ad-sec-row .adviser-course-pill {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.dashboard-container .ad-sec-more {
+    display: block;
+    width: 100%;
+    margin-top: 0.55rem;
+    padding: 0.5rem;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--hover-transition);
+}
+
+.dashboard-container .ad-sec-more:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
 /* ── Section Cards Layout ── */
 .ad-sections-grid {
     display: grid;
@@ -1089,7 +1191,7 @@ html[data-theme="dark"] .ad-risk-alert   { color: #f87171; }
 
 .ad-att-num { font-variant-numeric: tabular-nums; }
 
-/* ── OJT progress ── */
+/* ── SIL progress ── */
 .ad-att-ojt { width: 140px; }
 .ad-att-ojt-top { font-size: 0.76rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
@@ -1356,6 +1458,84 @@ html[data-theme="dark"] .ad-att-badge.is-on-leave   { color: #93c5fd; }
     box-shadow: none;
 }
 
+/* ── Approval queue row actions ──
+ *
+ * Approve, Request Changes and Reject were sitting on classes that had no rules
+ * at all, so all three rendered as the same grey button and the only thing
+ * separating an approval from a rejection was the word on it. On a queue of
+ * eight near-identical rows that is a misclick waiting to happen.
+ *
+ * Colour carries the meaning now: green for the constructive action, amber for
+ * the one that sends the student back to fix something, red for the one that
+ * cannot be taken back.
+ *
+ * Tinted at rest rather than filled — eight rows of saturated colour would read
+ * as an alarm rather than a queue. The solid fill lands on hover, once the
+ * pointer has already chosen.
+ */
+.dashboard-container .approval-action-btn {
+    min-height: 30px;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--radius-xs);
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: var(--hover-transition);
+}
+
+.dashboard-container .approval-action-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.dashboard-container .approval-btn-approve {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: var(--primary-hover);
+}
+
+.dashboard-container .approval-btn-approve:hover:not(:disabled) {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
+    filter: none;
+    box-shadow: none;
+}
+
+.dashboard-container .approval-btn-correct {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #b45309;
+}
+
+.dashboard-container .approval-btn-correct:hover:not(:disabled) {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #ffffff;
+    filter: none;
+    box-shadow: none;
+}
+
+/* The one that cannot be undone. It is red at rest, not only on hover. */
+.dashboard-container .approval-btn-reject {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #dc2626;
+}
+
+.dashboard-container .approval-btn-reject:hover:not(:disabled) {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #ffffff;
+    filter: none;
+    box-shadow: none;
+}
+
+/* Dark mode needs the lighter end of each ramp to stay legible on the tint. */
+html[data-theme='dark'] .dashboard-container .approval-btn-approve { color: #34d399; }
+html[data-theme='dark'] .dashboard-container .approval-btn-correct { color: #fbbf24; }
+html[data-theme='dark'] .dashboard-container .approval-btn-reject  { color: #f87171; }
+
 /* ── Roster filter tabs ── */
 .ad-filter-bar {
     display: flex;
@@ -1561,13 +1741,12 @@ html[data-theme="dark"] .ad-roster-status.is-ontrack { color: #34d399; }
 }
 
 /*
- * The active item reads from two cues, not one: the tinted row it already had,
- * plus a rule against the rail's inner edge. On a list of eleven items the tint
- * alone is easy to lose, and the rule survives a theme change that flattens it.
+ * The active item reads from the tinted row plus the heavier label. There is
+ * deliberately no accent rule against the rail's inner edge — beside the icon it
+ * read as a stray border rather than as a marker.
  */
 .adviser-shell .sidebar-nav-item.active {
     font-weight: 600;
-    box-shadow: inset 2px 0 0 var(--primary);
 }
 
 .adviser-shell .nav-icon {

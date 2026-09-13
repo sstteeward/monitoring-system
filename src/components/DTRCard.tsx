@@ -501,7 +501,7 @@ export function DTRCard({
       </div>
       
       <div className="ojt-info-banner">
-        <span className="banner-goal">OJT Goal: <strong>{requiredHours} Hours</strong></span>
+        <span className="banner-goal">SIL Goal: <strong>{requiredHours} Hours</strong></span>
         <span className="banner-divider">|</span>
         <span className="banner-estimate">Estimated DTR cards needed: <strong>{estimatedCount}</strong></span>
       </div>

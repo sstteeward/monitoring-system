@@ -5,7 +5,7 @@
  * built on the shared onboarding wizard (OnboardingShell) so it matches the
  * Student, Adviser and Coordinator flows.
  *
- * Company accounts are not people: no birthday or SIL/OJT hours are collected —
+ * Company accounts are not people: no birthday or SIL hours are collected —
  * the personal step is replaced by the company's own contact information.
  * The application payloads and `company_requests` relationships are unchanged.
  */
@@ -33,7 +33,7 @@ const STEPS = ['Company', 'Address', 'Supervisor', 'Review'];
 const SUBTITLES = [
     "Let's set up your company profile.",
     'Where is your office located?',
-    'Who will supervise the SIL/OJT students?',
+    'Who will supervise the SIL students?',
     'Review your company application before submitting.',
 ];
 

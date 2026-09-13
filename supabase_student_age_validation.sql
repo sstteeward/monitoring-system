@@ -1,4 +1,4 @@
--- Enforce the SIL/OJT age requirement at the database layer.
+-- Enforce the SIL age requirement at the database layer.
 -- Run this in the Supabase SQL editor.
 
 CREATE OR REPLACE FUNCTION public.validate_student_age_eligibility(p_birth_date date)
@@ -20,7 +20,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     IF NEW.account_type = 'student' AND NEW.birthday IS NOT NULL AND NOT public.validate_student_age_eligibility(NEW.birthday) THEN
-        RAISE EXCEPTION '⚠️ You must be at least 18 years old to participate in the SIL/OJT program.';
+        RAISE EXCEPTION '⚠️ You must be at least 18 years old to participate in the SIL program.';
     END IF;
 
     RETURN NEW;

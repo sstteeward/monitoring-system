@@ -103,6 +103,10 @@ const CoordinatorGradingView: React.FC = () => {
         } catch (err) {
             console.error(`Failed to ${action} the grading sheet:`, err);
             setBanner({ tone: 'error', text: err instanceof Error ? err.message : `The grading sheet could not be ${action === 'verify' ? 'verified' : 'finalized'}.` });
+            // The refusal usually means the row moved — the adviser withdrew it,
+            // or another coordinator got there first. Re-read rather than leave
+            // a row on screen that no longer exists in that state.
+            await load();
         } finally {
             setActing(false);
         }

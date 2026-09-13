@@ -170,7 +170,7 @@ BEGIN
           AND ts.clock_in IS NOT NULL
           AND ts.clock_in::date = p_attendance_date
     ) day_ts ON TRUE
-    -- Lifetime rendered hours, for OJT progress.
+    -- Lifetime rendered hours, for SIL progress.
     LEFT JOIN LATERAL (
         SELECT COALESCE(sum(
             CASE WHEN ts.clock_out IS NOT NULL AND ts.clock_out > ts.clock_in THEN

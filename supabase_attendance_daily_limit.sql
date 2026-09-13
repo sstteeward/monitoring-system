@@ -341,13 +341,13 @@ BEGIN
 
     IF v_alert_id IS NOT NULL THEN
       v_message :=
-        'Our SIL/OJT Monitoring System detected that you have reached the maximum allowed '
+        'Our SIL Monitoring System detected that you have reached the maximum allowed '
         || (v_limit / 60) || ' working hours for today.' || E'\n\n'
         || 'Date: ' || to_char(v_day, 'FMMonth FMDD, YYYY') || E'\n'
         || 'Time In: ' || to_char(v_record.clock_in AT TIME ZONE v_tz, 'FMHH12:MI AM') || E'\n'
         || 'Current Time: ' || to_char(v_now AT TIME ZONE v_tz, 'FMHH12:MI AM') || E'\n'
         || 'Rendered Time: ' || (v_minutes / 60) || ' hours ' || (v_minutes % 60) || ' minutes' || E'\n\n'
-        || 'Please return to the SIL/OJT Monitoring System and clock out immediately.' || E'\n\n'
+        || 'Please return to the SIL Monitoring System and clock out immediately.' || E'\n\n'
         || 'If you believe this notification was sent incorrectly, please contact your assigned coordinator.';
 
       INSERT INTO public.user_notifications (
@@ -405,7 +405,7 @@ BEGIN
         v_coordinator.id,
         'Student Daily Limit Alert',
         COALESCE(v_student_name, 'A student')
-          || ' has reached the ' || (v_limit / 60) || '-hour daily SIL/OJT limit.' || E'\n\n'
+          || ' has reached the ' || (v_limit / 60) || '-hour daily SIL limit.' || E'\n\n'
           || 'Date: ' || to_char(v_day, 'FMMonth FMDD, YYYY') || E'\n'
           || 'Rendered: ' || (v_minutes / 60) || 'h ' || (v_minutes % 60) || 'm' || E'\n'
           || CASE WHEN v_over > 0 THEN 'Exceeded by: ' || v_over || 'm' || E'\n' ELSE '' END

@@ -43,7 +43,7 @@ create policy "Admins can manage system settings" on public.system_settings usin
 
 -- Insert Default Settings
 insert into public.system_settings (key, value, description) values
-  ('ojt_hours', '{"required": 300, "max_daily": 8}', 'OJT Hours Configuration'),
+  ('ojt_hours', '{"required": 300, "max_daily": 8}', 'SIL Hours Configuration'),
   ('journal_submission', '{"deadline_days": 7}', 'Journal Submission Rules'),
   ('file_uploads', '{"max_size_mb": 10, "allowed_types": ["application/pdf", "image/png", "image/jpeg"]}', 'File Upload Constraints'),
   ('maintenance_mode', '{"enabled": false, "message": "System is currently undergoing maintenance. Please try again later."}', 'System Maintenance Mode')

@@ -497,7 +497,7 @@ BEGIN
 
   SELECT * INTO v_adv FROM public.resolve_student_adviser(v_uid);
   IF v_adv.adviser_id IS NULL THEN
-    RAISE EXCEPTION 'No adviser is assigned to your section yet. Please contact the SIL/OJT Coordinator.';
+    RAISE EXCEPTION 'No adviser is assigned to your section yet. Please contact the SIL Coordinator.';
   END IF;
 
   IF v_sub.id IS NOT NULL THEN

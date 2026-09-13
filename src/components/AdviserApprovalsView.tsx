@@ -101,10 +101,28 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
     const [remarks, setRemarks] = useState('');
     const [viewProfileId, setViewProfileId] = useState<string | null>(null);
 
+    /*
+     * Multi-select, one list per queue. A queue that holds a whole section's
+     * registrations is a lot of identical decisions, so the rows can be ticked
+     * and acted on together.
+     *
+     * DTR submissions deliberately have no equivalent: a complete Daily Time
+     * Record has to be opened and read before it is signed off, which is why its
+     * rows carry no Approve button either.
+     */
+    const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+    const [selectedJournalIds, setSelectedJournalIds] = useState<string[]>([]);
+    const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+    /** True while the student dialog is collecting remarks for the whole selection. */
+    const [bulkStudentAction, setBulkStudentAction] = useState(false);
+    /** Drives the "3 of 8" counter while a batch runs. */
+    const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
 
 
     useEffect(() => {
         loadApprovals();
+        // Mount only: every later refresh is triggered by an action that finished.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // The DTR list owns its own fetch: it runs on mount and again whenever the
@@ -139,6 +157,9 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
             setPendingStudents(stData);
             setPendingJournals(jData);
             setPendingDocuments(dData);
+            // Anything that was acted on has left the queue, so a carried-over
+            // selection could only point at rows that are no longer there.
+            clearSelections();
         } catch (err: any) {
             console.error('Failed to load pending approvals:', err);
             setError(err.message || 'Failed to load approvals queue');
@@ -151,6 +172,71 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
         setSuccessMessage(msg);
         setTimeout(() => setSuccessMessage(null), 4000);
     };
+
+    const clearSelections = () => {
+        setSelectedStudentIds([]);
+        setSelectedJournalIds([]);
+        setSelectedDocumentIds([]);
+    };
+
+    const toggleId = (
+        setSelected: React.Dispatch<React.SetStateAction<string[]>>,
+        id: string,
+    ) => setSelected(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+
+    /** Header checkbox: ticks every row on the page, or clears them all. */
+    const toggleAll = (
+        setSelected: React.Dispatch<React.SetStateAction<string[]>>,
+        pageIds: string[],
+        selected: string[],
+    ) => {
+        const allOn = pageIds.length > 0 && pageIds.every(id => selected.includes(id));
+        setSelected(allOn ? [] : pageIds);
+    };
+
+    /**
+     * Runs one action across a selection.
+     *
+     * Each item is its own request, so one failure — a student another adviser
+     * has already processed, say — must not cost the rest of the batch. What
+     * succeeded is reported, what did not is surfaced, and the queue is reloaded
+     * once at the end rather than per item.
+     */
+    const runBulk = async (
+        ids: string[],
+        run: (id: string) => Promise<unknown>,
+        summary: (succeeded: number) => string,
+    ) => {
+        if (ids.length === 0) return;
+
+        setBulkProgress({ done: 0, total: ids.length });
+        setError(null);
+
+        const failures: string[] = [];
+        let done = 0;
+        for (const id of ids) {
+            try {
+                await run(id);
+            } catch (err) {
+                console.error(`Bulk action failed for ${id}:`, err);
+                failures.push(err instanceof Error ? err.message : 'Unknown error');
+            }
+            done += 1;
+            setBulkProgress({ done, total: ids.length });
+        }
+
+        const succeeded = ids.length - failures.length;
+        if (succeeded > 0) showSuccess(summary(succeeded));
+        if (failures.length > 0) {
+            setError(`${failures.length} of ${ids.length} could not be processed. ${failures[0]}`);
+        }
+
+        setBulkProgress(null);
+        await loadApprovals();
+        if (onActionComplete) onActionComplete();
+    };
+
+    const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
     const {
         currentPage: stPage,
@@ -206,20 +292,58 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
     // Handlers for Student Account Approval
     const openStudentActionModal = (student: Profile, type: 'approve' | 'reject' | 'correct') => {
         setSelectedStudent(student);
+        setBulkStudentAction(false);
         setActionType(type);
         setRemarks('');
         setError(null); // don't show a previous action's error in the fresh dialog
         setShowStudentActionModal(true);
     };
 
+    /**
+     * The same dialog, aimed at the whole selection. Rejecting or requesting a
+     * correction needs a written reason, and one reason covers the batch — the
+     * students are being turned back for the same thing.
+     */
+    const openBulkStudentActionModal = (type: 'approve' | 'reject' | 'correct') => {
+        setSelectedStudent(null);
+        setBulkStudentAction(true);
+        setActionType(type);
+        setRemarks('');
+        setError(null);
+        setShowStudentActionModal(true);
+    };
+
     const handleConfirmStudentAction = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedStudent) return;
+        if (!selectedStudent && !bulkStudentAction) return;
 
         if ((actionType === 'reject' || actionType === 'correct') && !remarks.trim()) {
             setError(`Please enter a reason or instructions for ${actionType === 'reject' ? 'rejection' : 'correction'}.`);
             return;
         }
+
+        if (bulkStudentAction) {
+            const ids = selectedStudentIds;
+            const note = remarks.trim();
+            setShowStudentActionModal(false);
+            await runBulk(
+                ids,
+                id => {
+                    if (actionType === 'approve') return adviserService.approveStudentAccount(id, note || undefined);
+                    if (actionType === 'reject') return adviserService.rejectStudentAccount(id, note);
+                    return adviserService.requestStudentCorrection(id, note);
+                },
+                n => {
+                    const accounts = `${n} student ${plural(n, 'account', 'accounts')}`;
+                    if (actionType === 'approve') return `Approved ${accounts}. They are now active.`;
+                    if (actionType === 'reject') return `Rejected ${accounts}.`;
+                    return `Requested corrections for ${accounts}.`;
+                },
+            );
+            return;
+        }
+
+        if (!selectedStudent) return;
 
         setActionLoading(selectedStudent.auth_user_id);
         setError(null);
@@ -279,6 +403,18 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
         }
     };
 
+    const handleBulkJournals = (status: 'approved' | 'rejected') => runBulk(
+        selectedJournalIds,
+        id => adviserService.updateJournalStatus(id, status),
+        n => `${n} journal ${plural(n, 'entry', 'entries')} ${status}.`,
+    );
+
+    const handleBulkDocuments = (status: 'approved' | 'rejected') => runBulk(
+        selectedDocumentIds,
+        id => adviserService.updateDocumentStatus(id, status),
+        n => `${n} ${plural(n, 'document', 'documents')} ${status}.`,
+    );
+
     /*
      * There is no per-timesheet handler any more.
      *
@@ -294,6 +430,93 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
         setDtrReloadKey(k => k + 1);
         if (onActionComplete) onActionComplete();
     };
+
+    const busy = bulkProgress !== null || actionLoading !== null;
+
+    /** The strip that appears above a table once rows are ticked. */
+    const renderBulkBar = (count: number, onClear: () => void, actions: React.ReactNode) => {
+        if (count === 0) return null;
+        return (
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+                padding: '0.75rem 1.5rem',
+                borderBottom: '1px solid var(--admin-border)',
+                background: 'var(--bg-elevated)'
+            }}>
+                <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                    {count} selected
+                </strong>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{actions}</div>
+                {bulkProgress && (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        {bulkProgress.done} of {bulkProgress.total} done…
+                    </span>
+                )}
+                <button
+                    type="button"
+                    onClick={onClear}
+                    disabled={busy}
+                    style={{
+                        marginLeft: 'auto',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: busy ? 'not-allowed' : 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        padding: 0
+                    }}
+                >
+                    Clear selection
+                </button>
+            </div>
+        );
+    };
+
+    /** Header cell that ticks or clears every row on the current page. */
+    const renderSelectAllCell = (
+        pageIds: string[],
+        selected: string[],
+        setSelected: React.Dispatch<React.SetStateAction<string[]>>,
+        label: string,
+    ) => {
+        const allOn = pageIds.length > 0 && pageIds.every(id => selected.includes(id));
+        const someOn = pageIds.some(id => selected.includes(id));
+        return (
+            <th style={{ width: 36 }}>
+                <input
+                    type="checkbox"
+                    checked={allOn}
+                    ref={el => { if (el) el.indeterminate = someOn && !allOn; }}
+                    onChange={() => toggleAll(setSelected, pageIds, selected)}
+                    disabled={busy}
+                    aria-label={`Select every ${label} on this page`}
+                    style={{ cursor: busy ? 'not-allowed' : 'pointer' }}
+                />
+            </th>
+        );
+    };
+
+    const renderSelectCell = (
+        id: string,
+        selected: string[],
+        setSelected: React.Dispatch<React.SetStateAction<string[]>>,
+        label: string,
+    ) => (
+        <td style={{ width: 36 }}>
+            <input
+                type="checkbox"
+                checked={selected.includes(id)}
+                onChange={() => toggleId(setSelected, id)}
+                disabled={busy}
+                aria-label={`Select ${label}`}
+                style={{ cursor: busy ? 'not-allowed' : 'pointer' }}
+            />
+        </td>
+    );
 
     return (
         <div className="fade-in">
@@ -353,7 +576,8 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                         <button
                             key={tab.id}
                             className={`filter-tab ${activeTab === tab.id ? 'active' : ''}`}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            // A selection belongs to the queue it was made in.
+                            onClick={() => { clearSelections(); setActiveTab(tab.id as any); }}
                             style={{
                                 padding: '0.45rem 1rem',
                                 borderRadius: 8,
@@ -397,9 +621,43 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                 <div style={{ fontSize: '0.85rem', marginTop: '0.2rem' }}>All student registrations in your assigned sections have been processed.</div>
                             </div>
                         ) : (
+                            <>
+                            {renderBulkBar(
+                                selectedStudentIds.length,
+                                () => setSelectedStudentIds([]),
+                                <>
+                                    <button
+                                        className="approval-action-btn approval-btn-approve"
+                                        onClick={() => openBulkStudentActionModal('approve')}
+                                        disabled={busy}
+                                    >
+                                        Approve Selected
+                                    </button>
+                                    <button
+                                        className="approval-action-btn approval-btn-correct"
+                                        onClick={() => openBulkStudentActionModal('correct')}
+                                        disabled={busy}
+                                    >
+                                        Request Changes
+                                    </button>
+                                    <button
+                                        className="approval-action-btn approval-btn-reject"
+                                        onClick={() => openBulkStudentActionModal('reject')}
+                                        disabled={busy}
+                                    >
+                                        ✕ Reject Selected
+                                    </button>
+                                </>
+                            )}
                             <table className="admin-table">
                                 <thead>
                                     <tr>
+                                        {renderSelectAllCell(
+                                            paginatedStudents.map(st => st.auth_user_id),
+                                            selectedStudentIds,
+                                            setSelectedStudentIds,
+                                            'student',
+                                        )}
                                         <th>Student</th>
                                         <th>Section & Course</th>
                                         <th>Contact & Address</th>
@@ -410,6 +668,12 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                 <tbody>
                                     {paginatedStudents.map(st => (
                                         <tr key={st.id}>
+                                            {renderSelectCell(
+                                                st.auth_user_id,
+                                                selectedStudentIds,
+                                                setSelectedStudentIds,
+                                                `${st.first_name || ''} ${st.last_name || ''}`.trim() || 'student',
+                                            )}
                                             <td>
                                                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                                                     <UserClickableName
@@ -463,6 +727,7 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                     ))}
                                 </tbody>
                             </table>
+                            </>
                         )}
                         <div style={{ padding: '1rem' }}>
                             <Pagination
@@ -483,9 +748,36 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                 No pending journal entries to review.
                             </div>
                         ) : (
+                            <>
+                            {renderBulkBar(
+                                selectedJournalIds.length,
+                                () => setSelectedJournalIds([]),
+                                <>
+                                    <button
+                                        className="approval-action-btn approval-btn-approve"
+                                        onClick={() => handleBulkJournals('approved')}
+                                        disabled={busy}
+                                    >
+                                        Approve Selected
+                                    </button>
+                                    <button
+                                        className="approval-action-btn approval-btn-reject"
+                                        onClick={() => handleBulkJournals('rejected')}
+                                        disabled={busy}
+                                    >
+                                        Reject Selected
+                                    </button>
+                                </>
+                            )}
                             <table className="admin-table">
                                 <thead>
                                     <tr>
+                                        {renderSelectAllCell(
+                                            paginatedJournals.map(j => j.id),
+                                            selectedJournalIds,
+                                            setSelectedJournalIds,
+                                            'journal entry',
+                                        )}
                                         <th>Student</th>
                                         <th>Entry Date</th>
                                         <th>Tasks & Key Learnings</th>
@@ -496,6 +788,12 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                 <tbody>
                                     {paginatedJournals.map(j => (
                                         <tr key={j.id}>
+                                            {renderSelectCell(
+                                                j.id,
+                                                selectedJournalIds,
+                                                setSelectedJournalIds,
+                                                `journal entry for ${j.entry_date}`,
+                                            )}
                                             <td>
                                                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                                                     {j.profiles?.first_name} {j.profiles?.last_name}
@@ -539,6 +837,7 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                     ))}
                                 </tbody>
                             </table>
+                            </>
                         )}
                         <div style={{ padding: '1rem' }}>
                             <Pagination
@@ -559,9 +858,36 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                 No pending documents to review.
                             </div>
                         ) : (
+                            <>
+                            {renderBulkBar(
+                                selectedDocumentIds.length,
+                                () => setSelectedDocumentIds([]),
+                                <>
+                                    <button
+                                        className="approval-action-btn approval-btn-approve"
+                                        onClick={() => handleBulkDocuments('approved')}
+                                        disabled={busy}
+                                    >
+                                        Approve Selected
+                                    </button>
+                                    <button
+                                        className="approval-action-btn approval-btn-reject"
+                                        onClick={() => handleBulkDocuments('rejected')}
+                                        disabled={busy}
+                                    >
+                                        Reject Selected
+                                    </button>
+                                </>
+                            )}
                             <table className="admin-table">
                                 <thead>
                                     <tr>
+                                        {renderSelectAllCell(
+                                            paginatedDocuments.map(d => d.id),
+                                            selectedDocumentIds,
+                                            setSelectedDocumentIds,
+                                            'document',
+                                        )}
                                         <th>Student</th>
                                         <th>Document Type</th>
                                         <th>File Name</th>
@@ -572,6 +898,12 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                 <tbody>
                                     {paginatedDocuments.map(d => (
                                         <tr key={d.id}>
+                                            {renderSelectCell(
+                                                d.id,
+                                                selectedDocumentIds,
+                                                setSelectedDocumentIds,
+                                                `${d.doc_type || d.type || 'requirement'} from ${d.profiles?.first_name || 'student'}`,
+                                            )}
                                             <td>
                                                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                                                     {d.profiles?.first_name} {d.profiles?.last_name}
@@ -620,6 +952,7 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
                                     ))}
                                 </tbody>
                             </table>
+                            </>
                         )}
                         <div style={{ padding: '1rem' }}>
                             <Pagination
@@ -733,18 +1066,21 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
             </div>
 
             {/* ══ MODAL: STUDENT ACCOUNT APPROVAL ACTION ══ */}
-            {showStudentActionModal && selectedStudent && (() => {
+            {showStudentActionModal && (selectedStudent || bulkStudentAction) && (() => {
                 const copy = STUDENT_ACTION_COPY[actionType];
-                const isSubmitting = actionLoading !== null;
-                const initials = `${selectedStudent.first_name?.[0] || ''}${selectedStudent.last_name?.[0] || ''}`.toUpperCase() || '—';
+                const isSubmitting = actionLoading !== null || bulkProgress !== null;
+                const bulkSelection = bulkStudentAction
+                    ? pendingStudents.filter(s => selectedStudentIds.includes(s.auth_user_id))
+                    : [];
+                const initials = `${selectedStudent?.first_name?.[0] || ''}${selectedStudent?.last_name?.[0] || ''}`.toUpperCase() || '—';
                 // `profiles.section` may still hold the legacy bare letter ("C"), so show
                 // the full section name the rest of the system uses ("DIT-1C"). Falls back
                 // to the stored value when course/year level are missing.
-                const sectionLabel = canonicalSectionName(
+                const sectionLabel = selectedStudent ? canonicalSectionName(
                     selectedStudent.section,
                     selectedStudent.course,
                     selectedStudent.year_level,
-                );
+                ) : null;
 
                 return (
                     <div
@@ -778,27 +1114,50 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
 
                             <form onSubmit={handleConfirmStudentAction}>
                                 <div className="ad-dialog__body">
-                                    <span className="ad-dialog__group-label">Student Information</span>
-                                    <div className="ad-student-card">
-                                        <div className="ad-student-avatar" aria-hidden="true">{initials}</div>
-                                        <div className="ad-student-info">
-                                            <div className="ad-student-name">
-                                                {selectedStudent.first_name} {selectedStudent.last_name}
+                                    {bulkStudentAction ? (
+                                        <>
+                                            <span className="ad-dialog__group-label">
+                                                {bulkSelection.length} {plural(bulkSelection.length, 'Student', 'Students')} Selected
+                                            </span>
+                                            {/* Naming them is the last chance to notice a
+                                                row was ticked by accident. */}
+                                            <div className="ad-student-tags" style={{ marginBottom: '0.25rem' }}>
+                                                {bulkSelection.map(s => (
+                                                    <span className="ad-student-tag" key={s.auth_user_id}>
+                                                        {`${s.first_name || ''} ${s.last_name || ''}`.trim() || s.email}
+                                                    </span>
+                                                ))}
                                             </div>
-                                            <div className="ad-student-tags">
-                                                {sectionLabel && (
-                                                    <span className="ad-student-tag">Section {sectionLabel}</span>
-                                                )}
-                                                {selectedStudent.year_level && (
-                                                    <span className="ad-student-tag">{selectedStudent.year_level}</span>
-                                                )}
-                                                {selectedStudent.course && (
-                                                    <span className="ad-student-tag">{selectedStudent.course}</span>
-                                                )}
+                                            <p className="ad-dialog__hint">
+                                                The same {actionType === 'approve' ? 'remarks' : 'message'} is sent to every
+                                                student listed above.
+                                            </p>
+                                        </>
+                                    ) : selectedStudent && (
+                                        <>
+                                            <span className="ad-dialog__group-label">Student Information</span>
+                                            <div className="ad-student-card">
+                                                <div className="ad-student-avatar" aria-hidden="true">{initials}</div>
+                                                <div className="ad-student-info">
+                                                    <div className="ad-student-name">
+                                                        {selectedStudent.first_name} {selectedStudent.last_name}
+                                                    </div>
+                                                    <div className="ad-student-tags">
+                                                        {sectionLabel && (
+                                                            <span className="ad-student-tag">Section {sectionLabel}</span>
+                                                        )}
+                                                        {selectedStudent.year_level && (
+                                                            <span className="ad-student-tag">{selectedStudent.year_level}</span>
+                                                        )}
+                                                        {selectedStudent.course && (
+                                                            <span className="ad-student-tag">{selectedStudent.course}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="ad-student-email">{selectedStudent.email}</div>
+                                                </div>
                                             </div>
-                                            <div className="ad-student-email">{selectedStudent.email}</div>
-                                        </div>
-                                    </div>
+                                        </>
+                                    )}
 
                                     <div className="ad-dialog__field">
                                         <label className="ad-dialog__label" htmlFor="ad-dialog-remarks">

@@ -1144,12 +1144,18 @@
     color: var(--text-muted);
 }
 
+/*
+ * The square icon button must zero its padding: the global `button` rule in
+ * index.css pads every button 1.2em horizontally, which inside this 30px
+ * border-box leaves no content width at all and squeezes the icon to nothing.
+ */
 .gs-icon-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 30px;
     height: 30px;
+    padding: 0;
     border: 1px solid var(--border);
     border-radius: var(--gs-radius);
     background: transparent;

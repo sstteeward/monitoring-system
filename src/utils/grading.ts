@@ -63,7 +63,7 @@ export const STATUS_ORDER: GradingSheetStatus[] = ['draft', 'for_review', 'verif
 
 export const STATUS_DESCRIPTIONS: Record<GradingSheetStatus, string> = {
     draft: 'Grades can be entered and edited.',
-    for_review: 'Submitted to the Coordinator. Grades are locked.',
+    for_review: 'Submitted to the Coordinator. Grades are locked until you withdraw it or the Coordinator returns it.',
     verified: 'Reviewed and verified by the Coordinator.',
     finalized: 'Closed academic record. Read-only for everyone.',
 };
@@ -72,6 +72,9 @@ export const STATUS_DESCRIPTIONS: Record<GradingSheetStatus, string> = {
 export const canEditGrades = (status: GradingSheetStatus): boolean => status === 'draft';
 
 export const canSubmit = (status: GradingSheetStatus): boolean => status === 'draft';
+
+/** The adviser can pull their own sheet back, but only before the Coordinator acts. */
+export const canWithdraw = (status: GradingSheetStatus): boolean => status === 'for_review';
 
 export const canVerify = (status: GradingSheetStatus): boolean => status === 'for_review';
 
@@ -239,6 +242,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
     grade_entered: 'Grade entered',
     grade_changed: 'Grade changed',
     submit: 'Submitted for verification',
+    withdraw: 'Withdrawn by the adviser',
     verify: 'Verified by the Coordinator',
     return: 'Returned for correction',
     finalize: 'Finalized',

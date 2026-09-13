@@ -190,7 +190,7 @@ const CompanyEvaluationView: React.FC = () => {
                         Student Evaluations
                     </h2>
                     <p className="evx-sub">
-                        Rate each assigned student against the official SIL/OJT form. Submitting notifies the
+                        Rate each assigned student against the official SIL form. Submitting notifies the
                         student, their adviser and the coordinator.
                     </p>
                 </div>

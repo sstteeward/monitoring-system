@@ -1,5 +1,5 @@
 /**
- * The SIL/OJT evaluation, as a form rather than a PDF.
+ * The SIL evaluation, as a form rather than a PDF.
  *
  * The coordinator uploads the official document once per company; the company
  * then answers it inside the portal. These are the rules both halves of that

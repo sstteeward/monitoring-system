@@ -94,7 +94,7 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                     <div>
                         <div className="admin-table-title">Student Monitoring</div>
                         <div className="view-subtitle">
-                            Track OJT progress, attendance, and requirements for your assigned sections.
+                            Track SIL progress, attendance, and requirements for your assigned sections.
                         </div>
                     </div>
 
@@ -129,7 +129,7 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                 <div className="ad-filter-bar">
                     {[
                         { id: 'all', label: 'All Students' },
-                        { id: 'assigned', label: 'On SIL / OJT' },
+                        { id: 'assigned', label: 'On SIL' },
                         { id: 'not-deployed', label: 'Not Deployed' },
                         { id: 'at-risk', label: 'At Risk / Behind' },
                         { id: 'pending', label: 'Pending Approval' },
@@ -162,7 +162,7 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                                 <tr>
                                     <th>Student</th>
                                     <th>Section</th>
-                                    <th>OJT Company</th>
+                                    <th>SIL Company</th>
                                     <th>Hours Rendered</th>
                                     <th>Attendance</th>
                                     <th>Journals</th>
@@ -296,7 +296,7 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                                     <div className="monitoring-stat-val" style={{ color: selectedStudentDetail.progress_percentage >= 100 ? '#10b981' : 'var(--text-primary)' }}>
                                         {selectedStudentDetail.progress_percentage}%
                                     </div>
-                                    <div className="monitoring-stat-lbl">OJT Progress</div>
+                                    <div className="monitoring-stat-lbl">SIL Progress</div>
                                 </div>
                                 <div className="monitoring-stat-box">
                                     <div className="monitoring-stat-val" style={{ color: selectedStudentDetail.absences && selectedStudentDetail.absences >= 3 ? '#ef4444' : '#10b981' }}>
@@ -319,7 +319,7 @@ const AdviserStudentsView: React.FC<AdviserStudentsViewProps> = ({
                                     <div>
                                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedStudentDetail.company.name}</div>
                                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                                            Department / Position: {selectedStudentDetail.department || 'OJT Intern'}
+                                            Department / Position: {selectedStudentDetail.department || 'SIL Intern'}
                                         </div>
                                     </div>
                                 ) : (

@@ -148,7 +148,6 @@ const CoordinatorAdvisersView: React.FC = () => {
     // Modal / drawer states
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
-    const [showSectionModal, setShowSectionModal] = useState(false);
     const [viewProfileId, setViewProfileId] = useState<string | null>(null);
     const [drawer, setDrawer] = useState<DrawerState>(null);
     const [rosterStudents, setRosterStudents] = useState<Profile[]>([]);
@@ -173,10 +172,6 @@ const CoordinatorAdvisersView: React.FC = () => {
     const [assignSectionIds, setAssignSectionIds] = useState<string[]>([]);
     const [assignAdviserId, setAssignAdviserId] = useState('');
     const [assignSearch, setAssignSearch] = useState('');
-
-    // Create section form state
-    const [newSectionName, setNewSectionName] = useState('');
-    const [newSectionCourse, setNewSectionCourse] = useState<'DHT' | 'DIT'>('DHT');
 
     const isNarrow = useMediaQuery('(max-width: 780px)');
     const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -482,25 +477,6 @@ const CoordinatorAdvisersView: React.FC = () => {
         }
     };
 
-    const handleCreateSection = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newSectionName.trim()) return;
-
-        setSubmitting(true);
-        setError(null);
-        try {
-            await coordinatorService.createSection(newSectionName, newSectionCourse);
-            showSuccess(`Section ${newSectionName.toUpperCase()} created successfully.`);
-            setShowSectionModal(false);
-            setNewSectionName('');
-            await loadData();
-        } catch (err: any) {
-            setError(err.message || 'Failed to create section.');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
     /**
      * Loads the students behind a set of section names. A student's stored
      * section may still be a legacy letter, so names are compared canonically.
@@ -610,7 +586,7 @@ const CoordinatorAdvisersView: React.FC = () => {
     const unassignedSections = useMemo(() => sections.filter(s => !s.adviser_id), [sections]);
 
     // ── Overlay behaviour: Escape to close, scroll lock while open ───────────
-    const anyOverlayOpen = showCreateModal || showAssignModal || showSectionModal || !!drawer;
+    const anyOverlayOpen = showCreateModal || showAssignModal || !!drawer;
 
     useEffect(() => {
         if (!anyOverlayOpen && !openMenuId) return;
@@ -619,12 +595,11 @@ const CoordinatorAdvisersView: React.FC = () => {
             if (openMenuId) { setOpenMenuId(null); return; }
             if (showAssignModal) { setShowAssignModal(false); return; }
             if (showCreateModal) { setShowCreateModal(false); return; }
-            if (showSectionModal) { setShowSectionModal(false); return; }
             if (drawer) setDrawer(null);
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [anyOverlayOpen, openMenuId, showAssignModal, showCreateModal, showSectionModal, drawer]);
+    }, [anyOverlayOpen, openMenuId, showAssignModal, showCreateModal, drawer]);
 
     useEffect(() => {
         if (!anyOverlayOpen) return;
@@ -806,13 +781,6 @@ const CoordinatorAdvisersView: React.FC = () => {
                     </p>
                 </div>
                 <div className="cam-header-actions">
-                    <button
-                        type="button"
-                        className="cam-btn cam-btn-ghost"
-                        onClick={() => { setError(null); setShowSectionModal(true); }}
-                    >
-                        {Icon.plus()} New Section
-                    </button>
                     <button
                         type="button"
                         className="cam-btn cam-btn-primary"
@@ -1258,18 +1226,14 @@ const CoordinatorAdvisersView: React.FC = () => {
                                 </div>
                                 <p className="cam-empty-text">
                                     {sections.length === 0
-                                        ? 'Create a section so students can be enrolled and an adviser assigned to supervise them.'
+                                        ? 'Sections are created by Section Advisers. Once an adviser adds one it appears here, ready for assignment.'
                                         : 'Try a different search term, or reset the filters to see every section.'}
                                 </p>
-                                <div className="cam-empty-actions">
-                                    {sections.length === 0 ? (
-                                        <button type="button" className="cam-btn cam-btn-primary" onClick={() => setShowSectionModal(true)}>
-                                            {Icon.plus()} New Section
-                                        </button>
-                                    ) : hasSectionFilters && (
+                                {sections.length > 0 && hasSectionFilters && (
+                                    <div className="cam-empty-actions">
                                         <button type="button" className="cam-btn" onClick={clearFilters}>Reset filters</button>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         ) : isNarrow ? (
                             /* Mobile: cards */
@@ -1783,80 +1747,6 @@ const CoordinatorAdvisersView: React.FC = () => {
                                             : assignMode === 'bulk'
                                                 ? 'Assign Sections'
                                                 : activeSection?.adviser_id ? 'Confirm Reassignment' : 'Assign Adviser'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* ══ DIALOG: CREATE SECTION ══ */}
-            {showSectionModal && (
-                <div className="cam-scrim" onMouseDown={() => setShowSectionModal(false)}>
-                    <div
-                        className="cam-dialog"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="cam-section-title"
-                        tabIndex={-1}
-                        ref={dialogRef}
-                        onMouseDown={e => e.stopPropagation()}
-                        style={{ maxWidth: 460 }}
-                    >
-                        <div className="cam-dialog-head">
-                            <div>
-                                <h2 className="cam-dialog-title" id="cam-section-title">Create New Section</h2>
-                                <p className="cam-dialog-sub">Use the COURSE-YEARLETTER format so year levels resolve correctly.</p>
-                            </div>
-                            <button type="button" className="cam-dialog-close" onClick={() => setShowSectionModal(false)} aria-label="Close dialog">
-                                {Icon.close()}
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCreateSection} className="cam-dialog-form">
-                            <div className="cam-dialog-body">
-                                <div className="cam-form-group">
-                                    <label className="cam-field-label" htmlFor="cam-section-name">Section Name *</label>
-                                    <input
-                                        id="cam-section-name"
-                                        className="cam-input"
-                                        type="text"
-                                        required
-                                        placeholder="e.g. DHT-1D or DIT-2C"
-                                        value={newSectionName}
-                                        onChange={e => setNewSectionName(e.target.value.toUpperCase())}
-                                    />
-                                    <p className="cam-hint">
-                                        {newSectionName && parseSectionName(newSectionName)
-                                            ? `Reads as ${yearLabelOf(newSectionName)}, section ${parseSectionName(newSectionName)!.letter}.`
-                                            : 'Example: DIT-2C is a 2nd Year Information Technology section.'}
-                                    </p>
-                                </div>
-
-                                <div className="cam-form-group" style={{ marginBottom: 0 }}>
-                                    <label className="cam-field-label" htmlFor="cam-section-course">Course *</label>
-                                    <select
-                                        id="cam-section-course"
-                                        className="cam-input"
-                                        value={newSectionCourse}
-                                        onChange={e => setNewSectionCourse(e.target.value as 'DHT' | 'DIT')}
-                                    >
-                                        <option value="DHT">DHT — Diploma in Hospitality Technology</option>
-                                        <option value="DIT">DIT — Diploma in Information Technology</option>
-                                    </select>
-                                </div>
-
-                                {error && (
-                                    <div className="cam-note" data-tone="danger" role="alert" style={{ marginTop: '1rem' }}>
-                                        {Icon.alert()} <span>{error}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="cam-dialog-foot">
-                                <button type="button" className="cam-btn" onClick={() => setShowSectionModal(false)}>Cancel</button>
-                                <button type="submit" className="cam-btn cam-btn-primary" disabled={submitting}>
-                                    {submitting ? 'Creating…' : 'Create Section'}
                                 </button>
                             </div>
                         </form>

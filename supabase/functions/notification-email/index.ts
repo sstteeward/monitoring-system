@@ -26,7 +26,7 @@ interface DatabaseWebhookPayload {
   record: NotificationRecord;
 }
 
-const APP_NAME = 'Asian College SIL/OJT Monitoring System';
+const APP_NAME = 'Asian College SIL Monitoring System';
 
 function getProvidedApiKey(request: Request) {
   const authorization = request.headers.get('authorization');
@@ -132,7 +132,7 @@ function renderEmail(options: {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
         <tr><td style="background:#047857;padding:20px 28px;">
           <div style="color:#ffffff;font-size:15px;font-weight:700;letter-spacing:.2px;">Asian College</div>
-          <div style="color:#a7f3d0;font-size:12px;margin-top:2px;">SIL/OJT Monitoring System</div>
+          <div style="color:#a7f3d0;font-size:12px;margin-top:2px;">SIL Monitoring System</div>
         </td></tr>
         <tr><td style="padding:28px;">
           <div style="display:inline-block;background:#ecfdf5;color:#047857;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:5px 10px;border-radius:999px;">${category}</div>

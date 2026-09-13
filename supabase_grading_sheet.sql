@@ -37,6 +37,7 @@
 --   20260912033326  grade_audit_logs_immutability_scope
 --   20260912033454  grading_functions_harden_search_path_and_anon
 --   20260912040901  set_student_number_rpc
+--   20260912150840  grading_sheet_adviser_withdraw
 -- ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -912,6 +913,89 @@ BEGIN
 END;
 $$;
 
+/**
+ * Adviser: pull a submitted sheet back to draft.
+ *
+ * The counterpart to submit_grading_sheet, and the reason an adviser no longer
+ * needs the Coordinator to "return" a sheet over a typo. Allowed only while the
+ * Coordinator has not acted: once the sheet is verified or finalized, the
+ * existing return/correction rules are the only way back.
+ */
+CREATE OR REPLACE FUNCTION public.withdraw_grading_sheet(
+    p_sheet_id uuid,
+    p_reason   text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_sheet   public.grading_sheets;
+    v_section text;
+    v_term    text;
+    v_adviser text;
+    v_dept    uuid;
+    v_reason  text := nullif(btrim(coalesce(p_reason, '')), '');
+BEGIN
+    SELECT * INTO v_sheet FROM public.grading_sheets WHERE id = p_sheet_id;
+    IF v_sheet.id IS NULL THEN
+        RAISE EXCEPTION 'Grading sheet not found.';
+    END IF;
+    IF v_sheet.adviser_id <> auth.uid() OR NOT public.is_adviser() THEN
+        RAISE EXCEPTION 'Only the adviser who owns this grading sheet may withdraw it.';
+    END IF;
+    IF v_sheet.status = 'draft' THEN
+        RAISE EXCEPTION 'This grading sheet is already a draft.';
+    END IF;
+    IF v_sheet.status <> 'for_review' THEN
+        RAISE EXCEPTION 'This grading sheet has already been % by the Coordinator and can no longer be withdrawn. Ask the Coordinator to return it for correction.',
+            replace(v_sheet.status, '_', ' ');
+    END IF;
+
+    -- return_reason / returned_at / returned_by are deliberately left alone: a
+    -- withdrawal is not a return, and submit_grading_sheet clears them anyway.
+    UPDATE public.grading_sheets
+       SET status = 'draft', submitted_at = NULL, updated_at = now()
+     WHERE id = p_sheet_id;
+
+    INSERT INTO public.grade_audit_logs (grading_sheet_id, user_id, action, old_status, new_status, reason)
+    VALUES (p_sheet_id, auth.uid(), 'withdraw', 'for_review', 'draft', v_reason);
+
+    SELECT s.name, s.department_id,
+           sy.school_year || ' · ' || initcap(sy.semester) || ' Semester'
+      INTO v_section, v_dept, v_term
+      FROM public.grading_sheets gs
+      JOIN public.sections s      ON s.id = gs.section_id
+      JOIN public.school_years sy ON sy.id = gs.school_year_id
+     WHERE gs.id = p_sheet_id;
+
+    SELECT btrim(coalesce(first_name, '') || ' ' || coalesce(last_name, ''))
+      INTO v_adviser FROM public.profiles WHERE auth_user_id = auth.uid();
+
+    -- The row leaves the coordinator's queue without explanation otherwise.
+    INSERT INTO public.user_notifications (
+        user_id, title, message, type, notification_type,
+        related_type, related_id, created_by, action_path, action_label
+    )
+    SELECT
+        p.auth_user_id,
+        'Grading Sheet Withdrawn by the Adviser',
+        coalesce(nullif(v_adviser, ''), 'A Section Adviser')
+            || ' withdrew the Official Grading Sheet for ' || v_section
+            || ' (' || v_term || ') for correction.'
+            || CASE WHEN v_reason IS NOT NULL THEN ' Reason: ' || v_reason ELSE '' END,
+        'info', 'assignment', 'grading_sheet', p_sheet_id, auth.uid(),
+        '/coordinator/grading-sheets', 'Open Grading Sheets'
+      FROM public.profiles p
+     WHERE p.account_type = 'coordinator'
+       AND p.auth_user_id IS NOT NULL
+       AND (p.department_id IS NULL OR v_dept IS NULL OR p.department_id = v_dept);
+
+    RETURN jsonb_build_object('status', 'draft');
+END;
+$$;
+
 /** Coordinator: the sheet is correct. */
 CREATE OR REPLACE FUNCTION public.verify_grading_sheet(p_sheet_id uuid)
 RETURNS jsonb
@@ -1222,6 +1306,7 @@ REVOKE EXECUTE ON FUNCTION public.get_coordinator_grading_sheets(text)          
 REVOKE EXECUTE ON FUNCTION public.get_grading_sheet_history(uuid, uuid)                   FROM public, anon;
 REVOKE EXECUTE ON FUNCTION public.save_grading_sheet_grades(uuid, jsonb, text)            FROM public, anon;
 REVOKE EXECUTE ON FUNCTION public.submit_grading_sheet(uuid)                              FROM public, anon;
+REVOKE EXECUTE ON FUNCTION public.withdraw_grading_sheet(uuid, text)                      FROM public, anon;
 REVOKE EXECUTE ON FUNCTION public.verify_grading_sheet(uuid)                              FROM public, anon;
 REVOKE EXECUTE ON FUNCTION public.return_grading_sheet(uuid, text)                        FROM public, anon;
 REVOKE EXECUTE ON FUNCTION public.finalize_grading_sheet(uuid)                            FROM public, anon;
@@ -1241,6 +1326,7 @@ GRANT EXECUTE ON FUNCTION public.get_coordinator_grading_sheets(text)           
 GRANT EXECUTE ON FUNCTION public.get_grading_sheet_history(uuid, uuid)                     TO authenticated;
 GRANT EXECUTE ON FUNCTION public.save_grading_sheet_grades(uuid, jsonb, text)              TO authenticated;
 GRANT EXECUTE ON FUNCTION public.submit_grading_sheet(uuid)                                TO authenticated;
+GRANT EXECUTE ON FUNCTION public.withdraw_grading_sheet(uuid, text)                        TO authenticated;
 GRANT EXECUTE ON FUNCTION public.verify_grading_sheet(uuid)                                TO authenticated;
 GRANT EXECUTE ON FUNCTION public.return_grading_sheet(uuid, text)                          TO authenticated;
 GRANT EXECUTE ON FUNCTION public.finalize_grading_sheet(uuid)                              TO authenticated;

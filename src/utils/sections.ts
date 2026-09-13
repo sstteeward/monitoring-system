@@ -112,6 +112,44 @@ export function studentMatchesSection(
     return canonicalSectionName(student.section, student.course, student.year_level) === target;
 }
 
+/**
+ * Is this a section name an adviser may create for `courseCode`?
+ *
+ * The mirror of the guard in `public.adviser_create_section`: COURSE-YEARLETTER,
+ * year 1–4, and the prefix must be the adviser's own course. Returns null when
+ * the name is acceptable, or the message to show. Keep in step with the SQL —
+ * the server refuses anything this misses, but with a blunter message.
+ *
+ * The letter is whatever `parseSectionName` accepts, A–Z, rather than the A–J of
+ * SECTION_LETTERS: those ten are what the dropdowns offer, not the limit of what
+ * a cohort may be called. A letter past J still parses, still canonicalises and
+ * is still offered to students by buildSectionOptions, so nothing downstream
+ * needs to know it is unusual.
+ */
+export function validateNewSectionName(name: string, courseCode: string): string | null {
+    const code = courseCodeFromValue(courseCode);
+    if (!code) {
+        return 'Your adviser profile has no course assigned. Ask the SIL Coordinator to set your adviser type before adding a section.';
+    }
+
+    const parsed = parseSectionName(name);
+    if (!parsed) {
+        return `Use the COURSE-YEARLETTER format, for example ${code}-1A.`;
+    }
+
+    if (parsed.courseCode !== code) {
+        return `You may only create ${code} sections. ${parsed.courseCode}-${parsed.year}${parsed.letter} belongs to another course.`;
+    }
+
+    if (!SECTION_YEARS.includes(parsed.year as typeof SECTION_YEARS[number])) {
+        return `Year ${parsed.year} is not a valid year level. Choose a year from 1 to 4.`;
+    }
+
+    // The letter needs no check of its own: parseSectionName only matches A–Z.
+
+    return null;
+}
+
 const optionFor = (name: string, courseCode: string): SectionOption => ({
     value: name,
     label: courseCode ? `${name} (${courseCode})` : name,

@@ -12,6 +12,7 @@ import {
     STATUS_LABELS,
     STATUS_ORDER,
     canEditGrades,
+    canWithdraw,
     formatGrade,
     formatTerm,
     gradingProgress,
@@ -89,6 +90,7 @@ const AdviserGradingView: React.FC = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [historyFor, setHistoryFor] = useState<{ itemId: string | null; subject: string } | null>(null);
     const [confirmSubmit, setConfirmSubmit] = useState(false);
+    const [confirmWithdraw, setConfirmWithdraw] = useState(false);
     const [showStudentNumbers, setShowStudentNumbers] = useState(false);
 
     /** Guards against a slow response for a sheet the adviser has navigated away from. */
@@ -193,6 +195,7 @@ const AdviserGradingView: React.FC = () => {
     // ── Editing ────────────────────────────────────────────────────────────
 
     const editable = sheet ? canEditGrades(sheet.status) : false;
+    const withdrawable = sheet ? canWithdraw(sheet.status) : false;
 
     const scale = useMemo(
         () => sheet
@@ -269,6 +272,32 @@ const AdviserGradingView: React.FC = () => {
         } catch (err) {
             console.error('Failed to submit the grading sheet:', err);
             pushToast('error', err instanceof Error ? err.message : 'The grading sheet could not be submitted.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    /**
+     * Take the sheet back before the Coordinator has acted on it.
+     *
+     * The counterpart to submitting: a grade sent in by mistake no longer needs
+     * the Coordinator to reject it first.
+     */
+    const withdrawSheet = async () => {
+        if (!sheet) return;
+        setConfirmWithdraw(false);
+        setSaving(true);
+        try {
+            await gradingService.withdraw(sheet.id);
+            const fresh = await gradingService.getSheet(sheet.id);
+            setSheet(fresh);
+            setDrafts({});
+            pushToast('ok', 'Withdrawn. The sheet is back in draft and the grades can be edited again.');
+        } catch (err) {
+            console.error('Failed to withdraw the grading sheet:', err);
+            pushToast('error', err instanceof Error ? err.message : 'The grading sheet could not be withdrawn.');
+            // The status may have moved under us — show the truth, not the stale sheet.
+            try { setSheet(await gradingService.getSheet(sheet.id)); } catch { /* keep the current view */ }
         } finally {
             setSaving(false);
         }
@@ -363,7 +392,7 @@ const AdviserGradingView: React.FC = () => {
                         <h3>No Sections Assigned</h3>
                         <p>
                             A grading sheet is created for a section you handle. You currently have no
-                            sections assigned — please contact the SIL/OJT Coordinator.
+                            sections assigned — please contact the SIL Coordinator.
                         </p>
                     </div>
                 </div>
@@ -556,6 +585,16 @@ const AdviserGradingView: React.FC = () => {
                             }
                         >
                             Submit for Verification
+                        </button>
+                    )}
+                    {withdrawable && (
+                        <button
+                            className="cd-btn cd-btn-outline gs-btn-sm"
+                            onClick={() => setConfirmWithdraw(true)}
+                            disabled={saving}
+                            title="Pull this sheet back to draft so the grades can be corrected."
+                        >
+                            Withdraw Submission
                         </button>
                     )}
                 </div>
@@ -814,6 +853,38 @@ const AdviserGradingView: React.FC = () => {
                             <button className="cd-btn cd-btn-outline" onClick={() => setConfirmSubmit(false)}>Cancel</button>
                             <button className="cd-btn cd-btn-primary" onClick={submitSheet} disabled={saving}>
                                 {saving ? 'Submitting…' : 'Submit for Verification'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {confirmWithdraw && (
+                <div className="gs-modal-backdrop" role="dialog" aria-modal="true">
+                    <div className="gs-modal">
+                        <div className="gs-modal-head">
+                            <div className="gs-modal-title">Withdraw this Grading Sheet?</div>
+                        </div>
+                        <div className="gs-modal-body">
+                            <dl className="gs-confirm-list">
+                                <div><dt>Section</dt><dd>{sheet.section.name}</dd></div>
+                                <div><dt>School Year</dt><dd>{sheet.school_year.school_year}</dd></div>
+                                <div>
+                                    <dt>Semester</dt>
+                                    <dd>{sheet.school_year.semester.charAt(0)}{sheet.school_year.semester.slice(1).toLowerCase()}</dd>
+                                </div>
+                                <div><dt>Students</dt><dd>{sheet.items.length}</dd></div>
+                            </dl>
+                            <p className="gs-modal-warning">
+                                The sheet returns to draft and leaves the Coordinator's review queue.
+                                They will be notified. You will need to submit it again once the
+                                grades are correct.
+                            </p>
+                        </div>
+                        <div className="gs-modal-foot">
+                            <button className="cd-btn cd-btn-outline" onClick={() => setConfirmWithdraw(false)}>Cancel</button>
+                            <button className="cd-btn cd-btn-primary" onClick={withdrawSheet} disabled={saving}>
+                                {saving ? 'Withdrawing…' : 'Withdraw Submission'}
                             </button>
                         </div>
                     </div>

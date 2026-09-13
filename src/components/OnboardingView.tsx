@@ -50,7 +50,7 @@ const SUBTITLES = [
     'Check everything over before we finish your profile.',
 ];
 
-const AGE_MESSAGE = '⚠️ You must be at least 18 years old to participate in the SIL/OJT program.';
+const AGE_MESSAGE = '⚠️ You must be at least 18 years old to participate in the SIL program.';
 
 interface Company {
     id: string;
@@ -618,7 +618,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                 { label: 'Full Name', value: formatFullName(name), full: true },
                 { label: 'Birthday', value: formatDisplayDate(birthday) },
                 { label: 'Contact Number', value: contactNumber },
-                { label: 'Required SIL/OJT Hours', value: `${requiredHours} hours` },
+                { label: 'Required SIL Hours', value: `${requiredHours} hours` },
             ],
         },
         {

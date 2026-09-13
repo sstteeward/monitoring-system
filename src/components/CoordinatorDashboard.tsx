@@ -88,7 +88,7 @@ const CoordinatorDashboard: React.FC = () => {
     useEffect(() => {
         const titles: Record<string, string> = {
             overview: 'Overview',
-            companies: 'OJT Companies',
+            companies: 'SIL Companies',
             'company-accounts': 'Company Account Requests',
             departments: 'My Department',
             advisers: 'Adviser Management',
@@ -215,7 +215,7 @@ const CoordinatorDashboard: React.FC = () => {
 
     const viewTitles: Record<View, string> = {
         overview: 'Coordinator Overview',
-        companies: 'OJT Companies',
+        companies: 'SIL Companies',
         'company-accounts': 'Company Account Requests',
         departments: 'My Department',
         advisers: 'Adviser Management',

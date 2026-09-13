@@ -44,7 +44,7 @@ type Tab = 'overview' | 'attendance' | 'ojt' | 'journals' | 'companies' | 'alert
 const TABS: { id: Tab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'attendance', label: 'Attendance' },
-    { id: 'ojt', label: 'OJT Progress' },
+    { id: 'ojt', label: 'SIL Progress' },
     { id: 'journals', label: 'Journals' },
     { id: 'companies', label: 'Companies' },
     { id: 'alerts', label: 'Alerts' },
@@ -322,7 +322,7 @@ const AdviserReportView: React.FC<Props> = ({ onOpenApprovals }) => {
             <div className="fade-in adr-page">
                 <div className="adr-toolbar">
                     <div className="adr-toolbar-id">
-                        <h1>Daily SIL/OJT Monitoring Report</h1>
+                        <h1>Daily SIL Monitoring Report</h1>
                         <p className="adr-toolbar-meta">{formatReportDate(date)}</p>
                     </div>
                     <div className="adr-toolbar-actions">
@@ -345,7 +345,7 @@ const AdviserReportView: React.FC<Props> = ({ onOpenApprovals }) => {
                         <h3>{date === today ? 'Today\'s report isn\'t ready yet.' : 'No report for this date'}</h3>
                         <p>
                             {date === today
-                                ? 'Generate it to check attendance, clock-in and clock-out records, OJT progress, journals and companies across every section assigned to you — in one pass.'
+                                ? 'Generate it to check attendance, clock-in and clock-out records, SIL progress, journals and companies across every section assigned to you — in one pass.'
                                 : 'Nothing was generated for this date. You can build it now from the data the system holds.'}
                         </p>
                         {error && <p className="adr-inline-error"><IconAlert size={14} /> {error}</p>}
@@ -388,7 +388,7 @@ const AdviserReportView: React.FC<Props> = ({ onOpenApprovals }) => {
             {/* ── Report identity + actions, on one compact toolbar row ── */}
             <div className="adr-toolbar">
                 <div className="adr-toolbar-id">
-                    <h1>Daily SIL/OJT Monitoring Report</h1>
+                    <h1>Daily SIL Monitoring Report</h1>
                     <p className="adr-toolbar-meta">
                         <span className="adr-meta-strong">{payload!.adviser.name || 'Section Adviser'}</span>
                         <span>{formatReportDate(payload!.report_date)}</span>
@@ -588,17 +588,17 @@ const AdviserReportView: React.FC<Props> = ({ onOpenApprovals }) => {
                         </div>
                     </div>
 
-                    {/* Overall OJT status (section 14) */}
+                    {/* Overall SIL status (section 14) */}
                     <div className="ad-att-card">
                         <div className="adr-ojt-strip">
-                            <div className="adr-ojt-heading">Overall OJT Status</div>
+                            <div className="adr-ojt-heading">Overall SIL Status</div>
                             {(['on_track', 'completed', 'monitoring', 'behind', 'not_started'] as const).map(key => (
                                 <button
                                     type="button"
                                     className="adr-ojt-item"
                                     key={key}
                                     onClick={() => setTab('ojt')}
-                                    title={`Open OJT Progress — ${PROGRESS_LABELS[key]}`}
+                                    title={`Open SIL Progress — ${PROGRESS_LABELS[key]}`}
                                 >
                                     <span className="adr-ojt-dot" style={{ background: PROGRESS_COLORS[key] }} />
                                     <span className="adr-ojt-label">{PROGRESS_LABELS[key]}</span>
@@ -725,12 +725,12 @@ const AdviserReportView: React.FC<Props> = ({ onOpenApprovals }) => {
                 </div>
             )}
 
-            {/* ══ OJT PROGRESS ══ */}
+            {/* ══ SIL PROGRESS ══ */}
             {tab === 'ojt' && (
                 <>
                     <div className="ad-att-card">
                         <div className="adr-ojt-strip">
-                            <div className="adr-ojt-heading">OJT Progress</div>
+                            <div className="adr-ojt-heading">SIL Progress</div>
                             {(['on_track', 'completed', 'monitoring', 'behind', 'not_started'] as const).map(key => (
                                 <div className="adr-ojt-item" key={key}>
                                     <span className="adr-ojt-dot" style={{ background: PROGRESS_COLORS[key] }} />
@@ -742,7 +742,7 @@ const AdviserReportView: React.FC<Props> = ({ onOpenApprovals }) => {
                             ))}
                         </div>
                         <p className="adr-card-note">
-                            Expected hours are {payload!.settings.daily_limit_minutes / 60} per OJT working day from a
+                            Expected hours are {payload!.settings.daily_limit_minutes / 60} per SIL working day from a
                             student&apos;s first logged day through {formatReportDate(payload!.settings.expected_through)},
                             capped at their required hours. A day still in progress is never counted, so nobody is
                             marked behind for today.
@@ -978,7 +978,7 @@ const AdviserReportView: React.FC<Props> = ({ onOpenApprovals }) => {
                     >
                         <h3 id="adr-regen-view-title">Regenerate this report?</h3>
                         <p>
-                            This rebuilds {formatReportDate(date)} using the latest attendance, OJT, journal
+                            This rebuilds {formatReportDate(date)} using the latest attendance, SIL, journal
                             and company data. The version you are looking at now will be replaced.
                         </p>
                         <div className="adr-modal-actions">

@@ -391,6 +391,8 @@ const AdviserDashboard: React.FC = () => {
                     {currentView === 'sections' && (
                         <AdviserSectionsView
                             onSelectSection={(secName) => navigateTo('students', secName)}
+                            course={course as 'DHT' | 'DIT'}
+                            onActionComplete={refreshStats}
                         />
                     )}
                     {currentView === 'students' && (

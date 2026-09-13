@@ -548,7 +548,7 @@ const CompaniesView: React.FC = () => {
                                     <tr>
                                         <th>Name</th>
                                         <th>Email</th>
-                                        <th>Required OJT Hours</th>
+                                        <th>Required SIL Hours</th>
                                         <th>Absences</th>
                                         <th>Since</th>
                                     </tr>
@@ -606,7 +606,7 @@ const CompaniesView: React.FC = () => {
         <div className="view-container fade-in">
             <div className="view-header">
                 <div>
-                    <h2 className="view-title">OJT Companies</h2>
+                    <h2 className="view-title">SIL Companies</h2>
                     <p className="view-subtitle">Manage partner companies and view assigned interns</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -1088,7 +1088,7 @@ const CompaniesView: React.FC = () => {
                 <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.3 }}><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
                     <p style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>No Companies Yet</p>
-                    <p style={{ fontSize: '0.9rem' }}>Click "Add Company" to register your first OJT partner.</p>
+                    <p style={{ fontSize: '0.9rem' }}>Click "Add Company" to register your first SIL partner.</p>
                 </div>
             ) : (
                 <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>

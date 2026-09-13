@@ -248,7 +248,7 @@ export const evaluationService = {
         await createAuditLog({
             action: 'SUBMIT',
             module: 'Evaluations',
-            description: 'Submitted the SIL/OJT evaluation for a student',
+            description: 'Submitted the SIL evaluation for a student',
             targetType: 'evaluation',
             targetId: row?.id ?? evaluationId,
             newValues: { total_score: row?.total_score },

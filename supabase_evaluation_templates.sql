@@ -501,7 +501,7 @@ BEGIN
              THEN 'Student evaluations are ready'
              ELSE v_title || ' is now available' END,
         CASE WHEN p_document_type = 'evaluation'
-             THEN format('An evaluation is now available for your assigned SIL/OJT students at %s. %s student%s require%s evaluation.',
+             THEN format('An evaluation is now available for your assigned SIL students at %s. %s student%s require%s evaluation.',
                          v_company.name, v_students, CASE WHEN v_students = 1 THEN '' ELSE 's' END,
                          CASE WHEN v_students = 1 THEN 's' ELSE '' END)
              ELSE format('The SIL Coordinator published the official %s for %s. You can view it in your portal.',
@@ -522,8 +522,8 @@ BEGIN
         )
         SELECT
             s.auth_user_id,
-            'Your SIL/OJT evaluation is available',
-            format('Your company, %s, has been notified that your SIL/OJT evaluation is now available. They will complete it in the SIL/OJT Monitoring System.',
+            'Your SIL evaluation is available',
+            format('Your company, %s, has been notified that your SIL evaluation is now available. They will complete it in the SIL Monitoring System.',
                    v_company.name),
             'info', 'assignment',
             'evaluation_template', v_template.id, auth.uid(),
@@ -900,14 +900,14 @@ BEGIN
     SELECT * FROM (
         VALUES
         (v_evaluation.student_id,
-         'Your SIL/OJT evaluation is complete',
-         format('Your SIL/OJT evaluation has been completed by %s. You can now view the result from your SIL/OJT portal.',
+         'Your SIL evaluation is complete',
+         format('Your SIL evaluation has been completed by %s. You can now view the result from your SIL portal.',
                 COALESCE(v_company.name, 'your company')),
          'success', 'assignment', 'evaluation', v_evaluation.id, auth.uid(),
          '/student/performance', 'View my evaluation'),
         (v_adviser_id,
-         'SIL/OJT evaluation completed',
-         format('%s submitted the SIL/OJT evaluation for your assigned student %s. Overall score: %s%%.',
+         'SIL evaluation completed',
+         format('%s submitted the SIL evaluation for your assigned student %s. Overall score: %s%%.',
                 COALESCE(v_company.name, 'The company'),
                 COALESCE(NULLIF(btrim(concat_ws(' ', v_student.first_name, v_student.last_name)), ''), 'a student'),
                 COALESCE(v_evaluation.total_score::text, '-')),
@@ -923,8 +923,8 @@ BEGIN
     )
     SELECT
         p.auth_user_id,
-        'SIL/OJT evaluation submitted',
-        format('%s submitted the SIL/OJT evaluation for %s.',
+        'SIL evaluation submitted',
+        format('%s submitted the SIL evaluation for %s.',
                COALESCE(v_company.name, 'A company'),
                COALESCE(NULLIF(btrim(concat_ws(' ', v_student.first_name, v_student.last_name)), ''), 'a student')),
         'info', 'assignment', 'evaluation', v_evaluation.id, auth.uid(),

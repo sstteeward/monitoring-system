@@ -83,7 +83,7 @@ export const emailService = {
 
     if (emailJsServiceId && emailJsTemplateId && emailJsPublicKey) {
       const messageText = status === 'approved'
-        ? `Great news! Your request to add the company "${company_name}" has been approved. You can now access your dashboard and start logging your OJT hours.`
+        ? `Great news! Your request to add the company "${company_name}" has been approved. You can now access your dashboard and start logging your SIL hours.`
         : `Your request to add the company "${company_name}" was rejected by the coordinator. Please select an existing company or request a different one.`;
 
       const payload = {
@@ -133,7 +133,7 @@ export const emailService = {
       : `⚠️ Company Request Update: ${company_name}`;
 
     const body = status === 'approved'
-      ? `Hello ${student_name},\n\nYour request to add the company "${company_name}" has been approved by the coordinator! You can now log into your dashboard and begin recording your OJT hours.\n\nBest regards,\nSIL Monitoring Team`
+      ? `Hello ${student_name},\n\nYour request to add the company "${company_name}" has been approved by the coordinator! You can now log into your dashboard and begin recording your SIL hours.\n\nBest regards,\nSIL Monitoring Team`
       : `Hello ${student_name},\n\nYour request to add the company "${company_name}" was reviewed and rejected by the coordinator. Please check the coordinator's feedback, select an existing company, or submit a new request.\n\nBest regards,\nSIL Monitoring Team`;
 
     console.group(`[Email Simulation] Sent Email to ${to_email}`);

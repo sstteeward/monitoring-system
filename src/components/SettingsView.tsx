@@ -242,7 +242,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode
                             <p style={sectionSub}>Control how you receive updates. Changes save immediately.</p>
                             <NotificationPreferencesPanel
                                 rowStyle={row}
-                                assignmentsDescription="Adviser, coordinator and company assignments that affect your OJT."
+                                assignmentsDescription="Adviser, coordinator and company assignments that affect your SIL."
                             />
                         </div>
                     )}

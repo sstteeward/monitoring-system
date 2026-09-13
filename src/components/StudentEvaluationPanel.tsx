@@ -122,7 +122,7 @@ const StudentEvaluationPanel: React.FC<Props> = ({ studentId, voice = 'self', va
                     {title}
                 </h3>
                 <p className="evx-result-sub">
-                    Completed by {evaluation?.company_name || 'the host company'} inside the SIL/OJT Monitoring System.
+                    Completed by {evaluation?.company_name || 'the host company'} inside the SIL Monitoring System.
                 </p>
             </div>
             <div className="evx-canvas-side">

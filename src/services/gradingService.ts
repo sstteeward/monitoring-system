@@ -208,6 +208,25 @@ export const gradingService = {
         } catch { /* ignore */ }
     },
 
+    /** Adviser: pull a submitted sheet back to draft. Only while it is still for review. */
+    async withdraw(sheetId: string, reason?: string): Promise<void> {
+        const { error } = await supabase.rpc('withdraw_grading_sheet', {
+            p_sheet_id: sheetId,
+            p_reason: reason?.trim() || null,
+        });
+        if (error) throw asError(error, 'Failed to withdraw the grading sheet.');
+
+        try {
+            await createAuditLog({
+                action: 'UPDATE',
+                module: 'Grading',
+                description: 'Withdrew an Official Grading Sheet from coordinator review',
+                targetType: 'grading_sheet',
+                targetId: sheetId,
+            });
+        } catch { /* a failed activity log must never undo the withdrawal */ }
+    },
+
     /** Coordinator: the sheet is correct. */
     async verify(sheetId: string): Promise<void> {
         const { error } = await supabase.rpc('verify_grading_sheet', { p_sheet_id: sheetId });
