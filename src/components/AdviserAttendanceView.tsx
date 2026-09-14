@@ -3,7 +3,7 @@ import { attendanceService, type AttendanceStatus, type AdviserAttendanceRow } f
 import { adviserService, type Section } from '../services/adviserService';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
-import { TableRowSkeleton } from './Skeletons';
+import { TableSkeleton, TableRowSkeleton } from './Skeletons';
 import AttendanceDetailModal from './AttendanceDetailModal';
 import {
     ATTENDANCE_STATUS_CONFIG,
@@ -36,22 +36,6 @@ const Svg: React.FC<IconProps & { children: React.ReactNode }> = ({ size = 16, c
     </svg>
 );
 
-const IconUsers: React.FC<IconProps> = p => (
-    <Svg {...p}>
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    </Svg>
-);
-const IconCheck: React.FC<IconProps> = p => (
-    <Svg {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></Svg>
-);
-const IconClock: React.FC<IconProps> = p => (
-    <Svg {...p}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></Svg>
-);
-const IconAbsent: React.FC<IconProps> = p => (
-    <Svg {...p}><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></Svg>
-);
 const IconAlert: React.FC<IconProps> = p => (
     <Svg {...p}>
         <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -65,9 +49,6 @@ const IconRefresh: React.FC<IconProps> = p => (
         <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
     </Svg>
-);
-const IconDownload: React.FC<IconProps> = p => (
-    <Svg {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></Svg>
 );
 const IconEye: React.FC<IconProps> = p => (
     <Svg {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></Svg>
@@ -168,19 +149,6 @@ const AdviserAttendanceView: React.FC = () => {
         };
     }, [rows]);
 
-    /** Share of the roster with an accounted-for, non-absent status. */
-    const attendanceRate = stats.total
-        ? Math.round(((stats.present + stats.late + stats.onLeave) / stats.total) * 100)
-        : 0;
-
-    const kpis = [
-        { label: 'Total Students', value: stats.total, sub: `In ${selectedSection?.name ?? 'section'}`, color: '#3b82f6', Icon: IconUsers },
-        { label: 'Present', value: stats.present, sub: `${attendanceRate}% attendance rate`, color: '#10b981', Icon: IconCheck },
-        { label: 'Late', value: stats.late, sub: 'Past grace period', color: '#f59e0b', Icon: IconClock },
-        { label: 'Absent', value: stats.absent, sub: `${stats.notRecorded} not yet recorded`, color: '#ef4444', Icon: IconAbsent },
-        { label: 'Incomplete', value: stats.incomplete, sub: `${stats.flagged} flagged`, color: '#fb923c', Icon: IconAlert },
-    ];
-
     const filteredRows = useMemo(() => {
         const q = search.trim().toLowerCase();
         return rows.filter(r => {
@@ -192,8 +160,7 @@ const AdviserAttendanceView: React.FC = () => {
             if (!q) return true;
             const name = `${r.first_name || ''} ${r.last_name || ''}`.toLowerCase();
             return name.includes(q)
-                || (r.email || '').toLowerCase().includes(q)
-                || (r.student_profile_id || '').toLowerCase().includes(q);
+                || (r.email || '').toLowerCase().includes(q);
         });
     }, [rows, statusFilter, search]);
 
@@ -204,34 +171,6 @@ const AdviserAttendanceView: React.FC = () => {
     const openDetail = (row: DerivedRow) => {
         setDetailModalKey(k => k + 1);
         setDetailTarget(row);
-    };
-
-    const exportCsv = () => {
-        const header = [
-            'Section', 'Student ID', 'Last Name', 'First Name', 'Email',
-            'Date', 'Time In', 'Time Out', 'Hours Today',
-            'Total Rendered', 'Required Hours', 'Status', 'Reason', 'Remarks', 'Flags',
-        ];
-        const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-        const lines = filteredRows.map(r => [
-            r.section_name, r.student_profile_id, r.last_name, r.first_name, r.email,
-            date,
-            r.time_in ? formatTime(r.time_in) : '',
-            r.time_out ? formatTime(r.time_out) : '',
-            r.worked_hours.toFixed(2),
-            r.total_rendered_hours.toFixed(2),
-            r.required_hours,
-            ATTENDANCE_STATUS_CONFIG[(r.effective_status ?? 'not_recorded')].label,
-            r.reason, r.remarks, r.anomalies.join('; '),
-        ].map(escape).join(','));
-
-        const csv = [header.map(escape).join(','), ...lines].join('\r\n');
-        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `attendance-${selectedSection?.name ?? 'section'}-${date}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
     };
 
     const statusBadge = (status: AttendanceStatus | null) => {
@@ -247,10 +186,8 @@ const AdviserAttendanceView: React.FC = () => {
     // ── Section-level states ────────────────────────────────────────────────
     if (sectionsLoading) {
         return (
-            <div className="fade-in ad-att-card" style={{ padding: '0.75rem' }}>
-                <TableRowSkeleton />
-                <TableRowSkeleton />
-                <TableRowSkeleton />
+            <div className="fade-in">
+                <TableSkeleton rows={4} cols={5} />
             </div>
         );
     }
@@ -294,7 +231,7 @@ const AdviserAttendanceView: React.FC = () => {
                     >
                         {sections.map(s => (
                             <option key={s.id} value={s.id}>
-                                {s.name} ({s.course_code}) — {s.student_count ?? 0} students
+                                {s.name} — {s.student_count ?? 0} student{(s.student_count ?? 0) !== 1 ? 's' : ''}
                             </option>
                         ))}
                     </select>
@@ -339,29 +276,20 @@ const AdviserAttendanceView: React.FC = () => {
                     <button type="button" className="ad-att-btn" onClick={refresh} disabled={loading}>
                         <IconRefresh size={14} /> {loading ? 'Refreshing' : 'Refresh'}
                     </button>
-                    <button type="button" className="ad-att-btn" onClick={exportCsv} disabled={filteredRows.length === 0}>
-                        <IconDownload size={14} /> Export CSV
-                    </button>
                 </div>
             </div>
 
             {/* ── Summary ── */}
-            <div className="ad-att-kpis">
-                {kpis.map(({ label, value, sub, color, Icon }) => (
-                    <div className="ad-att-kpi" key={label}>
-                        <span className="ad-att-kpi-icon" style={{ background: `${color}1f` }}>
-                            <Icon size={17} color={color} />
-                        </span>
-                        <div className="ad-att-kpi-body">
-                            <div className="ad-att-kpi-label">{label}</div>
-                            <div className="ad-att-kpi-value" style={{ color: value > 0 ? color : undefined }}>
-                                {loading ? '—' : value}
-                            </div>
-                            <div className="ad-att-kpi-sub">{loading ? '' : sub}</div>
-                        </div>
+            {!loading && !error && rows.length > 0 && (
+                <div className="ad-att-card">
+                    <div className="ad-att-strip">
+                        <div className="ad-att-metric"><span>Students</span><strong>{stats.total}</strong></div>
+                        <div className="ad-att-metric"><span>Present</span><strong>{stats.present}</strong></div>
+                        <div className="ad-att-metric"><span>Late</span><strong>{stats.late}</strong></div>
+                        <div className="ad-att-metric"><span>Absent</span><strong>{stats.absent}</strong></div>
                     </div>
-                ))}
-            </div>
+                </div>
+            )}
 
             {/* ── Roster ── */}
             <div className="ad-att-card">
@@ -374,8 +302,8 @@ const AdviserAttendanceView: React.FC = () => {
                         <input
                             type="text"
                             className="ad-att-input ad-att-search"
-                            placeholder="Search student name or ID"
-                            aria-label="Search students by name or ID"
+                            placeholder="Search student name or email"
+                            aria-label="Search students by name or email"
                             value={search}
                             onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
                         />
@@ -397,11 +325,12 @@ const AdviserAttendanceView: React.FC = () => {
                 </div>
 
                 {loading ? (
-                    <div style={{ padding: '0.75rem' }}>
-                        <TableRowSkeleton />
-                        <TableRowSkeleton />
-                        <TableRowSkeleton />
-                        <TableRowSkeleton />
+                    <div className="ad-att-scroll">
+                        <table className="ad-att-table">
+                            <tbody>
+                                <TableRowSkeleton rows={5} cols={7} />
+                            </tbody>
+                        </table>
                     </div>
                 ) : error ? (
                     <div className="ad-att-empty">
@@ -428,7 +357,6 @@ const AdviserAttendanceView: React.FC = () => {
                                 <thead>
                                     <tr>
                                         <th>Student</th>
-                                        <th>ID</th>
                                         <th>Time In</th>
                                         <th>Time Out</th>
                                         <th>Hours</th>
@@ -453,7 +381,6 @@ const AdviserAttendanceView: React.FC = () => {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td><code className="ad-att-id">{row.student_profile_id.slice(0, 8)}</code></td>
                                                 <td className="ad-att-num">{row.time_in ? formatTime(row.time_in) : '—'}</td>
                                                 <td className="ad-att-num">{row.time_out ? formatTime(row.time_out) : '—'}</td>
                                                 <td className="ad-att-num">{formatHours(row.worked_hours)}</td>
@@ -494,36 +421,6 @@ const AdviserAttendanceView: React.FC = () => {
                     </>
                 )}
             </div>
-
-            {/* ── Overview ── */}
-            {!loading && !error && rows.length > 0 && (
-                <div className="ad-att-card">
-                    <div className="ad-att-strip">
-                        <div className="ad-att-metric"><span>Attendance Rate</span><strong>{attendanceRate}%</strong></div>
-                        <div className="ad-att-metric"><span>Absences</span><strong>{stats.absent}</strong></div>
-                        <div className="ad-att-metric"><span>Late Arrivals</span><strong>{stats.late}</strong></div>
-                        <div className="ad-att-metric"><span>Average Hours</span><strong>{formatHours(stats.avgHours)}</strong></div>
-                        <div className="ad-att-metric"><span>Incomplete Logs</span><strong>{stats.incomplete}</strong></div>
-                        <div className="ad-att-metric"><span>Not Yet Recorded</span><strong>{stats.notRecorded}</strong></div>
-
-                        <div className="ad-att-dist">
-                            <div className="ad-att-bar">
-                                <span className="is-present" style={{ width: `${(stats.present / stats.total) * 100}%` }} />
-                                <span className="is-late" style={{ width: `${(stats.late / stats.total) * 100}%` }} />
-                                <span className="is-incomplete" style={{ width: `${(stats.incomplete / stats.total) * 100}%` }} />
-                                <span className="is-absent" style={{ width: `${(stats.absent / stats.total) * 100}%` }} />
-                            </div>
-                            <div className="ad-att-legend">
-                                <span><i className="is-present" /> Present</span>
-                                <span><i className="is-late" /> Late</span>
-                                <span><i className="is-incomplete" /> Incomplete</span>
-                                <span><i className="is-absent" /> Absent</span>
-                                <span><i className="is-not-recorded" /> Not recorded</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Read-only for advisers: `record_attendance` accepts only company,
                 coordinator and admin callers, so offering a write action here

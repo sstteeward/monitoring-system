@@ -25,6 +25,7 @@ import GradeHistoryModal from './GradeHistoryModal';
 import StudentNumbersModal from './StudentNumbersModal';
 import { TableSkeleton } from './Skeletons';
 import CustomSelect from './CustomSelect';
+import { SECTION_YEARS, YEAR_LEVELS, parseSectionName } from '../utils/sections';
 import './CoordinatorDashboard.css';
 import './AdviserDashboard.css';
 import './GradingSheet.css';
@@ -55,6 +56,44 @@ const statusTone = (status: GradingSheetStatus): string =>
 /** "01", "12" — a fixed-width row number keeps the left edge of the sheet straight. */
 const rowNumber = (index: number): string => String(index + 1).padStart(2, '0');
 
+/* ── Year levels ────────────────────────────────────────────────────────────
+   The list opens on the same year-level grid as My Sections, so an adviser
+   holding thirty sections picks a year before scanning a table. Keep these
+   buckets in step with AdviserSectionsView. */
+
+/** Sections whose name is not COURSE-YEARLETTER (coordinator-created / free text). */
+const UNASSIGNED_YEAR = 0;
+
+/** Years the programme runs, shown even at zero sections; 4th Year only once it has one. */
+const ALWAYS_SHOWN_YEARS = [1, 2, 3] as const;
+
+/** A section carries no year column — the year is read off its name. */
+const yearOfSection = (name: string | null | undefined): number => {
+    const year = parseSectionName(name)?.year;
+    // A year outside 1–4 still parses; it goes to Other rather than vanishing.
+    return year !== undefined && SECTION_YEARS.includes(year as typeof SECTION_YEARS[number])
+        ? year
+        : UNASSIGNED_YEAR;
+};
+
+const yearLabel = (year: number): string =>
+    year === UNASSIGNED_YEAR ? 'Other / Unassigned' : YEAR_LEVELS[year - 1];
+
+const CalendarIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+);
+
+const ChevronIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--text-muted)' }} aria-hidden="true">
+        <polyline points="9 18 15 12 9 6" />
+    </svg>
+);
+
 /**
  * The adviser's Official Grading Sheet module.
  *
@@ -77,6 +116,8 @@ const AdviserGradingView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [listError, setListError] = useState<string | null>(null);
     const [opening, setOpening] = useState<string | null>(null);
+    /** Which year level's sections are listed. null = the year-level grid. Survives opening a sheet, so Back returns to the same year. */
+    const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
     // ── Sheet state ────────────────────────────────────────────────────────
     const [sheet, setSheet] = useState<GradingSheet | null>(null);
@@ -401,13 +442,43 @@ const AdviserGradingView: React.FC = () => {
 
         const term = schoolYears.find(y => y.id === termId);
 
+        // Derived on every render rather than held in state, so the re-read in
+        // backToList can never leave the buckets out of step with the sections.
+        const sectionsByYear = sections.reduce<Record<number, Section[]>>((acc, sec) => {
+            (acc[yearOfSection(sec.name)] ||= []).push(sec);
+            return acc;
+        }, {});
+
+        const visibleYears: number[] = [
+            ...ALWAYS_SHOWN_YEARS,
+            ...(sectionsByYear[4]?.length ? [4] : []),
+            ...(sectionsByYear[UNASSIGNED_YEAR]?.length ? [UNASSIGNED_YEAR] : []),
+        ];
+
+        const yearSections = selectedYear === null ? [] : sectionsByYear[selectedYear] ?? [];
+
+        // A returned sheet is shown on the grid for every year, and inside a year
+        // only for its own sections.
+        const returnedSheets = sheets.filter(s => s.return_reason && s.status === 'draft'
+            && (selectedYear === null || yearOfSection(s.section_name) === selectedYear));
+
         return (
             <div className="fade-in gs-scope">
                 <div className="gs-view-head">
                     <div>
-                        <div className="gs-view-title">My Grading Sheets</div>
+                        {selectedYear !== null && (
+                            <button type="button" className="gs-back" onClick={() => setSelectedYear(null)}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
+                                Back to Years
+                            </button>
+                        )}
+                        <div className="gs-view-title">
+                            {selectedYear === null ? 'My Grading Sheets' : yearLabel(selectedYear)}
+                        </div>
                         <div className="gs-view-sub">
-                            One Official Grading Sheet per section, per term. Select a term, then open a section.
+                            {selectedYear === null
+                                ? 'One Official Grading Sheet per section, per term. Select a term, then a year level.'
+                                : `${yearSections.length} section${yearSections.length !== 1 ? 's' : ''}. Open one to create or edit its grading sheet.`}
                         </div>
                     </div>
                     <div className="gs-term-picker">
@@ -421,86 +492,155 @@ const AdviserGradingView: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="admin-table-card gs-table-card">
-                    <div className="gs-table-scroll">
-                        <table className="admin-table gs-list-table">
-                            <thead>
-                                <tr>
-                                    <th>Section</th>
-                                    <th className="gs-c-term">Term</th>
-                                    <th className="gs-c-count gs-num">Students</th>
-                                    <th className="gs-c-count gs-num">Graded</th>
-                                    <th className="gs-c-status">Status</th>
-                                    <th className="gs-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sections.map(section => {
-                                    const existing = sheetForSection(section.id);
-                                    const status = existing?.status;
-                                    const total = existing?.student_count ?? section.student_count ?? 0;
-                                    return (
-                                        <tr key={section.id}>
-                                            <td>
-                                                {/* Section code first at full weight; the programme
-                                                    is context and stays muted underneath it. */}
-                                                <div className="gs-cell-stack">
-                                                    <span className="gs-cell-title">{section.name}</span>
-                                                    <span className="gs-cell-sub">
-                                                        {section.course_code === 'DHT'
-                                                            ? 'Diploma in Hospitality Technology'
-                                                            : 'Diploma in Information Technology'}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="gs-c-term">
-                                                {term ? formatTerm(term.school_year, term.semester) : '—'}
-                                            </td>
-                                            <td className="gs-c-count gs-num">
-                                                <span className="gs-count">{total}</span>
-                                            </td>
-                                            <td className="gs-c-count gs-num">
-                                                {existing ? (
-                                                    <>
-                                                        <span className="gs-count">{existing.graded_count}</span>
-                                                        <span className="gs-count-total">/{existing.student_count}</span>
-                                                    </>
-                                                ) : (
-                                                    <span className="gs-count-total">—</span>
-                                                )}
-                                            </td>
-                                            <td className="gs-c-status">
-                                                {status ? (
-                                                    <span className={`gs-status ${statusTone(status)}`}>
-                                                        {STATUS_LABELS[status]}
-                                                    </span>
-                                                ) : (
-                                                    <span className="gs-status is-none">Not Started</span>
-                                                )}
-                                            </td>
-                                            <td className="gs-right">
-                                                {/* Only the actions the current status allows. */}
-                                                <button
-                                                    className={`cd-btn gs-btn-sm ${status === undefined || status === 'draft' ? 'cd-btn-primary' : 'cd-btn-outline'}`}
-                                                    onClick={() => openSection(section)}
-                                                    disabled={opening === section.id || !termId}
-                                                >
-                                                    {opening === section.id
-                                                        ? 'Opening…'
-                                                        : status === undefined ? 'Create Sheet'
-                                                            : status === 'draft' ? 'Edit Grades'
-                                                                : 'Open'}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                {selectedYear === null ? (
+                    /* Year-level grid. The counts are summed from the sections
+                       already loaded — nothing is fetched to build it. */
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+                        gap: '1rem',
+                    }}>
+                        {visibleYears.map(year => {
+                            const list = sectionsByYear[year] ?? [];
+                            const students = list.reduce((sum, s) => sum + (s.student_count ?? 0), 0);
+                            const label = yearLabel(year);
+                            return (
+                                <div
+                                    key={year}
+                                    className="glass-card glass-card--interactive"
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`${label}, ${list.length} sections, ${students} students`}
+                                    onClick={() => setSelectedYear(year)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            setSelectedYear(year);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '1.25rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '1rem',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 44,
+                                        height: 44,
+                                        borderRadius: 12,
+                                        flexShrink: 0,
+                                        background: 'rgba(59, 130, 246, 0.1)',
+                                        color: '#3b82f6',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}>
+                                        <CalendarIcon />
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                        <h3 style={{ margin: '0 0 0.2rem 0', fontSize: '1.1rem', color: 'var(--text-bright)' }}>
+                                            {label}
+                                        </h3>
+                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                            {list.length} Section{list.length !== 1 ? 's' : ''}
+                                            {' • '}
+                                            {students} Student{students !== 1 ? 's' : ''}
+                                        </div>
+                                    </div>
+                                    <ChevronIcon />
+                                </div>
+                            );
+                        })}
                     </div>
-                </div>
+                ) : yearSections.length === 0 ? (
+                    <div className="admin-table-card gs-center-card">
+                        <h3>No sections in {yearLabel(selectedYear)}</h3>
+                        <p>You have no {yearLabel(selectedYear)} sections to grade yet.</p>
+                    </div>
+                ) : (
+                    <div className="admin-table-card gs-table-card">
+                        <div className="gs-table-scroll">
+                            <table className="admin-table gs-list-table">
+                                <thead>
+                                    <tr>
+                                        <th>Section</th>
+                                        <th className="gs-c-term">Term</th>
+                                        <th className="gs-c-count gs-num">Students</th>
+                                        <th className="gs-c-count gs-num">Graded</th>
+                                        <th className="gs-c-status">Status</th>
+                                        <th className="gs-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {yearSections.map(section => {
+                                        const existing = sheetForSection(section.id);
+                                        const status = existing?.status;
+                                        const total = existing?.student_count ?? section.student_count ?? 0;
+                                        return (
+                                            <tr key={section.id}>
+                                                <td>
+                                                    {/* Section code first at full weight; the programme
+                                                        is context and stays muted underneath it. */}
+                                                    <div className="gs-cell-stack">
+                                                        <span className="gs-cell-title">{section.name}</span>
+                                                        <span className="gs-cell-sub">
+                                                            {section.course_code === 'DHT'
+                                                                ? 'Diploma in Hospitality Technology'
+                                                                : 'Diploma in Information Technology'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="gs-c-term">
+                                                    {term ? formatTerm(term.school_year, term.semester) : '—'}
+                                                </td>
+                                                <td className="gs-c-count gs-num">
+                                                    <span className="gs-count">{total}</span>
+                                                </td>
+                                                <td className="gs-c-count gs-num">
+                                                    {existing ? (
+                                                        <>
+                                                            <span className="gs-count">{existing.graded_count}</span>
+                                                            <span className="gs-count-total">/{existing.student_count}</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="gs-count-total">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="gs-c-status">
+                                                    {status ? (
+                                                        <span className={`gs-status ${statusTone(status)}`}>
+                                                            {STATUS_LABELS[status]}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="gs-status is-none">Not Started</span>
+                                                    )}
+                                                </td>
+                                                <td className="gs-right">
+                                                    {/* Only the actions the current status allows. */}
+                                                    <button
+                                                        className={`cd-btn gs-btn-sm ${status === undefined || status === 'draft' ? 'cd-btn-primary' : 'cd-btn-outline'}`}
+                                                        onClick={() => openSection(section)}
+                                                        disabled={opening === section.id || !termId}
+                                                    >
+                                                        {opening === section.id
+                                                            ? 'Opening…'
+                                                            : status === undefined ? 'Create Sheet'
+                                                                : status === 'draft' ? 'Edit Grades'
+                                                                    : 'Open'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
-                {sheets.filter(s => s.return_reason && s.status === 'draft').map(s => (
+                {returnedSheets.map(s => (
                     <div key={s.id} className="gs-alert gs-alert-warning gs-alert-spaced">
                         <strong>{s.section_name} was returned for correction.</strong> {s.return_reason}
                     </div>

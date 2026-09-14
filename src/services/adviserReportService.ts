@@ -226,6 +226,10 @@ export interface DailyReport {
   pending_journals_count: number;
   total_minutes: number;
   report: DailyReportPayload;
+  /** The adviser's own version of the narrative, or null when they have not written one. */
+  narrative: string | null;
+  /** When that version was saved. Earlier than generated_at means the figures moved under it. */
+  narrative_edited_at: string | null;
 }
 
 /** One row of the history list. Carries no payload. */
@@ -262,6 +266,13 @@ export function mapReportError(error: unknown): string {
   const text = raw.toLowerCase();
 
   if (!raw) return 'Unable to generate today\'s report. Please try again.';
+  // Before the broader "only advisers" case, which would otherwise claim it.
+  if (text.includes('only advisers can edit')) {
+    return 'Only Section Advisers can edit this report.';
+  }
+  if (text.includes('too long')) {
+    return 'That report is too long to save. Please shorten it.';
+  }
   if (text.includes('only advisers')) {
     return 'This report is available to Section Advisers only.';
   }
@@ -380,5 +391,26 @@ export const adviserReportService = {
       throw new Error(mapReportError(error));
     }
     return (data || { sent: false }) as { sent: boolean; reason?: string };
+  },
+
+  /**
+   * Stores the adviser's own wording of a report, or clears it with null.
+   *
+   * Blank text is also a clear — the database never keeps an empty narrative.
+   * The payload and the counts are untouched, and Regenerate leaves this text
+   * in place. Returns the stored row, so the page re-syncs from what was saved
+   * rather than from what it sent.
+   */
+  async saveNarrative(date: string, narrative: string | null): Promise<DailyReport> {
+    const { data, error } = await supabase.rpc('save_my_daily_report_narrative', {
+      p_date: date,
+      p_narrative: narrative,
+    });
+
+    if (error) {
+      console.error('save_my_daily_report_narrative failed:', error);
+      throw new Error(mapReportError(error));
+    }
+    return data as DailyReport;
   },
 };

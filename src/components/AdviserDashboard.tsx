@@ -423,13 +423,7 @@ const AdviserDashboard: React.FC = () => {
                     {currentView === 'grading' && (
                         <AdviserGradingView />
                     )}
-                    {currentView === 'reports' && (
-                        <AdviserReportView
-                            // Journal review stays in the one approval queue the
-                            // portal already has; the report only points at it.
-                            onOpenApprovals={tab => navigateTo('approvals', tab)}
-                        />
-                    )}
+                    {currentView === 'reports' && <AdviserReportView />}
                     {currentView === 'announcement' && (
                         <AnnouncementsView />
                     )}

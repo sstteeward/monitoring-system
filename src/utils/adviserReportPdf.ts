@@ -2,9 +2,10 @@
  * The printable form of the adviser's Automated Daily Report.
  *
  * ONE consolidated PDF for the adviser, never one per section — the document is
- * laid out exactly like the on-screen report: header, summary, students
- * requiring attention, section overview, attendance, SIL progress, journals,
- * companies, alerts.
+ * laid out exactly like the on-screen report: header, the report in words (the
+ * adviser's own version when they wrote one), summary, students requiring
+ * attention, section overview, attendance, SIL progress, journals, companies,
+ * alerts.
  *
  * Rendered with html2pdf, which the project already depends on (see
  * waiverTemplate.ts, which uses the same approach and the same institutional
@@ -21,12 +22,15 @@ import type {
   ReportStudent,
 } from '../services/adviserReportService';
 import {
+  buildDailyNarrative,
   formatClock,
   formatDelta,
   formatMinutes,
   formatReportDate,
+  narrativeToText,
   PROGRESS_LABELS,
   STATUS_LABELS,
+  textToParagraphs,
 } from './adviserReport';
 
 /** How many detail rows the PDF carries per section before it summarises. */
@@ -131,6 +135,8 @@ export const REPORT_STYLE = `
              justify-content: space-between; gap: 12px; }
   .dr-empty { padding: 6px 8px; font-size: 8.5px; color: #64748b;
               background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; }
+  .dr-prose { margin: 0 0 4px; max-width: 200mm; font-size: 9.5px; line-height: 1.6;
+              white-space: pre-line; break-inside: avoid; page-break-inside: avoid; }
 `;
 
 const statusTag = (status: ReportStudent['status']) => {
@@ -151,6 +157,36 @@ const clockCell = (value: string | null) => {
 };
 
 const emptyRow = (message: string) => `<div class="dr-empty">${escapeHtml(message)}</div>`;
+
+/**
+ * The report in words, ahead of the tables: the adviser's own version when they
+ * wrote one, the generated narrative otherwise.
+ *
+ * The adviser's text is free-form input going into an HTML string, so every
+ * paragraph goes through escapeHtml — React escapes on screen; this template
+ * does not, and a `<script>` typed into the editor must print as text.
+ */
+function narrativeSection(report: DailyReport): string {
+  const own = report.narrative ? textToParagraphs(report.narrative) : [];
+  const paragraphs = own.length > 0
+    ? own
+    : textToParagraphs(narrativeToText(buildDailyNarrative(report.report)));
+  const body = paragraphs.map(p => `<p class="dr-prose">${escapeHtml(p)}</p>`).join('');
+  // Unlike a table, a long narrative may run onto the next page; each
+  // paragraph still stays whole.
+  const open = '<div class="dr-section" style="break-inside:auto;page-break-inside:auto">';
+
+  return own.length > 0
+    ? `${open}
+    <h2>Adviser's Report</h2>
+    ${body}
+    <p class="dr-note">Written by the adviser at ${escapeHtml(formatClock(report.narrative_edited_at))}.</p>
+  </div>`
+    : `${open}
+    <h2>Summary</h2>
+    ${body}
+  </div>`;
+}
 
 function summarySection(p: DailyReportPayload): string {
   const s = p.summary;
@@ -410,6 +446,7 @@ export function buildDailyReportHtml(report: DailyReport, logo: string | null): 
       <div><b>Generated:</b> ${escapeHtml(formatClock(report.generated_at))} (${escapeHtml(p.time_zone)})</div>
     </div>
 
+    ${narrativeSection(report)}
     ${summarySection(p)}
     ${attentionSection(p)}
     ${sectionOverview(p)}
