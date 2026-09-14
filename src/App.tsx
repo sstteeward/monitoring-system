@@ -23,6 +23,13 @@ function AppContent() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isRecovery, _setIsRecovery] = useState(false);
+  // Reset emails link to this site as ?token_hash=…&type=recovery. Stay on the
+  // loading screen until Supabase confirms that token, so the password form can
+  // never appear for whatever session this browser already held.
+  const [verifyingRecoveryLink, setVerifyingRecoveryLink] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('type') === 'recovery' && Boolean(params.get('token_hash'));
+  });
 
   const setIsRecovery = (val: boolean) => {
     _setIsRecovery(val);
@@ -36,6 +43,29 @@ function AppContent() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const recoveryParams = new URLSearchParams(window.location.search);
+    const recoveryTokenHash = recoveryParams.get('token_hash');
+    if (recoveryParams.get('type') === 'recovery' && recoveryTokenHash) {
+      // The email links here rather than to supabase.co, so the recipient only
+      // ever sees this site's address. Drop the token from the address bar before
+      // confirming it, so it is not left in browser history.
+      window.history.replaceState(null, '', window.location.pathname);
+      void supabase.auth.verifyOtp({ type: 'recovery', token_hash: recoveryTokenHash }).then(({ error }) => {
+        if (error) {
+          sessionStorage.setItem('portal_login_error', 'This password reset link is invalid or has expired. Please request a new one.');
+          // Hard redirect, like the login error hand-off in AuthSignup: a router
+          // navigation from this effect does not reliably land on /login.
+          window.location.replace('/login');
+          return;
+        } else {
+          // verifyOtp also emits PASSWORD_RECOVERY; setting it here as well keeps
+          // the recovery screen independent of listener timing.
+          setIsRecovery(true);
+        }
+        setVerifyingRecoveryLink(false);
+      });
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
@@ -109,7 +139,7 @@ function AppContent() {
     }
   };
 
-  if (loading) {
+  if (loading || verifyingRecoveryLink) {
     return <div style={{ color: 'var(--text-muted)', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
   }
 
