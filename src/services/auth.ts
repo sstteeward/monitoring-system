@@ -109,6 +109,39 @@ export async function completeSignupRegistration({ accountType, firstName, middl
   return Array.isArray(data) ? (data[0] ?? null) : (data ?? null);
 }
 
+/**
+ * Apply the password chosen at signup, through the set-signup-password Edge
+ * Function. The OTP user was created by GoTrue with a random password nobody
+ * knows, and this is the only place the real one is ever written.
+ *
+ * Every failure here is fatal, because an account completed without it looks
+ * perfectly healthy until its owner first tries to sign in:
+ *   - the request never arrives (CORS, network, cold-start timeout);
+ *   - the function answers non-2xx — surface its own `{ error }` message;
+ *   - a 2xx that does not explicitly confirm the password was applied.
+ */
+export async function applySignupPassword(password: string): Promise<void> {
+  const supabase = await getClient();
+  const { data, error } = await supabase.functions.invoke('set-signup-password', {
+    body: { password },
+    timeout: 20000,
+  });
+  if (error) {
+    // FunctionsHttpError / FunctionsRelayError carry the Response; a
+    // FunctionsFetchError means the request never reached the function.
+    const context = (error as { context?: unknown }).context;
+    if (context instanceof Response) {
+      const body = await context.json().catch(() => null);
+      throw new Error(body?.error || 'The account service could not set your password.');
+    }
+    throw new Error('We could not reach the account service to set your password. Check your connection.');
+  }
+  if (data?.error) throw new Error(data.error);
+  if (data?.passwordApplied !== true) {
+    throw new Error('Your password could not be confirmed.');
+  }
+}
+
 export async function signUp({ email, password, firstName, middleName, lastName, accountType, course, adviserType }: {
   email: string;
   password: string;

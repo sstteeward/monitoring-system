@@ -3,7 +3,7 @@ import { usePasteBlocker } from "../hooks/usePasteBlocker";
 import { useLocation } from "react-router-dom";
 import "./AuthSignup.css";
 import leftPhoto from "../assets/dumaguete (1).jpg";
-import { signIn, resetPasswordForEmail, validatePasskeySession, isEmailRegistered, assertSignupSessionIsNewAccount, completeSignupRegistration, getServerNowMs } from "../services/auth";
+import { signIn, resetPasswordForEmail, validatePasskeySession, isEmailRegistered, assertSignupSessionIsNewAccount, applySignupPassword, completeSignupRegistration, getServerNowMs } from "../services/auth";
 import { EMAIL_ALREADY_REGISTERED_MESSAGE, EMAIL_ALREADY_REGISTERED_TITLE, isDuplicateEmailError, normalizeEmail } from "../utils/email";
 import { OTP_INCOMPLETE_MESSAGE, OTP_INVALID_MESSAGE, OTP_SENT_MESSAGE, OTP_VERIFIED_MESSAGE, rejectedCodeMessage } from "../utils/verificationCode";
 import { formatPasskeyError, isPasskeySupported, signInWithPasskey } from "../services/passkeyAuth";
@@ -412,11 +412,9 @@ export default function AuthSignup() {
             saveRegistrationName({ userId: user.id, ...registrationName });
 
             // Set the password before completing, so a completed profile always
-            // has a usable password behind it.
-            const { error: passwordError } = await supabase.functions.invoke('set-signup-password', {
-                body: { password: signupPassword },
-            });
-            if (passwordError) throw passwordError;
+            // has a usable password behind it. Throws unless the server confirms
+            // the password was applied — registration must not continue otherwise.
+            await applySignupPassword(signupPassword);
 
             // One atomic statement: claim the pending profile for this portal and
             // flip it to `complete`. Until it returns, the address is still free,
@@ -475,12 +473,21 @@ export default function AuthSignup() {
                 // The code was accepted; this is an account-creation failure, so
                 // it must never be dressed up as "invalid/expired code".
                 console.error('[Signup] Account creation failed after successful verification:', err);
+                // Drop the session verifyOtp opened. Left alive, a refresh would carry
+                // the half-finished account into its portal — through onboarding and
+                // approval — with no password its owner knows. The profile stays
+                // pending_verification, so the address remains free to register again;
+                // the code is already consumed, so return to the send-code step.
+                try { await supabase.auth.signOut(); } catch { /* already signed out */ }
+                setOtpSent(false);
+                setOtpDigits(["", "", "", "", "", ""]);
+                setOtpIssuedAtMs(null);
                 setErrors(prev => ({
                     ...prev,
                     otp: '',
                     general: err?.message
-                        ? `We verified your email but could not finish creating your account: ${err.message}`
-                        : 'We verified your email but could not finish creating your account. Please try again.',
+                        ? `We verified your email but could not finish creating your account: ${err.message} Please request a new code to try again.`
+                        : 'We verified your email but could not finish creating your account. Please request a new code to try again.',
                 }));
             }
             setIsSubmitting(false);
@@ -528,7 +535,9 @@ export default function AuthSignup() {
             } else if (errorMsg.includes('ACCOUNT_LOCKED')) {
                 errorMsg = errorMsg.replace('ACCOUNT_LOCKED: ', '');
             } else if (errorMsg.includes('credentials')) {
-                errorMsg = "Invalid email or password.";
+                // Accounts created while set-signup-password was unreachable have no
+                // password their owner knows; a reset is how they recover.
+                errorMsg = 'Invalid email or password. Recently registered? Use "Forgot password?" to set your password again.';
             }
 
             // If signOut was called inside signIn (access denied, deactivated, locked),
@@ -590,7 +599,7 @@ export default function AuthSignup() {
         setIsSubmitting(true);
         try {
             await resetPasswordForEmail(forgotEmail);
-            setInfoMessage("If your email is registered, you will receive a password reset link shortly.");
+            setInfoMessage("If your email is registered, you will receive a password reset link shortly. If you don't see it, check your spam folder.");
             setForgotEmail("");
         } catch (err: any) {
             setErrors(prev => ({ ...prev, general: err.message || String(err) }));

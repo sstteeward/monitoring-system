@@ -22,7 +22,7 @@ export const OTP_TTL_MINUTES = 10;
 export const OTP_TTL_MS = OTP_TTL_MINUTES * 60 * 1000;
 
 export const OTP_SENT_MESSAGE =
-  `A 6-digit code was sent to your email. It is valid for ${OTP_TTL_MINUTES} minutes.`;
+  `A 6-digit code was sent to your email. It is valid for ${OTP_TTL_MINUTES} minutes. If you don't see it, check your spam folder.`;
 export const OTP_VERIFIED_MESSAGE = 'Email verified successfully.';
 export const OTP_EXPIRED_MESSAGE =
   'Verification code expired. Please request a new code.';
