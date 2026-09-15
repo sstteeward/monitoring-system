@@ -3,7 +3,7 @@ import { coordinatorService } from '../services/coordinatorService';
 import { TableRowSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
-import { adminService } from '../services/adminService';
+import { adminService, describeAccountActionError } from '../services/adminService';
 import UserProfileModal from './UserProfileModal';
 import UserClickableName from './UserClickableName';
 import { usePagination } from '../hooks/usePagination';
@@ -89,13 +89,13 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
         if (!deleteTarget) return;
         setDeleting(true);
         try {
+            // admin_delete_user writes the audit row.
             await adminService.deleteUserAccount(deleteTarget.id);
             setStudents(prev => prev.filter(s => s.auth_user_id !== deleteTarget.id));
-            await adminService.logAction('delete_student_account', 'profiles', deleteTarget.id, { name: deleteTarget.name });
             setDeleteTarget(null);
         } catch (e: any) {
             const detail = e?.message || e?.details || JSON.stringify(e);
-            alert(`Failed to delete student.\n\nError: ${detail}\n\nMake sure you have run the fix_admin_functions.sql script in your Supabase SQL Editor.`);
+            alert(describeAccountActionError(e, `Failed to delete student.\n\nError: ${detail}`));
             console.error('Delete user error:', e);
         } finally {
             setDeleting(false);

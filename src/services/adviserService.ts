@@ -338,42 +338,16 @@ export const adviserService = {
      * Approve a student's account registration
      */
     async approveStudentAccount(studentId: string, remarks?: string): Promise<boolean> {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        // 1. Try RPC first for server-enforced validation
+        // Approval state is server-only: the RPC is the single path, so a refusal
+        // surfaces instead of being masked by a direct profile write.
         const { error: rpcError } = await supabase.rpc('adviser_approve_student', {
             p_student_id: studentId,
             p_remarks: remarks || null
         });
 
         if (rpcError) {
-            console.warn('RPC adviser_approve_student failed, using direct update fallback:', rpcError);
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({
-                    is_active: true,
-                    approval_status: 'approved',
-                    adviser_remarks: remarks || null,
-                    approved_by: user?.id,
-                    approved_at: new Date().toISOString()
-                })
-                .eq('auth_user_id', studentId);
-
-            if (updateError) {
-                // Try with id as fallback
-                const { error: idError } = await supabase
-                    .from('profiles')
-                    .update({
-                        is_active: true,
-                        approval_status: 'approved',
-                        adviser_remarks: remarks || null,
-                        approved_by: user?.id,
-                        approved_at: new Date().toISOString()
-                    })
-                    .eq('id', studentId);
-
-                if (idError) throw idError;
-            }
+            console.error('RPC adviser_approve_student failed:', rpcError);
+            throw rpcError;
         }
 
         // Notify the student
@@ -407,8 +381,6 @@ export const adviserService = {
      * Reject a student's account registration
      */
     async rejectStudentAccount(studentId: string, reason: string): Promise<boolean> {
-        const { data: { user } } = await supabase.auth.getUser();
-
         const { error: rpcError } = await supabase.rpc('adviser_reject_student', {
             p_student_id: studentId,
             p_status: 'rejected',
@@ -416,19 +388,8 @@ export const adviserService = {
         });
 
         if (rpcError) {
-            console.warn('RPC adviser_reject_student failed, using direct update fallback:', rpcError);
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({
-                    is_active: false,
-                    approval_status: 'rejected',
-                    adviser_remarks: reason,
-                    approved_by: user?.id,
-                    approved_at: new Date().toISOString()
-                })
-                .or(`auth_user_id.eq.${studentId},id.eq.${studentId}`);
-
-            if (updateError) throw updateError;
+            console.error('RPC adviser_reject_student failed:', rpcError);
+            throw rpcError;
         }
 
         try {
@@ -460,8 +421,6 @@ export const adviserService = {
      * Request correction from student regarding their account details
      */
     async requestStudentCorrection(studentId: string, instructions: string): Promise<boolean> {
-        const { data: { user } } = await supabase.auth.getUser();
-
         const { error: rpcError } = await supabase.rpc('adviser_reject_student', {
             p_student_id: studentId,
             p_status: 'correction_requested',
@@ -469,18 +428,8 @@ export const adviserService = {
         });
 
         if (rpcError) {
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({
-                    is_active: false,
-                    approval_status: 'correction_requested',
-                    adviser_remarks: instructions,
-                    approved_by: user?.id,
-                    approved_at: new Date().toISOString()
-                })
-                .or(`auth_user_id.eq.${studentId},id.eq.${studentId}`);
-
-            if (updateError) throw updateError;
+            console.error('RPC adviser_reject_student (correction) failed:', rpcError);
+            throw rpcError;
         }
 
         try {

@@ -637,28 +637,20 @@ export const coordinatorService = {
      * Delete a student
      */
     async deleteStudent(studentId: string) {
-        const hasPermission = await checkPermission('can_delete_students');
-        if (!hasPermission) throw new Error("You do not have permission to delete students.");
-
-        const { error } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('id', studentId);
+        // The RPC enforces can_delete_students on the server (there is no DELETE
+        // policy on profiles, so the old direct delete could never succeed) and
+        // writes its own audit row.
+        const { error } = await supabase.rpc('coordinator_delete_student', {
+            p_student_id: studentId,
+        });
 
         if (error) {
             console.error("Error deleting student:", error);
+            if (typeof error.message === 'string' && error.message.includes('NO_DELETE_PERMISSION')) {
+                throw new Error("You do not have permission to delete students.");
+            }
             throw error;
         }
-
-        try {
-            await createAuditLog({
-                action: 'DELETE',
-                module: 'Students',
-                description: `Deleted student: ${studentId}`,
-                targetType: 'student',
-                targetId: studentId,
-            });
-        } catch {}
 
         return true;
     },
@@ -869,10 +861,11 @@ export const coordinatorService = {
             company = created as Company;
         }
 
-        const { error: profileError } = await supabase
-            .from('profiles')
-            .update({ company_id: company.id, account_type: 'company', is_active: true })
-            .eq('auth_user_id', request.requested_by);
+        // Role, activation and company link are server-only columns.
+        const { error: profileError } = await supabase.rpc('coordinator_approve_company_account', {
+            p_request_id: requestId,
+            p_company_id: company.id,
+        });
         if (profileError) throw profileError;
 
         const { error: requestUpdateError } = await supabase
@@ -1622,25 +1615,16 @@ export const coordinatorService = {
      * Activate or Deactivate an Adviser account
      */
     async setAdviserStatus(adviserId: string, isActive: boolean) {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ is_active: isActive })
-            .eq('auth_user_id', adviserId);
+        // is_active is server-only; the RPC also writes the audit row.
+        const { error } = await supabase.rpc('coordinator_set_adviser_status', {
+            p_adviser_id: adviserId,
+            p_is_active: isActive,
+        });
 
         if (error) {
             console.error('Error updating adviser active status:', error);
             throw error;
         }
-
-        try {
-            await createAuditLog({
-                action: 'STATUS_CHANGE',
-                module: 'User Management',
-                description: `${isActive ? 'Activated' : 'Deactivated'} adviser account: ${adviserId}`,
-                targetType: 'user',
-                targetId: adviserId
-            });
-        } catch {}
 
         return true;
     },

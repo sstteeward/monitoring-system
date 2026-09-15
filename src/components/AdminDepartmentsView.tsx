@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminService, type Department } from '../services/adminService';
+import { adminService, describeAccountActionError, type Department } from '../services/adminService';
 import type { Profile } from '../services/profileService';
 import { supabase } from '../lib/supabaseClient';
 import { TableSkeleton, CardSkeleton } from './Skeletons';
@@ -106,13 +106,12 @@ const AdminDepartmentsView: React.FC = () => {
 
             if (error) throw error;
 
+            // The RPC writes the audit row.
             setCoordinators(coordinators.map(c =>
                 c.auth_user_id === userId ? { ...c, department_id: departmentId || null } : c
             ));
-
-            await adminService.logAction('assign_department', 'profiles', userId, { department_id: departmentId });
         } catch (err) {
-            alert('Failed to assign department');
+            alert(describeAccountActionError(err, 'Failed to assign department'));
         } finally {
             setAssigningUserId(null);
         }

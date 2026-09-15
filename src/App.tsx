@@ -95,18 +95,75 @@ function AppContent() {
       }
     });
 
+    // A tab left in the background can outlive a deactivation. Re-check the
+    // profile when it comes back into view (skipped while offline, where the
+    // lookup would fail and fetchProfile would sign a healthy account out).
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || navigator.onLine === false) return;
+      void supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) fetchProfile(session.user.id);
+      });
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
 
+
+  // Company and admin portals have no pending screen. A deactivated or locked
+  // account there is signed out and handed the same copy signIn shows, like the
+  // recovery-link hand-off above. The database already refuses its privileged
+  // reads; this only keeps an open tab from lingering in the portal.
+  const signOutIfPortalBlocked = async (
+    p: { account_type?: string | null; is_active?: boolean | null; locked_until?: string | null },
+  ): Promise<boolean> => {
+    const r = normalizeAccountType(p.account_type);
+    if (r !== 'company' && r !== 'admin') return false;
+    const isLocked = p.locked_until ? new Date(p.locked_until) > new Date() : false;
+    if (p.is_active !== false && !isLocked) return false;
+
+    await supabase.auth.signOut();
+    sessionStorage.setItem('portal_login_error', 'ACCOUNT_DEACTIVATED: Your account has been deactivated. Please contact an administrator.');
+    window.location.replace('/login');
+    return true;
+  };
+
+  // Maintenance mode: while it is on, only administrators may stay signed in.
+  // Everyone else is signed out and shown the configured message, so nobody is
+  // left working in a portal during maintenance. Admins are exempt so they can
+  // still turn it back off. system_settings is world-readable by design.
+  const signOutIfMaintenance = async (
+    p: { account_type?: string | null },
+  ): Promise<boolean> => {
+    if (normalizeAccountType(p.account_type) === 'admin') return false;
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'maintenance_mode')
+      .maybeSingle();
+    // Fail open: a lookup error must not lock everyone out of the app.
+    if (error || data?.value?.enabled !== true) return false;
+
+    const message = typeof data.value.message === 'string' && data.value.message.trim()
+      ? data.value.message
+      : 'The system is undergoing maintenance. Please try again later.';
+    await supabase.auth.signOut();
+    sessionStorage.setItem('portal_login_error', message);
+    window.location.replace('/login');
+    return true;
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
       const data = await profileService.getCurrentProfile();
 
       if (data && data.auth_user_id === userId) {
+        if (await signOutIfPortalBlocked(data)) return;
+        if (await signOutIfMaintenance(data)) return;
         setProfile(data);
         sessionStorage.removeItem('fresh_registration');
         return;
@@ -118,6 +175,8 @@ function AppContent() {
         const retryData = await profileService.getCurrentProfile();
 
         if (retryData && retryData.auth_user_id === userId) {
+          if (await signOutIfPortalBlocked(retryData)) return;
+          if (await signOutIfMaintenance(retryData)) return;
           setProfile(retryData);
           sessionStorage.removeItem('fresh_registration');
           return;

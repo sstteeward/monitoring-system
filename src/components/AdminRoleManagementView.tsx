@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminService } from '../services/adminService';
+import { adminService, describeAccountActionError } from '../services/adminService';
 import type { Profile } from '../services/profileService';
 import { TableSkeleton } from './Skeletons';
 import UserClickableName from './UserClickableName';
@@ -51,15 +51,11 @@ const AdminRoleManagementView: React.FC = () => {
         setSaving(true);
         try {
             await adminService.updateUserPermissions(selectedUser.auth_user_id, selectedUser.permissions || defaultPermissions);
-            await adminService.logAction('update_permissions', 'profiles', selectedUser.auth_user_id, { 
-                permissions: selectedUser.permissions, 
-                target_name: `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim() 
-            });
             // Update local state
             setCoordinators(coordinators.map(c => c.id === selectedUser.id ? selectedUser : c));
             alert('Permissions updated successfully.');
         } catch (error) {
-            alert('Failed to update permissions.');
+            alert(describeAccountActionError(error, 'Failed to update permissions.'));
         } finally {
             setSaving(false);
         }
@@ -74,7 +70,6 @@ const AdminRoleManagementView: React.FC = () => {
         setSaving(true);
         try {
             await adminService.setUserActiveStatus(selectedUser.auth_user_id, newStatus);
-            await adminService.logAction(newStatus ? 'activate_account' : 'deactivate_account', 'profiles', selectedUser.auth_user_id);
 
             const updatedUser = { ...selectedUser, is_active: newStatus };
             setSelectedUser(updatedUser);
@@ -83,7 +78,7 @@ const AdminRoleManagementView: React.FC = () => {
         } catch (e: any) {
             console.error('Status update error:', e);
             const msg = e?.message || (typeof e === 'string' ? e : 'Unknown error');
-            alert(`Failed to update status: ${msg}`);
+            alert(describeAccountActionError(e, `Failed to update status: ${msg}`));
         } finally {
             setSaving(false);
         }
@@ -97,8 +92,7 @@ const AdminRoleManagementView: React.FC = () => {
         try {
             await adminService.updateUserRole(user.auth_user_id, role);
             await adminService.setUserActiveStatus(user.auth_user_id, true);
-            await adminService.logAction('update_account_role', 'profiles', user.auth_user_id, { account_type: role });
-            
+
             // Re-fetch list
             await loadCoordinators();
             setShowPromoSearch(false);
@@ -136,14 +130,13 @@ const AdminRoleManagementView: React.FC = () => {
         setSaving(true);
         try {
             await adminService.unlockUserAccount(selectedUser.auth_user_id);
-            await adminService.logAction('unlock_account', 'profiles', selectedUser.auth_user_id);
 
             const updatedUser = { ...selectedUser, failed_login_attempts: 0, locked_until: null };
             setSelectedUser(updatedUser);
             setCoordinators(coordinators.map(c => c.id === updatedUser.id ? updatedUser : c));
             alert('Account unlocked.');
         } catch (e) {
-            alert('Failed to unlock account.');
+            alert(describeAccountActionError(e, 'Failed to unlock account.'));
         } finally {
             setSaving(false);
         }

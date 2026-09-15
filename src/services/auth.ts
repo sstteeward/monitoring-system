@@ -270,13 +270,9 @@ export async function signIn({ email, password, role }: { email: string; passwor
   const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
 
   if (error) {
-    if (error.message.includes('Invalid login credentials')) {
-      try {
-        await supabase.rpc('increment_failed_login', { user_email: normalizedEmail });
-      } catch (rpcError) {
-        console.warn('[Auth] Failed to record failed login attempt:', rpcError);
-      }
-    }
+    // No client-driven failed-attempt counter: increment_failed_login took an
+    // arbitrary email and let anyone lock any account. Brute-force protection is
+    // Supabase Auth's built-in per-IP rate limiting; admins can still unlock.
     try {
       const { createAuditLog } = await import('./auditService');
       await createAuditLog({
@@ -336,8 +332,8 @@ export async function signIn({ email, password, role }: { email: string; passwor
       }
     }
 
-    // 4. On absolute success, reset failed attempts
-    await supabase.rpc('reset_failed_login', { user_email: normalizedEmail });
+    // 4. On absolute success, clear this account's own lock counter.
+    await supabase.rpc('reset_my_failed_login');
 
     try {
       const { createAuditLog } = await import('./auditService');
@@ -453,11 +449,9 @@ export async function validatePasskeySession(expectedRole?: 'student' | 'coordin
     }
   }
 
-  if (user.email) {
-    try {
-      await supabase.rpc('reset_failed_login', { user_email: normalizeEmail(user.email) });
-    } catch {}
-  }
+  try {
+    await supabase.rpc('reset_my_failed_login');
+  } catch {}
 
   // Audit logging for passkey login
   try {

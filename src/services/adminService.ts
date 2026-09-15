@@ -67,6 +67,26 @@ export interface AuditLog {
     profiles?: Profile; // Joined
 }
 
+// Codes raised by the account RPCs in supabase_admin_privilege_hardening.sql.
+const ACCOUNT_ACTION_MESSAGES: Record<string, string> = {
+    SELF_ACTION_NOT_ALLOWED: "You can't change your own account here.",
+    LAST_ADMIN: 'At least one active administrator must remain.',
+    TARGET_REGISTRATION_INCOMPLETE: "This account hasn't finished registering, so it can't be made an administrator.",
+    TARGET_NOT_FOUND: 'That account no longer exists. Refresh the page and try again.',
+    COMPANY_NOT_FOUND: 'That company no longer exists. Refresh the page and try again.',
+    DEPARTMENT_NOT_FOUND: 'That department no longer exists. Refresh the page and try again.',
+    INVALID_ACCOUNT_TYPE: 'That role is not valid.',
+    INVALID_PERMISSIONS: 'Those permissions are not valid. Refresh the page and try again.',
+    NOT_AUTHORIZED: 'Your administrator access is not active. Sign in again or contact another administrator.',
+};
+
+/** Readable text for a guarded account action, or `fallback` for anything else. */
+export function describeAccountActionError(error: unknown, fallback: string): string {
+    const message = (error as { message?: string } | null)?.message ?? '';
+    const code = Object.keys(ACCOUNT_ACTION_MESSAGES).find(key => message.includes(key));
+    return code ? ACCOUNT_ACTION_MESSAGES[code] : fallback;
+}
+
 export const adminService = {
     /**
      * Fetch all profiles (students, coordinators, and admins)
@@ -127,7 +147,7 @@ export const adminService = {
     /**
      * Update a user's role/account_type
      */
-    async updateUserRole(userId: string, role: 'student' | 'coordinator' | 'admin' | 'company') {
+    async updateUserRole(userId: string, role: 'student' | 'adviser' | 'coordinator' | 'admin' | 'company') {
         const { error } = await supabase
             .rpc('admin_update_user_role', { target_user_id: userId, new_role: role });
 
@@ -144,9 +164,7 @@ export const adminService = {
      */
     async setUserCompany(userId: string, companyId: string | null) {
         const { error } = await supabase
-            .from('profiles')
-            .update({ company_id: companyId })
-            .eq('auth_user_id', userId);
+            .rpc('admin_set_user_company', { target_user_id: userId, p_company_id: companyId });
 
         if (error) {
             console.error("Error setting user company:", error);
@@ -680,7 +698,9 @@ export const adminService = {
      */
     async getSecurityAlerts(departmentId?: string) {
         // Use the RPC function to bypass RLS on the profiles table and fetch joined data
-        const { data: rawLogs, error } = await supabase.rpc('admin_get_security_alerts');
+        const { data: rawLogs, error } = await supabase.rpc('admin_get_security_alerts', {
+            p_department_id: departmentId ?? null,
+        });
 
         if (error) {
             console.error("Error fetching security alerts via RPC:", error);

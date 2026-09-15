@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { profileService, type Profile } from '../services/profileService';
-import { adminService } from '../services/adminService';
+import { adminService, describeAccountActionError } from '../services/adminService';
 import { useTheme } from '../contexts/ThemeContext';
 import CompaniesView from './CompaniesView';
 import AdminSettingsView from './AdminSettingsView';
@@ -182,7 +182,7 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const handleRoleUpdate = async (userId: string, newRole: 'student' | 'coordinator' | 'admin' | 'company') => {
+    const handleRoleUpdate = async (userId: string, newRole: 'student' | 'adviser' | 'coordinator' | 'admin' | 'company') => {
         if (newRole === 'company') {
             // Show company picker modal instead of immediate update
             const user = allProfiles.find(p => p.auth_user_id === userId);
@@ -197,16 +197,15 @@ const AdminDashboard: React.FC = () => {
         }
         setUpdatingUserId(userId);
         try {
+            // The RPC clears company_id itself when the new role is not company.
             await adminService.updateUserRole(userId, newRole);
-            // Clear company_id when switching away from company role
-            await adminService.setUserCompany(userId, null);
             setAllProfiles(allProfiles.map(p =>
                 p.auth_user_id === userId ? { ...p, account_type: newRole, company_id: null } : p
             ));
             const newStats = await adminService.getSystemStats();
             setStats(newStats as any);
-        } catch {
-            alert('Failed to update user role');
+        } catch (e) {
+            alert(describeAccountActionError(e, 'Failed to update user role'));
         } finally {
             setUpdatingUserId(null);
         }
@@ -227,8 +226,8 @@ const AdminDashboard: React.FC = () => {
             const newStats = await adminService.getSystemStats();
             setStats(newStats as any);
             setCompanyPickerTarget(null);
-        } catch {
-            alert('Failed to assign company role');
+        } catch (e) {
+            alert(describeAccountActionError(e, 'Failed to assign company role'));
         } finally {
             setUpdatingUserId(null);
         }
@@ -655,9 +654,10 @@ const AdminDashboard: React.FC = () => {
                                                             <CustomSelect
                                                                 value={p.account_type}
                                                                 disabled={updatingUserId === p.auth_user_id}
-                                                                onChange={(val) => handleRoleUpdate(p.auth_user_id, val as 'student' | 'coordinator' | 'admin' | 'company')}
+                                                                onChange={(val) => handleRoleUpdate(p.auth_user_id, val as 'student' | 'adviser' | 'coordinator' | 'admin' | 'company')}
                                                                 options={[
                                                                     { value: 'student', label: 'Student' },
+                                                                    { value: 'adviser', label: 'Adviser' },
                                                                     { value: 'coordinator', label: 'Coordinator' },
                                                                     { value: 'admin', label: 'Admin' },
                                                                     { value: 'company', label: 'Company' },
@@ -880,12 +880,11 @@ const AdminDashboard: React.FC = () => {
                                         setDeletingUser(true);
                                         try {
                                             await adminService.deleteUserAccount(deleteTarget.id);
-                                            await adminService.logAction('delete_account', 'profiles', deleteTarget.id);
                                             setAllProfiles(prev => prev.filter(user => user.auth_user_id !== deleteTarget.id));
                                             setDeleteTarget(null);
                                         } catch (e: any) {
                                             const detail = e?.message || e?.details || JSON.stringify(e);
-                                            alert(`Failed to delete account.\n\nError: ${detail}\n\nMake sure you have run the fix_admin_functions.sql script in your Supabase SQL Editor.`);
+                                            alert(describeAccountActionError(e, `Failed to delete account.\n\nError: ${detail}`));
                                             console.error('Delete user error:', e);
                                         } finally {
                                             setDeletingUser(false);
