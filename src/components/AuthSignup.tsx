@@ -501,8 +501,14 @@ export default function AuthSignup() {
         setIsSubmitting(true);
         setErrors({});
 
+        // Keep App on the signed-out view (this form) until the portal/role check
+        // inside signIn resolves. signInWithPassword sets the session first, and
+        // without this hold that transient session would flash the account's real
+        // dashboard before a wrong-portal login is rejected.
+        sessionStorage.setItem('login_verifying', '1');
         try {
             const { user: signedInUser } = await signIn({ email: loginEmail, password, role: normalizeAccountType(roleState) ?? undefined });
+            sessionStorage.removeItem('login_verifying');
             sessionStorage.setItem('offer_passkey_enrollment', '1');
 
             // Returning users go to their own portal. Read the role off the profile rather
@@ -540,15 +546,12 @@ export default function AuthSignup() {
                 errorMsg = 'Invalid email or password. Recently registered? Use "Forgot password?" to set your password again.';
             }
 
-            // If signOut was called inside signIn (access denied, deactivated, locked),
-            // the auth state change disrupts React Router and navigates away.
-            // Force a hard redirect back to the same login portal with the error in sessionStorage.
-            if (sessionStorage.getItem('portal_login_error')) {
-                sessionStorage.setItem('portal_login_error', errorMsg);
-                window.location.href = `/login${roleState ? `?portal=${roleState}` : ''}`;
-                return;
-            }
-
+            // signIn stashes the reason in portal_login_error before it signs a
+            // rejected session out. App keeps this signed-out view mounted while
+            // login_verifying is set, so the form survives that sign-out and we can
+            // show the warning inline — no full-page redirect, no loading screen, no
+            // dashboard flash. Clear the stash so it can't resurface on a later mount.
+            sessionStorage.removeItem('portal_login_error');
             setErrors(prev => ({ ...prev, general: errorMsg }));
             setIsSubmitting(false);
         }
@@ -559,10 +562,15 @@ export default function AuthSignup() {
         setPasskeySigningIn(true);
         setErrors({});
         setInfoMessage(null);
+        // Same hold as password login: signInWithPasskey sets the session before
+        // validatePasskeySession checks the portal, so keep App on the signed-out
+        // view (this form) until the role check resolves — no dashboard flash.
+        sessionStorage.setItem('login_verifying', '1');
         try {
             await signInWithPasskey();
             const expectedRole = normalizeAccountType(roleState) ?? undefined;
             const { profile } = await validatePasskeySession(expectedRole);
+            sessionStorage.removeItem('login_verifying');
 
             // Redirect user to the corresponding portal dashboard based on account type
             const passkeyRedirect = getPostAuthRedirect(profile?.account_type);

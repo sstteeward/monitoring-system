@@ -326,10 +326,7 @@ export async function signIn({ email, password, role }: { email: string; passwor
     }
 
     if (role && profileAccountType !== role) {
-      // Allow admins to log in via coordinator or adviser portal
-      if (!((role === 'coordinator' || role === 'adviser') && profileAccountType === 'admin')) {
-        throw new Error('Access Denied: Your account is not authorized for this portal.');
-      }
+      throw new Error('Access Denied: Your account is not authorized for this portal.');
     }
 
     // 4. On absolute success, clear this account's own lock counter.

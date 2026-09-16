@@ -69,6 +69,10 @@ function AppContent() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
+        // A session present on a cold load means any in-flight portal check from a
+        // previous page already resolved — clear a stale hold so we never get stuck
+        // on the loading screen (see login_verifying below).
+        sessionStorage.removeItem('login_verifying');
         fetchProfile(session.user.id);
       } else {
         setLoading(false);
@@ -92,6 +96,11 @@ function AppContent() {
       } else {
         setProfile(null);
         setLoading(false);
+        // Signed out: any in-flight login attempt is over (this fires when signIn
+        // rejects a wrong-portal login and signs the transient session out). Clear
+        // the hold here — only ever once session is already null — so releasing it
+        // can never expose a dashboard for the rejected session.
+        sessionStorage.removeItem('login_verifying');
       }
     });
 
@@ -198,6 +207,16 @@ function AppContent() {
     }
   };
 
+  // signInWithPassword creates the session before signIn() finishes its portal/role
+  // check. That transient session would otherwise route straight into a dashboard
+  // (e.g. an admin briefly landing on /admin) before the check rejects the portal
+  // and signs back out. While the check is in flight, keep showing the signed-out
+  // view below so the login form stays mounted — a rejected login then surfaces its
+  // warning inline, with no dashboard and no loading screen in between. AuthSignup
+  // sets login_verifying before the attempt; it is cleared on success, on sign-out,
+  // and on cold load.
+  const loginVerifying = Boolean(session) && sessionStorage.getItem('login_verifying') === '1';
+
   if (loading || verifyingRecoveryLink) {
     return <div style={{ color: 'var(--text-muted)', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
   }
@@ -218,11 +237,12 @@ function AppContent() {
     );
   }
 
-  if (!session) {
+  if (!session || loginVerifying) {
     return (
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<AuthSignup />} />
+        <Route path="/admin-portal" element={<Navigate to="/login?portal=admin" replace />} />
         <Route path="/test-dtr" element={
             <div style={{ display: 'flex', justifyContent: 'center', backgroundColor: '#f0f2f5', minHeight: '100vh', padding: '20px' }}>
                 <DTRCard employeeName="John Doe" department="Engineering" position="Developer" month="April 2026" />
