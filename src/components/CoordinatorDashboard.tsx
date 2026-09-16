@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { profileService, type Profile } from '../services/profileService';
 import { coordinatorService } from '../services/coordinatorService';
+import { useSidebarMode } from '../hooks/useSidebarMode';
 import StudentsView from './StudentsView';
-import GradesView from './GradesView';
 import ApprovalsView from './ApprovalsView';
 import { NotificationsProvider } from '../contexts/NotificationsContext';
 import NotificationBell from './NotificationBell';
@@ -49,7 +49,11 @@ const Icon = {
     clock: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
 };
 
-type View = 'overview' | 'companies' | 'company-accounts' | 'advisers' | 'students' | 'grades' | 'grading-sheets' | 'approvals' | 'requirements' | 'evaluations' | 'attendance' | 'announcement' | 'departments' | 'security' | 'profile' | 'settings';
+type View = 'overview' | 'companies' | 'company-accounts' | 'advisers' | 'students' | 'grading-sheets' | 'approvals' | 'requirements' | 'evaluations' | 'attendance' | 'announcement' | 'departments' | 'security' | 'profile' | 'settings';
+
+// Renderable views. A path outside this list (e.g. a stale /coordinator/grades
+// bookmark) falls back to the overview instead of a blank page.
+const ALL_VIEWS: View[] = ['overview', 'companies', 'company-accounts', 'advisers', 'students', 'grading-sheets', 'approvals', 'requirements', 'evaluations', 'attendance', 'announcement', 'departments', 'security', 'profile', 'settings'];
 
 interface NavItem { id: View; label: string; icon: React.ReactNode; badge?: number; }
 
@@ -59,8 +63,7 @@ const CoordinatorDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [studentFilter, setStudentFilter] = useState<'all' | 'assigned' | 'completed' | 'in-progress' | 'at-risk'>('all');
-    const [approvalsTab, setApprovalsTab] = useState<'documents' | 'journals' | 'dtr'>('documents');
-    const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
+    const [sidebarMode, toggleSidebar] = useSidebarMode();
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [showAccountMenu, setShowAccountMenu] = useState(false);
     const [settingsExpanded, setSettingsExpanded] = useState(false);
@@ -72,7 +75,8 @@ const CoordinatorDashboard: React.FC = () => {
 
     // Determine current view from pathname
     const lastPart = location.pathname.split('/').pop();
-    const currentView: View = (lastPart === 'coordinator' ? 'overview' : lastPart as View) || 'overview';
+    const rawView = (lastPart === 'coordinator' ? 'overview' : lastPart) || 'overview';
+    const currentView: View = ALL_VIEWS.includes(rawView as View) ? (rawView as View) : 'overview';
 
     const [totalPendingCount, setTotalPendingCount] = useState(0);
     const [companyCount, setCompanyCount] = useState(0);
@@ -93,9 +97,8 @@ const CoordinatorDashboard: React.FC = () => {
             departments: 'My Department',
             advisers: 'Adviser Management',
             students: 'Students',
-            grades: 'Student Grades by Section',
             'grading-sheets': 'Official Grading Sheets',
-            approvals: 'Approvals',
+            approvals: 'Documents',
             evaluations: 'Company Evaluations',
             announcement: 'Announcements',
             attendance: 'Attendance Monitoring',
@@ -152,12 +155,6 @@ const CoordinatorDashboard: React.FC = () => {
             setStudentFilter('all');
         }
 
-        if (view === 'approvals' && param) {
-            setApprovalsTab(param);
-        } else if (view === 'approvals') {
-            setApprovalsTab('documents');
-        }
-
         setIsMobileMenuOpen(false);
     };
 
@@ -191,9 +188,8 @@ const CoordinatorDashboard: React.FC = () => {
                 { id: 'companies', label: 'Companies', icon: Icon.building, badge: pendingCompanyRequestsCount > 0 ? pendingCompanyRequestsCount : undefined },
                 { id: 'departments', label: 'Department', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" /><line x1="12" y1="22" x2="12" y2="15.5" /><polyline points="22 8.5 12 15.5 2 8.5" /></svg> },
                 { id: 'students', label: 'Students', icon: Icon.users },
-                { id: 'grades', label: 'Grades', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
                 { id: 'grading-sheets', label: 'Grading Sheets', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="13" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /><path d="m16 12 1.5 1.5L20 11" /></svg> },
-                { id: 'approvals', label: 'Approvals', icon: Icon.file, badge: totalPendingCount > 0 ? totalPendingCount : undefined },
+                { id: 'approvals', label: 'Documents', icon: Icon.file, badge: totalPendingCount > 0 ? totalPendingCount : undefined },
                 { id: 'requirements', label: 'Requirements', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="m9 15 2 2 4-4" /></svg> },
                 { id: 'evaluations', label: 'Evaluations', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" /><polyline points="15 2 15 7 20 7" /><path d="M12 18v-6" /><path d="m9 15 3-3 3 3" /></svg> },
                 { id: 'attendance', label: 'Attendance', icon: Icon.clock },
@@ -220,9 +216,8 @@ const CoordinatorDashboard: React.FC = () => {
         departments: 'My Department',
         advisers: 'Adviser Management',
         students: 'Student Management',
-        grades: 'Student Grades by Section',
         'grading-sheets': 'Official Grading Sheets',
-        approvals: 'Pending Approvals',
+        approvals: 'Documents',
         requirements: 'Student Requirements',
         evaluations: 'Company Evaluations',
         attendance: 'Attendance Monitoring',
@@ -313,6 +308,9 @@ const CoordinatorDashboard: React.FC = () => {
                 {/* Topbar */}
                 <div className="topbar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <button className="sidebar-collapse-btn" onClick={toggleSidebar} aria-label="Toggle sidebar" title="Toggle sidebar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                        </button>
                         <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(true)}>{Icon.menu}</button>
                         <div>
                             <div className="topbar-title">{viewTitles[currentView]}</div>
@@ -429,9 +427,8 @@ const CoordinatorDashboard: React.FC = () => {
                     {currentView === 'advisers' && <CoordinatorAdvisersView />}
                     {currentView === 'departments' && <CoordinatorDepartmentView />}
                     {currentView === 'students' && <StudentsView initialFilter={studentFilter} />}
-                    {currentView === 'grades' && <GradesView />}
                     {currentView === 'grading-sheets' && <CoordinatorGradingView />}
-                    {currentView === 'approvals' && <ApprovalsView initialTab={approvalsTab} key={approvalsTab} onActionComplete={refreshStats} />}
+                    {currentView === 'approvals' && <ApprovalsView documentsOnly onActionComplete={refreshStats} />}
                     {currentView === 'requirements' && <StudentRequirementsView />}
                     {currentView === 'evaluations' && <CoordinatorEvaluationsView />}
                     {currentView === 'announcement' && <AnnouncementsView canPublish />}
@@ -446,7 +443,7 @@ const CoordinatorDashboard: React.FC = () => {
                         />
                     )}
                     {currentView === 'settings' && (
-                        <CoordinatorSettingsView sidebarMode={sidebarMode} setSidebarMode={setSidebarMode} />
+                        <CoordinatorSettingsView />
                     )}
                 </div>
             </div>
@@ -560,33 +557,6 @@ const OverviewView: React.FC<OverviewProps> = ({ greeting, displayName, totalPen
             glow: 'rgba(239,68,68,0.15)',
             icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
             action: () => navigateTo('students', 'at-risk'),
-        },
-        {
-            label: 'Reports Approval',
-            value: stats.pendingApprovals,
-            sub: stats.pendingApprovals === 0 ? 'All caught up' : 'Pending review',
-            color: stats.pendingApprovals > 0 ? '#f59e0b' : '#10b981',
-            glow: stats.pendingApprovals > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
-            icon: Icon.file,
-            action: () => navigateTo('approvals', 'journals'),
-        },
-        {
-            label: 'Time Log Approvals',
-            value: stats.pendingTimeLogs,
-            sub: 'Pending review',
-            color: stats.pendingTimeLogs > 0 ? '#f59e0b' : '#10b981',
-            glow: stats.pendingTimeLogs > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
-            icon: Icon.clock,
-            action: () => navigateTo('approvals', 'dtr'),
-        },
-        {
-            label: 'Dept Changes',
-            value: stats.pendingDeptRequests,
-            sub: 'Pending transfers',
-            color: (stats.pendingDeptRequests || 0) > 0 ? '#f59e0b' : '#10b981',
-            glow: (stats.pendingDeptRequests || 0) > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
-            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5" /><path d="M8 3H3v5" /><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.828L3 3" /><path d="M15 13.846L21 21" /><path d="M10.584 10.584L13.5 13.5" /><path d="M12 22L12 22" /></svg>,
-            action: () => navigateTo('approvals', 'dept_changes'),
         },
     ] : [];
 

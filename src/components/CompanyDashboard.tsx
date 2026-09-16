@@ -30,6 +30,7 @@ import CompanyProfileView from './CompanyProfileView';
 import CompanySecurityLogsView from './CompanySecurityLogsView';
 import CompanyOnboardingView from './CompanyOnboardingView';
 import CompanySettingsView from './CompanySettingsView';
+import { useSidebarMode } from '../hooks/useSidebarMode';
 
 
 // --- Icons ---
@@ -170,7 +171,7 @@ const CompanyDashboard: React.FC = () => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentView, setCurrentView] = useState<View>('overview');
-    const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
+    const [sidebarMode, toggleSidebar] = useSidebarMode();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showAccountMenu, setShowAccountMenu] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -280,6 +281,9 @@ const CompanyDashboard: React.FC = () => {
             <main className="company-main">
                 <header className="company-topbar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <button className="sidebar-collapse-btn" onClick={toggleSidebar} aria-label="Toggle sidebar" title="Toggle sidebar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                        </button>
                         <button className="company-mobile-toggle" onClick={() => setIsMobileMenuOpen(true)}>
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
                         </button>
@@ -400,7 +404,7 @@ const CompanyDashboard: React.FC = () => {
                         <Route path="/documents" element={<CompanyDocumentsView />} />
                         <Route path="/profile" element={<CompanyProfileView />} />
                         <Route path="/security" element={<CompanySecurityLogsView />} />
-                        <Route path="/settings" element={<CompanySettingsView sidebarMode={sidebarMode} setSidebarMode={setSidebarMode} />} />
+                        <Route path="/settings" element={<CompanySettingsView />} />
                     </Routes>
                 </div>
                 

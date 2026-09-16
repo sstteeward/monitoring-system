@@ -10,6 +10,7 @@ import {
     summariseDailyLimit,
 } from '../utils/attendanceLimit';
 import { profileService, type Profile } from '../services/profileService';
+import { useSidebarMode } from '../hooks/useSidebarMode';
 import { runFullAntiCheatSuite, quickGeofenceCheck, startContinuousMonitor } from '../services/geofenceService';
 import { dtrService } from '../services/dtrService';
 import TimesheetView from './TimesheetView';
@@ -49,7 +50,7 @@ const StudentDashboard: React.FC = () => {
     // Not read directly — the per-second setState is what re-renders the
     // rendered-time figures, which are derived from Date.now() each pass.
     const [, setElapsedSecs] = useState(0);
-    const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
+    const [sidebarMode, toggleSidebar] = useSidebarMode();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [todaySessions, setTodaySessions] = useState<Timesheet[]>([]);
     // The daily limit comes from system_settings, so an admin can change it
@@ -721,7 +722,7 @@ const StudentDashboard: React.FC = () => {
             case 'timesheets': return <TimesheetView onNavigateToDTR={() => navigateTo('dtr')} />;
             case 'performance': return <PerformanceView />;
             case 'profile': return <ProfileView onProfileUpdated={setProfile} />;
-            case 'settings': return <SettingsView sidebarMode={sidebarMode} setSidebarMode={setSidebarMode} />;
+            case 'settings': return <SettingsView />;
             case 'journal': return <JournalView />;
             case 'announcement': return <AnnouncementsView />;
             case 'documents': return <DocumentsView />;
@@ -905,6 +906,9 @@ const StudentDashboard: React.FC = () => {
                     {/* Topbar */}
                     <div className="topbar">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <button className="sidebar-collapse-btn" onClick={toggleSidebar} aria-label="Toggle sidebar" title="Toggle sidebar">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                            </button>
                             <button className="mobile-menu-toggle" onClick={toggleMobileMenu}>
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                             </button>

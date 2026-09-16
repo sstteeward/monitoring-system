@@ -1141,8 +1141,6 @@ export const coordinatorService = {
         const filteredPendingDeptRequestsCount = (pendingDeptRequests || [])
             .filter(req => !departmentId || studentIdSet.has(req.user_id)).length;
 
-        const totalPendingApprovals = filteredPendingDocsCount + filteredPendingJournalsCount + filteredPendingTimesheetsCount + filteredPendingDeptRequestsCount;
-
         const assignedStudents = students.filter(s => s.company_id != null);
         const atRiskStudents = students.filter(s => (s.absences || 0) >= 3);
 
@@ -1219,7 +1217,7 @@ export const coordinatorService = {
             pendingJournals: filteredPendingJournalsCount,
             pendingTimesheets: filteredPendingTimesheetsCount,
             pendingDeptRequests: filteredPendingDeptRequestsCount,
-            totalPendingCount: totalPendingApprovals, // for the sidebar badge
+            totalPendingCount: filteredPendingDocsCount, // Documents sidebar badge (docs awaiting review)
             pendingTimeLogs: filteredPendingTimesheetsCount,
             recentActivity,
             thisWeekActivityCount: weeklyActivityCount,

@@ -7,14 +7,9 @@ import PasswordField from './PasswordField';
 import NotificationPreferencesPanel from './NotificationPreferencesPanel';
 import PasskeySettingsSection from './PasskeySettingsSection';
 
-interface SettingsViewProps {
-    sidebarMode?: 'expanded' | 'collapsed' | 'hover';
-    setSidebarMode?: (mode: 'expanded' | 'collapsed' | 'hover') => void;
-}
+type SettingsTab = 'appearance' | 'notifications' | 'security' | 'about';
 
-type SettingsTab = 'appearance' | 'layout' | 'notifications' | 'security' | 'about';
-
-const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode }) => {
+const SettingsView: React.FC = () => {
     const blockPaste = usePasteBlocker();
     const { theme, setTheme } = useTheme();
     const isDark = theme === 'dark';
@@ -22,14 +17,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode
 
     const [searchParams, setSearchParams] = useSearchParams();
     const queryTab = searchParams.get('tab') as SettingsTab | null;
-    const initialTab: SettingsTab = queryTab && ['appearance', 'layout', 'notifications', 'security', 'about'].includes(queryTab)
+    const initialTab: SettingsTab = queryTab && ['appearance', 'notifications', 'security', 'about'].includes(queryTab)
         ? queryTab
         : 'appearance';
 
     const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
 
     useEffect(() => {
-        if (queryTab && ['appearance', 'layout', 'notifications', 'security', 'about'].includes(queryTab) && queryTab !== activeTab) {
+        if (queryTab && ['appearance', 'notifications', 'security', 'about'].includes(queryTab) && queryTab !== activeTab) {
             setActiveTab(queryTab);
         }
     }, [queryTab]);
@@ -84,10 +79,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode
         {
             key: 'appearance', label: 'Appearance', desc: 'Theme & display',
             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-        },
-        {
-            key: 'layout', label: 'Layout', desc: 'Sidebar behavior',
-            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="3" x2="9" y2="21" /></svg>
         },
         {
             key: 'notifications', label: 'Notifications', desc: 'Alerts & emails',
@@ -191,48 +182,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ sidebarMode, setSidebarMode
                                     Light
                                 </button>
                             </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'layout' && (
-                        <div className="glass-card settings-card-body fade-in" style={card}>
-                            <h3 style={sectionTitle}>Sidebar Layout</h3>
-                            <p style={sectionSub}>Choose how the sidebar behaves.</p>
-                            {sidebarMode && setSidebarMode ? (
-                                <div className="settings-options-grid">
-                                    {(['expanded', 'collapsed', 'hover'] as const).map(mode => (
-                                        <button
-                                            key={mode}
-                                            type="button"
-                                            onClick={() => setSidebarMode(mode)}
-                                            style={{
-                                                padding: '1rem 0.75rem',
-                                                borderRadius: 14,
-                                                cursor: sidebarMode === mode ? 'default' : 'pointer',
-                                                fontFamily: 'Inter, sans-serif',
-                                                fontWeight: 600,
-                                                fontSize: '0.88rem',
-                                                transition: 'all .25s',
-                                                background: sidebarMode === mode ? 'linear-gradient(135deg, rgba(16,185,129,0.18), rgba(13,148,136,0.1))' : 'var(--bg-elevated)',
-                                                border: sidebarMode === mode ? '2px solid var(--primary)' : '2px solid var(--border)',
-                                                color: sidebarMode === mode ? '#34d399' : 'var(--text-muted)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '0.6rem',
-                                                boxShadow: sidebarMode === mode ? '0 0 0 4px rgba(16,185,129,0.12)' : 'none',
-                                                textTransform: 'capitalize',
-                                                minHeight: 48,
-                                                boxSizing: 'border-box'
-                                            }}
-                                        >
-                                            {mode === 'hover' ? 'Expand on hover' : mode}
-                                        </button>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sidebar layout settings are not available.</p>
-                            )}
                         </div>
                     )}
 

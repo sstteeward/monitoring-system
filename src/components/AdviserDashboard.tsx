@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { profileService, type Profile } from '../services/profileService';
 import { adviserService } from '../services/adviserService';
+import { useSidebarMode } from '../hooks/useSidebarMode';
 import { NotificationsProvider } from '../contexts/NotificationsContext';
 import NotificationBell from './NotificationBell';
 import NotificationToaster from './NotificationToaster';
@@ -49,7 +50,7 @@ const AdviserDashboard: React.FC = () => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
+    const [sidebarMode, toggleSidebar] = useSidebarMode();
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [showAccountMenu, setShowAccountMenu] = useState(false);
     const [settingsExpanded, setSettingsExpanded] = useState(false);
@@ -282,6 +283,9 @@ const AdviserDashboard: React.FC = () => {
                 {/* Topbar */}
                 <div className="topbar">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <button className="sidebar-collapse-btn" onClick={toggleSidebar} aria-label="Toggle sidebar" title="Toggle sidebar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                        </button>
                         <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(true)}>{Icon.menu}</button>
                         <div>
                             <div className="topbar-title">{viewTitles[currentView]}</div>
@@ -434,10 +438,7 @@ const AdviserDashboard: React.FC = () => {
                         />
                     )}
                     {currentView === 'settings' && (
-                        <CoordinatorSettingsView
-                            sidebarMode={sidebarMode}
-                            setSidebarMode={setSidebarMode}
-                        />
+                        <CoordinatorSettingsView />
                     )}
                 </div>
             </div>

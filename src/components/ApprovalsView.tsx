@@ -11,10 +11,13 @@ import './CoordinatorDashboard.css';
 interface ApprovalsViewProps {
     initialTab?: 'documents' | 'journals' | 'dtr' | 'dept_changes';
     onActionComplete?: () => void;
+    // When set, only the Documents tab is shown (coordinator "Documents" view).
+    // Left off, all tabs render as before (admin approvals).
+    documentsOnly?: boolean;
 }
 
-const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents', onActionComplete }) => {
-    const [activeTab, setActiveTab] = useState<'documents' | 'journals' | 'dtr' | 'dept_changes'>(initialTab);
+const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents', onActionComplete, documentsOnly = false }) => {
+    const [activeTab, setActiveTab] = useState<'documents' | 'journals' | 'dtr' | 'dept_changes'>(documentsOnly ? 'documents' : initialTab);
     const [documents, setDocuments] = useState<any[]>([]);
     const [journals, setJournals] = useState<any[]>([]);
     const [timesheets, setTimesheets] = useState<any[]>([]);
@@ -213,11 +216,12 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
         <div className="view-container fade-in">
             <div className="view-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h2 className="view-title">Pending Approvals</h2>
+                    <h2 className="view-title">{documentsOnly ? 'Documents' : 'Pending Approvals'}</h2>
                     <p className="view-subtitle">Review student requirement submissions</p>
                 </div>
             </div>
 
+            {!documentsOnly && (
             <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem' }}>
                 {(['documents', 'journals', 'dtr', 'dept_changes'] as const).map(tab => (
                     <button
@@ -241,6 +245,7 @@ const ApprovalsView: React.FC<ApprovalsViewProps> = ({ initialTab = 'documents',
                     </button>
                 ))}
             </div>
+            )}
 
             {activeTab === 'documents' && (
                 <div className="table-container glass-card">

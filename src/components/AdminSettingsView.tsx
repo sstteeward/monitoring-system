@@ -8,13 +8,11 @@ import { adminService } from '../services/adminService';
 import PasswordField from './PasswordField';
 import PasskeySettingsSection from './PasskeySettingsSection';
 
-type AdminSettingsTab = 'system' | 'appearance' | 'layout' | 'notifications' | 'security' | 'about';
+type AdminSettingsTab = 'system' | 'appearance' | 'notifications' | 'security' | 'about';
 
-const AdminSettingsView: React.FC<{ 
+const AdminSettingsView: React.FC<{
     profile: any;
-    sidebarMode?: 'expanded' | 'collapsed' | 'hover';
-    setSidebarMode?: (mode: 'expanded' | 'collapsed' | 'hover') => void;
-}> = ({ profile, sidebarMode, setSidebarMode }) => {
+}> = ({ profile }) => {
     const blockPaste = usePasteBlocker();
     const { theme, setTheme } = useTheme();
     const isDark = theme === 'dark';
@@ -22,14 +20,14 @@ const AdminSettingsView: React.FC<{
 
     const [searchParams, setSearchParams] = useSearchParams();
     const queryTab = searchParams.get('tab') as AdminSettingsTab | null;
-    const initialTab: AdminSettingsTab = queryTab && ['system', 'appearance', 'layout', 'notifications', 'security', 'about'].includes(queryTab)
+    const initialTab: AdminSettingsTab = queryTab && ['system', 'appearance', 'notifications', 'security', 'about'].includes(queryTab)
         ? queryTab
         : 'system';
 
     const [activeTab, setActiveTab] = useState<AdminSettingsTab>(initialTab);
 
     useEffect(() => {
-        if (queryTab && ['system', 'appearance', 'layout', 'notifications', 'security', 'about'].includes(queryTab) && queryTab !== activeTab) {
+        if (queryTab && ['system', 'appearance', 'notifications', 'security', 'about'].includes(queryTab) && queryTab !== activeTab) {
             setActiveTab(queryTab);
         }
     }, [queryTab]);
@@ -129,10 +127,6 @@ const AdminSettingsView: React.FC<{
         {
             key: 'appearance', label: 'Appearance', desc: 'Theme & display',
             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-        },
-        {
-            key: 'layout', label: 'Layout', desc: 'Sidebar behavior',
-            icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="3" x2="9" y2="21" /></svg>
         },
         {
             key: 'notifications', label: 'Notifications', desc: 'Alerts & emails',
@@ -293,46 +287,6 @@ const AdminSettingsView: React.FC<{
                                     Light
                                 </button>
                             </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'layout' && (
-                        <div className="glass-card settings-card-body fade-in" style={card}>
-                            <h3 style={sectionTitle}>Sidebar Layout</h3>
-                            <p style={sectionSub}>Choose how the sidebar behaves.</p>
-                            {sidebarMode && setSidebarMode ? (
-                                <div className="settings-options-grid">
-                                    {(['expanded', 'collapsed', 'hover'] as const).map(mode => (
-                                        <button
-                                            key={mode}
-                                            type="button"
-                                            onClick={() => setSidebarMode(mode)}
-                                            style={{
-                                                padding: '1rem 0.75rem',
-                                                borderRadius: 12,
-                                                cursor: sidebarMode === mode ? 'default' : 'pointer',
-                                                fontFamily: 'Inter, sans-serif',
-                                                fontWeight: 600,
-                                                fontSize: '0.88rem',
-                                                transition: 'all .25s',
-                                                background: sidebarMode === mode ? 'rgba(16, 185, 129, 0.15)' : 'var(--admin-bg)',
-                                                border: sidebarMode === mode ? '2px solid var(--admin-primary)' : '2px solid var(--admin-border)',
-                                                color: sidebarMode === mode ? '#34d399' : 'var(--admin-text-secondary)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '0.6rem',
-                                                textTransform: 'capitalize',
-                                                minHeight: 48
-                                            }}
-                                        >
-                                            {mode === 'hover' ? 'Expand on hover' : mode}
-                                        </button>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p style={{ color: 'var(--admin-text-secondary)', fontSize: '0.85rem' }}>Sidebar layout settings are not available.</p>
-                            )}
                         </div>
                     )}
 

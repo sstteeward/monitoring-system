@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { profileService, type Profile } from '../services/profileService';
 import { adminService, describeAccountActionError } from '../services/adminService';
+import { useSidebarMode } from '../hooks/useSidebarMode';
 import { useTheme } from '../contexts/ThemeContext';
 import CompaniesView from './CompaniesView';
 import AdminSettingsView from './AdminSettingsView';
@@ -54,7 +55,7 @@ const AdminDashboard: React.FC = () => {
     const [stats, setStats] = useState({ studentCount: 0, coordinatorCount: 0, companyCount: 0, departmentCount: 0, totalLogs: 0, pendingApprovalsCount: 0 });
     const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-    const [sidebarMode, setSidebarMode] = useState<'expanded' | 'collapsed' | 'hover'>('hover');
+    const [sidebarMode, toggleSidebar] = useSidebarMode();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [newFeedbackCount, setNewFeedbackCount] = useState(0);
     const [unreadAuditCount, setUnreadAuditCount] = useState(0);
@@ -348,6 +349,9 @@ const AdminDashboard: React.FC = () => {
                 <main className="admin-main">
                     <header className="admin-topbar">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <button className="sidebar-collapse-btn" onClick={toggleSidebar} aria-label="Toggle sidebar" title="Toggle sidebar">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                            </button>
                             <button className="admin-mobile-toggle" onClick={() => setIsMobileMenuOpen(true)}>
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
                             </button>
@@ -738,7 +742,7 @@ const AdminDashboard: React.FC = () => {
                         )}
 
                         {currentView === 'settings' && (
-                            <AdminSettingsView profile={profile} sidebarMode={sidebarMode} setSidebarMode={setSidebarMode} />
+                            <AdminSettingsView profile={profile} />
                         )}
 
                         {currentView === 'profile' && (
