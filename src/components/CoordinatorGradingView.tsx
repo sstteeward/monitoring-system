@@ -7,6 +7,7 @@ import {
 import {
     STATUS_LABELS,
     canFinalize,
+    canReopen,
     canReturn,
     canVerify,
     formatGrade,
@@ -19,9 +20,18 @@ import { TableSkeleton } from './Skeletons';
 import './CoordinatorDashboard.css';
 import './GradingSheet.css';
 
-type Filter = 'for_review' | 'verified' | 'finalized' | 'all';
+type Filter = 'draft' | 'for_review' | 'verified' | 'finalized' | 'all';
 
-const FILTERS: Array<{ id: Filter; label: string }> = [
+const COORDINATOR_FILTERS: Array<{ id: Filter; label: string }> = [
+    { id: 'for_review', label: 'For Review' },
+    { id: 'verified', label: 'Verified' },
+    { id: 'finalized', label: 'Finalized' },
+    { id: 'all', label: 'All' },
+];
+
+// Admins see the whole catalogue, drafts included.
+const ADMIN_FILTERS: Array<{ id: Filter; label: string }> = [
+    { id: 'draft', label: 'Draft' },
     { id: 'for_review', label: 'For Review' },
     { id: 'verified', label: 'Verified' },
     { id: 'finalized', label: 'Finalized' },
@@ -35,15 +45,28 @@ const statusTone = (status: GradingSheetStatus): string =>
                 : 'is-draft';
 
 /**
- * The Coordinator's grading-sheet verification queue.
+ * The Coordinator's grading-sheet verification queue — and, in `mode="admin"`,
+ * the administrator's view of every sheet.
  *
- * A sheet appears here only once the adviser has submitted it — a draft is the
- * adviser's working copy and `get_coordinator_grading_sheets` never returns
- * one. The coordinator reviews the roster, then verifies, returns for
- * correction with a reason, or finalizes a verified sheet.
+ * For a coordinator a sheet appears only once the adviser has submitted it — a
+ * draft is the adviser's working copy and `get_coordinator_grading_sheets`
+ * never returns one. The coordinator reviews the roster, then verifies, returns
+ * for correction with a reason, or finalizes a verified sheet.
+ *
+ * In admin mode the list is loaded from `get_admin_grading_sheets` (drafts
+ * included), flags sheets whose adviser is unavailable or that have been
+ * reopened, and adds the audited Reopen override on a finalized sheet. Verify,
+ * return and finalize stay available because the RPCs already admit admins.
  */
-const CoordinatorGradingView: React.FC = () => {
-    const [filter, setFilter] = useState<Filter>('for_review');
+interface Props {
+    mode?: 'coordinator' | 'admin';
+}
+
+const CoordinatorGradingView: React.FC<Props> = ({ mode = 'coordinator' }) => {
+    const isAdmin = mode === 'admin';
+    const filters = isAdmin ? ADMIN_FILTERS : COORDINATOR_FILTERS;
+
+    const [filter, setFilter] = useState<Filter>(isAdmin ? 'all' : 'for_review');
     const [rows, setRows] = useState<GradingSheetSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -55,20 +78,25 @@ const CoordinatorGradingView: React.FC = () => {
     const [historyFor, setHistoryFor] = useState<{ sheetId: string; subject: string } | null>(null);
     const [returning, setReturning] = useState<GradingSheetSummary | null>(null);
     const [returnReason, setReturnReason] = useState('');
+    const [reopening, setReopening] = useState<GradingSheetSummary | null>(null);
+    const [reopenReason, setReopenReason] = useState('');
     const [acting, setActing] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            setRows(await gradingService.getCoordinatorSheets(filter === 'all' ? 'all' : filter));
+            const status = filter === 'all' ? 'all' : filter;
+            setRows(isAdmin
+                ? await gradingService.getAdminSheets(status)
+                : await gradingService.getCoordinatorSheets(status));
         } catch (err) {
             console.error('Failed to load grading sheets:', err);
             setError(err instanceof Error ? err.message : 'Grading sheets could not be loaded.');
         } finally {
             setLoading(false);
         }
-    }, [filter]);
+    }, [filter, isAdmin]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -134,6 +162,32 @@ const CoordinatorGradingView: React.FC = () => {
         }
     };
 
+    const submitReopen = async () => {
+        if (!reopening || !reopenReason.trim()) return;
+        setActing(true);
+        setBanner(null);
+        try {
+            await gradingService.reopen(reopening.id, reopenReason.trim());
+            setBanner({
+                tone: 'ok',
+                text: `${reopening.section_name} reopened. The adviser and coordinators have been notified.`,
+            });
+            setReopening(null);
+            setReopenReason('');
+            setOpenSheet(null);
+            await load();
+        } catch (err) {
+            console.error('Failed to reopen the grading sheet:', err);
+            setBanner({ tone: 'error', text: err instanceof Error ? err.message : 'The grading sheet could not be reopened.' });
+            await load();
+        } finally {
+            setActing(false);
+        }
+    };
+
+    const adviserUnavailable = (row: GradingSheetSummary): boolean =>
+        row.adviser_active === false || row.adviser_holds_section === false;
+
     const counts = useMemo(() => ({
         review: rows.filter(r => r.status === 'for_review').length,
     }), [rows]);
@@ -148,12 +202,13 @@ const CoordinatorGradingView: React.FC = () => {
                 <div>
                     <div className="gs-view-title">Official Grading Sheets</div>
                     <div className="gs-view-sub">
-                        Review and verify the grading sheets your advisers submit. A sheet stays
-                        editable for the adviser only while it is a draft.
+                        {isAdmin
+                            ? 'Every grading sheet across all departments, drafts included. Verify, return or finalize as needed, or reopen a finalized sheet for correction.'
+                            : 'Review and verify the grading sheets your advisers submit. A sheet stays editable for the adviser only while it is a draft.'}
                     </div>
                 </div>
                 <div className="gs-filter-row">
-                    {FILTERS.map(f => (
+                    {filters.map(f => (
                         <button
                             key={f.id}
                             className={`gs-filter${filter === f.id ? ' is-active' : ''}`}
@@ -212,7 +267,15 @@ const CoordinatorGradingView: React.FC = () => {
                                             <div className="gs-strong">{row.section_name}</div>
                                             <div className="gs-muted">{row.course_code}</div>
                                         </td>
-                                        <td>{row.adviser_name?.trim() || <span className="gs-muted">Unassigned</span>}</td>
+                                        <td>
+                                            <div>{row.adviser_name?.trim() || <span className="gs-muted">Unassigned</span>}</div>
+                                            {isAdmin && adviserUnavailable(row) && (
+                                                <span className="gs-flag-pill is-warn">Adviser unavailable</span>
+                                            )}
+                                            {isAdmin && row.reopened_at && (
+                                                <span className="gs-flag-pill is-reopened">Reopened</span>
+                                            )}
+                                        </td>
                                         <td>{formatTerm(row.school_year, row.semester)}</td>
                                         <td className="gs-num">{row.graded_count} / {row.student_count}</td>
                                         <td>
@@ -236,6 +299,15 @@ const CoordinatorGradingView: React.FC = () => {
                                                 >
                                                     Preview
                                                 </button>
+                                                {isAdmin && canReopen(row.status) && (
+                                                    <button
+                                                        className="cd-btn cd-btn-outline gs-btn-sm gs-btn-danger"
+                                                        onClick={() => { setReopening(row); setReopenReason(''); }}
+                                                        disabled={acting}
+                                                    >
+                                                        Reopen
+                                                    </button>
+                                                )}
                                                 <button
                                                     className="gs-link-btn"
                                                     onClick={() => setHistoryFor({ sheetId: row.id, subject: `${row.section_name} · all changes` })}
@@ -344,6 +416,18 @@ const CoordinatorGradingView: React.FC = () => {
                                         {acting ? 'Working…' : 'Finalize'}
                                     </button>
                                 )}
+                                {isAdmin && canReopen(openSheet.status) && (
+                                    <button
+                                        className="cd-btn cd-btn-outline gs-btn-danger"
+                                        onClick={() => {
+                                            const row = rows.find(r => r.id === openSheet.id);
+                                            if (row) { setReopening(row); setReopenReason(''); }
+                                        }}
+                                        disabled={acting}
+                                    >
+                                        Reopen for Correction
+                                    </button>
+                                )}
                                 <button className="cd-btn cd-btn-outline" onClick={() => setOpenSheet(null)}>Close</button>
                             </div>
                         </div>
@@ -390,6 +474,54 @@ const CoordinatorGradingView: React.FC = () => {
                                 disabled={acting || returnReason.trim().length === 0}
                             >
                                 {acting ? 'Returning…' : 'Return to Adviser'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Reopen a finalized sheet (administrator override) ── */}
+            {reopening && (
+                <div className="gs-modal-backdrop" role="dialog" aria-modal="true">
+                    <div className="gs-modal">
+                        <div className="gs-modal-head">
+                            <div>
+                                <div className="gs-modal-title">Reopen Grading Sheet</div>
+                                <div className="gs-modal-sub">{reopening.section_name}</div>
+                            </div>
+                        </div>
+                        <div className="gs-modal-body">
+                            <p className="gs-modal-warning" style={{ marginTop: 0 }}>
+                                <strong>Administrator override.</strong> This returns a finalized, closed
+                                academic record to draft so its adviser can correct and resubmit it. The
+                                adviser and the department coordinators are notified.
+                            </p>
+                            <label className="gs-field-label" htmlFor="gs-reopen-reason">
+                                Reason for override — this is sent to the adviser
+                            </label>
+                            <textarea
+                                id="gs-reopen-reason"
+                                className="gs-textarea"
+                                rows={4}
+                                value={reopenReason}
+                                onChange={e => setReopenReason(e.target.value)}
+                                placeholder="e.g. The registrar flagged an incorrect final grade for student #12."
+                            />
+                        </div>
+                        <div className="gs-modal-foot">
+                            <button
+                                className="cd-btn cd-btn-outline"
+                                onClick={() => { setReopening(null); setReopenReason(''); }}
+                                disabled={acting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="cd-btn cd-btn-primary gs-btn-danger"
+                                onClick={submitReopen}
+                                disabled={acting || reopenReason.trim().length === 0}
+                            >
+                                {acting ? 'Reopening…' : 'Reopen for Correction'}
                             </button>
                         </div>
                     </div>

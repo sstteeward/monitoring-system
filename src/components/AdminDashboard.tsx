@@ -11,9 +11,13 @@ import AdminProfileView from './AdminProfileView';
 import AdminFeedbackView from './AdminFeedbackView';
 import AdminAuditLogView from './AdminAuditLogView';
 import { getUnreadAuditLogsCount, markAuditLogsAsSeen, onUnreadAuditCountChange } from '../services/auditService';
+import { dtrSubmissionService } from '../services/dtrSubmissionService';
 import AdminDepartmentsView from './AdminDepartmentsView';
 import AdminCoursesView from './AdminCoursesView';
 import AdminAttendanceView from './AdminAttendanceView';
+import AdminDtrSubmissionsView from './AdminDtrSubmissionsView';
+import CoordinatorGradingView from './CoordinatorGradingView';
+import AdminResetPasswordModal from './AdminResetPasswordModal';
 import AdminRoleManagementView from './AdminRoleManagementView';
 import AdminBackupRestoreView from './AdminBackupRestoreView';
 import AdminSystemHealthView from './AdminSystemHealthView';
@@ -44,7 +48,7 @@ const Icon = {
     security: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>,
 };
 
-type View = 'overview' | 'users' | 'roles' | 'companies' | 'profile' | 'settings' | 'feedback' | 'audit' | 'security' | 'departments' | 'courses' | 'backup' | 'health' | 'approvals' | 'students' | 'attendance' | 'announcement' | 'requirements';
+type View = 'overview' | 'users' | 'roles' | 'companies' | 'profile' | 'settings' | 'feedback' | 'audit' | 'security' | 'departments' | 'courses' | 'backup' | 'health' | 'approvals' | 'students' | 'attendance' | 'dtr' | 'grading' | 'announcement' | 'requirements';
 
 const AdminDashboard: React.FC = () => {
     const location = useLocation();
@@ -58,9 +62,11 @@ const AdminDashboard: React.FC = () => {
     const [sidebarMode, toggleSidebar] = useSidebarMode();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [newFeedbackCount, setNewFeedbackCount] = useState(0);
+    const [dtrNeedsAttention, setDtrNeedsAttention] = useState(0);
     const [unreadAuditCount, setUnreadAuditCount] = useState(0);
     const [isAuditBadgePulsing, setIsAuditBadgePulsing] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+    const [pwTarget, setPwTarget] = useState<{ id: string; name: string } | null>(null);
     const [deletingUser, setDeletingUser] = useState(false);
     const [viewProfileId, setViewProfileId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -103,7 +109,7 @@ const AdminDashboard: React.FC = () => {
         // a slug missing from this list leaves the sidebar item inert. That is
         // what made Attendance unclickable, and it also broke refresh and direct
         // navigation to /admin/attendance. Every View must appear here.
-        const validSlugs: View[] = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'security', 'departments', 'courses', 'backup', 'health', 'approvals', 'students', 'attendance', 'announcement', 'requirements'];
+        const validSlugs: View[] = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'security', 'departments', 'courses', 'backup', 'health', 'approvals', 'students', 'attendance', 'dtr', 'grading', 'announcement', 'requirements'];
 
         if (validSlugs.includes(path as View)) {
             setCurrentView(path as View);
@@ -161,6 +167,18 @@ const AdminDashboard: React.FC = () => {
         const interval = setInterval(loadAdminData, 30000); // Check every 30s
         return () => clearInterval(interval);
     }, []);
+
+    // The DTR nav badge: how many submissions need an administrator right now.
+    // A separate, best-effort fetch — a failure here must never block the shell.
+    useEffect(() => {
+        let alive = true;
+        const refresh = () => dtrSubmissionService.needsAttentionCount()
+            .then(n => { if (alive) setDtrNeedsAttention(n); })
+            .catch(() => { /* leave the badge as-is */ });
+        refresh();
+        const interval = setInterval(refresh, 60000);
+        return () => { alive = false; clearInterval(interval); };
+    }, [currentView]);
 
     const loadAdminData = async () => {
         try {
@@ -293,6 +311,17 @@ const AdminDashboard: React.FC = () => {
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
                             <span className="nav-text">Attendance</span>
                         </div>
+                        <div className={`admin-nav-item ${currentView === 'dtr' ? 'active' : ''}`} onClick={() => navigateTo('dtr')}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg></span>
+                            <span className="nav-text">DTR Submissions</span>
+                            {dtrNeedsAttention > 0 && (
+                                <span className="nav-badge" style={{ background: '#ef4444' }}>{dtrNeedsAttention}</span>
+                            )}
+                        </div>
+                        <div className={`admin-nav-item ${currentView === 'grading' ? 'active' : ''}`} onClick={() => navigateTo('grading')}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg></span>
+                            <span className="nav-text">Grading Sheets</span>
+                        </div>
                         <div className={`admin-nav-item ${currentView === 'departments' ? 'active' : ''}`} onClick={() => navigateTo('departments')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M8 18h1"></path><path d="M8 14h1"></path><path d="M8 10h1"></path></svg></span>
                             <span className="nav-text">Departments</span>
@@ -366,6 +395,8 @@ const AdminDashboard: React.FC = () => {
                                     {currentView === 'approvals' && 'Approvals'}
                                     {currentView === 'students' && 'All Students'}
                                     {currentView === 'attendance' && 'Attendance Monitoring'}
+                                    {currentView === 'dtr' && 'DTR Submissions'}
+                                    {currentView === 'grading' && 'Official Grading Sheets'}
                                     {currentView === 'departments' && 'Departments'}
                                     {currentView === 'courses' && 'Courses'}
                                     {currentView === 'audit' && 'Audit Logs'}
@@ -669,21 +700,41 @@ const AdminDashboard: React.FC = () => {
                                                             />
                                                         </td>
                                                         <td style={{ textAlign: 'right' }}>
-                                                            <button
-                                                                style={{
-                                                                    background: 'none',
-                                                                    border: 'none',
-                                                                    color: '#ef4444',
-                                                                    cursor: 'pointer',
-                                                                    padding: '0.4rem 0.6rem',
-                                                                    fontSize: '0.85rem',
-                                                                    fontWeight: 600
-                                                                }}
-                                                                onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: p.auth_user_id, name: `${p.first_name} ${p.last_name}` }); }}
-                                                                disabled={updatingUserId === p.auth_user_id}
-                                                            >
-                                                                {updatingUserId === p.auth_user_id ? '...' : 'Delete'}
-                                                            </button>
+                                                            <div style={{ display: 'inline-flex', gap: '0.25rem', justifyContent: 'flex-end' }}>
+                                                                {p.account_type !== 'admin' && (
+                                                                    <button
+                                                                        style={{
+                                                                            background: 'none',
+                                                                            border: 'none',
+                                                                            color: 'var(--text-primary)',
+                                                                            cursor: 'pointer',
+                                                                            padding: '0.4rem 0.6rem',
+                                                                            fontSize: '0.85rem',
+                                                                            fontWeight: 600
+                                                                        }}
+                                                                        onClick={(e) => { e.stopPropagation(); setPwTarget({ id: p.auth_user_id, name: `${p.first_name} ${p.last_name}` }); }}
+                                                                        disabled={updatingUserId === p.auth_user_id}
+                                                                        title="Set a new password for this account"
+                                                                    >
+                                                                        Password
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    style={{
+                                                                        background: 'none',
+                                                                        border: 'none',
+                                                                        color: '#ef4444',
+                                                                        cursor: 'pointer',
+                                                                        padding: '0.4rem 0.6rem',
+                                                                        fontSize: '0.85rem',
+                                                                        fontWeight: 600
+                                                                    }}
+                                                                    onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: p.auth_user_id, name: `${p.first_name} ${p.last_name}` }); }}
+                                                                    disabled={updatingUserId === p.auth_user_id}
+                                                                >
+                                                                    {updatingUserId === p.auth_user_id ? '...' : 'Delete'}
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))
@@ -834,6 +885,18 @@ const AdminDashboard: React.FC = () => {
                                 <AdminAttendanceView />
                             </div>
                         )}
+
+                        {currentView === 'dtr' && (
+                            <div className="fade-in">
+                                <AdminDtrSubmissionsView />
+                            </div>
+                        )}
+
+                        {currentView === 'grading' && (
+                            <div className="fade-in">
+                                <CoordinatorGradingView mode="admin" />
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>
@@ -842,6 +905,13 @@ const AdminDashboard: React.FC = () => {
                 profileId={viewProfileId}
                 onClose={() => setViewProfileId(null)}
             />
+
+            {/* Admin: set a new password for a user */}
+            <AdminResetPasswordModal
+                target={pwTarget}
+                onClose={() => setPwTarget(null)}
+            />
+
             {/* Delete Confirmation Modal */}
             {
                 deleteTarget && (

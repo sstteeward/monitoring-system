@@ -56,6 +56,56 @@ export function mapAttendanceSaveError(err: unknown): string {
   return 'Failed to save attendance. Please try again.';
 }
 
+/**
+ * Errors from the admin clock-record overrides.
+ *
+ * These must NOT go through mapAttendanceSaveError: its keyword matching would
+ * rewrite a deliberate override message (e.g. "not authorized", "future") into
+ * attendance-status copy. Like mapDtrError, this passes a short, deliberate
+ * server message through unchanged and only masks something that smells of a
+ * driver or schema fault.
+ */
+export function mapTimesheetOverrideError(err: unknown): string {
+  const raw = extractErrorText(err);
+  const text = raw.toLowerCase();
+
+  if (!raw) return 'Something went wrong. Please try again.';
+  if (text.includes('not authenticated')) return 'Your session has expired. Please sign in again.';
+  if (
+    text.includes('could not find the function')
+    || text.includes('pgrst')
+    || text.includes('does not exist')
+  ) {
+    return 'The clock-record override workflow has not been set up on this system yet. Ask an administrator to run supabase_admin_force_control.sql.';
+  }
+  if (
+    text.includes('column') || text.includes('violates') || text.includes('sqlstate')
+    || text.includes('permission denied') || text.includes('row-level security')
+    || text.includes('42501') || text.includes('relation') || text.includes('datatype')
+  ) {
+    return 'Something went wrong. Please try again.';
+  }
+  return raw.length < 250 ? raw : 'Something went wrong. Please try again.';
+}
+
+/** One clock record for the admin's per-day Clock Records panel. */
+export interface AdminTimesheetRow {
+  id: string;
+  clock_in: string;
+  clock_out: string | null;
+  break_start: string | null;
+  break_end: string | null;
+  status: 'working' | 'break' | 'completed';
+  approval_status: 'pending' | 'approved' | 'rejected' | null;
+  worked_minutes: number;
+  daily_limit_status: 'NORMAL' | 'LIMIT_REACHED' | 'OVER_LIMIT';
+  over_limit_minutes: number;
+  entry_source: 'clock' | 'admin';
+  corrected_at: string | null;
+  corrected_by_name: string | null;
+  correction_reason: string | null;
+}
+
 export interface CompanyAttendanceRow {
   student_auth_id: string;
   student_profile_id: string;
@@ -390,6 +440,100 @@ export const attendanceService = {
       throw error;
     }
     return (data || []) as AttendanceAuditEntry[];
+  },
+
+  // ── Admin clock-record overrides (force control) ───────────────────────────
+  // Every method is gated in the database by public.is_admin(); the server row
+  // is the audit record, so there is no client-side createAuditLog here. Errors
+  // are surfaced through mapTimesheetOverrideError, never mapAttendanceSaveError.
+
+  /** Every clock record for a student on one attendance day (admin only). */
+  async getAdminStudentTimesheets(studentAuthId: string, date: string): Promise<AdminTimesheetRow[]> {
+    const { data, error } = await supabase.rpc('get_admin_student_timesheets', {
+      p_student_id: studentAuthId,
+      p_date: date,
+    });
+    if (error) {
+      console.error('get_admin_student_timesheets failed:', error);
+      throw new Error(mapTimesheetOverrideError(error));
+    }
+    return (data || []).map((row: Record<string, unknown>) => ({
+      ...row,
+      worked_minutes: Number(row.worked_minutes ?? 0),
+      over_limit_minutes: Number(row.over_limit_minutes ?? 0),
+    })) as AdminTimesheetRow[];
+  },
+
+  /** Correct the four times on an existing clock record. */
+  async adminCorrectTimesheet(
+    timesheetId: string,
+    clockIn: string,
+    clockOut: string,
+    breakStart: string | null,
+    breakEnd: string | null,
+    reason: string,
+  ): Promise<void> {
+    const { error } = await supabase.rpc('admin_correct_timesheet', {
+      p_timesheet_id: timesheetId,
+      p_clock_in: clockIn,
+      p_clock_out: clockOut,
+      p_break_start: breakStart,
+      p_break_end: breakEnd,
+      p_reason: reason,
+    });
+    if (error) {
+      console.error('admin_correct_timesheet failed:', error);
+      throw new Error(mapTimesheetOverrideError(error));
+    }
+  },
+
+  /** Record a clock-out on an open session. */
+  async adminForceClockOut(timesheetId: string, clockOut: string, reason: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_force_clock_out', {
+      p_timesheet_id: timesheetId,
+      p_clock_out: clockOut,
+      p_reason: reason,
+    });
+    if (error) {
+      console.error('admin_force_clock_out failed:', error);
+      throw new Error(mapTimesheetOverrideError(error));
+    }
+  },
+
+  /** Add a whole clock record for a deployed student. */
+  async adminAddTimesheet(
+    studentAuthId: string,
+    clockIn: string,
+    clockOut: string,
+    breakStart: string | null,
+    breakEnd: string | null,
+    reason: string,
+  ): Promise<void> {
+    const { error } = await supabase.rpc('admin_add_timesheet', {
+      p_student_id: studentAuthId,
+      p_clock_in: clockIn,
+      p_clock_out: clockOut,
+      p_break_start: breakStart,
+      p_break_end: breakEnd,
+      p_reason: reason,
+    });
+    if (error) {
+      console.error('admin_add_timesheet failed:', error);
+      throw new Error(mapTimesheetOverrideError(error));
+    }
+  },
+
+  /** Void (reject) or restore (approve) a clock record. */
+  async adminSetTimesheetVoided(timesheetId: string, doVoid: boolean, reason: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_set_timesheet_voided', {
+      p_timesheet_id: timesheetId,
+      p_void: doVoid,
+      p_reason: reason,
+    });
+    if (error) {
+      console.error('admin_set_timesheet_voided failed:', error);
+      throw new Error(mapTimesheetOverrideError(error));
+    }
   },
 
   /**

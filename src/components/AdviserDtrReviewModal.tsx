@@ -5,8 +5,10 @@ import {
     type DtrSubmissionDetail,
 } from '../services/dtrSubmissionService';
 import { adviserService } from '../services/adviserService';
+import { supabase } from '../lib/supabaseClient';
 import { DTR_EVENT_LABEL, formatDtrHours, formatDtrPeriod } from '../utils/dtrFormat';
 import DtrStatusBadge from './DtrStatusBadge';
+import CustomSelect from './CustomSelect';
 import './DtrSubmission.css';
 
 /**
@@ -18,7 +20,17 @@ import './DtrSubmission.css';
  *
  * What is shown is the SNAPSHOT the student submitted, not a fresh computation,
  * so the adviser always decides on the record as it was sent.
+ *
+ * In `mode="admin"` the same screen becomes the administrator's force-control
+ * panel: approve or send back a pending DTR, reopen an approved one, or reassign
+ * the reviewer — every action requiring a reason and going through the audited
+ * admin RPCs. Adviser mode is unchanged.
  */
+
+/** The review actions. `reopen` and `reassign` are admin-only. */
+type ReviewAction = 'approve' | 'request_revision' | 'reopen' | 'reassign';
+
+interface AdviserOption { value: string; label: string; }
 
 type IconProps = { size?: number };
 const Svg: React.FC<IconProps & { children: React.ReactNode }> = ({ size = 16, children }) => (
@@ -51,22 +63,54 @@ const stamp = (v: string | null) => {
 interface Props {
     submissionId: string;
     onClose: () => void;
-    onReviewed: (action: 'approve' | 'request_revision') => void;
+    onReviewed: (action: ReviewAction) => void;
+    /** 'adviser' (default) behaves exactly as before; 'admin' adds the overrides. */
+    mode?: 'adviser' | 'admin';
 }
 
-const AdviserDtrReviewModal: React.FC<Props> = ({ submissionId, onClose, onReviewed }) => {
+const AdviserDtrReviewModal: React.FC<Props> = ({ submissionId, onClose, onReviewed, mode = 'adviser' }) => {
+    const isAdmin = mode === 'admin';
+
     const [detail, setDetail] = useState<DtrSubmissionDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [confirm, setConfirm] = useState<'approve' | 'request_revision' | null>(null);
+    const [confirm, setConfirm] = useState<ReviewAction | null>(null);
     const [remarks, setRemarks] = useState('');
     const [saving, setSaving] = useState(false);
+
+    // Admin-only: the reassignment target. '' means the student's current
+    // section adviser (the recommended default, sent to the server as null).
+    const [advisers, setAdvisers] = useState<AdviserOption[]>([]);
+    const [targetAdviser, setTargetAdviser] = useState('');
 
     const mounted = useRef(true);
     useEffect(() => {
         mounted.current = true;
         return () => { mounted.current = false; };
     }, []);
+
+    // The list of active advisers an admin can reassign to. Admins may read
+    // profiles; this is a read-only lookup, never a write.
+    useEffect(() => {
+        if (!isAdmin) return;
+        let alive = true;
+        (async () => {
+            const { data, error: err } = await supabase
+                .from('profiles')
+                .select('auth_user_id, first_name, last_name, email')
+                .eq('account_type', 'adviser')
+                .eq('is_active', true);
+            if (!alive || err || !data) return;
+            const opts = data
+                .map(r => ({
+                    value: r.auth_user_id as string,
+                    label: [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || (r.email as string) || 'Adviser',
+                }))
+                .sort((a, b) => a.label.localeCompare(b.label));
+            setAdvisers(opts);
+        })();
+        return () => { alive = false; };
+    }, [isAdmin]);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -93,13 +137,31 @@ const AdviserDtrReviewModal: React.FC<Props> = ({ submissionId, onClose, onRevie
         return () => window.removeEventListener('keydown', onKey);
     }, [confirm, onClose]);
 
+    // Admin overrides require a reason on every action; an adviser only needs a
+    // remark when requesting a revision.
+    const reasonRequired = isAdmin || confirm === 'request_revision';
+    const reasonMissing = reasonRequired && !remarks.trim();
+
     const submitReview = async () => {
         if (!confirm) return;
-        if (confirm === 'request_revision' && !remarks.trim()) return;
+        if (reasonMissing) return;
         setSaving(true);
         setError(null);
         try {
-            await adviserService.reviewDtrSubmission(submissionId, confirm, remarks.trim() || undefined);
+            if (isAdmin) {
+                if (confirm === 'reassign') {
+                    await dtrSubmissionService.reassignReviewer(submissionId, targetAdviser || null, remarks.trim());
+                } else {
+                    await dtrSubmissionService.adminReview(submissionId, confirm, remarks.trim());
+                }
+            } else {
+                // Adviser mode is unchanged: only approve / request_revision reach here.
+                await adviserService.reviewDtrSubmission(
+                    submissionId,
+                    confirm as 'approve' | 'request_revision',
+                    remarks.trim() || undefined,
+                );
+            }
             onReviewed(confirm);
         } catch (err) {
             if (!mounted.current) return;
@@ -110,12 +172,19 @@ const AdviserDtrReviewModal: React.FC<Props> = ({ submissionId, onClose, onRevie
         }
     };
 
+    const openConfirm = (action: ReviewAction) => {
+        setRemarks('');
+        setTargetAdviser('');
+        setConfirm(action);
+    };
+
     const snap = detail?.snapshot ?? null;
     const summary = snap?.summary ?? null;
     const days = snap?.days ?? [];
     const blocking = (snap?.issues ?? []).filter(i => i.severity === 'blocking');
     const advisory = (snap?.issues ?? []).filter(i => i.severity === 'advisory');
-    const isPending = detail?.status === 'pending';
+    const status = detail?.status ?? null;
+    const isPending = status === 'pending';
 
     return (
         <div className="dtr-modal-backdrop" role="presentation" onClick={onClose}>
@@ -267,7 +336,7 @@ const AdviserDtrReviewModal: React.FC<Props> = ({ submissionId, onClose, onRevie
 
                             {detail.status !== 'pending' && detail.adviser_remarks && (
                                 <div className="dtr-remark-box">
-                                    <strong>Your remarks</strong>
+                                    <strong>{isAdmin ? 'Reviewer remarks' : 'Your remarks'}</strong>
                                     <p>{detail.adviser_remarks}</p>
                                 </div>
                             )}
@@ -280,7 +349,7 @@ const AdviserDtrReviewModal: React.FC<Props> = ({ submissionId, onClose, onRevie
                 {/* ── Actions ── */}
                 <div className="dtr-review-foot">
                     <button type="button" className="dtr-btn" onClick={onClose}>Close</button>
-                    {isPending && (
+                    {!isAdmin && isPending && (
                         <>
                             <button
                                 type="button"
@@ -298,10 +367,33 @@ const AdviserDtrReviewModal: React.FC<Props> = ({ submissionId, onClose, onRevie
                             </button>
                         </>
                     )}
+                    {isAdmin && detail && status === 'pending' && (
+                        <>
+                            <button type="button" className="dtr-btn dtr-btn--warn" onClick={() => openConfirm('request_revision')}>
+                                Request Revision
+                            </button>
+                            <button type="button" className="dtr-btn" onClick={() => openConfirm('reassign')}>
+                                Reassign Reviewer
+                            </button>
+                            <button type="button" className="dtr-btn dtr-btn--primary" onClick={() => openConfirm('approve')}>
+                                Approve
+                            </button>
+                        </>
+                    )}
+                    {isAdmin && detail && status === 'revision_requested' && (
+                        <button type="button" className="dtr-btn" onClick={() => openConfirm('reassign')}>
+                            Reassign Reviewer
+                        </button>
+                    )}
+                    {isAdmin && detail && status === 'approved' && (
+                        <button type="button" className="dtr-btn dtr-btn--warn" onClick={() => openConfirm('reopen')}>
+                            Reopen for Correction
+                        </button>
+                    )}
                 </div>
 
                 {/* ── Confirmation ── */}
-                {confirm && detail && (
+                {confirm && detail && !isAdmin && (
                     <div className="dtr-modal-backdrop is-inner" role="presentation" onClick={() => setConfirm(null)}>
                         <div className="dtr-confirm" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
                             {confirm === 'approve' ? (
@@ -349,6 +441,84 @@ const AdviserDtrReviewModal: React.FC<Props> = ({ submissionId, onClose, onRevie
                         </div>
                     </div>
                 )}
+
+                {/* ── Confirmation (administrator override) ── */}
+                {confirm && detail && isAdmin && (() => {
+                    const copy: Record<ReviewAction, { title: string; consequence: string; cta: string; danger: boolean }> = {
+                        approve: {
+                            title: 'Approve DTR',
+                            consequence: 'This approves the student’s complete DTR on the adviser’s behalf and closes the SIL record.',
+                            cta: 'Approve DTR', danger: false,
+                        },
+                        request_revision: {
+                            title: 'Request Revision',
+                            consequence: 'This sends the DTR back to the student to correct and resubmit.',
+                            cta: 'Request Revision', danger: true,
+                        },
+                        reopen: {
+                            title: 'Reopen Approved DTR',
+                            consequence: 'This reopens the approved DTR so the student can correct and resubmit it.',
+                            cta: 'Reopen for Correction', danger: true,
+                        },
+                        reassign: {
+                            title: 'Reassign Reviewer',
+                            consequence: 'This moves the DTR to another adviser’s review queue.',
+                            cta: 'Reassign Reviewer', danger: false,
+                        },
+                    };
+                    const c = copy[confirm];
+                    return (
+                        <div className="dtr-modal-backdrop is-inner" role="presentation" onClick={() => setConfirm(null)}>
+                            <div className="dtr-confirm" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+                                <h3>{c.title}</h3>
+                                <p><strong>Administrator override.</strong> {c.consequence}</p>
+
+                                {confirm === 'reassign' && (
+                                    <>
+                                        <label className="dtr-label">Assign to</label>
+                                        <CustomSelect
+                                            value={targetAdviser}
+                                            onChange={val => setTargetAdviser(val)}
+                                            searchable
+                                            options={[
+                                                { value: '', label: 'Current section adviser (recommended)' },
+                                                ...advisers,
+                                            ]}
+                                        />
+                                    </>
+                                )}
+
+                                <label className="dtr-label" htmlFor="dtr-override-reason">Reason for override</label>
+                                <textarea
+                                    id="dtr-override-reason"
+                                    className="dtr-textarea"
+                                    rows={4}
+                                    value={remarks}
+                                    autoFocus
+                                    placeholder="Explain why this administrator override is necessary."
+                                    onChange={e => setRemarks(e.target.value)}
+                                />
+                                {reasonMissing && (
+                                    <p className="dtr-hint">A reason is required for an administrator override.</p>
+                                )}
+
+                                <div className="dtr-confirm-actions">
+                                    <button type="button" className="dtr-btn" onClick={() => setConfirm(null)} disabled={saving}>
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`dtr-btn ${c.danger ? 'dtr-btn--warn' : 'dtr-btn--primary'}`}
+                                        onClick={submitReview}
+                                        disabled={saving || reasonMissing}
+                                    >
+                                        {saving ? 'Saving…' : c.cta}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
         </div>
     );

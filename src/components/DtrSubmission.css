@@ -241,8 +241,13 @@ html[data-theme="dark"] .dtr-remark-box strong { color: #fbbf24; }
 }
 .dtr-history li.is-submitted::before,
 .dtr-history li.is-resubmitted::before      { background: #0d9488; }
-.dtr-history li.is-revision_requested::before { background: #f59e0b; }
-.dtr-history li.is-approved::before         { background: #10b981; }
+.dtr-history li.is-revision_requested::before,
+.dtr-history li.is-admin_revision_requested::before { background: #f59e0b; }
+.dtr-history li.is-approved::before,
+.dtr-history li.is-admin_approved::before   { background: #10b981; }
+/* Administrator overrides — a distinct violet so they stand out in the trail. */
+.dtr-history li.is-reopened::before         { background: #8b5cf6; }
+.dtr-history li.is-reviewer_reassigned::before { background: #6366f1; }
 
 .dtr-history-main { display: flex; flex-direction: column; gap: 0.05rem; }
 .dtr-history-main strong { font-size: 0.79rem; color: var(--text-primary); }
@@ -423,9 +428,33 @@ html[data-theme="dark"] .dtr-flag.is-warn { color: #fbbf24; }
 .dtr-filter-chip:hover { background: var(--bg-elevated); color: var(--text-primary); }
 .dtr-filter-chip.is-active { background: #0d9488; border-color: #0d9488; color: #fff; }
 
+/* Count badge on the "Needs Attention" chip (admin DTR list). */
+.dtr-chip-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 16px; height: 16px; margin-left: 0.35rem; padding: 0 0.28rem;
+    border-radius: 999px; background: #ef4444; color: #fff;
+    font-size: 0.62rem; font-weight: 800; line-height: 1;
+}
+.dtr-filter-chip.is-active .dtr-chip-count { background: rgba(255, 255, 255, .28); }
+
+/* Admin DTR list: search box shares the filter bar. */
+.dtr-search {
+    margin-left: auto; height: 28px; min-width: 200px; max-width: 260px;
+    padding: 0 0.7rem; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-elevated); color: var(--text-primary);
+    font-family: inherit; font-size: 0.78rem;
+}
+.dtr-search:focus-visible { outline: 2px solid #0d9488; outline-offset: 1px; }
+
+/* A row that needs an administrator's attention (missing/inactive reviewer). */
+.admin-table tbody tr.dtr-row-flagged { background: rgba(239, 68, 68, .05); }
+
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .dtr-panel-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+    .dtr-search { margin-left: 0; width: 100%; max-width: none; }
 }
 
 @media (max-width: 620px) {

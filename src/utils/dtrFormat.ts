@@ -47,10 +47,14 @@ export const DTR_STATUS_LABEL: Record<DtrStatus, string> = {
     revision_requested: 'Revision Required',
 };
 
-/** The submission-history event names, as the two portals show them. */
+/** The submission-history event names, as the three portals show them. */
 export const DTR_EVENT_LABEL: Record<string, string> = {
     submitted: 'Submitted',
     resubmitted: 'Resubmitted',
     revision_requested: 'Revision requested',
     approved: 'Approved',
+    admin_approved: 'Approved by an administrator',
+    admin_revision_requested: 'Revision requested by an administrator',
+    reopened: 'Reopened by an administrator',
+    reviewer_reassigned: 'Reviewer reassigned',
 };

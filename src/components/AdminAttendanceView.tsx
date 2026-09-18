@@ -6,10 +6,12 @@ import {
     type AdminStudentSummary,
     type AdminStudentHistoryRow,
     type AttendanceAuditEntry,
+    type AdminTimesheetRow,
 } from '../services/attendanceService';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
 import AttendanceRecordModal from './AttendanceRecordModal';
+import AdminTimesheetModal, { type TimesheetModalMode, type TimesheetSubmit } from './AdminTimesheetModal';
 import {
     ATTENDANCE_STATUS_CONFIG,
     formatDate,
@@ -22,8 +24,10 @@ import {
 } from './attendanceConstants';
 import {
     DEFAULT_DAILY_LIMIT_MINUTES,
+    DEFAULT_TIME_ZONE,
     LIMIT_FILTER_LABELS,
     describeDuration,
+    formatMinutes,
     matchesLimitFilter,
     type LimitFilter,
 } from '../utils/attendanceLimit';
@@ -144,6 +148,21 @@ const AdminAttendanceView: React.FC = () => {
     const [correctTarget, setCorrectTarget] = useState<Row | null>(null);
     const [correctKey, setCorrectKey] = useState(0);
 
+    // Clock records (the admin's per-day timesheet corrections).
+    const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
+    const [sessions, setSessions] = useState<AdminTimesheetRow[]>([]);
+    const [loadingSessions, setLoadingSessions] = useState(false);
+    const [tsModal, setTsModal] = useState<{ mode: TimesheetModalMode; existing: AdminTimesheetRow | null } | null>(null);
+    const [voidTarget, setVoidTarget] = useState<{ row: AdminTimesheetRow; toVoid: boolean } | null>(null);
+    const [voidReason, setVoidReason] = useState('');
+    const [voidSubmitting, setVoidSubmitting] = useState(false);
+    // The id of the open session currently being timed out by the one-click action.
+    const [timingOutId, setTimingOutId] = useState<string | null>(null);
+    // The open session awaiting the quick "Record Clock-Out" confirmation popup.
+    const [quickOut, setQuickOut] = useState<AdminTimesheetRow | null>(null);
+    // Change History is collapsed by default to keep the detail popup simple.
+    const [showHistory, setShowHistory] = useState(false);
+
     const isNarrow = useMediaQuery('(max-width: 760px)');
     const drawerRef = useRef<HTMLDivElement | null>(null);
     const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -223,7 +242,10 @@ const AdminAttendanceView: React.FC = () => {
     }), [rows, courseFilter, sectionFilter, companyFilter, statusFilter, limitFilter, limitMinutes, term]);
 
     useEffect(() => {
-        void timeTrackingService.getDailyLimitConfig().then(config => setLimitMinutes(config.limitMinutes));
+        void timeTrackingService.getDailyLimitConfig().then(config => {
+            setLimitMinutes(config.limitMinutes);
+            setTimeZone(config.timeZone || DEFAULT_TIME_ZONE);
+        });
     }, []);
 
     /* The log is only fetched when the panel is opened — it is a review tool,
@@ -275,15 +297,98 @@ const AdminAttendanceView: React.FC = () => {
     }, [rows]);
 
     // ── Drawer data ──────────────────────────────────────────────────────────
+    const loadSessions = useCallback(async (studentAuthId: string, selectedDate: string) => {
+        setLoadingSessions(true);
+        try {
+            setSessions(await attendanceService.getAdminStudentTimesheets(studentAuthId, selectedDate));
+        } catch (err) {
+            console.error('Failed to load clock records:', err);
+            setSessions([]);
+        } finally {
+            setLoadingSessions(false);
+        }
+    }, []);
+
     const openDetail = (row: Row) => {
         setDrawer({ kind: 'detail', row });
         setAudit([]);
+        setSessions([]);
+        setShowHistory(false);
+        void loadSessions(row.student_auth_id, date);
         if (row.attendance_id) {
             setLoadingAudit(true);
             attendanceService.getAttendanceAudit(row.attendance_id)
                 .then(setAudit)
                 .catch(err => console.error('Failed to load attendance audit:', err))
                 .finally(() => setLoadingAudit(false));
+        }
+    };
+
+    /** After any successful clock-record override: refresh the panel, the table
+     *  and (if open) the audit trail, then confirm to the admin. */
+    const afterSessionChange = async (row: Row, successText: string) => {
+        setTsModal(null);
+        setVoidTarget(null);
+        setQuickOut(null);
+        setVoidReason('');
+        await Promise.all([
+            loadSessions(row.student_auth_id, date),
+            load(date),
+        ]);
+        if (row.attendance_id) {
+            attendanceService.getAttendanceAudit(row.attendance_id).then(setAudit).catch(() => { });
+        }
+        notify('success', successText);
+    };
+
+    const submitTimesheet = async (row: Row, data: TimesheetSubmit) => {
+        if (!tsModal) return;
+        if (tsModal.mode === 'add') {
+            await attendanceService.adminAddTimesheet(
+                row.student_auth_id, data.clockInIso, data.clockOutIso, data.breakStartIso, data.breakEndIso, data.reason,
+            );
+        } else if (tsModal.mode === 'clock_out' && tsModal.existing) {
+            await attendanceService.adminForceClockOut(tsModal.existing.id, data.clockOutIso, data.reason);
+        } else if (tsModal.existing) {
+            await attendanceService.adminCorrectTimesheet(
+                tsModal.existing.id, data.clockInIso, data.clockOutIso, data.breakStartIso, data.breakEndIso, data.reason,
+            );
+        }
+        await afterSessionChange(row, `Clock records updated for ${fullName(row)}.`);
+    };
+
+    /** One-click time-out: close an open session at the current time with a
+     *  standard reason — no modal, no typing. For a student who left earlier,
+     *  the "Custom…" button still opens the modal for a back-dated clock-out.
+     *  The action is audited and the student is notified server-side, and it
+     *  stays reversible through Edit or Void. */
+    const timeOutNow = async (row: Row, session: AdminTimesheetRow) => {
+        if (timingOutId) return;
+        setTimingOutId(session.id);
+        try {
+            await attendanceService.adminForceClockOut(
+                session.id,
+                new Date().toISOString(),
+                'Session left open; clocked out by administrator at the current time.',
+            );
+            await afterSessionChange(row, `${fullName(row)} was timed out.`);
+        } catch (err) {
+            notify('error', err instanceof Error ? err.message : 'The student could not be timed out.');
+        } finally {
+            setTimingOutId(null);
+        }
+    };
+
+    const submitVoid = async (row: Row) => {
+        if (!voidTarget || !voidReason.trim()) return;
+        setVoidSubmitting(true);
+        try {
+            await attendanceService.adminSetTimesheetVoided(voidTarget.row.id, voidTarget.toVoid, voidReason.trim());
+            await afterSessionChange(row, `Clock record ${voidTarget.toVoid ? 'voided' : 'restored'} for ${fullName(row)}.`);
+        } catch (err) {
+            notify('error', err instanceof Error ? err.message : 'The clock record could not be updated.');
+        } finally {
+            setVoidSubmitting(false);
         }
     };
 
@@ -829,9 +934,12 @@ const AdminAttendanceView: React.FC = () => {
 
             {/* ══ DRAWER ══ */}
             {drawer && (
-                <div className="aav-scrim" onMouseDown={() => setDrawer(null)}>
+                <div
+                    className={`aav-scrim${drawer.kind === 'detail' ? ' aav-scrim--center' : ''}`}
+                    onMouseDown={() => setDrawer(null)}
+                >
                     <div
-                        className="aav-drawer"
+                        className={`aav-drawer${drawer.kind === 'detail' ? ' aav-drawer--popup' : ''}`}
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="aav-drawer-title"
@@ -934,33 +1042,152 @@ const AdminAttendanceView: React.FC = () => {
                                             </div>
                                         )}
 
-                                        <div className="aav-section-title">
-                                            Change History
-                                            {r.recorded_by_name && <span style={{ textTransform: 'none', letterSpacing: 0 }}>Recorded by {r.recorded_by_name}</span>}
+                                        {/* ── Clock Records: the audited timesheet corrections ── */}
+                                        <div className="aav-section-title aav-ts-head">
+                                            Clock Records
+                                            <button
+                                                type="button"
+                                                className="aav-btn aav-btn-sm"
+                                                style={{ textTransform: 'none', letterSpacing: 0 }}
+                                                disabled={!r.company_id}
+                                                title={r.company_id
+                                                    ? 'Add a clock record for this student on this date'
+                                                    : 'This student is not deployed to a company, so a clock record cannot be added'}
+                                                onClick={() => setTsModal({ mode: 'add', existing: null })}
+                                            >
+                                                {Icon.edit(13)} Add Session
+                                            </button>
                                         </div>
-                                        {!r.attendance_id ? (
-                                            <p className="aav-muted" style={{ fontSize: '0.82rem' }}>
-                                                No attendance record exists yet, so there is nothing to audit.
-                                            </p>
-                                        ) : loadingAudit ? (
+                                        {loadingSessions ? (
                                             <div className="aav-skeleton" style={{ height: 46 }} />
-                                        ) : audit.length === 0 ? (
-                                            <p className="aav-muted" style={{ fontSize: '0.82rem' }}>No changes recorded.</p>
+                                        ) : sessions.length === 0 ? (
+                                            <p className="aav-muted" style={{ fontSize: '0.82rem' }}>
+                                                No clock records on this date.
+                                            </p>
                                         ) : (
-                                            <div className="aav-history">
-                                                {audit.map(entry => (
-                                                    <div className="aav-history-row" key={entry.id}>
-                                                        <span className="aav-history-date">
-                                                            {formatDate(entry.changed_at)}
-                                                        </span>
-                                                        <span className="aav-history-times">
-                                                            {entry.action === 'created' ? 'Recorded as ' : `Changed from ${entry.old_status ?? '—'} to `}
-                                                            <strong>{entry.new_status}</strong>
-                                                            {entry.changed_by_name ? ` by ${entry.changed_by_name}` : ''}
-                                                        </span>
-                                                    </div>
-                                                ))}
+                                            <div className="aav-ts-list">
+                                                {sessions.map(s => {
+                                                    const isOpen = s.clock_out === null;
+                                                    const isVoided = s.approval_status === 'rejected';
+                                                    return (
+                                                        <div className={`aav-ts-row${isVoided ? ' is-voided' : ''}`} key={s.id}>
+                                                            <div className="aav-ts-times">
+                                                                <span><span className="aav-ts-key">In</span> {formatTime(s.clock_in)}</span>
+                                                                <span>
+                                                                    <span className="aav-ts-key">Out</span>{' '}
+                                                                    {isOpen
+                                                                        ? <span className="aav-badge" data-tone="incomplete">Open</span>
+                                                                        : formatTime(s.clock_out as string)}
+                                                                </span>
+                                                                <span>
+                                                                    <span className="aav-ts-key">Break</span>{' '}
+                                                                    {s.break_start && s.break_end
+                                                                        ? `${formatTime(s.break_start)}–${formatTime(s.break_end)}`
+                                                                        : '—'}
+                                                                </span>
+                                                                <span><span className="aav-ts-key">Rendered</span> {formatMinutes(s.worked_minutes)}</span>
+                                                            </div>
+                                                            <div className="aav-ts-tags">
+                                                                {isVoided && <span className="aav-badge" data-tone="absent">Voided</span>}
+                                                                {s.entry_source === 'admin' && <span className="aav-badge" data-tone="ok">Admin entry</span>}
+                                                                {s.corrected_at && (
+                                                                    <span
+                                                                        className="aav-badge"
+                                                                        data-tone="flag"
+                                                                        title={s.correction_reason
+                                                                            ? `${s.correction_reason}${s.corrected_by_name ? ` — ${s.corrected_by_name}` : ''}`
+                                                                            : 'Corrected by an administrator'}
+                                                                    >
+                                                                        Corrected
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="aav-ts-actions">
+                                                                {isOpen ? (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="aav-btn aav-btn-sm aav-btn-primary"
+                                                                            disabled={timingOutId === s.id}
+                                                                            title="Record a clock-out now, at the current time"
+                                                                            onClick={() => setQuickOut(s)}
+                                                                        >
+                                                                            Record Clock-Out
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="aav-btn aav-btn-sm"
+                                                                            disabled={timingOutId === s.id}
+                                                                            title="Record a clock-out at a specific earlier time"
+                                                                            onClick={() => setTsModal({ mode: 'clock_out', existing: s })}
+                                                                        >
+                                                                            Custom…
+                                                                        </button>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="aav-btn aav-btn-sm"
+                                                                            onClick={() => setTsModal({ mode: 'edit', existing: s })}
+                                                                        >
+                                                                            Edit
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="aav-btn aav-btn-sm"
+                                                                            onClick={() => { setVoidReason(''); setVoidTarget({ row: s, toVoid: !isVoided }); }}
+                                                                        >
+                                                                            {isVoided ? 'Restore' : 'Void'}
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            className="aav-history-toggle"
+                                            aria-expanded={showHistory}
+                                            onClick={() => setShowHistory(v => !v)}
+                                        >
+                                            <span>Change History{audit.length ? ` (${audit.length})` : ''}</span>
+                                            <svg className="aav-history-chevron" data-open={showHistory} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+                                        </button>
+                                        {showHistory && (
+                                            !r.attendance_id ? (
+                                                <p className="aav-muted" style={{ fontSize: '0.82rem' }}>
+                                                    No attendance record exists yet, so there is nothing to audit.
+                                                </p>
+                                            ) : loadingAudit ? (
+                                                <div className="aav-skeleton" style={{ height: 46 }} />
+                                            ) : audit.length === 0 ? (
+                                                <p className="aav-muted" style={{ fontSize: '0.82rem' }}>No changes recorded.</p>
+                                            ) : (
+                                                <div className="aav-history">
+                                                    {r.recorded_by_name && (
+                                                        <p className="aav-muted" style={{ fontSize: '0.78rem', margin: '0 0 0.5rem' }}>
+                                                            Recorded by {r.recorded_by_name}
+                                                        </p>
+                                                    )}
+                                                    {audit.map(entry => (
+                                                        <div className="aav-history-row" key={entry.id}>
+                                                            <span className="aav-history-date">
+                                                                {formatDate(entry.changed_at)}
+                                                            </span>
+                                                            <span className="aav-history-times">
+                                                                {entry.action === 'created' ? 'Recorded as ' : `Changed from ${entry.old_status ?? '—'} to `}
+                                                                <strong>{entry.new_status}</strong>
+                                                                {entry.changed_by_name ? ` by ${entry.changed_by_name}` : ''}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )
                                         )}
                                     </div>
 
@@ -1233,6 +1460,118 @@ const AdminAttendanceView: React.FC = () => {
                     onClose={() => setCorrectTarget(null)}
                     onSubmit={submitCorrection}
                 />
+            )}
+
+            {/* ══ CLOCK RECORD OVERRIDE ══ add / correct / force clock-out ══ */}
+            {tsModal && drawer?.kind === 'detail' && (
+                <AdminTimesheetModal
+                    open
+                    mode={tsModal.mode}
+                    existing={tsModal.existing}
+                    studentName={fullName(drawer.row)}
+                    studentEmail={drawer.row.email ?? undefined}
+                    date={date}
+                    timeZone={timeZone}
+                    statusWarning={tsModal.mode === 'add'
+                        && (drawer.row.effective_status === 'absent' || drawer.row.effective_status === 'on_leave')
+                        ? `This student is marked ${drawer.row.effective_status === 'on_leave' ? 'on leave' : 'absent'} for this date. Adding a clock record does not change that status.`
+                        : null}
+                    onClose={() => setTsModal(null)}
+                    onSubmit={data => submitTimesheet(drawer.row, data)}
+                />
+            )}
+
+            {/* ══ QUICK CLOCK-OUT ══ one click to record a clock-out at the current time ══ */}
+            {quickOut && drawer?.kind === 'detail' && (() => {
+                const nowMs = Date.now();
+                const inMs = new Date(quickOut.clock_in).getTime();
+                let mins = Math.max(0, Math.round((nowMs - inMs) / 60000));
+                if (quickOut.break_start) {
+                    const bs = new Date(quickOut.break_start).getTime();
+                    const be = quickOut.break_end ? new Date(quickOut.break_end).getTime() : nowMs;
+                    mins -= Math.max(0, Math.round((be - bs) / 60000));
+                }
+                return (
+                    <div className="attendance-modal-overlay" onClick={e => { if (e.target === e.currentTarget && !timingOutId) setQuickOut(null); }}>
+                        <div className="attendance-modal" style={{ maxWidth: 420 }}>
+                            <div className="attendance-modal-header">
+                                <div>
+                                    <h3>Record Clock-Out</h3>
+                                    <div className="attendance-muted" style={{ marginTop: '0.2rem' }}>
+                                        {fullName(drawer.row)} · {longDate(date)}
+                                    </div>
+                                </div>
+                                <button className="attendance-modal-close" onClick={() => setQuickOut(null)} title="Close" type="button" disabled={!!timingOutId}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                </button>
+                            </div>
+                            <p className="attendance-form-hint" style={{ marginTop: 0 }}>
+                                This session is still open. Recording a clock-out at the current time closes it — no typing needed. The student is notified.
+                            </p>
+                            <div className="aav-quickout-grid">
+                                <div><span>Time In</span><strong>{formatTime(quickOut.clock_in)}</strong></div>
+                                <div><span>Time Out</span><strong>{formatTime(new Date().toISOString())} <em>(now)</em></strong></div>
+                                <div><span>Rendered</span><strong>{formatMinutes(Math.max(0, mins))}</strong></div>
+                            </div>
+                            <div className="attendance-modal-actions">
+                                <button className="attendance-btn attendance-btn-ghost" onClick={() => setQuickOut(null)} type="button" disabled={!!timingOutId}>
+                                    Cancel
+                                </button>
+                                <button className="attendance-btn attendance-btn-primary" onClick={() => timeOutNow(drawer.row, quickOut)} type="button" disabled={!!timingOutId}>
+                                    {timingOutId ? 'Recording…' : 'Record Clock-Out'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* ══ VOID / RESTORE a clock record ══ */}
+            {voidTarget && drawer?.kind === 'detail' && (
+                <div className="attendance-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setVoidTarget(null); }}>
+                    <div className="attendance-modal" style={{ maxWidth: 440 }}>
+                        <div className="attendance-modal-header">
+                            <div>
+                                <h3>{voidTarget.toVoid ? 'Void Clock Record' : 'Restore Clock Record'}</h3>
+                                <div className="attendance-muted" style={{ marginTop: '0.2rem' }}>
+                                    {fullName(drawer.row)} · {longDate(date)}
+                                </div>
+                            </div>
+                            <button className="attendance-modal-close" onClick={() => setVoidTarget(null)} title="Close" type="button">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            </button>
+                        </div>
+                        <p className="attendance-form-hint" style={{ marginTop: 0 }}>
+                            <strong>Administrator override.</strong>{' '}
+                            {voidTarget.toVoid
+                                ? 'A voided record is excluded from the student’s rendered hours and DTR.'
+                                : 'A restored record is counted again toward the student’s rendered hours.'}
+                        </p>
+                        <div className="attendance-form-group">
+                            <label className="attendance-form-label">Reason for override</label>
+                            <textarea
+                                className="attendance-form-control"
+                                rows={3}
+                                placeholder="Explain why this record is being changed. The student is notified."
+                                value={voidReason}
+                                onChange={e => setVoidReason(e.target.value)}
+                            />
+                        </div>
+                        <div className="attendance-modal-actions">
+                            <button className="attendance-btn attendance-btn-ghost" onClick={() => setVoidTarget(null)} type="button" disabled={voidSubmitting}>
+                                Cancel
+                            </button>
+                            <button
+                                className={`attendance-btn ${voidTarget.toVoid ? 'attendance-btn-danger' : 'attendance-btn-primary'}`}
+                                onClick={() => submitVoid(drawer.row)}
+                                disabled={voidSubmitting || voidReason.trim().length === 0}
+                                type="button"
+                            >
+                                {voidSubmitting ? 'Saving…' : voidTarget.toVoid ? 'Void Record' : 'Restore Record'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -5,10 +5,12 @@ import {
   calculateFinalGrade,
   canEditGrades,
   canFinalize,
+  canReopen,
   canReturn,
   canSubmit,
   canVerify,
   canWithdraw,
+  AUDIT_ACTION_LABELS,
   formatGrade,
   formatTerm,
   gradingProgress,
@@ -93,6 +95,18 @@ test('verification, return and finalization follow the workflow order', () => {
   assert.equal(canFinalize('verified'), true);
   assert.equal(canFinalize('for_review'), false);
   assert.equal(canFinalize('finalized'), false);
+});
+
+test('only a finalized sheet can be reopened by an administrator', () => {
+  assert.equal(canReopen('finalized'), true);
+  // Anything still in the workflow is corrected with Return, not Reopen.
+  for (const status of ['draft', 'for_review', 'verified'] as const) {
+    assert.equal(canReopen(status), false, `${status} must not be reopenable`);
+  }
+});
+
+test('the reopen audit action reads as an administrator action', () => {
+  assert.equal(AUDIT_ACTION_LABELS.reopen, 'Reopened by the Administrator');
 });
 
 test('an adviser can withdraw their submission, but only before the Coordinator acts', () => {

@@ -83,6 +83,13 @@ export const canReturn = (status: GradingSheetStatus): boolean =>
 
 export const canFinalize = (status: GradingSheetStatus): boolean => status === 'verified';
 
+/**
+ * Only a finalized sheet can be reopened, and only by an administrator (the RPC
+ * enforces the role; this gate only decides whether to offer the control). A
+ * sheet still under review or verified is corrected with Return, not Reopen.
+ */
+export const canReopen = (status: GradingSheetStatus): boolean => status === 'finalized';
+
 export const isLocked = (status: GradingSheetStatus): boolean => status === 'finalized';
 
 /**
@@ -246,6 +253,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
     verify: 'Verified by the Coordinator',
     return: 'Returned for correction',
     finalize: 'Finalized',
+    reopen: 'Reopened by the Administrator',
 };
 
 /**

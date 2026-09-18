@@ -422,7 +422,9 @@ const AdviserApprovalsView: React.FC<AdviserApprovalsViewProps> = ({
      * screen — the adviser has to be able to inspect the whole thing before
      * deciding, so there are no Approve/Reject buttons on the list rows.
      */
-    const handleReviewed = async (action: 'approve' | 'request_revision') => {
+    // The modal's onReviewed is typed for every action; in adviser mode only
+    // 'approve' and 'request_revision' ever fire, so the rest need no copy.
+    const handleReviewed = async (action: 'approve' | 'request_revision' | 'reopen' | 'reassign') => {
         setReviewingId(null);
         showSuccess(action === 'approve'
             ? 'DTR approved. The student has been notified.'

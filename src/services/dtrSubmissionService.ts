@@ -67,7 +67,15 @@ export interface DtrSummary {
 }
 
 export interface DtrEvent {
-  event: 'submitted' | 'resubmitted' | 'revision_requested' | 'approved';
+  event:
+    | 'submitted'
+    | 'resubmitted'
+    | 'revision_requested'
+    | 'approved'
+    | 'admin_approved'
+    | 'admin_revision_requested'
+    | 'reopened'
+    | 'reviewer_reassigned';
   actor: string | null;
   remarks: string | null;
   created_at: string;
@@ -138,6 +146,22 @@ export interface DtrSubmissionRow {
   adviser_remarks: string | null;
   attempt: number;
 }
+
+/**
+ * One row of the admin's cross-adviser DTR list. Adds the reviewer's identity
+ * and the "needs attention" signal (a pending DTR whose reviewer is missing,
+ * deactivated, or no longer the student's section adviser).
+ */
+export interface AdminDtrSubmissionRow extends DtrSubmissionRow {
+  adviser_id: string | null;
+  adviser_name: string | null;
+  adviser_active: boolean;
+  current_adviser_id: string | null;
+  needs_attention: boolean;
+}
+
+/** The filter chips on the admin DTR list. */
+export type AdminDtrFilter = DtrStatus | 'all' | 'needs_attention';
 
 /** One complete submission, as the student sent it. */
 export interface DtrSubmissionDetail extends Omit<DtrSubmissionRow, 'student_email'> {
@@ -260,6 +284,67 @@ export const dtrSubmissionService = {
    */
   async pendingCount(): Promise<number> {
     const rows = await this.listForAdviser('pending');
+    return rows.length;
+  },
+
+  // ── Admin (force control) ───────────────────────────────────────────────────
+  // Every method below is gated in the database by public.is_admin(); the server
+  // row is the audit record, so there is no client-side createAuditLog call.
+
+  /** Every submission across all advisers, with the "needs attention" signal. */
+  async listForAdmin(filter?: AdminDtrFilter): Promise<AdminDtrSubmissionRow[]> {
+    const { data, error } = await supabase.rpc('get_admin_dtr_submissions', {
+      p_status: filter && filter !== 'all' ? filter : null,
+    });
+    if (error) {
+      console.error('get_admin_dtr_submissions failed:', error);
+      throw new Error(mapDtrError(error));
+    }
+    return (data || []) as AdminDtrSubmissionRow[];
+  },
+
+  /** Approve, request a revision on, or reopen a submission, as an administrator. */
+  async adminReview(
+    id: string,
+    action: 'approve' | 'request_revision' | 'reopen',
+    reason: string,
+  ): Promise<{ status: DtrStatus }> {
+    const { data, error } = await supabase.rpc('admin_review_dtr_submission', {
+      p_id: id,
+      p_action: action,
+      p_reason: reason,
+    });
+    if (error) {
+      console.error('admin_review_dtr_submission failed:', error);
+      throw new Error(mapDtrError(error));
+    }
+    return data as { status: DtrStatus };
+  },
+
+  /**
+   * Reassign the reviewer of an open submission. Pass `null` to hand it to the
+   * student's current section adviser.
+   */
+  async reassignReviewer(
+    id: string,
+    adviserId: string | null,
+    reason: string,
+  ): Promise<{ adviser_id: string | null; adviser_name: string | null; status: DtrStatus }> {
+    const { data, error } = await supabase.rpc('admin_reassign_dtr_reviewer', {
+      p_id: id,
+      p_adviser_id: adviserId,
+      p_reason: reason,
+    });
+    if (error) {
+      console.error('admin_reassign_dtr_reviewer failed:', error);
+      throw new Error(mapDtrError(error));
+    }
+    return data as { adviser_id: string | null; adviser_name: string | null; status: DtrStatus };
+  },
+
+  /** How many submissions currently need an administrator's attention. */
+  async needsAttentionCount(): Promise<number> {
+    const rows = await this.listForAdmin('needs_attention');
     return rows.length;
   },
 };

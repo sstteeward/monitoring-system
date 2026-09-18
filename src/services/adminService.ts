@@ -232,6 +232,32 @@ export const adminService = {
     },
 
     /**
+     * Set a new password for another user's account.
+     *
+     * The privileged write runs in the `admin-set-user-password` Edge Function
+     * (service role); this only relays the admin's session token. The function
+     * re-checks that the caller is an active admin, refuses admin targets, and
+     * writes the audit trail + notifies the user. Errors are surfaced verbatim.
+     */
+    async setUserPassword(userId: string, password: string) {
+        const { data, error } = await supabase.functions.invoke('admin-set-user-password', {
+            body: { userId, password },
+        });
+        if (error) {
+            // FunctionsHttpError carries the Response with the function's own { error }.
+            const context = (error as { context?: unknown }).context;
+            if (context instanceof Response) {
+                const body = await context.json().catch(() => null);
+                throw new Error(body?.error || 'The password could not be changed.');
+            }
+            throw new Error('We could not reach the account service to change the password.');
+        }
+        if (data?.error) throw new Error(data.error);
+        if (data?.passwordApplied !== true) throw new Error('The password could not be confirmed.');
+        return true;
+    },
+
+    /**
      * Reset a user's failed login attempts or unlock account
      */
     async unlockUserAccount(userId: string) {

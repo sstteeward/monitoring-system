@@ -45,8 +45,22 @@ test('every DTR status has a label, so none renders as a raw enum', () => {
   assert.equal(DTR_STATUS_LABEL.revision_requested, 'Revision Required');
 });
 
-test('every submission event has a label', () => {
-  for (const event of ['submitted', 'resubmitted', 'revision_requested', 'approved']) {
+test('every submission event has a label, including the admin overrides', () => {
+  for (const event of [
+    'submitted',
+    'resubmitted',
+    'revision_requested',
+    'approved',
+    'admin_approved',
+    'admin_revision_requested',
+    'reopened',
+    'reviewer_reassigned',
+  ]) {
     assert.ok(DTR_EVENT_LABEL[event], `event "${event}" has no label`);
   }
+  // The admin events must read as administrator actions, not adviser ones.
+  assert.equal(DTR_EVENT_LABEL.admin_approved, 'Approved by an administrator');
+  assert.equal(DTR_EVENT_LABEL.admin_revision_requested, 'Revision requested by an administrator');
+  assert.equal(DTR_EVENT_LABEL.reopened, 'Reopened by an administrator');
+  assert.equal(DTR_EVENT_LABEL.reviewer_reassigned, 'Reviewer reassigned');
 });

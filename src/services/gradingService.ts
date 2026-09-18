@@ -82,6 +82,12 @@ export interface GradingSheetSummary {
     verified_at: string | null;
     finalized_at: string | null;
     updated_at: string;
+    // Admin list only: is the sheet's adviser still an active adviser who holds
+    // the section, and has the sheet been reopened.
+    adviser_id?: string | null;
+    adviser_active?: boolean;
+    adviser_holds_section?: boolean;
+    reopened_at?: string | null;
 }
 
 export interface GradeHistoryEntry {
@@ -133,6 +139,32 @@ export const gradingService = {
         });
         if (error) throw asError(error, 'Failed to load grading sheets for review.');
         return (data || []) as GradingSheetSummary[];
+    },
+
+    /**
+     * Admin: every grading sheet across all departments, drafts included, with
+     * the adviser-availability signals the admin list surfaces. Gated by
+     * is_admin() in the database.
+     */
+    async getAdminSheets(status?: GradingSheetStatus | 'all'): Promise<GradingSheetSummary[]> {
+        const { data, error } = await supabase.rpc('get_admin_grading_sheets', {
+            p_status: !status || status === 'all' ? null : status,
+        });
+        if (error) throw asError(error, 'Failed to load grading sheets.');
+        return (data || []) as GradingSheetSummary[];
+    },
+
+    /**
+     * Admin: reopen a finalized grading sheet for correction. The server audits
+     * the override and notifies the adviser and coordinators, so there is no
+     * client-side createAuditLog here.
+     */
+    async reopen(sheetId: string, reason: string): Promise<void> {
+        const { error } = await supabase.rpc('admin_reopen_grading_sheet', {
+            p_sheet_id: sheetId,
+            p_reason: reason,
+        });
+        if (error) throw asError(error, 'Failed to reopen the grading sheet.');
     },
 
     /**
