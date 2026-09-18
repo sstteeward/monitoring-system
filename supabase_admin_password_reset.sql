@@ -7,9 +7,12 @@
 -- the admin's own token so auth.uid() attributes it correctly.
 --
 -- It reuses write_force_action_audit (the shared audit writer) and drops a
--- system notification into the target's inbox, exactly like the other admin
--- overrides. It grants no table privilege and adds no RLS policy.
--- Safe to re-run.
+-- 'security' notification into the target's inbox. That category is emailed
+-- unconditionally by the notification-email webhook — see the notification_email_enabled
+-- override and the notification_type CHECK in supabase_notifications_system.sql —
+-- so the user is always notified by email that their password changed, even if
+-- they have turned off every other email notification. It grants no table
+-- privilege and adds no RLS policy. Safe to re-run.
 -- ==============================================================================
 
 CREATE OR REPLACE FUNCTION public.admin_record_password_reset(p_target uuid)
@@ -52,13 +55,13 @@ BEGIN
 
     INSERT INTO public.user_notifications (
         user_id, title, message, type, is_read,
-        notification_type, related_type, related_id, created_by
+        notification_type, related_type, related_id, created_by, action_label
     ) VALUES (
         p_target,
         'Password Changed by an Administrator',
-        'An administrator set a new password for your account. If you did not request this, contact your coordinator or administrator right away.',
+        'An administrator set a new password for your account. You have been signed out of all sessions. If you did not request this, contact your coordinator or administrator right away.',
         'warning', false,
-        'system', 'user', p_target, auth.uid()
+        'security', 'user', p_target, auth.uid(), 'Go to your portal'
     );
 END;
 $function$;

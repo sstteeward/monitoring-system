@@ -69,6 +69,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   system: 'System Notice',
   reminder: 'Reminder',
   general: 'Notification',
+  security: 'Security Alert',
 };
 
 /** Each portal lives under its own path, so the link lands where the user works. */

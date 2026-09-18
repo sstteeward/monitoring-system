@@ -52,7 +52,8 @@ ALTER TABLE public.user_notifications
   ADD CONSTRAINT user_notifications_notification_type_check
   CHECK (notification_type IN (
     'announcement', 'journal_approved', 'journal_rejected', 'journal_revision',
-    'attendance', 'assignment', 'company', 'system', 'reminder', 'general'
+    'attendance', 'assignment', 'company', 'system', 'reminder', 'general',
+    'dtr_submitted', 'dtr_approved', 'dtr_revision', 'security'
   ));
 
 -- Backfill the rows that existed before this migration.
@@ -457,6 +458,8 @@ GRANT EXECUTE ON FUNCTION public.get_my_notification_counts() TO authenticated;
 --    with no preferences row gets the defaults (everything on).
 --    `system` is treated as critical: it ignores the category toggles, but still
 --    respects the master email switch.
+--    `security` is stronger still — account/security notices (e.g. a password
+--    change) always email, bypassing every preference, the master switch included.
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.notification_email_enabled(p_user_id uuid, p_notification_type text)
 RETURNS boolean
@@ -468,6 +471,11 @@ AS $$
 DECLARE
   v_prefs public.notification_preferences%ROWTYPE;
 BEGIN
+  -- Account/security notices must always reach the user.
+  IF p_notification_type = 'security' THEN
+    RETURN true;
+  END IF;
+
   SELECT * INTO v_prefs FROM public.notification_preferences WHERE user_id = p_user_id;
 
   IF NOT FOUND THEN
