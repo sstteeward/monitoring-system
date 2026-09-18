@@ -47,6 +47,7 @@ const AdminResetPasswordModal: React.FC<Props> = ({ target, onClose, onSuccess }
         setError(null);
         try {
             await adminService.setUserPassword(target.id, password);
+            setSubmitting(false);
             setDone(true);
             onSuccess?.(target.name);
         } catch (e) {
