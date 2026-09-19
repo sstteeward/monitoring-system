@@ -5,6 +5,7 @@ import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
 import { adminService, describeAccountActionError, type Course } from '../services/adminService';
 import UserProfileModal from './UserProfileModal';
+import AdminResetPasswordModal from './AdminResetPasswordModal';
 import UserClickableName from './UserClickableName';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
@@ -35,6 +36,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
     const [selectedYearLevel, setSelectedYearLevel] = useState('');
     const [savingEdit, setSavingEdit] = useState(false);
     const [editError, setEditError] = useState<string | null>(null);
+    const [pwTarget, setPwTarget] = useState<{ id: string; name: string } | null>(null);
 
     useEffect(() => { loadStudents(); }, []);
 
@@ -520,11 +522,30 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                                 <div role="alert" style={{ marginTop: '0.85rem', fontSize: '0.83rem', color: '#f87171' }}>{editError}</div>
                             )}
 
+                            {/* Password */}
+                            <div style={{ borderTop: '1px solid var(--border)', marginTop: '1.25rem', paddingTop: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                                <div>
+                                    <div style={{ fontWeight: 600, color: 'var(--text-bright, #f8fafc)', fontSize: '0.9rem' }}>Password</div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Set a new password for this account.</div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => { setPwTarget({ id: editTarget.auth_user_id, name: `${editTarget.first_name ?? ''} ${editTarget.last_name ?? ''}`.trim() || (editTarget.email ?? 'this student') }); setEditTarget(null); }}
+                                    style={{ padding: '0.5rem 0.9rem', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                                    onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-hover, var(--border))')}
+                                    onMouseOut={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+                                >
+                                    Reset Password
+                                </button>
+                            </div>
+
                             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
                                 <button
                                     onClick={() => setEditTarget(null)}
                                     disabled={savingEdit}
-                                    style={{ flex: 1, padding: '0.7rem', borderRadius: 12, border: '1px solid var(--border, #1e293b)', background: 'rgba(30,41,59,0.5)', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', fontFamily: 'inherit' }}
+                                    style={{ flex: 1, padding: '0.7rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', cursor: savingEdit ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.9rem', fontFamily: 'inherit', transition: 'background 0.15s' }}
+                                    onMouseOver={e => { if (!savingEdit) e.currentTarget.style.background = 'var(--bg-hover, var(--border))'; }}
+                                    onMouseOut={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                                 >
                                     Cancel
                                 </button>
@@ -540,6 +561,11 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                     </div>
                 );
             })()}
+
+            <AdminResetPasswordModal
+                target={pwTarget}
+                onClose={() => setPwTarget(null)}
+            />
 
             <UserProfileModal
                 profileId={viewProfileId}

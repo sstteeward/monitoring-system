@@ -250,6 +250,77 @@ html[data-theme="dark"] {
   border: 2px solid var(--admin-sidebar-bg);
 }
 
+/* ── Grouped sidebar (collapsible sections + submenus) ── */
+.admin-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-nav-group-header.has-active:not(.active) {
+  color: var(--text-primary);
+}
+
+.admin-nav-group-header .nav-chevron {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  color: var(--admin-text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.admin-nav-group-header .nav-chevron.open {
+  transform: rotate(90deg);
+}
+
+.admin-nav-group-header .nav-group-badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  line-height: 1.4;
+}
+/* When a rolled-up badge is present it takes the auto margin; the chevron then
+   sits next to it rather than also pushing right. */
+.admin-nav-group-header .nav-group-badge + .nav-chevron {
+  margin-left: 0;
+}
+
+.admin-nav-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0.1rem 0 0.25rem;
+}
+
+.admin-nav-subitem {
+  padding-left: 2.35rem;
+  font-weight: 500;
+}
+
+.admin-nav-subitem .nav-text {
+  font-size: 0.82rem;
+}
+
+.admin-nav-subitem .nav-icon {
+  opacity: 0.85;
+}
+
+/* In the hover rail (collapsed, not hovered) there is no room for chevrons,
+   rolled-up counts, or the submenu indent — show icons flush like every other
+   item, and let the leaf dot-badges carry any pending signal. */
+.sidebar-mode-hover:not(:hover) .nav-chevron,
+.sidebar-mode-hover:not(:hover) .nav-group-badge {
+  display: none;
+}
+
+.sidebar-mode-hover:not(:hover) .admin-nav-subitem {
+  padding-left: 0.85rem;
+}
+
 .admin-sidebar-bottom {
   padding: 1rem 1rem;
   border-top: 1px solid var(--admin-border);
