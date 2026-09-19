@@ -10,6 +10,7 @@ import {
     buildSectionOptions,
     canonicalSectionName,
     courseCodeFromValue,
+    ordinalYearLabel,
     parseSectionName,
     studentMatchesSection,
     validateNewSectionName,
@@ -203,4 +204,33 @@ test('validateNewSectionName rejects a malformed name', () => {
 test('validateNewSectionName refuses when the adviser has no course code', () => {
     assert.ok(validateNewSectionName('DIT-3B', ''));
     assert.ok(validateNewSectionName('DIT-3B', 'Diploma in Information Technology'));
+});
+
+// ─── year-level catalog helpers ─────────────────────────────────────────────
+// ordinalYearLabel mirrors public.year_level_label; the round-trip with
+// yearNumberFromLevel is what keeps a catalog label parseable back to its digit.
+
+test('ordinalYearLabel produces the ordinal label for 1–9', () => {
+    assert.equal(ordinalYearLabel(1), '1st Year');
+    assert.equal(ordinalYearLabel(2), '2nd Year');
+    assert.equal(ordinalYearLabel(3), '3rd Year');
+    assert.equal(ordinalYearLabel(4), '4th Year');
+    assert.equal(ordinalYearLabel(5), '5th Year');
+    assert.equal(ordinalYearLabel(9), '9th Year');
+});
+
+test('yearNumberFromLevel round-trips ordinalYearLabel for 1–9', () => {
+    for (let n = 1; n <= 9; n++) {
+        assert.equal(yearNumberFromLevel(ordinalYearLabel(n)), n);
+    }
+});
+
+test('validateNewSectionName honours a custom allowedYears list', () => {
+    // A catalog that has activated year 5 accepts DIT-5A…
+    assert.equal(validateNewSectionName('DIT-5A', 'DIT', [1, 2, 3, 4, 5]), null);
+    // …while a year the catalog does not offer is refused, even one the default
+    // range would have allowed.
+    assert.ok(validateNewSectionName('DIT-4A', 'DIT', [1, 2, 3]));
+    // The course and grammar checks still run regardless of the year list.
+    assert.ok(validateNewSectionName('DHT-5A', 'DIT', [1, 2, 3, 4, 5]));
 });

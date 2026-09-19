@@ -6,11 +6,12 @@ import UserProfileModal from './UserProfileModal';
 import {
     SECTION_LETTERS,
     SECTION_YEARS,
-    YEAR_LEVELS,
     buildSectionName,
+    ordinalYearLabel,
     parseSectionName,
     validateNewSectionName,
 } from '../utils/sections';
+import { yearLevelService } from '../services/yearLevelService';
 import './CoordinatorDashboard.css';
 import './AdviserDashboard.css';
 
@@ -89,6 +90,9 @@ const AdviserSectionsView: React.FC<AdviserSectionsViewProps> = ({ onSelectSecti
     const [viewProfileId, setViewProfileId] = useState<string | null>(null);
     /** Which year level's sections are open. null = the year-level landing grid. */
     const [selectedYear, setSelectedYear] = useState<number | null>(null);
+    /** Active year levels the adviser may create a section in. Defaults to the
+     *  constants so Add Section works before the catalog fetch resolves. */
+    const [activeYears, setActiveYears] = useState<number[]>([...SECTION_YEARS]);
     /** The section whose roster is currently being awaited. */
     const pendingSectionId = useRef<string | null>(null);
 
@@ -156,6 +160,14 @@ const AdviserSectionsView: React.FC<AdviserSectionsViewProps> = ({ onSelectSecti
 
     useEffect(() => {
         loadSections();
+        // Active levels drive the Add Section year select and its validation.
+        // Fall back to the constants on failure so adding never breaks.
+        yearLevelService.list(true)
+            .then(active => {
+                const nums = active.map(l => l.year_number);
+                if (nums.length > 0) setActiveYears(nums);
+            })
+            .catch(err => console.error('Falling back to default year levels:', err));
     }, []);
 
     const loadSections = async () => {
@@ -214,14 +226,24 @@ const AdviserSectionsView: React.FC<AdviserSectionsViewProps> = ({ onSelectSecti
         return acc;
     }, {});
 
+    // 1st–3rd Year always stand (even empty). Any higher year is shown once it
+    // holds at least one section — an empty 4th (or 5th…) is noise, but a
+    // populated year must always appear, even after its catalog level is
+    // deactivated (matching never reads the catalog). Free-text names bucket
+    // into Other / Unassigned.
+    const populatedHigherYears = Object.keys(sectionsByYear)
+        .map(Number)
+        .filter(year => year > ALWAYS_SHOWN_YEARS.length && sectionsByYear[year]?.length)
+        .sort((a, b) => a - b);
+
     const visibleYears: number[] = [
         ...ALWAYS_SHOWN_YEARS,
-        ...(sectionsByYear[4]?.length ? [4] : []),
+        ...populatedHigherYears,
         ...(sectionsByYear[UNASSIGNED_YEAR]?.length ? [UNASSIGNED_YEAR] : []),
     ];
 
     const yearLabel = (year: number) => (
-        year === UNASSIGNED_YEAR ? 'Other / Unassigned' : YEAR_LEVELS[year - 1]
+        year === UNASSIGNED_YEAR ? 'Other / Unassigned' : ordinalYearLabel(year)
     );
 
     /** Drops any selection, and any roster still in flight for it. */
@@ -259,7 +281,11 @@ const AdviserSectionsView: React.FC<AdviserSectionsViewProps> = ({ onSelectSecti
         // Compose for the year the adviser is looking at, and open on a letter
         // they do not already hold — landing on a dead option is the whole
         // reason adding felt blocked.
-        const year = selectedYear !== null && selectedYear !== UNASSIGNED_YEAR ? selectedYear : 1;
+        // Compose for the year in view when it is a real, still-active level;
+        // otherwise the first active level, so the select never opens on a year
+        // that is not offered.
+        const inView = selectedYear !== null && selectedYear !== UNASSIGNED_YEAR && activeYears.includes(selectedYear);
+        const year = inView ? selectedYear : (activeYears[0] ?? 1);
         const free = firstFreeLetter(year);
         setNewYear(year);
         setSelectedLetters(free ? [free] : []);
@@ -275,7 +301,7 @@ const AdviserSectionsView: React.FC<AdviserSectionsViewProps> = ({ onSelectSecti
         }
 
         for (const name of newSectionNames) {
-            const problem = validateNewSectionName(name, course);
+            const problem = validateNewSectionName(name, course, activeYears);
             if (problem) { setCreateError(problem); return; }
 
             // The chips already disable the letters this adviser holds, but a typed
@@ -410,8 +436,8 @@ const AdviserSectionsView: React.FC<AdviserSectionsViewProps> = ({ onSelectSecti
                                 }}
                                 disabled={creating}
                             >
-                                {SECTION_YEARS.map(y => (
-                                    <option key={y} value={y}>{YEAR_LEVELS[y - 1]}</option>
+                                {activeYears.map(y => (
+                                    <option key={y} value={y}>{ordinalYearLabel(y)}</option>
                                 ))}
                             </select>
                         </div>

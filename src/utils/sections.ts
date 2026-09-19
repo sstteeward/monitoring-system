@@ -36,6 +36,20 @@ export interface SectionOption {
     label: string;
 }
 
+/**
+ * A year number → its ordinal label (1 → "1st Year" … 9 → "9th Year").
+ *
+ * Mirrors the server-side `public.year_level_label` (supabase_year_levels.sql):
+ * the two must agree so a catalog label always parses back through
+ * `yearNumberFromLevel`. Only 1–9 are meaningful (section names carry a single
+ * year digit); other inputs still produce a "-th Year" style string rather than
+ * throwing, so callers never crash on unexpected data.
+ */
+export function ordinalYearLabel(n: number): string {
+    const suffix = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
+    return `${n}${suffix} Year`;
+}
+
 /** "3rd Year" → 3. Also accepts a bare "3". Returns null when unset/unknown. */
 export function yearNumberFromLevel(yearLevel: string | null | undefined): number | null {
     if (!yearLevel) return null;
@@ -116,9 +130,11 @@ export function studentMatchesSection(
  * Is this a section name an adviser may create for `courseCode`?
  *
  * The mirror of the guard in `public.adviser_create_section`: COURSE-YEARLETTER,
- * year 1–4, and the prefix must be the adviser's own course. Returns null when
- * the name is acceptable, or the message to show. Keep in step with the SQL —
- * the server refuses anything this misses, but with a blunter message.
+ * a year drawn from `allowedYears` (the active catalog levels; defaults to
+ * SECTION_YEARS so existing callers are unchanged), and the prefix must be the
+ * adviser's own course. Returns null when the name is acceptable, or the message
+ * to show. Keep in step with the SQL — the server refuses anything this misses
+ * (and re-checks the catalog itself), but with a blunter message.
  *
  * The letter is whatever `parseSectionName` accepts, A–Z, rather than the A–J of
  * SECTION_LETTERS: those ten are what the dropdowns offer, not the limit of what
@@ -126,7 +142,11 @@ export function studentMatchesSection(
  * is still offered to students by buildSectionOptions, so nothing downstream
  * needs to know it is unusual.
  */
-export function validateNewSectionName(name: string, courseCode: string): string | null {
+export function validateNewSectionName(
+    name: string,
+    courseCode: string,
+    allowedYears: readonly number[] = SECTION_YEARS,
+): string | null {
     const code = courseCodeFromValue(courseCode);
     if (!code) {
         return 'Your adviser profile has no course assigned. Ask the SIL Coordinator to set your adviser type before adding a section.';
@@ -141,8 +161,9 @@ export function validateNewSectionName(name: string, courseCode: string): string
         return `You may only create ${code} sections. ${parsed.courseCode}-${parsed.year}${parsed.letter} belongs to another course.`;
     }
 
-    if (!SECTION_YEARS.includes(parsed.year as typeof SECTION_YEARS[number])) {
-        return `Year ${parsed.year} is not a valid year level. Choose a year from 1 to 4.`;
+    if (!allowedYears.includes(parsed.year)) {
+        const choices = [...allowedYears].sort((a, b) => a - b).join(', ');
+        return `Year ${parsed.year} is not an active year level. Choose a year from: ${choices || '1 to 4'}.`;
     }
 
     // The letter needs no check of its own: parseSectionName only matches A–Z.

@@ -7,6 +7,8 @@ import UserClickableName from './UserClickableName';
 import CustomSelect from './CustomSelect';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import { YEAR_LEVELS } from '../utils/sections';
+import { yearLevelService } from '../services/yearLevelService';
 import './CoordinatorDashboard.css'; // Reusing coordinator styles
 
 interface GradesViewProps {
@@ -33,8 +35,18 @@ const GradesView: React.FC<GradesViewProps> = ({ isAdmin = false }) => {
     const [newSectionName, setNewSectionName] = useState('');
     const [savingSection, setSavingSection] = useState(false);
 
+    // Active year levels drive which year cards always show; years that hold
+    // students still appear via the union below even if their level is inactive.
+    const [activeYearLabels, setActiveYearLabels] = useState<string[]>([...YEAR_LEVELS]);
+
     useEffect(() => {
         loadStudents();
+        yearLevelService.list(true)
+            .then(active => {
+                const labels = active.map(l => l.label);
+                if (labels.length > 0) setActiveYearLabels(labels);
+            })
+            .catch(err => console.error('Falling back to default year levels:', err));
     }, []);
 
     const loadStudents = async () => {
@@ -267,7 +279,7 @@ const GradesView: React.FC<GradesViewProps> = ({ isAdmin = false }) => {
                         {
                             (function() {
                                 const existingYears = Object.keys(keysByCourseAndYear[selectedCourse] || {});
-                                const fixedYears = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+                                const fixedYears = activeYearLabels;
                                 const allYears = Array.from(new Set([...fixedYears, ...existingYears])).sort((a, b) => {
                                     if (a === 'Unassigned Year') return 1;
                                     if (b === 'Unassigned Year') return -1;

@@ -3,11 +3,13 @@ import { coordinatorService } from '../services/coordinatorService';
 import { TableRowSkeleton } from './Skeletons';
 import type { Profile } from '../services/profileService';
 import './CoordinatorDashboard.css';
-import { adminService, describeAccountActionError } from '../services/adminService';
+import { adminService, describeAccountActionError, type Course } from '../services/adminService';
 import UserProfileModal from './UserProfileModal';
 import UserClickableName from './UserClickableName';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
+import { parseSectionName, yearNumberFromLevel, YEAR_LEVELS } from '../utils/sections';
+import { yearLevelService } from '../services/yearLevelService';
 
 interface StudentsViewProps {
     initialFilter?: 'all' | 'assigned' | 'completed' | 'in-progress' | 'at-risk';
@@ -25,7 +27,77 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
     const [viewProfileId, setViewProfileId] = useState<string | null>(null);
     const [departmentName, setDepartmentName] = useState<string | null>(null);
 
+    // Admin-only: change a student's course and/or year level.
+    const [allCourses, setAllCourses] = useState<Course[]>([]);
+    const [yearOptions, setYearOptions] = useState<string[]>([...YEAR_LEVELS]);
+    const [editTarget, setEditTarget] = useState<Profile | null>(null);
+    const [selectedCourseCode, setSelectedCourseCode] = useState('');
+    const [selectedYearLevel, setSelectedYearLevel] = useState('');
+    const [savingEdit, setSavingEdit] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
+
     useEffect(() => { loadStudents(); }, []);
+
+    useEffect(() => {
+        if (!isAdmin) return;
+        adminService.getCourses().then(setAllCourses).catch(err => console.error('Failed to load courses:', err));
+        yearLevelService.list(true)
+            .then(active => { const labels = active.map(l => l.label); if (labels.length) setYearOptions(labels); })
+            .catch(err => console.error('Falling back to default year levels:', err));
+    }, [isAdmin]);
+
+    const codeOf = (value: string | null | undefined) => (value ?? '').trim().toUpperCase();
+
+    /** Active courses, plus the student's current one so an inactive value stays selectable. */
+    const courseOptionsFor = (student: Profile | null): Course[] => {
+        const current = codeOf(student?.course);
+        return allCourses.filter(c => c.is_active !== false || (!!current && codeOf(c.code) === current));
+    };
+
+    /** Active year labels, plus the student's current one even if it is inactive. */
+    const yearOptionsFor = (student: Profile | null): string[] => {
+        const current = (student?.year_level ?? '').trim();
+        return current && !yearOptions.includes(current) ? [...yearOptions, current] : yearOptions;
+    };
+
+    const openEditModal = (student: Profile) => {
+        setEditTarget(student);
+        setSelectedCourseCode(codeOf(student.course));
+        setSelectedYearLevel((student.year_level ?? '').trim());
+        setEditError(null);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editTarget) return;
+        const courseChanged = !!selectedCourseCode && codeOf(selectedCourseCode) !== codeOf(editTarget.course);
+        const yearChanged = !!selectedYearLevel && selectedYearLevel.trim() !== (editTarget.year_level ?? '').trim();
+        if (!courseChanged && !yearChanged) return;
+
+        setSavingEdit(true);
+        setEditError(null);
+        try {
+            let course = editTarget.course ?? null;
+            let yearLevel = editTarget.year_level ?? null;
+            let section = editTarget.section ?? null;
+            if (courseChanged) {
+                const r = await adminService.updateStudentCourse(editTarget.auth_user_id, selectedCourseCode);
+                course = r.course; section = r.section;
+            }
+            if (yearChanged) {
+                const r = await adminService.updateStudentYearLevel(editTarget.auth_user_id, selectedYearLevel);
+                yearLevel = r.year_level; section = r.section;
+            }
+            setStudents(prev => prev.map(s => s.auth_user_id === editTarget.auth_user_id
+                ? { ...s, course, year_level: yearLevel, section }
+                : s));
+            setEditTarget(null);
+        } catch (err) {
+            const fallback = err instanceof Error ? err.message : 'Failed to update the student.';
+            setEditError(describeAccountActionError(err, fallback));
+        } finally {
+            setSavingEdit(false);
+        }
+    };
 
     const loadStudents = async () => {
         setLoading(true);
@@ -172,6 +244,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                             <th>Email</th>
                             <th>Company</th>
                             <th>Department</th>
+                            {isAdmin && <th>Course / Year</th>}
                             <th>SIL Hours</th>
                             <th>Absences</th>
                             <th>Enrolled</th>
@@ -224,6 +297,22 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>Unassigned</span>
                                             )}
                                         </td>
+                                        {isAdmin && (
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                    {codeOf(student.course) ? (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+                                                            {codeOf(student.course)}
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>No course</span>
+                                                    )}
+                                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                                        {(student.year_level ?? '').trim() || '—'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        )}
                                         <td>
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem' }}>
                                                 {student.required_ojt_hours}h
@@ -245,7 +334,21 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                                             {new Date(student.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                         </td>
                                         {isAdmin && (
-                                            <td style={{ textAlign: 'right' }}>
+                                            <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                <button
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: '#8b5cf6',
+                                                        cursor: 'pointer',
+                                                        padding: '0.2rem 0.5rem',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 500
+                                                    }}
+                                                    onClick={(e) => { e.stopPropagation(); openEditModal(student); }}
+                                                >
+                                                    Edit
+                                                </button>
                                                 <button
                                                     style={{
                                                         background: 'none',
@@ -267,7 +370,7 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                             })
                         ) : (
                             <tr>
-                                <td colSpan={isAdmin ? 8 : 7} style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+                                <td colSpan={isAdmin ? 9 : 7} style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
                                     <div style={{ color: 'var(--text-muted)' }}>
                                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.6 }}>
                                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="var(--primary)" />
@@ -344,6 +447,99 @@ const StudentsView: React.FC<StudentsViewProps> = ({ initialFilter = 'all', isAd
                     </div>
                 </div>
             )}
+
+            {/* Edit Course / Year Level Modal (admin) */}
+            {editTarget && (() => {
+                const parsed = parseSectionName(editTarget.section);
+                const courseChanged = !!selectedCourseCode && codeOf(selectedCourseCode) !== codeOf(editTarget.course);
+                const yearChanged = !!selectedYearLevel && selectedYearLevel.trim() !== (editTarget.year_level ?? '').trim();
+                const newYearNum = yearNumberFromLevel(selectedYearLevel);
+                const willClearSection = !!parsed && (
+                    (courseChanged && parsed.courseCode !== codeOf(selectedCourseCode)) ||
+                    (yearChanged && newYearNum !== null && newYearNum !== parsed.year)
+                );
+                const anyChange = courseChanged || yearChanged;
+                const inputStyle: React.CSSProperties = { width: '100%', padding: '0.65rem 0.75rem', borderRadius: 10, background: 'var(--bg-page)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none' };
+                return (
+                    <div
+                        onMouseDown={() => { if (!savingEdit) setEditTarget(null); }}
+                        style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="edit-academics-title"
+                            onMouseDown={e => e.stopPropagation()}
+                            style={{ background: 'var(--bg-card, #0f172a)', border: '1px solid var(--border, #1e293b)', borderRadius: 20, padding: '1.75rem', width: '100%', maxWidth: 440, boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}
+                        >
+                            <h3 id="edit-academics-title" style={{ margin: '0 0 0.35rem', color: 'var(--text-bright, #f8fafc)', fontSize: '1.15rem', fontWeight: 600 }}>Course &amp; Year Level</h3>
+                            <p style={{ margin: '0 0 1.25rem', color: 'var(--text-muted, #94a3b8)', fontSize: '0.88rem', lineHeight: 1.5 }}>
+                                Set the course and year level for <strong style={{ color: 'var(--text-bright, #f8fafc)' }}>{`${editTarget.first_name ?? ''} ${editTarget.last_name ?? ''}`.trim() || editTarget.email}</strong>.
+                            </p>
+
+                            <label htmlFor="edit-course-select" style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Course</label>
+                            <select
+                                id="edit-course-select"
+                                value={selectedCourseCode}
+                                onChange={e => setSelectedCourseCode(e.target.value)}
+                                disabled={savingEdit}
+                                style={inputStyle}
+                            >
+                                {codeOf(editTarget.course) === '' && <option value="">Select a course…</option>}
+                                {courseOptionsFor(editTarget).map(c => (
+                                    <option key={c.id} value={codeOf(c.code)}>
+                                        {codeOf(c.code)} — {c.name}{c.is_active === false ? ' (inactive)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <label htmlFor="edit-year-select" style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', margin: '1rem 0 0.4rem' }}>Year Level</label>
+                            <select
+                                id="edit-year-select"
+                                value={selectedYearLevel}
+                                onChange={e => setSelectedYearLevel(e.target.value)}
+                                disabled={savingEdit}
+                                style={inputStyle}
+                            >
+                                {(editTarget.year_level ?? '').trim() === '' && <option value="">Select a year level…</option>}
+                                {yearOptionsFor(editTarget).map(y => (
+                                    <option key={y} value={y}>{y}</option>
+                                ))}
+                            </select>
+
+                            {willClearSection && (
+                                <div style={{ marginTop: '0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                        Section <strong>{editTarget.section}</strong> belongs to a different course/year, so it will be cleared. Re-assign the student to a matching section afterward.
+                                    </span>
+                                </div>
+                            )}
+
+                            {editError && (
+                                <div role="alert" style={{ marginTop: '0.85rem', fontSize: '0.83rem', color: '#f87171' }}>{editError}</div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                                <button
+                                    onClick={() => setEditTarget(null)}
+                                    disabled={savingEdit}
+                                    style={{ flex: 1, padding: '0.7rem', borderRadius: 12, border: '1px solid var(--border, #1e293b)', background: 'rgba(30,41,59,0.5)', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', fontFamily: 'inherit' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveEdit}
+                                    disabled={savingEdit || !anyChange}
+                                    style={{ flex: 1, padding: '0.7rem', borderRadius: 12, border: 'none', background: 'var(--primary)', color: '#fff', cursor: (savingEdit || !anyChange) ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.9rem', fontFamily: 'inherit', opacity: (savingEdit || !anyChange) ? 0.7 : 1 }}
+                                >
+                                    {savingEdit ? 'Saving…' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             <UserProfileModal
                 profileId={viewProfileId}

@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import type { GeoJSONPolygon } from '../utils/geoUtils';
 import type { Profile } from './profileService';
@@ -1518,68 +1519,93 @@ export const coordinatorService = {
             throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
         }
 
-        // 2. Sign up via Supabase Auth
-        const tempPassword = data.password || 'Adviser@12345';
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: normalizedEmail,
-            password: tempPassword,
-            options: {
-                data: {
+        // 2. Sign up via Supabase Auth on a throwaway client.
+        //    Email auto-confirm is enabled on this project, so a signUp on the
+        //    shared `supabase` client would auto-sign-in the new adviser and
+        //    replace the caller's session — the coordinator (or, now, the admin
+        //    creating the account) would silently become the new adviser. An
+        //    isolated client with persistSession:false keeps its session in
+        //    memory only, so the caller's stored session is never touched.
+        //    That isolated client is now signed in AS the new adviser, so its
+        //    profiles write below is a self-write (auth.uid() = auth_user_id)
+        //    and passes RLS without any admin/coordinator INSERT policy.
+        const scratch = createClient(
+            import.meta.env.VITE_SUPABASE_URL,
+            import.meta.env.VITE_SUPABASE_ANON_KEY,
+            { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+        );
+
+        try {
+            const tempPassword = data.password || 'Adviser@12345';
+            const { data: signUpData, error: signUpError } = await scratch.auth.signUp({
+                email: normalizedEmail,
+                password: tempPassword,
+                options: {
+                    data: {
+                        first_name: data.firstName.trim(),
+                        last_name: data.lastName.trim(),
+                        account_type: 'adviser',
+                        course: data.course,
+                        adviser_type: adviserType
+                    }
+                }
+            });
+
+            if (signUpError) {
+                console.error('Error signing up adviser:', signUpError);
+                // Lost a race against another registration, or the check was
+                // bypassed — the database refused it. Same message either way.
+                if (isDuplicateEmailError(signUpError)) {
+                    throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+                }
+                throw signUpError;
+            }
+
+            if (signUpData.user && Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0) {
+                throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+            }
+
+            if (signUpData.user) {
+                // Upsert the profile as the new adviser (the scratch client's
+                // in-memory session), so course and adviser_type are guaranteed
+                // set. handle_new_user has already created the base row.
+                const { error: profileError } = await scratch.from('profiles').upsert({
+                    auth_user_id: signUpData.user.id,
+                    email: normalizedEmail,
                     first_name: data.firstName.trim(),
                     last_name: data.lastName.trim(),
                     account_type: 'adviser',
                     course: data.course,
-                    adviser_type: adviserType
+                    adviser_type: adviserType,
+                    is_active: true
+                }, { onConflict: 'auth_user_id' });
+
+                if (profileError) {
+                    if (isDuplicateEmailError(profileError)) {
+                        throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
+                    }
+                    throw profileError;
                 }
             }
-        });
 
-        if (signUpError) {
-            console.error('Error signing up adviser:', signUpError);
-            // Lost a race against another registration, or the check was
-            // bypassed — the database refused it. Same message either way.
-            if (isDuplicateEmailError(signUpError)) {
-                throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
-            }
-            throw signUpError;
+            // Audit on the shared client so the row names the real actor (the
+            // signed-in coordinator or admin), not the freshly created adviser.
+            try {
+                await createAuditLog({
+                    action: 'CREATE',
+                    module: 'User Management',
+                    description: `Created new ${adviserType} account for ${data.email} (${data.course})`,
+                    targetType: 'user',
+                    targetName: `${data.firstName} ${data.lastName}`,
+                });
+            } catch {}
+
+            return signUpData;
+        } finally {
+            // Drop the scratch session; it lives only in memory but signing out
+            // releases it promptly and leaves no dangling refresh timer.
+            try { await scratch.auth.signOut(); } catch {}
         }
-
-        if (signUpData.user && Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0) {
-            throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
-        }
-
-        if (signUpData.user) {
-            // Upsert profile row to guarantee fields are set
-            const { error: profileError } = await supabase.from('profiles').upsert({
-                auth_user_id: signUpData.user.id,
-                email: normalizedEmail,
-                first_name: data.firstName.trim(),
-                last_name: data.lastName.trim(),
-                account_type: 'adviser',
-                course: data.course,
-                adviser_type: adviserType,
-                is_active: true
-            }, { onConflict: 'auth_user_id' });
-
-            if (profileError) {
-                if (isDuplicateEmailError(profileError)) {
-                    throw new Error(EMAIL_ALREADY_REGISTERED_MESSAGE);
-                }
-                throw profileError;
-            }
-        }
-
-        try {
-            await createAuditLog({
-                action: 'CREATE',
-                module: 'User Management',
-                description: `Created new ${adviserType} account for ${data.email} (${data.course})`,
-                targetType: 'user',
-                targetName: `${data.firstName} ${data.lastName}`,
-            });
-        } catch {}
-
-        return signUpData;
     },
 
     /**

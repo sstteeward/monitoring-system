@@ -25,7 +25,7 @@ import GradeHistoryModal from './GradeHistoryModal';
 import StudentNumbersModal from './StudentNumbersModal';
 import { TableSkeleton } from './Skeletons';
 import CustomSelect from './CustomSelect';
-import { SECTION_YEARS, YEAR_LEVELS, parseSectionName } from '../utils/sections';
+import { ordinalYearLabel, parseSectionName } from '../utils/sections';
 import './CoordinatorDashboard.css';
 import './AdviserDashboard.css';
 import './GradingSheet.css';
@@ -70,14 +70,12 @@ const ALWAYS_SHOWN_YEARS = [1, 2, 3] as const;
 /** A section carries no year column — the year is read off its name. */
 const yearOfSection = (name: string | null | undefined): number => {
     const year = parseSectionName(name)?.year;
-    // A year outside 1–4 still parses; it goes to Other rather than vanishing.
-    return year !== undefined && SECTION_YEARS.includes(year as typeof SECTION_YEARS[number])
-        ? year
-        : UNASSIGNED_YEAR;
+    // A year outside 1–9 (or a free-text name) goes to Other rather than vanishing.
+    return year !== undefined && year >= 1 && year <= 9 ? year : UNASSIGNED_YEAR;
 };
 
 const yearLabel = (year: number): string =>
-    year === UNASSIGNED_YEAR ? 'Other / Unassigned' : YEAR_LEVELS[year - 1];
+    year === UNASSIGNED_YEAR ? 'Other / Unassigned' : ordinalYearLabel(year);
 
 const CalendarIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -449,9 +447,18 @@ const AdviserGradingView: React.FC = () => {
             return acc;
         }, {});
 
+        // 1st–3rd Year always stand; any higher year appears once it holds a
+        // section (an empty 4th/5th… is noise, but populated data always shows,
+        // even after its catalog level is deactivated). Keep in step with
+        // AdviserSectionsView.
+        const populatedHigherYears = Object.keys(sectionsByYear)
+            .map(Number)
+            .filter(year => year > ALWAYS_SHOWN_YEARS.length && sectionsByYear[year]?.length)
+            .sort((a, b) => a - b);
+
         const visibleYears: number[] = [
             ...ALWAYS_SHOWN_YEARS,
-            ...(sectionsByYear[4]?.length ? [4] : []),
+            ...populatedHigherYears,
             ...(sectionsByYear[UNASSIGNED_YEAR]?.length ? [UNASSIGNED_YEAR] : []),
         ];
 

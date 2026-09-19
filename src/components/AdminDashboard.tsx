@@ -17,6 +17,8 @@ import AdminCoursesView from './AdminCoursesView';
 import AdminAttendanceView from './AdminAttendanceView';
 import AdminDtrSubmissionsView from './AdminDtrSubmissionsView';
 import CoordinatorGradingView from './CoordinatorGradingView';
+import CoordinatorAdvisersView from './CoordinatorAdvisersView';
+import AdminYearLevelsView from './AdminYearLevelsView';
 import AdminResetPasswordModal from './AdminResetPasswordModal';
 import AdminRoleManagementView from './AdminRoleManagementView';
 import AdminBackupRestoreView from './AdminBackupRestoreView';
@@ -48,7 +50,7 @@ const Icon = {
     security: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>,
 };
 
-type View = 'overview' | 'users' | 'roles' | 'companies' | 'profile' | 'settings' | 'feedback' | 'audit' | 'security' | 'departments' | 'courses' | 'backup' | 'health' | 'approvals' | 'students' | 'attendance' | 'dtr' | 'grading' | 'announcement' | 'requirements';
+type View = 'overview' | 'users' | 'roles' | 'companies' | 'profile' | 'settings' | 'feedback' | 'audit' | 'security' | 'departments' | 'courses' | 'backup' | 'health' | 'approvals' | 'students' | 'attendance' | 'dtr' | 'grading' | 'announcement' | 'requirements' | 'advisers';
 
 const AdminDashboard: React.FC = () => {
     const location = useLocation();
@@ -109,7 +111,7 @@ const AdminDashboard: React.FC = () => {
         // a slug missing from this list leaves the sidebar item inert. That is
         // what made Attendance unclickable, and it also broke refresh and direct
         // navigation to /admin/attendance. Every View must appear here.
-        const validSlugs: View[] = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'security', 'departments', 'courses', 'backup', 'health', 'approvals', 'students', 'attendance', 'dtr', 'grading', 'announcement', 'requirements'];
+        const validSlugs: View[] = ['overview', 'users', 'roles', 'companies', 'profile', 'settings', 'feedback', 'audit', 'security', 'departments', 'courses', 'backup', 'health', 'approvals', 'students', 'attendance', 'dtr', 'grading', 'announcement', 'requirements', 'advisers'];
 
         if (validSlugs.includes(path as View)) {
             setCurrentView(path as View);
@@ -307,6 +309,10 @@ const AdminDashboard: React.FC = () => {
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
                             <span className="nav-text">All Students</span>
                         </div>
+                        <div className={`admin-nav-item ${currentView === 'advisers' ? 'active' : ''}`} onClick={() => navigateTo('advisers')}>
+                            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><polyline points="17 11 19 13 23 9" /></svg></span>
+                            <span className="nav-text">Advisers &amp; Sections</span>
+                        </div>
                         <div className={`admin-nav-item ${currentView === 'attendance' ? 'active' : ''}`} onClick={() => navigateTo('attendance')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
                             <span className="nav-text">Attendance</span>
@@ -328,7 +334,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <div className={`admin-nav-item ${currentView === 'courses' ? 'active' : ''}`} onClick={() => navigateTo('courses')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg></span>
-                            <span className="nav-text">Courses</span>
+                            <span className="nav-text">Courses &amp; Year Levels</span>
                         </div>
                         <div className={`admin-nav-item ${currentView === 'requirements' ? 'active' : ''}`} onClick={() => navigateTo('requirements')}>
                             <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="m9 15 2 2 4-4" /></svg></span>
@@ -397,8 +403,9 @@ const AdminDashboard: React.FC = () => {
                                     {currentView === 'attendance' && 'Attendance Monitoring'}
                                     {currentView === 'dtr' && 'DTR Submissions'}
                                     {currentView === 'grading' && 'Official Grading Sheets'}
+                                    {currentView === 'advisers' && 'Advisers & Sections'}
                                     {currentView === 'departments' && 'Departments'}
-                                    {currentView === 'courses' && 'Courses'}
+                                    {currentView === 'courses' && 'Courses & Year Levels'}
                                     {currentView === 'audit' && 'Audit Logs'}
                                     {currentView === 'backup' && 'Backup & Restore'}
                                     {currentView === 'health' && 'System Health'}
@@ -847,6 +854,9 @@ const AdminDashboard: React.FC = () => {
                         {currentView === 'courses' && (
                             <div className="fade-in">
                                 <AdminCoursesView />
+                                <div style={{ marginTop: '1.5rem' }}>
+                                    <AdminYearLevelsView />
+                                </div>
                             </div>
                         )}
 
@@ -895,6 +905,12 @@ const AdminDashboard: React.FC = () => {
                         {currentView === 'grading' && (
                             <div className="fade-in">
                                 <CoordinatorGradingView mode="admin" />
+                            </div>
+                        )}
+
+                        {currentView === 'advisers' && (
+                            <div className="fade-in">
+                                <CoordinatorAdvisersView />
                             </div>
                         )}
                     </div>

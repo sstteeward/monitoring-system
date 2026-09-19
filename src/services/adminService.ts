@@ -174,6 +174,37 @@ export const adminService = {
     },
 
     /**
+     * Change a student's course (by catalog code). The server validates the
+     * course, clears a section that belonged to the old course, and writes the
+     * audit row. Returns whether the section was cleared so the UI can say so.
+     */
+    async updateStudentCourse(userId: string, course: string): Promise<{ course: string; section: string | null; section_cleared: boolean }> {
+        const { data, error } = await supabase
+            .rpc('admin_update_student_course', { target_user_id: userId, p_course: course });
+
+        if (error) {
+            console.error('Error updating student course:', error);
+            throw error;
+        }
+        return data as { course: string; section: string | null; section_cleared: boolean };
+    },
+
+    /**
+     * Change a student's year level (validated against the active catalog).
+     * Clears a section that belonged to the old year and writes the audit row.
+     */
+    async updateStudentYearLevel(userId: string, yearLevel: string): Promise<{ year_level: string; section: string | null; section_cleared: boolean }> {
+        const { data, error } = await supabase
+            .rpc('admin_update_student_year_level', { target_user_id: userId, p_year_level: yearLevel });
+
+        if (error) {
+            console.error('Error updating student year level:', error);
+            throw error;
+        }
+        return data as { year_level: string; section: string | null; section_cleared: boolean };
+    },
+
+    /**
      * Get all companies for dropdown
      */
     async getAllCompanies() {

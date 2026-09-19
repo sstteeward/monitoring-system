@@ -5,7 +5,7 @@ import UserProfileModal from './UserProfileModal';
 import UserClickableName from './UserClickableName';
 import { usePagination } from '../hooks/usePagination';
 import { Pagination } from './Pagination';
-import { studentMatchesSection, parseSectionName, YEAR_LEVELS } from '../utils/sections';
+import { studentMatchesSection, parseSectionName, ordinalYearLabel } from '../utils/sections';
 import { EMAIL_ALREADY_REGISTERED_MESSAGE, EMAIL_ALREADY_REGISTERED_TITLE, isDuplicateEmailError } from '../utils/email';
 import './CoordinatorDashboard.css';
 import './CoordinatorAdvisersView.css';
@@ -125,7 +125,7 @@ const COURSE_NAMES: Record<string, string> = {
 const yearLabelOf = (sectionName: string) => {
     const parsed = parseSectionName(sectionName);
     if (!parsed) return '—';
-    return YEAR_LEVELS[parsed.year - 1] || `Year ${parsed.year}`;
+    return ordinalYearLabel(parsed.year);
 };
 
 const CHIP_LIMIT = 3;

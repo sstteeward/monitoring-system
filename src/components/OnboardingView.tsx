@@ -38,6 +38,7 @@ import {
     type NameLevels,
 } from './onboarding/onboardingFields';
 import { YEAR_LEVELS, buildSectionOptions } from '../utils/sections';
+import { yearLevelService } from '../services/yearLevelService';
 import { validateStudentNumber } from '../utils/studentNumber';
 
 const STEPS =['Personal', 'Address', 'Academic', 'Company', 'Review'];
@@ -108,6 +109,9 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
     const [availableSections, setAvailableSections] = useState<{ id: string; name: string; course_code: string }[]>([]);
     const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
     const [courses, setCourses] = useState<{ id: string; name: string; code: string; description?: string | null }[]>([]);
+    // Active year levels from the catalog, defaulting to the constants so the
+    // select always renders even before the fetch resolves or if it fails.
+    const [yearLevelOptions, setYearLevelOptions] = useState<string[]>([...YEAR_LEVELS]);
 
     // ── Step 4: Internship Company ──
     const [companies, setCompanies] = useState<Company[]>([]);
@@ -267,6 +271,18 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
             if (data && data.length > 0) {
                 setAvailableSections(data);
             }
+        });
+        // Offer only active year levels, but keep the value this profile has
+        // already saved selectable so deactivating a level never blanks an
+        // existing student's record. Fall back to the constants on failure.
+        yearLevelService.list(true).then(active => {
+            if (!isMounted) return;
+            const labels = active.map(l => l.label);
+            const current = (profile.year_level ?? '').trim();
+            if (current && !labels.includes(current)) labels.push(current);
+            if (labels.length > 0) setYearLevelOptions(labels);
+        }).catch(err => {
+            console.error('Falling back to default year levels:', err);
         });
 
         return () => {
@@ -765,7 +781,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ profile, onComplete }) 
                                 value={yearLevel}
                                 onChange={handleYearLevelChange}
                                 placeholder="Select Year"
-                                options={YEAR_LEVELS.map(y => ({ value: y, label: y }))}
+                                options={yearLevelOptions.map(y => ({ value: y, label: y }))}
                             />
                         </div>
                         <div className="onb-field">
